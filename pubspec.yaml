@@ -1,0 +1,45 @@
+name: tramoo
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  image_picker: ^0.8.7+5
+  intl: ^0.20.2
+
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins/Poppins-Italic.ttf
+          style: italic
+        - asset: assets/fonts/Poppins/Poppins-Bold.ttf
+          weight: 700
+
+# La section flutter_icons doit être en dehors de "flutter"
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo_tramoo.png" # Remplace par ton image

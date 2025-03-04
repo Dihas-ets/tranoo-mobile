@@ -1,0 +1,2 @@
+C:/Users/GNACADJA Laurinda/Documents/gitlab/tranoo/android/app/.cxx/Debug/3n1g1m55/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/GNACADJA Laurinda/Documents/gitlab/tranoo/android/app/.cxx/Debug/3n1g1m55/armeabi-v7a/CMakeFiles/rebuild_cache.dir
