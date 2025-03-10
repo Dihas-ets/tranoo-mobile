@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'create_sell.dart';
+import 'driver_certified.dart';// Importez la page create_sell.dart
 
 class ProfilUtilisateurPage extends StatelessWidget {
   const ProfilUtilisateurPage({super.key});
@@ -55,16 +57,29 @@ class ProfilUtilisateurPage extends StatelessWidget {
             const SizedBox(height: 20),
 
             // Liste des options
-            buildOption("Mon compte",
+            buildOption(context, "Mon compte",
                 "Apporter des modifications à votre compte", Icons.person),
-            buildOption("Vendre ma voiture",
-                "Devenez fournisseur et vendez avec nous", Icons.car_rental),
-            buildOption("Devenir chauffeur certifié",
-                "Proposer des services de livraison", Icons.delivery_dining),
-            buildOption(
-                "Mon portefeuille", "200000 XOF", Icons.account_balance_wallet,
+            buildOption(context, "Vendre ma voiture",
+                "Devenez fournisseur et vendez avec nous", Icons.car_rental,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => CreateSellPage()), // Redirection vers create_sell.dart
+                  );
+                }),
+            buildOption(context, "Devenir chauffeur certifié",
+                "Proposer des services de livraison", Icons.delivery_dining,
+            onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(builder:  (context) => DriverCertifiedPage()),
+              );
+            }),
+            buildOption(context, "Mon portefeuille", "200000 XOF",
+                Icons.account_balance_wallet,
                 isHighlighted: true),
-            buildOption("Déconnexion", "", Icons.logout, color: Colors.red),
+            buildOption(context, "Déconnexion", "", Icons.logout,
+                color: Colors.red),
 
             const SizedBox(height: 20),
             const Text("Plus",
@@ -72,62 +87,68 @@ class ProfilUtilisateurPage extends StatelessWidget {
             const SizedBox(height: 10),
 
             // Section "Plus"
-            buildOption("Notifications", "", Icons.notifications, badge: true),
-            buildOption("Langue", "XOF", Icons.language),
-            buildOption("Devise", "XOF", Icons.monetization_on),
+            buildOption(context, "Notifications", "", Icons.notifications,
+                badge: true),
+            buildOption(context, "Langue", "XOF", Icons.language),
+            buildOption(context, "Devise", "XOF", Icons.monetization_on),
           ],
         ),
       ),
     );
   }
 
-  Widget buildOption(String title, String subtitle, IconData icon,
+  Widget buildOption(BuildContext context, String title, String subtitle,
+      IconData icon,
       {Color color = Colors.black,
-      bool isHighlighted = false,
-      bool badge = false}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 4, spreadRadius: 1),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: isHighlighted ? Colors.orange : color),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(fontWeight: FontWeight.bold, color: color),
-                  ),
-                  if (subtitle.isNotEmpty)
+        bool isHighlighted = false,
+        bool badge = false,
+        Function()? onTap}) {
+    return InkWell(
+      onTap: onTap, // Gestion du clic
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(color: Colors.black12, blurRadius: 4, spreadRadius: 1),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: isHighlighted ? Colors.orange : color),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      subtitle,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      title,
+                      style: TextStyle(fontWeight: FontWeight.bold, color: color),
                     ),
-                ],
-              ),
-            ],
-          ),
-          if (badge)
-            Container(
-              width: 10,
-              height: 10,
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
+                    if (subtitle.isNotEmpty)
+                      Text(
+                        subtitle,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                  ],
+                ),
+              ],
             ),
-        ],
+            if (badge)
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

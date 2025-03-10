@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tramoo/data/screens/avant_home.dart';
 
-class SuccesScreen extends StatelessWidget {
-  const SuccesScreen({Key? key}) : super(key: key);
+class SuccesScreen2 extends StatelessWidget {
+  const SuccesScreen2({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +29,7 @@ class SuccesScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(32),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00D67D).withAlpha(40),
+                      color: Colors.amber.withAlpha(40), // Changé en amber
                       blurRadius: 40,
                       spreadRadius: 15,
                     ),
@@ -46,7 +46,7 @@ class SuccesScreen extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Image.asset(
-                          'assets/images/smiley.png',
+                          'assets/images/smiley2.png',
                           height: 120,
                           width: 120,
                         ),
@@ -65,13 +65,13 @@ class SuccesScreen extends StatelessWidget {
                             style: TextStyle(fontSize: 14, height: 1.5),
                             children: [
                               TextSpan(
-                                text: 'Cher client vous avez réussi à faire votre achat avec succès. ',
+                                text: 'Bravo! Vous avez réussi à créer votre article. C est en cours de \n validation ',
                                 style: TextStyle(color: Colors.black),
                               ),
-                              TextSpan(
-                                text: 'Votre produit vous sera livré au plus dans 5 jrs. Merci pour votre confiance !',
-                                style: TextStyle(color: Color(0xFF00D67D)),
-                              ),
+                              //TextSpan(
+                              //  text: 'Votre produit vous sera livré au plus dans 5 jrs. Merci pour votre confiance !',
+                               // style: TextStyle(color: Colors.amber), // Changé en amber
+                              //),
                             ],
                           ),
                         ),
@@ -83,7 +83,7 @@ class SuccesScreen extends StatelessWidget {
                               Navigator.push(context, MaterialPageRoute(builder: (context) => AvantHome()));
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00D67D),
+                              backgroundColor: Colors.amber, // Changé en amber
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
@@ -109,4 +109,3 @@ class SuccesScreen extends StatelessWidget {
     );
   }
 }
-
