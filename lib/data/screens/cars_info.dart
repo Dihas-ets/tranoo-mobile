@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'movie.dart';
 import 'payement.dart';
 
@@ -57,7 +58,7 @@ class _CarsinfoState extends State<Cars_info> {
   Widget _buildImageSection() {
     return Stack(
       children: [
-        Container(
+        SizedBox(
           height: 300,
           width: double.infinity,
           child: Image.asset(
@@ -83,7 +84,9 @@ class _CarsinfoState extends State<Cars_info> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const Movie()), // Diriger vers la page movie.dart
+                MaterialPageRoute(
+                  builder: (context) => const Movie(),
+                ), // Diriger vers la page movie.dart
               );
             },
           ),
@@ -94,7 +97,7 @@ class _CarsinfoState extends State<Cars_info> {
           right: 0,
           child: Container(
             height: 100,
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withAlpha(50),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: _images.length,
@@ -114,9 +117,10 @@ class _CarsinfoState extends State<Cars_info> {
                     width: 120,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: _currentImageIndex == index
-                            ? Colors.amber
-                            : Colors.transparent,
+                        color:
+                            _currentImageIndex == index
+                                ? Colors.amber
+                                : Colors.transparent,
                         width: 2,
                       ),
                     ),
@@ -169,31 +173,16 @@ class _CarsinfoState extends State<Cars_info> {
           children: [
             const Text(
               'Tesla Modèle 3',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Row(
               children: [
-                Text(
-                  '0',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.blue,
-                  ),
-                ),
+                Text('0', style: TextStyle(fontSize: 16, color: Colors.blue)),
                 Text(
                   ' / 5 ',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.blue,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.blue),
                 ),
-                const Icon(
-                  Icons.star,
-                  color: Colors.blue,
-                ),
+                const Icon(Icons.star, color: Colors.blue),
               ],
             ),
           ],
@@ -214,11 +203,7 @@ class _CarsinfoState extends State<Cars_info> {
   Widget _buildDescription() {
     return const Text(
       'La Tesla Model 3 est une berline électrique de taille moyenne, reconnue pour ses performances impressionnantes, son accélération.....',
-      style: TextStyle(
-        fontSize: 16,
-        color: Colors.grey,
-        height: 1.5,
-      ),
+      style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
     );
   }
 
@@ -264,10 +249,7 @@ class _CarsinfoState extends State<Cars_info> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black54,
-            ),
+            style: const TextStyle(fontSize: 14, color: Colors.black54),
           ),
         ],
       ),
@@ -351,8 +333,6 @@ class _CarsinfoState extends State<Cars_info> {
     );
   }
 
-
-
   Widget _buildOrderButton() {
     return SizedBox(
       width: double.infinity,
@@ -366,9 +346,7 @@ class _CarsinfoState extends State<Cars_info> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.amber,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text(
           'Passez la commande',

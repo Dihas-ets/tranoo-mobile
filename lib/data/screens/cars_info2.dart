@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'movie.dart';
-import 'payement.dart';
+import 'succes2.dart';
 
-class Cars_info extends StatefulWidget {
-  const Cars_info({super.key});
+class Cars_info2 extends StatefulWidget {
+  const Cars_info2({super.key});
 
   @override
-  State<Cars_info> createState() => _CarsinfoState();
+  State<Cars_info2> createState() => _Carsinfo2State();
 }
 
-class _CarsinfoState extends State<Cars_info> {
+class _Carsinfo2State extends State<Cars_info2> {
   int _currentImageIndex = 0;
   final List<String> _images = [
     'assets/images/teslapro.png',
@@ -20,6 +20,17 @@ class _CarsinfoState extends State<Cars_info> {
   bool isNew = false;
   bool is2023 = false;
   bool isBeninese = false;
+
+  // Ajout de l'index pour le BottomNavigationBar
+  int _selectedIndex = 0;
+
+  // Fonction pour gérer le changement d'onglet
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    // Vous pouvez ajouter une logique de navigation ici si nécessaire
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +45,27 @@ class _CarsinfoState extends State<Cars_info> {
           const SizedBox(height: 50),
         ],
       ),
+      // Ajout du BottomNavigationBar
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: const Color(0xFFF9FAFB),
+        selectedItemColor: const Color(0xFFF8BF13),
+        unselectedItemColor: Colors.black,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.car_crash), label: 'Vendre'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Recherche'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+          BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Piece'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings), label: 'Parametres'),
+        ],
+      ),
     );
   }
 
+  // Le reste de votre code reste inchangé...
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -351,8 +380,6 @@ class _CarsinfoState extends State<Cars_info> {
     );
   }
 
-
-
   Widget _buildOrderButton() {
     return SizedBox(
       width: double.infinity,
@@ -360,7 +387,7 @@ class _CarsinfoState extends State<Cars_info> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => PayementScreen()),
+            MaterialPageRoute(builder: (context) => SuccesScreen2()),
           );
         },
         style: ElevatedButton.styleFrom(
@@ -371,7 +398,7 @@ class _CarsinfoState extends State<Cars_info> {
           ),
         ),
         child: const Text(
-          'Passez la commande',
+          'Vendez votre voiture',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,

@@ -36,22 +36,22 @@ class _RechercheState extends State<Recherche> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Recherche"),
-        backgroundColor: const Color(0xFFF9FAFB),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black),
-            onPressed: () {
-              showSearch(
-                context: context,
-                delegate: CustomSearchDelegate(allItems),
-              );
-            },
-          ),
-        ],
-      ),
+      // appBar: AppBar(
+      //   title: const Text("Recherche"),
+      //   backgroundColor: const Color(0xFFF9FAFB),
+      //   elevation: 0,
+      //   actions: [
+      //     IconButton(
+      //       icon: const Icon(Icons.search, color: Colors.black),
+      //       onPressed: () {
+      //         showSearch(
+      //           context: context,
+      //           delegate: CustomSearchDelegate(allItems),
+      //         );
+      //       },
+      //     ),
+      //   ],
+      // ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(

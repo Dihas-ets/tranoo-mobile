@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/data/screens/create_sell.dart';
 
 class Vendre extends StatefulWidget {
   const Vendre({super.key});
@@ -10,6 +11,6 @@ class Vendre extends StatefulWidget {
 class _VendreState extends State<Vendre> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold();
+    return CreateSellPage();
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:tranoo/data/screens/cars_info.dart';
 
 class Marque extends StatefulWidget {
@@ -17,9 +18,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
 
   final imgList = [
     'assets/images/jeni.png',
+    'assets/images/mask.png',
     'assets/images/jeni.png',
-    'assets/images/jeni.png',
-    'assets/images/jeni.png',
+    'assets/images/mask.png',
     'assets/images/jeni.png',
   ];
   @override
@@ -475,24 +476,44 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               ),
             ),
 
-            Container(
-              width: 300,
-              height: 150,
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: imgList.length,
-                itemBuilder: (context, index) {
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(15), // Définis l'arrondi ici
-                    child: Image.asset(
-                      imgList[_currentPage],
-                      fit: BoxFit.cover,
-                    ),
-                  );
-                },
-              ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 320,
+                  height: 150,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentPage = index;
+                      });
+                    },
+                    itemCount: imgList.length,
+                    itemBuilder: (context, index) {
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: Image.asset(imgList[index], fit: BoxFit.cover),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(
+                  height: 10,
+                ), // Espacement entre le carrousel et les points
+                SmoothPageIndicator(
+                  controller: _pageController,
+                  count: imgList.length,
+                  effect: JumpingDotEffect(
+                    activeDotColor: Color(0xFFF8BF13),
+                    dotColor: Color(0xFFFFF7DD),
+                    dotHeight: 8,
+                    dotWidth: 8,
+                    radius: 4,
+                  ),
+                ),
+              ],
             ),
-
 
             // Onglets
             Container(

@@ -6,7 +6,6 @@ import 'package:tranoo/data/screens/WalletScreen.dart';
 import 'package:tranoo/data/screens/conditionutilisations.dart';
 import 'package:tranoo/data/screens/marque.dart';
 import 'package:tranoo/data/screens/notifications.dart';
-import 'package:tranoo/data/screens/parametres.dart';
 import 'package:tranoo/data/screens/piece.dart';
 import 'package:tranoo/data/screens/profilutilisateurpage.dart';
 import 'package:tranoo/data/screens/recherche.dart';
@@ -23,7 +22,7 @@ class AvantHome extends StatefulWidget {
 }
 
 class _AvantHomeState extends State<AvantHome> {
-  int _selectedIndex = 2;
+  int _selectedIndex = 0;
   File? _image; // Variable pour stocker l'image sélectionnée
 
   // Ajout du GlobalKey pour le Scaffold
@@ -35,13 +34,7 @@ class _AvantHomeState extends State<AvantHome> {
     });
   }
 
-  final List<Widget> _pages = [
-    Vendre(),
-    Recherche(),
-    Marque(),
-    Piece(),
-    Parametres(),
-  ];
+  final List<Widget> _pages = [Marque(), Recherche(), Vendre(), Piece()];
 
   // Méthode pour sélectionner une image depuis la galerie
   Future<void> _pickImage() async {
@@ -272,14 +265,10 @@ class _AvantHomeState extends State<AvantHome> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.car_crash), label: 'Vendre'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Recherche'),
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Recherche'),
+          BottomNavigationBarItem(icon: Icon(Icons.car_crash), label: 'Vendre'),
           BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Pièce'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Paramètres',
-          ),
         ],
       ),
     );
