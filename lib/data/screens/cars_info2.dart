@@ -34,18 +34,27 @@ class _Carsinfo2State extends State<Cars_info2> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Récupération des dimensions de l'écran
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
+    final isPortrait = mediaQuery.orientation == Orientation.portrait;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: _buildAppBar(),
+      // 2. Utilisation de ListView pour permettre le défilement
       body: ListView(
         physics: const BouncingScrollPhysics(),
         children: [
-          _buildImageSection(),
-          _buildContentSection(),
-          const SizedBox(height: 50),
+          // 3. Section image avec dimensions adaptatives
+          _buildImageSection(screenWidth, screenHeight, isPortrait),
+          // 4. Section contenu avec padding adaptatif
+          _buildContentSection(screenWidth, screenHeight, isPortrait),
+          // 5. Espacement en bas adaptatif
+          SizedBox(height: screenHeight * 0.05),
         ],
       ),
-      // Ajout du BottomNavigationBar
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: const Color(0xFFF9FAFB),
@@ -59,13 +68,14 @@ class _Carsinfo2State extends State<Cars_info2> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
           BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Piece'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Parametres'),
+            icon: Icon(Icons.settings),
+            label: 'Parametres',
+          ),
         ],
       ),
     );
   }
 
-  // Le reste de votre code reste inchangé...
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -83,11 +93,16 @@ class _Carsinfo2State extends State<Cars_info2> {
     );
   }
 
-  Widget _buildImageSection() {
+  Widget _buildImageSection(
+    double screenWidth,
+    double screenHeight,
+    bool isPortrait,
+  ) {
     return Stack(
       children: [
+        // 6. Container principal avec hauteur adaptative
         Container(
-          height: 300,
+          height: isPortrait ? screenHeight * 0.35 : screenHeight * 0.5,
           width: double.infinity,
           child: Image.asset(
             _images[_currentImageIndex],
@@ -100,34 +115,36 @@ class _Carsinfo2State extends State<Cars_info2> {
             },
           ),
         ),
+        // 7. Bouton play positionné de manière adaptative
         Positioned(
-          right: 16,
-          top: 16,
+          right: screenWidth * 0.04,
+          top: screenHeight * 0.02,
           child: IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.play_circle_fill,
               color: Colors.red,
-              size: 40,
+              size: screenWidth * 0.1,
             ),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const Movie()), // Diriger vers la page movie.dart
+                MaterialPageRoute(builder: (context) => const Movie()),
               );
             },
           ),
         ),
+        // 8. Miniatures avec dimensions adaptatives
         Positioned(
           bottom: 0,
           left: 0,
           right: 0,
           child: Container(
-            height: 100,
+            height: screenHeight * 0.12,
             color: Colors.black.withOpacity(0.5),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: _images.length,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
               itemBuilder: (context, index) {
                 return GestureDetector(
                   onTap: () {
@@ -136,16 +153,17 @@ class _Carsinfo2State extends State<Cars_info2> {
                     });
                   },
                   child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 10,
+                    margin: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.02,
+                      vertical: screenHeight * 0.01,
                     ),
-                    width: 120,
+                    width: screenWidth * 0.3,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: _currentImageIndex == index
-                            ? Colors.amber
-                            : Colors.transparent,
+                        color:
+                            _currentImageIndex == index
+                                ? Colors.amber
+                                : Colors.transparent,
                         width: 2,
                       ),
                     ),
@@ -169,89 +187,86 @@ class _Carsinfo2State extends State<Cars_info2> {
     );
   }
 
-  Widget _buildContentSection() {
+  Widget _buildContentSection(
+    double screenWidth,
+    double screenHeight,
+    bool isPortrait,
+  ) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      // 9. Padding adaptatif basé sur la largeur de l'écran
+      padding: EdgeInsets.all(screenWidth * 0.04),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(),
-          const SizedBox(height: 16),
-          _buildDescription(),
-          const SizedBox(height: 24),
-          _buildSpecifications(),
-          const SizedBox(height: 24),
-          _buildCheckboxes(),
-          const SizedBox(height: 24),
-          _buildOrderButton(),
+          _buildHeader(screenWidth, screenHeight, isPortrait),
+          SizedBox(height: screenHeight * 0.02),
+          _buildDescription(screenWidth, isPortrait),
+          SizedBox(height: screenHeight * 0.03),
+          _buildSpecifications(screenWidth, isPortrait),
+          SizedBox(height: screenHeight * 0.03),
+          _buildCheckboxes(screenWidth, isPortrait),
+          SizedBox(height: screenHeight * 0.03),
+          _buildOrderButton(screenWidth, isPortrait),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(
+    double screenWidth,
+    double screenHeight,
+    bool isPortrait,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            // 10. Textes avec tailles de police adaptatives
+            Text(
               'Tesla Modèle 3',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: isPortrait ? screenWidth * 0.06 : screenWidth * 0.04,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Row(
-              children: [
-                Text(
-                  '0',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.blue,
-                  ),
-                ),
-                Text(
-                  ' / 5 ',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.blue,
-                  ),
-                ),
-                const Icon(
-                  Icons.star,
-                  color: Colors.blue,
-                ),
-              ],
+            Text(
+              '50 000 000 FCFA',
+              style: TextStyle(
+                fontSize: isPortrait ? screenWidth * 0.05 : screenWidth * 0.03,
+                fontWeight: FontWeight.bold,
+                color: Colors.amber,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          '18,00 000,00 f',
-          style: TextStyle(
-            fontSize: 20,
-            color: Colors.grey[800],
-            fontWeight: FontWeight.w500,
-          ),
+        SizedBox(height: screenHeight * 0.01),
+        Row(
+          children: [
+            Icon(Icons.location_on, size: screenWidth * 0.04),
+            SizedBox(width: screenWidth * 0.02),
+            Text(
+              'Cotonou, Bénin',
+              style: TextStyle(
+                fontSize: isPortrait ? screenWidth * 0.04 : screenWidth * 0.03,
+                color: Colors.grey,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildDescription() {
+  Widget _buildDescription(double screenWidth, bool isPortrait) {
     return const Text(
       'La Tesla Model 3 est une berline électrique de taille moyenne, reconnue pour ses performances impressionnantes, son accélération.....',
-      style: TextStyle(
-        fontSize: 16,
-        color: Colors.grey,
-        height: 1.5,
-      ),
+      style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
     );
   }
 
-  Widget _buildSpecifications() {
+  Widget _buildSpecifications(double screenWidth, bool isPortrait) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -260,127 +275,104 @@ class _Carsinfo2State extends State<Cars_info2> {
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
       children: [
-        _buildSpecCard('Boîte À Vitesses', 'Automate', Icons.settings),
-        _buildSpecCard('Carburant', 'Essence', Icons.local_gas_station),
-        _buildSpecCard('Climatiseur', 'Oui', Icons.ac_unit),
-        _buildSpecCard('Distance', '500', Icons.speed),
-        _buildSpecCard('Sièges', '5', Icons.event_seat),
-        _buildSpecCard('Portes', '2', Icons.door_front_door),
+        _buildInfoCard(Icons.settings, 'Boîte À Vitesses', 'Automate'),
+        _buildInfoCard(Icons.local_gas_station, 'Carburant', 'Essence'),
+        _buildInfoCard(Icons.ac_unit, 'Climatiseur', 'Oui'),
+        _buildInfoCard(Icons.speed, 'Distance', '500'),
+        _buildInfoCard(Icons.event_seat, 'Sièges', '5'),
+        _buildInfoCard(Icons.door_front_door, 'Portes', '2'),
       ],
     );
   }
 
-  Widget _buildSpecCard(String title, String value, IconData icon) {
+  Widget _buildInfoCard(IconData icon, String title, String value) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFE8F1FF),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 24, color: Colors.black87),
-          const SizedBox(height: 8),
+          Icon(icon, size: 20, color: Colors.black87),
+          const SizedBox(height: 4),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black54,
-            ),
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCheckboxes() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(1),
-          child: Container(
-            padding: const EdgeInsets.all(1),
-            color: Colors.amber,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Checkbox(
-                  value: isNew,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      isNew = value!;
-                    });
-                  },
-                  activeColor: Colors.black,
-                  checkColor: Colors.white,
-                ),
-                const Text('Nouveau'),
-              ],
-            ),
+  Widget _buildCheckboxes(double screenWidth, bool isPortrait) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildCheckboxItem(
+            value: isNew,
+            onChanged: (bool? value) => setState(() => isNew = value!),
+            label: 'Nouveau',
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(1),
-          child: Container(
-            padding: const EdgeInsets.all(1),
-            color: Colors.amber,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Checkbox(
-                  value: is2023,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      is2023 = value!;
-                    });
-                  },
-                  activeColor: Colors.black,
-                  checkColor: Colors.white,
-                ),
-                const Text('Modèle 2023'),
-              ],
-            ),
+          _buildCheckboxItem(
+            value: is2023,
+            onChanged: (bool? value) => setState(() => is2023 = value!),
+            label: 'Modèle 2023',
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(1),
-          child: Container(
-            padding: const EdgeInsets.all(1),
-            color: Colors.amber,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Checkbox(
-                  value: isBeninese,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      isBeninese = value!;
-                    });
-                  },
-                  activeColor: Colors.black,
-                  checkColor: Colors.white,
-                ),
-                const Text('Béninoise'),
-              ],
-            ),
+          _buildCheckboxItem(
+            value: isBeninese,
+            onChanged: (bool? value) => setState(() => isBeninese = value!),
+            label: 'Béninoise',
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildOrderButton() {
+  Widget _buildCheckboxItem({
+    required bool value,
+    required Function(bool?) onChanged,
+    required String label,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.amber,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Checkbox(
+              value: value,
+              onChanged: onChanged,
+              activeColor: Colors.black,
+              checkColor: Colors.white,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            Text(label, style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrderButton(double screenWidth, bool isPortrait) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -393,9 +385,7 @@ class _Carsinfo2State extends State<Cars_info2> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.amber,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text(
           'Vendez votre voiture',

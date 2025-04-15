@@ -11,6 +11,7 @@ class InscriptionPage extends StatefulWidget {
 
 class _InscriptionPageState extends State<InscriptionPage> {
   String? selectedCountry;
+  String? selectedRole;
   final List<String> countries = [
     'Bénin',
     'Côte d\'Ivoire',
@@ -18,98 +19,261 @@ class _InscriptionPageState extends State<InscriptionPage> {
     'Togo',
     'Mali',
     'Burkina Faso',
-    'Niger'
+    'Niger',
   ];
+
+  final List<String> roles = ['Transitaires', 'Acheteur', 'Vendeur'];
 
   @override
   Widget build(BuildContext context) {
+    // Récupération des dimensions de l'écran
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
+    final isPortrait = mediaQuery.orientation == Orientation.portrait;
+
     return Scaffold(
-      appBar: AppBar(backgroundColor: const Color(0xFFF9FAFB)),
+      appBar: AppBar(backgroundColor: const Color(0xFFF9FAFB), elevation: 0),
       backgroundColor: const Color(0xFFF9FAFB),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * (isPortrait ? 0.05 : 0.1),
+            vertical: screenHeight * (isPortrait ? 0.02 : 0.05),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 10),
-              Center(child: Image.asset("assets/images/logo_connexion.png")),
-              const SizedBox(height: 40),
-              const Text("S'inscrire",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-              const SizedBox(height: 12),
-              const Text("Trouvez votre voiture de rêve!",
-                  style: TextStyle(fontSize: 16)),
-              const SizedBox(height: 40),
+              SizedBox(height: screenHeight * (isPortrait ? 0.02 : 0.05)),
+              Center(
+                child: Image.asset(
+                  "assets/images/logo_connexion.png",
+                  width: screenWidth * (isPortrait ? 0.6 : 0.4),
+                  height: screenHeight * (isPortrait ? 0.15 : 0.2),
+                  fit: BoxFit.contain,
+                ),
+              ),
+              SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
+              Text(
+                "S'inscrire",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: screenWidth * (isPortrait ? 0.06 : 0.04),
+                ),
+              ),
+              SizedBox(height: screenHeight * 0.02),
+              Text(
+                "Trouvez votre voiture de rêve!",
+                style: TextStyle(
+                  fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                ),
+              ),
+              SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
 
-              buildTextField("Nom et Prénoms", Icons.person,
-                  placeholder: "Jean Dupont"),
-              const SizedBox(height: 20),
-              buildTextField("Adresse email", Icons.email,
-                  placeholder: "jean.dupont@email.com"),
-              const SizedBox(height: 20),
-              buildTextField("Téléphone", Icons.phone,
-                  placeholder: "+229 97 12 34 56"),
-              const SizedBox(height: 20),
-              buildTextField("Mot de passe", Icons.lock,
-                  isPassword: true, placeholder: "********"),
-              const SizedBox(height: 20),
-              buildTextField("Confirmer le mot de passe", Icons.lock,
-                  isPassword: true, placeholder: "********"),
-              const SizedBox(height: 20),
+              buildTextField(
+                "Nom et Prénoms",
+                Icons.person,
+                placeholder: "Jean Dupont",
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                isPortrait: isPortrait,
+              ),
+              SizedBox(height: screenHeight * 0.02),
+              buildTextField(
+                "Adresse email",
+                Icons.email,
+                placeholder: "jean.dupont@email.com",
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                isPortrait: isPortrait,
+              ),
+              SizedBox(height: screenHeight * 0.02),
+              buildTextField(
+                "Téléphone",
+                Icons.phone,
+                placeholder: "+229 97 12 34 56",
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                isPortrait: isPortrait,
+              ),
+              SizedBox(height: screenHeight * 0.02),
+              buildTextField(
+                "Mot de passe",
+                Icons.lock,
+                isPassword: true,
+                placeholder: "********",
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                isPortrait: isPortrait,
+              ),
+              SizedBox(height: screenHeight * 0.02),
+              buildTextField(
+                "Confirmer le mot de passe",
+                Icons.lock,
+                isPassword: true,
+                placeholder: "********",
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                isPortrait: isPortrait,
+              ),
+              SizedBox(height: screenHeight * 0.02),
+
+              // Nouveau champ de sélection du rôle
+              Focus(
+                onFocusChange: (hasFocus) {
+                  setState(() {});
+                },
+                child: Builder(
+                  builder: (context) {
+                    final focusNode = Focus.of(context);
+                    final bool isFocused = focusNode.hasFocus;
+
+                    return DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: 'Rôle',
+                        labelStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.person_outline,
+                          color:
+                              isFocused ? const Color(0xFFF8BF13) : Colors.grey,
+                          size: screenWidth * (isPortrait ? 0.06 : 0.04),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: screenHeight * 0.02,
+                          horizontal: screenWidth * 0.04,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color:
+                                isFocused
+                                    ? const Color(0xFFF8BF13)
+                                    : Colors.grey,
+                            width: 2,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFF8BF13),
+                          ),
+                        ),
+                      ),
+                      value: selectedRole,
+                      items:
+                          roles.map((role) {
+                            return DropdownMenuItem(
+                              value: role,
+                              child: Text(
+                                role,
+                                style: TextStyle(
+                                  fontSize:
+                                      screenWidth * (isPortrait ? 0.04 : 0.03),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedRole = value;
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: screenHeight * 0.02),
 
               // Sélection du Pays
-              buildDropdown(),
-
-              const SizedBox(height: 20),
-              buildTextField("Maison", Icons.home,
-                  placeholder: "Rue 123, Cotonou"),
-              const SizedBox(height: 40),
-
-              ElevatedButton(
-                onPressed: () {
-                  // Naviguer vers la page de connexion après l'inscription
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ConnexionPage(),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF8BF13),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  minimumSize: const Size.fromHeight(50),
-                ),
-                child: const Text("S'inscrire",
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              buildDropdown(
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                isPortrait: isPortrait,
               ),
 
-              const SizedBox(height: 40),
+              SizedBox(height: screenHeight * 0.02),
+              buildTextField(
+                "Maison",
+                Icons.home,
+                placeholder: "Rue 123, Cotonou",
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                isPortrait: isPortrait,
+              ),
+              SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ConnexionPage(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF8BF13),
+                    foregroundColor: Colors.black,
+                    padding: EdgeInsets.symmetric(
+                      vertical: screenHeight * 0.02,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    "S'inscrire",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: screenWidth * (isPortrait ? 0.045 : 0.035),
+                    ),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: screenHeight * 0.03),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Vous avez déjà un compte ? ",
-                      style: TextStyle(color: Colors.grey)),
+                  Text(
+                    "Vous avez déjà un compte ? ",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                    ),
+                  ),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const ConnexionPage()));
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ConnexionPage(),
+                        ),
+                      );
                     },
-                    child: const Text("Se connecter",
-                        style: TextStyle(
-                            color: Color(0xFF0461B6),
-                            fontWeight: FontWeight.bold)),
+                    child: Text(
+                      "Se connecter",
+                      style: TextStyle(
+                        color: const Color(0xFF0461B6),
+                        fontWeight: FontWeight.bold,
+                        fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 40),
+              SizedBox(height: screenHeight * 0.03),
             ],
           ),
         ),
@@ -118,8 +282,15 @@ class _InscriptionPageState extends State<InscriptionPage> {
   }
 
   // Fonction pour créer un champ de saisie avec un placeholder
-  Widget buildTextField(String label, IconData icon,
-      {bool isPassword = false, String? placeholder}) {
+  Widget buildTextField(
+    String label,
+    IconData icon, {
+    bool isPassword = false,
+    String? placeholder,
+    required double screenWidth,
+    required double screenHeight,
+    required bool isPortrait,
+  }) {
     return Focus(
       onFocusChange: (hasFocus) {
         setState(() {});
@@ -134,12 +305,21 @@ class _InscriptionPageState extends State<InscriptionPage> {
             decoration: InputDecoration(
               labelText: label,
               hintText: placeholder,
-              labelStyle: const TextStyle(color: Colors.grey),
-              prefixIcon: Icon(icon,
-                  color: isFocused ? const Color(0xFFF8BF13) : Colors.grey),
+              labelStyle: TextStyle(
+                color: Colors.grey,
+                fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+              ),
+              prefixIcon: Icon(
+                icon,
+                color: isFocused ? const Color(0xFFF8BF13) : Colors.grey,
+                size: screenWidth * (isPortrait ? 0.06 : 0.04),
+              ),
               filled: true,
               fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+              contentPadding: EdgeInsets.symmetric(
+                vertical: screenHeight * 0.02,
+                horizontal: screenWidth * 0.04,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
@@ -162,7 +342,11 @@ class _InscriptionPageState extends State<InscriptionPage> {
   }
 
   // Fonction pour le champ de sélection du pays
-  Widget buildDropdown() {
+  Widget buildDropdown({
+    required double screenWidth,
+    required double screenHeight,
+    required bool isPortrait,
+  }) {
     return Focus(
       onFocusChange: (hasFocus) {
         setState(() {});
@@ -175,17 +359,27 @@ class _InscriptionPageState extends State<InscriptionPage> {
           return DropdownButtonFormField<String>(
             decoration: InputDecoration(
               labelText: 'Pays',
-              labelStyle: const TextStyle(color: Colors.grey),
-              prefixIcon: Icon(Icons.public,
-                  color: isFocused ? const Color(0xFFF8BF13) : Colors.grey),
+              labelStyle: TextStyle(
+                color: Colors.grey,
+                fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+              ),
+              prefixIcon: Icon(
+                Icons.public,
+                color: isFocused ? const Color(0xFFF8BF13) : Colors.grey,
+                size: screenWidth * (isPortrait ? 0.06 : 0.04),
+              ),
               filled: true,
               fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+              contentPadding: EdgeInsets.symmetric(
+                vertical: screenHeight * 0.02,
+                horizontal: screenWidth * 0.04,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                    color: isFocused ? const Color(0xFFF8BF13) : Colors.grey,
-                    width: 2),
+                  color: isFocused ? const Color(0xFFF8BF13) : Colors.grey,
+                  width: 2,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -197,12 +391,18 @@ class _InscriptionPageState extends State<InscriptionPage> {
               ),
             ),
             value: selectedCountry,
-            items: countries.map((country) {
-              return DropdownMenuItem(
-                value: country,
-                child: Text(country),
-              );
-            }).toList(),
+            items:
+                countries.map((country) {
+                  return DropdownMenuItem(
+                    value: country,
+                    child: Text(
+                      country,
+                      style: TextStyle(
+                        fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                      ),
+                    ),
+                  );
+                }).toList(),
             onChanged: (value) {
               setState(() {
                 selectedCountry = value;

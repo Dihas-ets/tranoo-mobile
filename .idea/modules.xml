@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/tranoo.iml" filepath="$PROJECT_DIR$/.idea/tranoo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android/tranoo_android.iml" filepath="$PROJECT_DIR$/android/tranoo_android.iml" />
     </modules>
   </component>
 </project>

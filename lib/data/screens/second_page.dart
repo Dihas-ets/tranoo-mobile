@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tramoo/data/screens/third_page.dart';
+import 'package:tranoo/data/screens/third_page.dart';
 
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
@@ -13,7 +13,8 @@ class _SecondPageState extends State<SecondPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xff1E1E1E),
-      body: SingleChildScrollView( //pour éviter la barre rayure jaune
+      body: SingleChildScrollView(
+        //pour éviter la barre rayure jaune
         child: Padding(
           padding: EdgeInsets.only(right: 30),
           child: Column(
@@ -27,9 +28,13 @@ class _SecondPageState extends State<SecondPage> {
                 children: [
                   Text(
                     'Découvrez votre\nvéhicule idéal en\nquelques clics',
-                    style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
                     textAlign: TextAlign.center,
-                  )
+                  ),
                 ],
               ),
               SizedBox(height: 40),
@@ -54,11 +59,15 @@ class _SecondPageState extends State<SecondPage> {
                           MaterialPageRoute(builder: (context) => ThirdPage()),
                         );
                       },
-                      icon: Icon(Icons.arrow_circle_right, color: Color(0xffF8BF13), size: 60),
+                      icon: Icon(
+                        Icons.arrow_circle_right,
+                        color: Color(0xffF8BF13),
+                        size: 60,
+                      ),
                     ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),

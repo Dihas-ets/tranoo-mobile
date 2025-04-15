@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tramoo/data/screens/avant_home.dart';
+import 'package:tranoo/data/screens/avant_home.dart';
 
 class SuccesScreen2 extends StatelessWidget {
   const SuccesScreen2({Key? key}) : super(key: key);
@@ -8,10 +8,12 @@ class SuccesScreen2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Définir la barre d'état en noir avec des icônes blanches
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.black,
-      statusBarIconBrightness: Brightness.light,
-    ));
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.black,
+        statusBarIconBrightness: Brightness.light,
+      ),
+    );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -65,12 +67,13 @@ class SuccesScreen2 extends StatelessWidget {
                             style: TextStyle(fontSize: 14, height: 1.5),
                             children: [
                               TextSpan(
-                                text: 'Bravo! Vous avez réussi à créer votre article. C est en cours de \n validation ',
+                                text:
+                                    'Bravo! Vous avez réussi à créer votre article. C est en cours de \n validation ',
                                 style: TextStyle(color: Colors.black),
                               ),
                               //TextSpan(
                               //  text: 'Votre produit vous sera livré au plus dans 5 jrs. Merci pour votre confiance !',
-                               // style: TextStyle(color: Colors.amber), // Changé en amber
+                              // style: TextStyle(color: Colors.amber), // Changé en amber
                               //),
                             ],
                           ),
@@ -80,7 +83,12 @@ class SuccesScreen2 extends StatelessWidget {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => AvantHome()));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AvantHome(),
+                                ),
+                              );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.amber, // Changé en amber
@@ -93,7 +101,10 @@ class SuccesScreen2 extends StatelessWidget {
                             ),
                             child: const Text(
                               'Accéder à l\'accueil',
-                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                         ),

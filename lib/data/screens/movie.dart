@@ -107,28 +107,28 @@ class _MovieState extends State<Movie> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Row(
-              children: const [
-                Text(
-                  '0',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.blue,
-                  ),
-                ),
-                Text(
-                  ' / 5 ',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.blue,
-                  ),
-                ),
-                Icon(
-                  Icons.star,
-                  color: Colors.blue,
-                ),
-              ],
-            ),
+            // Row(
+            //   children: const [
+            //     Text(
+            //       '0',
+            //       style: TextStyle(
+            //         fontSize: 16,
+            //         color: Colors.blue,
+            //       ),
+            //     ),
+            //     Text(
+            //       ' / 5 ',
+            //       style: TextStyle(
+            //         fontSize: 16,
+            //         color: Colors.blue,
+            //       ),
+            //     ),
+            //     Icon(
+            //       Icons.star,
+            //       color: Colors.blue,
+            //     ),
+            //   ],
+            // ),
           ],
         ),
         const SizedBox(height: 8),

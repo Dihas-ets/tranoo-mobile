@@ -12,7 +12,7 @@ class PayementScreen extends StatefulWidget {
 
 class _PayementScreenState extends State<PayementScreen> {
   String? selectedPiece;
-  TextEditingController numeroController = TextEditingController(text: '245678399');
+  TextEditingController numeroController = TextEditingController(text: null);
   String? selectedChauffeur;
   String? selectedTransitaire;
   File? uploadedImage;
@@ -75,7 +75,7 @@ class _PayementScreenState extends State<PayementScreen> {
                     const SizedBox(height: 8),
                     _buildDropdown(
                       value: selectedPiece,
-                      hint: 'Choisissez votre pièce',
+                      hint: 'Carte d\'identité, Passeport, Permis de conduire',
                       items: pieces,
                       onChanged: (value) => setState(() => selectedPiece = value),
                     ),
@@ -86,8 +86,9 @@ class _PayementScreenState extends State<PayementScreen> {
                     const SizedBox(height: 8),
                     Container(
                       width: MediaQuery.of(context).size.width * 1, // Réduit la largeur
-                      child: TextField(
-                        controller: numeroController,
+                      child:
+                      TextField(
+                        controller: numeroController, // Controller pour récupérer la valeur saisie
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: const Color(0xFFF2F2F2),
@@ -96,21 +97,23 @@ class _PayementScreenState extends State<PayementScreen> {
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          hintText: '245678399', // Texte d'exemple en fond grisé
+                          hintStyle: TextStyle(color: Colors.grey[500]), // Style optionnel pour le hint
                         ),
-                      ),
+                      )
                     ),
                     const SizedBox(height: 24),
 
                     // Choix du Chauffeur
-                    _buildLabel('Choix du Chauffeur'),
-                    const SizedBox(height: 8),
-                    _buildDropdown(
-                      value: selectedChauffeur,
-                      hint: 'Choisissez votre chauffeur',
-                      items: chauffeurs,
-                      onChanged: (value) => setState(() => selectedChauffeur = value),
-                    ),
-                    const SizedBox(height: 24),
+                    // _buildLabel('Choix du Chauffeur'),
+                    // const SizedBox(height: 8),
+                    // _buildDropdown(
+                    //   value: selectedChauffeur,
+                    //   hint: 'Choisissez votre chauffeur',
+                    //   items: chauffeurs,
+                    //   onChanged: (value) => setState(() => selectedChauffeur = value),
+                    // ),
+                    // const SizedBox(height: 24),
 
                     // Choix du transitaire
                     _buildLabel('Choix du transitaire'),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tramoo/data/screens/create_sell.dart';
+import 'package:tranoo/data/screens/create_sell.dart';
 
 class Vendre extends StatefulWidget {
   const Vendre({super.key});

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tramoo/data/screens/second_page.dart';
+import 'package:tranoo/data/screens/second_page.dart';
 
 class FirstPage extends StatefulWidget {
   const FirstPage({super.key});
@@ -9,7 +9,6 @@ class FirstPage extends StatefulWidget {
 }
 
 class _FirstPageState extends State<FirstPage> {
-
   @override
   void initState() {
     super.initState();
@@ -26,9 +25,7 @@ class _FirstPageState extends State<FirstPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xffF8BF13),
-      body: Center(
-        child: Image.asset('assets/images/logo_tramoo.png'),
-      ),
+      body: Center(child: Image.asset('assets/images/logo_tramoo.png')),
     );
   }
 }

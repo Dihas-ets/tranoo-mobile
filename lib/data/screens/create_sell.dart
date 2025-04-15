@@ -1,6 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+
 import 'cars_info2.dart';
 
 class CreateSellPage extends StatefulWidget {
@@ -15,8 +17,9 @@ class _CreateSellPageState extends State<CreateSellPage> {
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _companyController = TextEditingController();
-  String? _selectedCondition; // Gardé en String pour "New" et "Used"
+  String? _selectedCondition; // Gardé en String pour "Nouveau" et "Occasion"
   int? _selectedModel; // Modèle
+  int? _selectedMarques;
   int? _selectedPortes; // Portes
   int? _selectedVitesse; // Vitesse
   int? _selectedCarburant; // Carburant
@@ -27,8 +30,9 @@ class _CreateSellPageState extends State<CreateSellPage> {
   String? _uploadedFileName;
   bool _hasUploadedFile = false;
 
-  final List<String> _conditions = ['New', 'Used']; // Reste en String
+  final List<String> _conditions = ['Nouveau', 'Occasion']; // Reste en String
   final List<String> _models = ['Modèle1', 'Modèle2']; // Modèles
+  final List<String> _marques = ['BMW', 'Mercedes'];
   final List<int> _portes = [1, 2]; // Portes
   final List<int> _vitesses = [1, 2]; // Vitesses
   final List<int> _carburants = [1, 2]; // Carburants
@@ -52,12 +56,6 @@ class _CreateSellPageState extends State<CreateSellPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vendre ma voiture'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -81,7 +79,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -95,30 +96,88 @@ class _CreateSellPageState extends State<CreateSellPage> {
                             children: [
                               _buildLabel('Condition'),
                               const SizedBox(height: 8),
-                              Row(
-                                children: _conditions.map((condition) {
-                                  return Row(
-                                    children: [
-                                      Radio<String>(
-                                        value: condition,
-                                        groupValue: _selectedCondition,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _selectedCondition = value;
-                                          });
-                                        },
-                                        activeColor: Colors.amber,
-                                      ),
-                                      Text(condition),
-                                      const SizedBox(width: 10),
-                                    ],
-                                  );
-                                }).toList(),
+                              // Utilisation de MediaQuery pour détecter la taille de l'écran
+                              Builder(
+                                builder: (context) {
+                                  // Récupération de la largeur de l'écran
+                                  final screenWidth =
+                                      MediaQuery.of(context).size.width;
+
+                                  // Si l'écran est petit (moins de 600px), on utilise Wrap
+                                  // Sinon, on utilise Row pour une meilleure performance
+                                  if (screenWidth < 600) {
+                                    return Wrap(
+                                      spacing:
+                                          8, // Espacement horizontal entre les éléments
+                                      children:
+                                          _conditions.map((condition) {
+                                            return Row(
+                                              mainAxisSize:
+                                                  MainAxisSize
+                                                      .min, // Réduit la taille au minimum nécessaire
+                                              children: [
+                                                Radio<String>(
+                                                  value: condition,
+                                                  groupValue:
+                                                      _selectedCondition,
+                                                  onChanged: (value) {
+                                                    setState(() {
+                                                      _selectedCondition =
+                                                          value;
+                                                    });
+                                                  },
+                                                  activeColor: Colors.amber,
+                                                  materialTapTargetSize:
+                                                      MaterialTapTargetSize
+                                                          .shrinkWrap, // Réduit la zone de toucher
+                                                ),
+                                                Text(
+                                                  condition,
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                  ), // Taille de police réduite
+                                                ),
+                                              ],
+                                            );
+                                          }).toList(),
+                                    );
+                                  } else {
+                                    // Pour les grands écrans, on utilise Row
+                                    return Row(
+                                      children:
+                                          _conditions.map((condition) {
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                right: 16,
+                                              ), // Espacement entre les radio buttons
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Radio<String>(
+                                                    value: condition,
+                                                    groupValue:
+                                                        _selectedCondition,
+                                                    onChanged: (value) {
+                                                      setState(() {
+                                                        _selectedCondition =
+                                                            value;
+                                                      });
+                                                    },
+                                                    activeColor: Colors.amber,
+                                                  ),
+                                                  Text(condition),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                    );
+                                  }
+                                },
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,7 +194,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide.none,
                                   ),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
                                 ),
                               ),
                             ],
@@ -145,20 +207,25 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Portes et Modèle
+                    // Marque et Modèle
                     Row(
                       children: [
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel('Portes'),
+                              _buildLabel('Marques'),
                               const SizedBox(height: 8),
                               _buildDropdown(
-                                value: _selectedPortes?.toString(),
-                                hint: 'Choisissez le nombre de portes',
-                                items: _portes.map((e) => e.toString()).toList(),
-                                onChanged: (value) => setState(() => _selectedPortes = int.parse(value!)),
+                                value: _selectedMarques?.toString(),
+                                hint: 'Choisissez la marque de votre véhicule ',
+                                items:
+                                    _marques.map((e) => e.toString()).toList(),
+                                onChanged:
+                                    (value) => setState(
+                                      () =>
+                                          _selectedMarques = int.parse(value!),
+                                    ),
                               ),
                             ],
                           ),
@@ -173,8 +240,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               _buildDropdown(
                                 value: _selectedModel?.toString(),
                                 hint: 'Choisissez le modèle',
-                                items: _models.map((e) => e.toString()).toList(),
-                                onChanged: (value) => setState(() => _selectedModel = int.parse(value!)),
+                                items:
+                                    _models.map((e) => e.toString()).toList(),
+                                onChanged:
+                                    (value) => setState(
+                                      () => _selectedModel = int.parse(value!),
+                                    ),
                               ),
                             ],
                           ),
@@ -198,8 +269,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               _buildDropdown(
                                 value: _selectedVitesse?.toString(),
                                 hint: 'Choisissez la vitesse',
-                                items: _vitesses.map((e) => e.toString()).toList(),
-                                onChanged: (value) => setState(() => _selectedVitesse = int.parse(value!)),
+                                items:
+                                    _vitesses.map((e) => e.toString()).toList(),
+                                onChanged:
+                                    (value) => setState(
+                                      () =>
+                                          _selectedVitesse = int.parse(value!),
+                                    ),
                               ),
                             ],
                           ),
@@ -214,8 +290,17 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               _buildDropdown(
                                 value: _selectedCarburant?.toString(),
                                 hint: 'Choisissez le carburant',
-                                items: _carburants.map((e) => e.toString()).toList(),
-                                onChanged: (value) => setState(() => _selectedCarburant = int.parse(value!)),
+                                items:
+                                    _carburants
+                                        .map((e) => e.toString())
+                                        .toList(),
+                                onChanged:
+                                    (value) => setState(
+                                      () =>
+                                          _selectedCarburant = int.parse(
+                                            value!,
+                                          ),
+                                    ),
                               ),
                             ],
                           ),
@@ -236,8 +321,17 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               _buildDropdown(
                                 value: _selectedClimatiseur?.toString(),
                                 hint: 'Choisissez le climatiseur',
-                                items: _climatiseurs.map((e) => e.toString()).toList(),
-                                onChanged: (value) => setState(() => _selectedClimatiseur = int.parse(value!)),
+                                items:
+                                    _climatiseurs
+                                        .map((e) => e.toString())
+                                        .toList(),
+                                onChanged:
+                                    (value) => setState(
+                                      () =>
+                                          _selectedClimatiseur = int.parse(
+                                            value!,
+                                          ),
+                                    ),
                               ),
                             ],
                           ),
@@ -252,8 +346,15 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               _buildDropdown(
                                 value: _selectedDistance?.toString(),
                                 hint: 'Choisissez la distance',
-                                items: _distances.map((e) => e.toString()).toList(),
-                                onChanged: (value) => setState(() => _selectedDistance = int.parse(value!)),
+                                items:
+                                    _distances
+                                        .map((e) => e.toString())
+                                        .toList(),
+                                onChanged:
+                                    (value) => setState(
+                                      () =>
+                                          _selectedDistance = int.parse(value!),
+                                    ),
                               ),
                             ],
                           ),
@@ -274,8 +375,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               _buildDropdown(
                                 value: _selectedSieges?.toString(),
                                 hint: 'Choisissez le nombre de sièges',
-                                items: _sieges.map((e) => e.toString()).toList(),
-                                onChanged: (value) => setState(() => _selectedSieges = int.parse(value!)),
+                                items:
+                                    _sieges.map((e) => e.toString()).toList(),
+                                onChanged:
+                                    (value) => setState(
+                                      () => _selectedSieges = int.parse(value!),
+                                    ),
                               ),
                             ],
                           ),
@@ -290,8 +395,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               _buildDropdown(
                                 value: _selectedPortes?.toString(),
                                 hint: 'Choisissez le nombre de portes',
-                                items: _portes.map((e) => e.toString()).toList(),
-                                onChanged: (value) => setState(() => _selectedPortes = int.parse(value!)),
+                                items:
+                                    _portes.map((e) => e.toString()).toList(),
+                                onChanged:
+                                    (value) => setState(
+                                      () => _selectedPortes = int.parse(value!),
+                                    ),
                               ),
                             ],
                           ),
@@ -320,7 +429,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide.none,
                                   ),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
                                 ),
                               ),
                             ],
@@ -343,7 +455,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                     borderRadius: BorderRadius.circular(8),
                                     borderSide: BorderSide.none,
                                   ),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
                                 ),
                               ),
                             ],
@@ -367,7 +482,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -385,7 +503,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -401,7 +522,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
                             const SizedBox(width: 8),
                             const Text(
                               'Télécharger des images',
-                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
                             ),
                           ],
                         ),
@@ -416,13 +540,19 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           color: const Color(0xFFF2F2F2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               _uploadedFileName!,
-                              style: const TextStyle(color: Colors.black, fontSize: 14),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 14,
+                              ),
                             ),
                             Stack(
                               children: [
@@ -476,15 +606,16 @@ class _CreateSellPageState extends State<CreateSellPage> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          hint: Text(hint, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          hint: Text(
+            hint,
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
+          ),
           isExpanded: true,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
+          items:
+              items.map((String item) {
+                return DropdownMenuItem<String>(value: item, child: Text(item));
+              }).toList(),
           onChanged: onChanged,
         ),
       ),
@@ -509,7 +640,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        child: const Text('Vérification', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+        child: const Text(
+          'Vérification',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+        ),
       ),
     );
   }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tramoo/data/screens/connexion_page.dart';
+import 'package:tranoo/data/screens/connexion_page.dart';
 
 class ThirdPage extends StatelessWidget {
   const ThirdPage({super.key});
@@ -14,7 +14,8 @@ class ThirdPage extends StatelessWidget {
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage(
-                    'assets/images/image_background.png'), // Remplace par ton image
+                  'assets/images/image_background.png',
+                ), // Remplace par ton image
                 fit: BoxFit.cover,
               ),
             ),
@@ -26,18 +27,17 @@ class ThirdPage extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
-                colors: [
-                  Colors.black.withAlpha(60),
-                  Colors.transparent,
-                ],
+                colors: [Colors.black.withAlpha(60), Colors.transparent],
               ),
             ),
           ),
 
           // 📄 Texte et bouton
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 30.0,
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,11 +48,12 @@ class ThirdPage extends StatelessWidget {
                     Text(
                       'Découvrez votre\nvéhicule idéal en\nquelques clics',
                       style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
-                    )
+                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -73,20 +74,23 @@ class ThirdPage extends StatelessWidget {
                         ],
                       ),
                       child: IconButton(
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => ConnexionPage()));
-                          },
-                          icon: Icon(
-                            Icons.arrow_circle_right,
-                            color: Color(0xffF8BF13),
-                            size: 60,
-                          )),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ConnexionPage(),
+                            ),
+                          );
+                        },
+                        icon: Icon(
+                          Icons.arrow_circle_right,
+                          color: Color(0xffF8BF13),
+                          size: 60,
+                        ),
+                      ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),
