@@ -405,7 +405,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 }).toList(),
             onChanged: (value) {
               setState(() {
-                selectedCountry = value;
+                selectedRole = value;
               });
             },
           );

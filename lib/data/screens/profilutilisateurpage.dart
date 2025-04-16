@@ -198,6 +198,7 @@ class _ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
               );
             },
           ),
+
           _buildListTile(
             title: "Vendre ma pièce",
             subtitle: "Devenir titulaire et vendez avec nous",

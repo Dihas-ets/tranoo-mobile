@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:tranoo/data/screens/cars_info.dart';
 import 'package:tranoo/data/screens/voitures.dart';
+import 'package:tranoo/data/screens/paymentform.dart';
+import 'package:tranoo/data/screens/piece.dart';
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -145,11 +147,33 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     ];
 
     List<double> PiecesImageHeights = [
-      30, 31, 29, 32, 36, 36, 37, 38, 30, 34, 40, 36,
+      30,
+      31,
+      29,
+      32,
+      36,
+      36,
+      37,
+      38,
+      30,
+      34,
+      40,
+      36,
     ];
 
     List<double> PiecesImageWidths = [
-      30, 31, 29, 32, 36, 36, 37, 38, 30, 34, 40, 36,
+      30,
+      31,
+      29,
+      32,
+      36,
+      36,
+      37,
+      38,
+      30,
+      34,
+      40,
+      36,
     ];
 
     return Padding(
@@ -158,26 +182,26 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         mainAxisSize: MainAxisSize.min,
         children: [
           //Ajout du texte "Sponsorisé"
-                  Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.star, // Icône appropriée
-              color: Colors.blue, // Couleur bleue pour l'icône
-              size: 20,
-            ),
-            const SizedBox(width: 8), // Espacement entre l'icône et le texte
-            Text(
-              "Sponsorisé",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue, // Couleur bleue pour le texte
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.star, // Icône appropriée
+                color: Colors.blue, // Couleur bleue pour l'icône
+                size: 20,
               ),
-            ),
-          ],
-        ),
-          const SizedBox(height: 16,),
+              const SizedBox(width: 8), // Espacement entre l'icône et le texte
+              Text(
+                "Sponsorisé",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue, // Couleur bleue pour le texte
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           //Sectin du carrousel
           SizedBox(
             height: 180,
@@ -190,10 +214,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => Cars_info(
-                          selectedImageIndex: index,
-                          images: images,
-                        ),
+                        builder:
+                            (context) => Cars_info(
+                              selectedImageIndex: index,
+                              images: images,
+                            ),
                       ),
                     );
                   },
@@ -283,7 +308,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => voituresPage()),
+                            MaterialPageRoute(
+                              builder: (context) => voituresPage(),
+                            ),
                           );
                         },
                         child: Text(
@@ -381,15 +408,34 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     vertical: 10,
-                    horizontal: 16,
+                    horizontal: 10, // Réduit l'espace sur les côtés
                   ),
-                  child: Text(
-                    "Pièces détachées",
-                    style: TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF040415),
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Pièces détachées",
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF040415),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => Piece(),
+                            ), // Redirection
+                          );
+                        },
+                        child: Text(
+                          "Voir plus",
+                          style: TextStyle(fontSize: 16, color: Colors.black),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 GridView.builder(
@@ -404,28 +450,104 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                   ),
                   itemCount: PiecesImages.length,
                   itemBuilder: (context, index) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            PiecesImages[index],
-                            height: PiecesImageHeights[index],
-                            width: PiecesImageWidths[index],
-                            fit: BoxFit.cover,
+                    // return Column(
+                    //   mainAxisAlignment: MainAxisAlignment.center,
+                    //   children: [
+                    //     ClipRRect(
+                    //       borderRadius: BorderRadius.circular(8),
+                    //       child: Image.asset(
+                    //         PiecesImages[index],
+                    //         height: PiecesImageHeights[index],
+                    //         width: PiecesImageWidths[index],
+                    //         fit: BoxFit.cover,
+                    //       ),
+                    //     ),
+                    //     SizedBox(height: 8),
+                    //     Text(
+                    //       PiecesNames[index],
+                    //       style: TextStyle(
+                    //         fontWeight: FontWeight.bold,
+                    //         fontSize: 8,
+                    // return GestureDetector(
+                    //   onTap: () {
+                    //     Navigator.push(
+                    //       context,
+                    //       MaterialPageRoute(
+                    //         builder:
+                    //             (context) => PaymentForm(
+                    //               pieceName: PiecesNames[index], // Passe le nom
+                    //               pieceImage:
+                    //                   PiecesImages[index], // Passe l'image
+                    //             ),
+                    //       ),
+                    //     );
+                    //   },
+                    //   child: Column(
+                    //     mainAxisAlignment: MainAxisAlignment.center,
+                    //     children: [
+                    //       ClipRRect(
+                    //         borderRadius: BorderRadius.circular(8),
+                    //         child: Image.asset(
+                    //           PiecesImages[index],
+                    //           height:
+                    //               PiecesImageHeights[index], // Hauteur spécifique
+                    //           width:
+                    //               PiecesImageWidths[index], // Largeur spécifique
+                    //           fit: BoxFit.cover,
+                    //         ),
+                    //       ),
+                    //       SizedBox(height: 8),
+                    //       Text(
+                    //         PiecesNames[index], // Nom de la pièce
+                    //         style: TextStyle(
+                    //           fontWeight: FontWeight.bold,
+                    //           fontSize: 8,
+                    //         ),
+                    //         textAlign: TextAlign.center,
+                    //       ),
+                    //     ],
+                    //   ),
+                    // );
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => PaymentForm(
+                                  pieceName: PiecesNames[index], // Passe le nom
+                                  pieceImage:
+                                      PiecesImages[index], // Passe l'image
+                                ),
                           ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          PiecesNames[index],
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 8,
+                        );
+                      },
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(
+                              PiecesImages[index],
+                              height:
+                                  PiecesImageHeights[index], // Hauteur spécifique
+                              width:
+                                  PiecesImageWidths[index], // Largeur spécifique
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            PiecesNames[index], // Nom de la pièce
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 8,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -851,46 +973,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Widget _buildImageCarousel() {
   List<String> images = [
     "assets/images/teslapro.png",
@@ -943,10 +1025,11 @@ Widget _buildImageCarousel() {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => Cars_info(
-                        selectedImageIndex: index,
-                        images: images,
-                      ),
+                      builder:
+                          (context) => Cars_info(
+                            selectedImageIndex: index,
+                            images: images,
+                          ),
                     ),
                   );
                 },

@@ -11,7 +11,7 @@ class HistoriqueTransitPage extends StatelessWidget {
       {
         "voiture": "Toyota Corolla 2018",
         "client": "Marcel T.",
-        "portDepart": "Anvers, Belgique",
+        "portDepart": "Anvers, Belgique",  
         "portArrivee": "Cotonou, Bénin",
         "dateTransit": "10 avril 2025",
         "statut": "Livré avec succès",

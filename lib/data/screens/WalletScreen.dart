@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'RetraitScreen.dart'; // Pour formater les dates
+import 'RetraitScreen.dart'; // Assure-toi que ce fichier existe bien
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -14,7 +14,7 @@ class _WalletScreenState extends State<WalletScreen> {
   List<bool> _isStarSelectedList = [false, false, false, false];
   List<String> _transactionDates = ['', '', '', ''];
 
-  // Fonction pour changer l'état de l'étoile pour un retrait spécifique
+  // Fonction pour enregistrer la date d'un retrait
   void _onRetrait(int index) {
     setState(() {
       _isStarSelectedList[index] = true;
@@ -32,7 +32,7 @@ class _WalletScreenState extends State<WalletScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context), // Retour à l'écran précédent
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           "Mon portefeuille",
@@ -58,10 +58,7 @@ class _WalletScreenState extends State<WalletScreen> {
             const SizedBox(height: 5),
             const Text(
               "8.250.000 f",
-              style: TextStyle(
-                fontSize: 35,
-                color: Colors.black, // Montant en noir
-              ),
+              style: TextStyle(fontSize: 35, color: Colors.black),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -87,7 +84,6 @@ class _WalletScreenState extends State<WalletScreen> {
                     );
                   },
                 ),
-
                 _actionButton(
                   context,
                   Icons.more_horiz,
@@ -98,8 +94,6 @@ class _WalletScreenState extends State<WalletScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            // Ajout d'un espace entre les sections
-            SizedBox(height: 20),
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
@@ -112,8 +106,8 @@ class _WalletScreenState extends State<WalletScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
                       child: Text(
                         "Transactions",
                         style: TextStyle(
@@ -129,7 +123,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 8,
-                        ), // Espacement ajusté
+                        ),
                         itemBuilder: (context, index) {
                           return _transactionItem(index);
                         },
@@ -167,12 +161,15 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  // Fonction qui prend un index pour chaque retrait et gère l'état de l'étoile
   Widget _transactionItem(int index) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 15),
       child: GestureDetector(
-        onTap: () => _onRetrait(index), // Change l'état sans redirection
+        onTap: () {
+          // Appelle _onRetrait pour enregistrer la date à chaque clic
+          _onRetrait(index);
+          _showRetraitPopup(index); // Afficher la pop-up avec la date
+        },
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -209,7 +206,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                   if (_transactionDates[index].isNotEmpty)
                     Text(
-                      _transactionDates[index], // Afficher la date et l'heure
+                      _transactionDates[index],
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                 ],
@@ -223,6 +220,35 @@ class _WalletScreenState extends State<WalletScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // Fonction pour afficher une pop-up avec les détails du retrait
+  void _showRetraitPopup(int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Détails du retrait"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Votre retrait a été effectué avec succès."),
+              const SizedBox(height: 10),
+              Text(
+                "Date : ${_transactionDates[index]}",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed:
+                    () => Navigator.of(context).pop(), // Fermer la pop-up
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
