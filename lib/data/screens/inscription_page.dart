@@ -10,15 +10,13 @@ class InscriptionPage extends StatefulWidget {
 }
 
 class _InscriptionPageState extends State<InscriptionPage> {
-  String? selectedCountry;
-  final List<String> countries = [
-    'Bénin',
-    'Côte d\'Ivoire',
-    'Sénégal',
-    'Togo',
-    'Mali',
-    'Burkina Faso',
-    'Niger'
+  String? selectedRole;
+  final List<String> roles = [
+    'Acheteur',
+    'Vendeur',
+    'Fournisseur',
+    'Société de transit',
+    'Chauffeur',
   ];
 
   @override
@@ -35,35 +33,59 @@ class _InscriptionPageState extends State<InscriptionPage> {
               const SizedBox(height: 10),
               Center(child: Image.asset("assets/images/logo_connexion.png")),
               const SizedBox(height: 40),
-              const Text("S'inscrire",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+              const Text(
+                "S'inscrire",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              ),
               const SizedBox(height: 12),
-              const Text("Trouvez votre voiture de rêve!",
-                  style: TextStyle(fontSize: 16)),
+              const Text(
+                "Trouvez votre voiture de rêve!",
+                style: TextStyle(fontSize: 16),
+              ),
               const SizedBox(height: 40),
 
-              buildTextField("Nom et Prénoms", Icons.person,
-                  placeholder: "Jean Dupont"),
+              buildTextField(
+                "Nom et Prénoms",
+                Icons.person,
+                placeholder: "Jean Dupont",
+              ),
               const SizedBox(height: 20),
-              buildTextField("Adresse email", Icons.email,
-                  placeholder: "jean.dupont@email.com"),
+              buildTextField(
+                "Adresse email",
+                Icons.email,
+                placeholder: "jean.dupont@email.com",
+              ),
               const SizedBox(height: 20),
-              buildTextField("Téléphone", Icons.phone,
-                  placeholder: "+229 97 12 34 56"),
+              buildTextField(
+                "Téléphone",
+                Icons.phone,
+                placeholder: "+229 97 12 34 56",
+              ),
               const SizedBox(height: 20),
-              buildTextField("Mot de passe", Icons.lock,
-                  isPassword: true, placeholder: "********"),
+              buildTextField(
+                "Mot de passe",
+                Icons.lock,
+                isPassword: true,
+                placeholder: "********",
+              ),
               const SizedBox(height: 20),
-              buildTextField("Confirmer le mot de passe", Icons.lock,
-                  isPassword: true, placeholder: "********"),
+              buildTextField(
+                "Confirmer le mot de passe",
+                Icons.lock,
+                isPassword: true,
+                placeholder: "********",
+              ),
               const SizedBox(height: 20),
 
-              // Sélection du Pays
-              buildDropdown(),
+              // Sélection du rôle
+              buildRoleDropdown(),
 
               const SizedBox(height: 20),
-              buildTextField("Maison", Icons.home,
-                  placeholder: "Rue 123, Cotonou"),
+              buildTextField(
+                "Maison",
+                Icons.home,
+                placeholder: "Rue 123, Cotonou",
+              ),
               const SizedBox(height: 40),
 
               ElevatedButton(
@@ -81,31 +103,40 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   minimumSize: const Size.fromHeight(50),
                 ),
-                child: const Text("S'inscrire",
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                child: const Text(
+                  "S'inscrire",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
               ),
 
               const SizedBox(height: 40),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Vous avez déjà un compte ? ",
-                      style: TextStyle(color: Colors.grey)),
+                  const Text(
+                    "Vous avez déjà un compte ? ",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const ConnexionPage()));
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ConnexionPage(),
+                        ),
+                      );
                     },
-                    child: const Text("Se connecter",
-                        style: TextStyle(
-                            color: Color(0xFF0461B6),
-                            fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "Se connecter",
+                      style: TextStyle(
+                        color: Color(0xFF0461B6),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -118,8 +149,12 @@ class _InscriptionPageState extends State<InscriptionPage> {
   }
 
   // Fonction pour créer un champ de saisie avec un placeholder
-  Widget buildTextField(String label, IconData icon,
-      {bool isPassword = false, String? placeholder}) {
+  Widget buildTextField(
+    String label,
+    IconData icon, {
+    bool isPassword = false,
+    String? placeholder,
+  }) {
     return Focus(
       onFocusChange: (hasFocus) {
         setState(() {});
@@ -135,8 +170,10 @@ class _InscriptionPageState extends State<InscriptionPage> {
               labelText: label,
               hintText: placeholder,
               labelStyle: const TextStyle(color: Colors.grey),
-              prefixIcon: Icon(icon,
-                  color: isFocused ? const Color(0xFFF8BF13) : Colors.grey),
+              prefixIcon: Icon(
+                icon,
+                color: isFocused ? const Color(0xFFF8BF13) : Colors.grey,
+              ),
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(vertical: 18),
@@ -161,8 +198,8 @@ class _InscriptionPageState extends State<InscriptionPage> {
     );
   }
 
-  // Fonction pour le champ de sélection du pays
-  Widget buildDropdown() {
+  // Fonction pour le champ de sélection du rôle
+  Widget buildRoleDropdown() {
     return Focus(
       onFocusChange: (hasFocus) {
         setState(() {});
@@ -174,18 +211,20 @@ class _InscriptionPageState extends State<InscriptionPage> {
 
           return DropdownButtonFormField<String>(
             decoration: InputDecoration(
-              labelText: 'Pays',
+              labelText: 'Sélectionnez votre rôle',
               labelStyle: const TextStyle(color: Colors.grey),
-              prefixIcon: Icon(Icons.public,
-                  color: isFocused ? const Color(0xFFF8BF13) : Colors.grey),
+              prefixIcon: Icon(
+                Icons.person_outline,
+                color: isFocused ? const Color(0xFFF8BF13) : Colors.grey,
+              ),
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(vertical: 18),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                    color: isFocused ? const Color(0xFFF8BF13) : Colors.grey,
-                    width: 2),
+                  color: isFocused ? const Color(0xFFF8BF13) : Colors.grey,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -196,16 +235,14 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 borderSide: const BorderSide(color: Color(0xFFF8BF13)),
               ),
             ),
-            value: selectedCountry,
-            items: countries.map((country) {
-              return DropdownMenuItem(
-                value: country,
-                child: Text(country),
-              );
-            }).toList(),
+            value: selectedRole,
+            items:
+                roles.map((role) {
+                  return DropdownMenuItem(value: role, child: Text(role));
+                }).toList(),
             onChanged: (value) {
               setState(() {
-                selectedCountry = value;
+                selectedRole = value;
               });
             },
           );

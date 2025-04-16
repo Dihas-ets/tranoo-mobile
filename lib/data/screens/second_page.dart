@@ -1,76 +1,104 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/data/screens/third_page.dart';
 
+// 🔧 1. Création de la classe StatefulWidget
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
 
   @override
-  State<SecondPage> createState() => _SecondPageState();
+  _SecondPageState createState() => _SecondPageState();
 }
 
+// 🔧 2. Création de la classe State qui contient la méthode build
 class _SecondPageState extends State<SecondPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xff1E1E1E),
-      body: SingleChildScrollView(
-        //pour éviter la barre rayure jaune
-        child: Padding(
-          padding: EdgeInsets.only(right: 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 50),
-              Image.asset('assets/images/voiture_deuxieme_page.png'),
-              SizedBox(height: 50),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Découvrez votre\nvéhicule idéal en\nquelques clics',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+      backgroundColor: const Color(0xff1E1E1E),
+      body: Stack(
+        children: [
+          // 📸 Image d'arrière-plan
+
+          // 🌫️ Dégradé sombre
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [Colors.black.withAlpha(60), Colors.transparent],
               ),
-              SizedBox(height: 40),
-              Row(
-                children: [
-                  Expanded(child: SizedBox()),
-                  Container(
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0xffF8BF13).withAlpha(50),
-                          spreadRadius: 0,
-                          blurRadius: 50,
-                          offset: Offset(2, 4),
-                        ),
-                      ],
+            ),
+          ),
+
+          // 📄 Texte, image et bouton avec espacement
+          Padding(
+            padding: const EdgeInsets.only(right: 30),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Espacement supérieur
+                const SizedBox(height: 50),
+
+                // Ajout de l'image entourée par des espacements verticaux
+                Image.asset('assets/images/voiture_deuxieme_page.png'),
+                const SizedBox(height: 70),
+
+                // Texte principal centré
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Text(
+                      'Découvrez votre\nvéhicule idéal en\nquelques clics',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    child: IconButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => ThirdPage()),
-                        );
-                      },
-                      icon: Icon(
-                        Icons.arrow_circle_right,
-                        color: Color(0xffF8BF13),
-                        size: 60,
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // 🔘 Bouton fléché en bas à droite
+                Row(
+                  children: [
+                    const Expanded(child: SizedBox()), // Centrer à droite
+                    Container(
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xffF8BF13).withAlpha(50),
+                            spreadRadius: 0,
+                            blurRadius: 50,
+                            offset: const Offset(2, 4),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ThirdPage(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.arrow_circle_right,
+                          color: Color(0xffF8BF13),
+                          size: 60,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

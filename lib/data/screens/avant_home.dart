@@ -8,7 +8,7 @@ import 'package:tranoo/data/screens/marque.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/piece.dart';
 import 'package:tranoo/data/screens/profilutilisateurpage.dart';
-import 'package:tranoo/data/screens/recherche.dart';
+import 'package:tranoo/data/screens/une.dart';
 import 'package:tranoo/data/screens/vendre.dart';
 import 'package:tranoo/languesentreprise.dart';
 
@@ -34,7 +34,7 @@ class _AvantHomeState extends State<AvantHome> {
     });
   }
 
-  final List<Widget> _pages = [Marque(), Recherche(), Vendre(), Piece()];
+  final List<Widget> _pages = [Marque(), Une(), Vendre(), Piece()];
 
   // Méthode pour sélectionner une image depuis la galerie
   Future<void> _pickImage() async {
@@ -266,7 +266,10 @@ class _AvantHomeState extends State<AvantHome> {
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Recherche'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.announcement),
+            label: 'Publicité',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.car_crash), label: 'Vendre'),
           BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Pièce'),
         ],

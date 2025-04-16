@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:tranoo/data/screens/cars_info.dart';
+import 'package:tranoo/data/screens/paymentform.dart';
+import 'package:tranoo/data/screens/piece.dart';
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -376,15 +378,34 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     vertical: 10,
-                    horizontal: 16,
+                    horizontal: 10, // Réduit l'espace sur les côtés
                   ),
-                  child: Text(
-                    "Pièces détachées",
-                    style: TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF040415),
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Pièces détachées",
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF040415),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => Piece(),
+                            ), // Redirection
+                          );
+                        },
+                        child: Text(
+                          "Voir plus",
+                          style: TextStyle(fontSize: 16, color: Colors.black),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -401,29 +422,45 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                   ),
                   itemCount: PiecesImages.length,
                   itemBuilder: (context, index) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            PiecesImages[index],
-                            height:
-                                PiecesImageHeights[index], // Utilisation de la hauteur spécifique
-                            width: PiecesImageWidths[index],
-                            fit: BoxFit.cover,
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => PaymentForm(
+                                  pieceName: PiecesNames[index], // Passe le nom
+                                  pieceImage:
+                                      PiecesImages[index], // Passe l'image
+                                ),
                           ),
-                        ),
-                        SizedBox(height: 8), // Espace entre l'image et le texte
-                        Text(
-                          PiecesNames[index],
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 8,
+                        );
+                      },
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(
+                              PiecesImages[index],
+                              height:
+                                  PiecesImageHeights[index], // Hauteur spécifique
+                              width:
+                                  PiecesImageWidths[index], // Largeur spécifique
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                          SizedBox(height: 8),
+                          Text(
+                            PiecesNames[index], // Nom de la pièce
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 8,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),

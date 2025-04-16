@@ -197,6 +197,7 @@ class _ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
               );
             },
           ),
+
           _buildListTile(
             title: "Devenir chauffeur certifié",
             subtitle: "Proposer des services de livraison",

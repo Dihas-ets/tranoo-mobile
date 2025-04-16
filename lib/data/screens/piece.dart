@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'mastervacpage.dart'; // Assure-toi que le fichier existe bien
+
 class Piece extends StatefulWidget {
   const Piece({super.key});
 
@@ -8,8 +10,10 @@ class Piece extends StatefulWidget {
 }
 
 class _PieceState extends State<Piece> {
-  // Liste des images, des noms et des dimensions pour chaque pièce
-  List<String> PiecesImages = [
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = "";
+
+  final List<String> piecesImages = [
     "assets/images/image1.png",
     "assets/images/image.png",
     "assets/images/image2.png",
@@ -24,17 +28,17 @@ class _PieceState extends State<Piece> {
     "assets/images/image11.png",
   ];
 
-  List<String> PiecesNames = [
+  final List<String> piecesNames = [
     "Disque de frein",
     "Plaquette de frein",
     "Kit de frein",
     "Flexible de frein",
     "Pompe à vide",
-    "Mastevac",
-    "Mastevac",
-    "Mastevac",
+    "Mastervac",
+    "Mastervac",
+    "Mastervac",
     "Disque de frein",
-    "Mastevac",
+    "Mastervac",
     "Kit de frein",
     "Flexible de frein",
     "Courroie de distribution",
@@ -59,80 +63,51 @@ class _PieceState extends State<Piece> {
     "Capot",
   ];
 
-  List<double> PiecesImageHeights = [
-    30,
-    31,
-    29,
-    32,
-    36,
-    36,
-    37,
-    38,
-    30,
-    34,
-    40,
-    36,
-    35,
-    36,
-    38,
-    37,
-    33,
-    39,
-    35,
-    36,
-    37,
-    34,
-    36,
-    38,
-    33,
-    36,
-    40,
-    34,
-    39,
-    32,
-  ];
+  final List<double> piecesImageHeights = List.generate(32, (index) => 35.0);
+  final List<double> piecesImageWidths = List.generate(32, (index) => 35.0);
 
-  List<double> PiecesImageWidths = [
-    30,
-    31,
-    29,
-    32,
-    36,
-    36,
-    37,
-    38,
-    30,
-    34,
-    40,
-    36,
-    35,
-    36,
-    38,
-    37,
-    33,
-    39,
-    35,
-    36,
-    37,
-    34,
-    36,
-    38,
-    33,
-    36,
-    40,
-    34,
-    39,
-    32,
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchText = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Duplique les images et les noms pour afficher plus de pièces
     List<String> allPiecesImages = [];
     List<String> allPiecesNames = [];
     for (int i = 0; i < 40; i++) {
-      allPiecesImages.add(PiecesImages[i % PiecesImages.length]);
-      allPiecesNames.add(PiecesNames[i % PiecesNames.length]);
+      allPiecesImages.add(piecesImages[i % piecesImages.length]);
+      allPiecesNames.add(piecesNames[i % piecesNames.length]);
+    }
+
+    List<Map<String, dynamic>> filteredPieces = [];
+    List<String> searchWords =
+        _searchText.split(' ').where((word) => word.isNotEmpty).toList();
+
+    for (int i = 0; i < allPiecesNames.length; i++) {
+      String pieceName = allPiecesNames[i].toLowerCase();
+      bool matchesAllWords = searchWords.every(
+        (word) => pieceName.contains(word),
+      );
+      if (_searchText.isEmpty || matchesAllWords) {
+        filteredPieces.add({
+          'name': allPiecesNames[i],
+          'image': allPiecesImages[i],
+          'height': piecesImageHeights[i % piecesImageHeights.length],
+          'width': piecesImageWidths[i % piecesImageWidths.length],
+        });
+      }
     }
 
     return Scaffold(
@@ -140,60 +115,64 @@ class _PieceState extends State<Piece> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Titre
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              // child: Text(
-              //   "Pièces détachées",
-              //   style: TextStyle(
-              //     fontSize: 25,
-              //     fontWeight: FontWeight.bold,
-              //     color: Color(0xFF040415),
-              //   ),
-              // ),
+              padding: const EdgeInsets.only(bottom: 16),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Rechercher une pièce...',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
             ),
-
-            // Liste des pièces détachées avec GridView
             Expanded(
               child: GridView.builder(
-                shrinkWrap: true,
-                primary: true, // Permet le défilement vertical
-                physics: AlwaysScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4, // Affiche 4 éléments par ligne
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: 0.8, // Ajuste la taille de chaque item
+                  childAspectRatio: 0.8,
                 ),
-                itemCount: allPiecesImages.length,
+                itemCount: filteredPieces.length,
                 itemBuilder: (context, index) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          allPiecesImages[index],
-                          height:
-                              PiecesImageHeights[index %
-                                  PiecesImages
-                                      .length], // Utilisation de la hauteur spécifique
-                          width:
-                              PiecesImageWidths[index %
-                                  PiecesImages.length], // Largeur spécifique
-                          fit: BoxFit.cover,
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MastervacPage(),
                         ),
-                      ),
-                      SizedBox(height: 8), // Espace entre l'image et le texte
-                      Text(
-                        allPiecesNames[index],
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12, // Ajuste la taille du texte
+                      );
+                    },
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            filteredPieces[index]['image'],
+                            height: filteredPieces[index]['height'],
+                            width: filteredPieces[index]['width'],
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          filteredPieces[index]['name'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
