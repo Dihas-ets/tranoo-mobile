@@ -35,25 +35,29 @@ class _UneState extends State<Une> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final screenWidth = mediaQuery.size.width;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mettre ma voiture à la une'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
-      body: Padding(
+      // appBar: AppBar(
+      //   title: const Text('Mettre ma voiture à la une'),
+      //   leading: IconButton(
+      //     icon: const Icon(Icons.arrow_back),
+      //     onPressed: () => Navigator.pop(context),
+      //   ),
+      //   backgroundColor: Colors.white,
+      //   foregroundColor: Colors.black,
+      //   elevation: 0,
+      // ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 380,
+              width: screenWidth * 0.95,
               padding: const EdgeInsets.all(20.0),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -68,8 +72,7 @@ class _UneState extends State<Une> {
               ),
               child: Form(
                 key: _formKey,
-                child: ListView(
-                  shrinkWrap: true,
+                child: Column(
                   children: [
                     const Text(
                       'Demande de pub',
@@ -189,7 +192,10 @@ class _UneState extends State<Une> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber[700],
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(
+                          vertical: screenHeight < 600 ? 15 : 15,
+                          horizontal: screenWidth < 600 ? 60 : 60,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.zero,
                         ),

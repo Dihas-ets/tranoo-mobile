@@ -33,7 +33,7 @@ class PaymentScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
+                    color: Color.fromRGBO(128, 128, 128, 0.2),
                     blurRadius: 10,
                     offset: Offset(0, 5),
                   ),
@@ -57,24 +57,15 @@ class PaymentScreen extends StatelessWidget {
                   // Logos de cartes
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Image.network(
-                        'https://upload.wikimedia.org/wikipedia/commons/0/04/Mastercard-logo.png',
-                        width: 50,
-                      ),
-                      Image.network(
-                        'https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png',
-                        width: 50,
-                      ),
-                      Image.network(
-                        'https://upload.wikimedia.org/wikipedia/commons/1/1b/American_Express_logo_%282018%29.svg',
-                        width: 50,
-                      ),
-                      Image.network(
-                        'https://upload.wikimedia.org/wikipedia/commons/6/6b/Discover_Card_logo.svg',
-                        width: 50,
-                      ),
-                    ],
+                  children: [
+                    _buildImage('assets/images/American Express.png'),
+                    SizedBox(width: 10), // Espacement réduit entre les images
+                    _buildImage('assets/images/Visa.png'),
+                    SizedBox(width: 10),
+                    _buildImage('assets/images/American Express.png'),
+                    SizedBox(width: 10),
+                    _buildImage('assets/images/Discover.png'),
+                  ],
                   ),
                   const SizedBox(height: 30),
 
@@ -182,6 +173,25 @@ class PaymentScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+    
+  }
+  Widget _buildImage(String imagePath) {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+           color: Color.fromRGBO(128, 128, 128, 0.2), // Remplace Colors.grey.withOpacity(0.2)
+            blurRadius: 5,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Image.asset(imagePath, fit: BoxFit.cover),
     );
   }
 }

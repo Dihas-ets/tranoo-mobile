@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/data/screens/third_page.dart';
 
-// 🔧 1. Création de la classe StatefulWidget
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
 
@@ -9,7 +8,6 @@ class SecondPage extends StatefulWidget {
   _SecondPageState createState() => _SecondPageState();
 }
 
-// 🔧 2. Création de la classe State qui contient la méthode build
 class _SecondPageState extends State<SecondPage> {
   @override
   Widget build(BuildContext context) {
@@ -17,8 +15,6 @@ class _SecondPageState extends State<SecondPage> {
       backgroundColor: const Color(0xff1E1E1E),
       body: Stack(
         children: [
-          // 📸 Image d'arrière-plan
-
           // 🌫️ Dégradé sombre
           Container(
             decoration: BoxDecoration(
@@ -33,69 +29,73 @@ class _SecondPageState extends State<SecondPage> {
           // 📄 Texte, image et bouton avec espacement
           Padding(
             padding: const EdgeInsets.only(right: 30),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Espacement supérieur
-                const SizedBox(height: 50),
+            child: SingleChildScrollView( // Ajout de SingleChildScrollView pour éviter l'overflow
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 50),
 
-                // Ajout de l'image entourée par des espacements verticaux
-                Image.asset('assets/images/voiture_deuxieme_page.png'),
-                const SizedBox(height: 70),
+                  // Ajout de l'image entourée par des espacements verticaux
+                  Image.asset(
+                    'assets/images/voiture_deuxieme_page.png',
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 70),
 
-                // Texte principal centré
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
-                      'Découvrez votre\nvéhicule idéal en\nquelques clics',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                  // Texte principal centré
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        'Découvrez votre\nvéhicule idéal en\nquelques clics',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
 
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // 🔘 Bouton fléché en bas à droite
-                Row(
-                  children: [
-                    const Expanded(child: SizedBox()), // Centrer à droite
-                    Container(
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xffF8BF13).withAlpha(50),
-                            spreadRadius: 0,
-                            blurRadius: 50,
-                            offset: const Offset(2, 4),
-                          ),
-                        ],
-                      ),
-                      child: IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ThirdPage(),
+                  // 🔘 Bouton fléché en bas à droite
+                  Row(
+                    children: [
+                      const Expanded(child: SizedBox()), // Centrer à droite
+                      Container(
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xffF8BF13).withAlpha(50),
+                              spreadRadius: 0,
+                              blurRadius: 50,
+                              offset: const Offset(2, 4),
                             ),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.arrow_circle_right,
-                          color: Color(0xffF8BF13),
-                          size: 60,
+                          ],
+                        ),
+                        child: IconButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ThirdPage(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.arrow_circle_right,
+                            color: Color(0xffF8BF13),
+                            size: 60,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],

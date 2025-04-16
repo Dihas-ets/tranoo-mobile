@@ -6,6 +6,7 @@ import 'package:tranoo/data/screens/cars_info.dart';
 import 'package:tranoo/data/screens/voitures.dart';
 import 'package:tranoo/data/screens/paymentform.dart';
 import 'package:tranoo/data/screens/piece.dart';
+import 'package:tranoo/data/screens/mastervacpage.dart';
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -515,10 +516,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                           context,
                           MaterialPageRoute(
                             builder:
-                                (context) => PaymentForm(
-                                  pieceName: PiecesNames[index], // Passe le nom
-                                  pieceImage:
-                                      PiecesImages[index], // Passe l'image
+                                (context) => MastervacPage( // Passe l'image
                                 ),
                           ),
                         );

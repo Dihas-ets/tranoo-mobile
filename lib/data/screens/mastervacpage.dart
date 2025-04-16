@@ -138,7 +138,7 @@ class _MastervacPageState extends State<MastervacPage> {
           const SizedBox(height: 24),
           _buildCheckboxes(),
           const SizedBox(height: 24),
-          _buildSellButton(), // le bouton conservé ici
+          _buildSellButton(), // le bouton conservé ici 
         ],
       ),
     );
@@ -181,52 +181,54 @@ class _MastervacPageState extends State<MastervacPage> {
     );
   }
 
-  Widget _buildSpecifications() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      childAspectRatio: 1.5,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
+Widget _buildSpecifications() {
+  return GridView.count(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    crossAxisCount: 2, // Toujours 2 colonnes
+    childAspectRatio: 1.8, // Augmenté par rapport à 1.5 pour plus d'espace
+    mainAxisSpacing: 12, // Réduit légèrement
+    crossAxisSpacing: 12, // Réduit légèrement
+    children: [
+      _buildSpecCard('Model', '124-CFDS', Icons.settings),
+      _buildSpecCard('Type', 'Rare', Icons.local_gas_station),
+    ],
+  );
+}
+
+Widget _buildSpecCard(String title, String value, IconData icon) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), // Padding horizontal réduit
+    decoration: BoxDecoration(
+      color: const Color(0xFFE8F1FF),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center, // Centrer le contenu verticalement
       children: [
-        _buildSpecCard('Boîte À Vitesses', 'Automate', Icons.settings),
-        _buildSpecCard('Carburant', 'Essence', Icons.local_gas_station),
-        // Les 4 autres sont supprimées ici comme demandé
+        Icon(icon, size: 20, color: Colors.black87), // Taille d'icône légèrement réduite
+        const SizedBox(height: 6),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14, // Taille réduite
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13, // Taille réduite
+            color: Colors.black54,
+          ),
+        ),
       ],
-    );
-  }
-
-  Widget _buildSpecCard(String title, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F1FF),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 24, color: Colors.black87),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 14, color: Colors.black54),
-          ),
-        ],
-      ),
-    );
-  }
-
+    ),
+  );
+}
   Widget _buildCheckboxes() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -237,12 +239,12 @@ class _MastervacPageState extends State<MastervacPage> {
           (val) => setState(() => isNew = val),
         ),
         _buildCheckboxContainer(
-          'Modèle 2023',
+          'Modèle',
           is2023,
           (val) => setState(() => is2023 = val),
         ),
         _buildCheckboxContainer(
-          'Béninoise',
+          'Bénin',
           isBeninese,
           (val) => setState(() => isBeninese = val),
         ),

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'cars_info2.dart';
 
+
 class CreateSellPage extends StatefulWidget {
   const CreateSellPage({Key? key}) : super(key: key);
 

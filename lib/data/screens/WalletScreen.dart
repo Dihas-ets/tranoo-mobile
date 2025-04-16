@@ -65,13 +65,13 @@ class _WalletScreenState extends State<WalletScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _actionButton(
-                  context,
-                  Icons.send,
-                  "Transfert",
-                  Colors.blue,
-                  null,
-                ),
+                // _actionButton(
+                //   context,
+                //   Icons.send,
+                //   "Transfert",
+                //   Colors.blue,
+                //   null,
+                // ),
                 _actionButton(
                   context,
                   Icons.account_balance_wallet,
@@ -84,13 +84,13 @@ class _WalletScreenState extends State<WalletScreen> {
                     );
                   },
                 ),
-                _actionButton(
-                  context,
-                  Icons.more_horiz,
-                  "Plus",
-                  Colors.green,
-                  null,
-                ),
+                // _actionButton(
+                //   context,
+                //   Icons.more_horiz,
+                //   "Plus",
+                //   Colors.green,
+                //   null,
+                // ),
               ],
             ),
             const SizedBox(height: 20),
