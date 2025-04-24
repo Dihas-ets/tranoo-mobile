@@ -240,9 +240,6 @@
 //   }
 // }
 
-
-
-
 // ... existing code ...
 
 import 'package:flutter/material.dart';
@@ -422,7 +419,8 @@ class _ConnexionPageState extends State<ConnexionPage> {
                         ),
                         prefixIcon: Icon(
                           Icons.person_outline,
-                          color: isFocused ? const Color(0xFFF8BF13) : Colors.grey,
+                          color:
+                              isFocused ? const Color(0xFFF8BF13) : Colors.grey,
                           size: screenWidth * (isPortrait ? 0.06 : 0.04),
                         ),
                         filled: true,
@@ -434,7 +432,10 @@ class _ConnexionPageState extends State<ConnexionPage> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                            color: isFocused ? const Color(0xFFF8BF13) : Colors.grey,
+                            color:
+                                isFocused
+                                    ? const Color(0xFFF8BF13)
+                                    : Colors.grey,
                             width: 2,
                           ),
                         ),
@@ -450,17 +451,19 @@ class _ConnexionPageState extends State<ConnexionPage> {
                         ),
                       ),
                       value: selectedRole,
-                      items: roles.map((role) {
-                        return DropdownMenuItem(
-                          value: role,
-                          child: Text(
-                            role,
-                            style: TextStyle(
-                              fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                      items:
+                          roles.map((role) {
+                            return DropdownMenuItem(
+                              value: role,
+                              child: Text(
+                                role,
+                                style: TextStyle(
+                                  fontSize:
+                                      screenWidth * (isPortrait ? 0.04 : 0.03),
+                                ),
+                              ),
+                            );
+                          }).toList(),
                       onChanged: (value) {
                         setState(() {
                           selectedRole = value;
