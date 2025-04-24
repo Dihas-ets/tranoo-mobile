@@ -7,6 +7,9 @@ import 'package:tranoo/data/screens/voitures.dart';
 import 'package:tranoo/data/screens/paymentform.dart';
 import 'package:tranoo/data/screens/piece.dart';
 import 'package:tranoo/data/screens/mastervacpage.dart';
+import 'package:tranoo/data/screens/voitures.dart';
+import 'package:tranoo/utils/role_redirect.dart';
+import 'package:tranoo/services/user_service.dart';
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -310,11 +313,13 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => voituresPage(),
+                              builder:
+                                  (context) =>
+                                      const voituresPage(), // Page unique pour tous les rôles
                             ),
                           );
                         },
-                        child: Text(
+                        child: const Text(
                           "Voir tout",
                           style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
@@ -360,7 +365,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                     color: Colors.red,
                                     size: 18,
                                   ),
-                                  onPressed: () {},
+                                  onPressed: () { 
+                                   
+                                  },
                                 ),
                               ),
                             ),
@@ -516,7 +523,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                           context,
                           MaterialPageRoute(
                             builder:
-                                (context) => MastervacPage( // Passe l'image
+                                (context) => MastervacPage(
+                                  // Passe l'image
                                 ),
                           ),
                         );

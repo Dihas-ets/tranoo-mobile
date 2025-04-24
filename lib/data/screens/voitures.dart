@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'cars_info.dart'; // Importez Cars_info
 import 'movie.dart'; // Importez Movies
 import 'notifications.dart'; // Importez Notifications
+import 'create_sell.dart'; // Importez CreateSell
+import 'package:tranoo/services/user_service.dart'; // Importez UserService
+import 'package:tranoo/utils/role_redirect.dart';
 
 class voituresPage extends StatefulWidget {
   const voituresPage({super.key});
@@ -21,11 +24,26 @@ class _voituresPageState extends State<voituresPage> {
     "assets/images/groupe2.png",
   ];
 
+  // Liste des noms des voitures
+  final List<String> carNames = [
+    "Tesla Model 3",
+    "Audi E-tron",
+    "BMW iX",
+    "Mercedes EQC",
+    "Nissan Leaf",
+    "Hyundai Kona Electric",
+  ];
+
   // Contrôleur pour la barre de recherche
   final TextEditingController _searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
+    final userService = UserService(); // Instance du service utilisateur
+    final isVendeurOrTransitaire =
+        userService.currentRole == UserRole.vendeur ||
+        userService.currentRole == UserRole.transitaire;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -44,11 +62,25 @@ class _voituresPageState extends State<voituresPage> {
           ),
         ),
         actions: [
+          if (isVendeurOrTransitaire)
+            IconButton(
+              icon: const Icon(Icons.add_circle, color: Colors.blue),
+              onPressed: () {
+                // Redirection vers la page pour ajouter une voiture
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CreateSellPage()),
+                );
+              },
+            ),
           IconButton(
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.notifications_none_outlined, color: Colors.black),
+                const Icon(
+                  Icons.notifications_none_outlined,
+                  color: Colors.black,
+                ),
                 Positioned(
                   right: 0,
                   top: 0,
@@ -86,7 +118,10 @@ class _voituresPageState extends State<voituresPage> {
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 filled: true,
                 fillColor: Colors.grey[200],
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 16,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,
@@ -102,10 +137,7 @@ class _voituresPageState extends State<voituresPage> {
               children: const [
                 Text(
                   "Recommandé",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -122,23 +154,28 @@ class _voituresPageState extends State<voituresPage> {
                 ),
                 itemCount: Images.length,
                 itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      // Redirection vers Cars_info
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => Cars_info(
-                            selectedImageIndex: index, // Passer l'index cliqué
-                            images: Images, // Passer les images
-                          ),
-                        ),
-                      );
-                    },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
+                  return Stack(
+                    children: [
+                      GestureDetector(
+                        onTap:
+                            isVendeurOrTransitaire
+                                ? null // Pas de redirection pour les vendeurs/transitaires
+                                : () {
+                                  // Redirection pour les acheteurs
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => Cars_info(
+                                            selectedImageIndex:
+                                                index, // Passer l'index cliqué
+                                            images: Images, // Passer les images
+                                          ),
+                                    ),
+                                  );
+                                },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
@@ -149,53 +186,35 @@ class _voituresPageState extends State<voituresPage> {
                                 fit: BoxFit.cover,
                               ),
                             ),
-                            Positioned(
-                              bottom: 8,
-                              left: 8,
-                              child: CircleAvatar(
-                                radius: 16,
-                                backgroundColor: Colors.white,
-                                child: IconButton(
-                                  icon: const Icon(
-                                    Icons.play_circle_fill,
-                                    color: Colors.red,
-                                    size: 18,
-                                  ),
-                                  onPressed: () {
-                                    // Redirection vers Movies
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const Movie(),
-                                      ),
-                                    );
-                                  },
-                                ),
+                            const SizedBox(height: 4),
+                            Text(
+                              carNames[index],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          "Audi E-tron Premium",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const Text(
-                          "54,77 823,73 f",
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        Row(
-                          children: const [
-                            Icon(Icons.verified, color: Colors.green, size: 15),
-                            SizedBox(width: 5),
-                            Text(
-                              "Vérifiée",
-                              style: TextStyle(color: Color(0xFF188100)),
+                            const Text(
+                              "54,77 823,73 f",
+                              style: TextStyle(color: Colors.grey),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      if (isVendeurOrTransitaire)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              setState(() {
+                                Images.removeAt(index); // Supprimer l'image
+                                carNames.removeAt(index); // Supprimer le nom
+                              });
+                            },
+                          ),
+                        ),
+                    ],
                   );
                 },
               ),

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'movie.dart'; // Importer la page pour les vidéos
 import 'payement.dart'; // Importer la page pour le paiement
+import 'succes2.dart'; // Importer la page pour le succès
+import 'package:tranoo/services/user_service.dart'; // Importer UserService pour gérer les rôles
+import 'package:tranoo/utils/role_redirect.dart'; // Importer RoleRedirect pour la redirection basée sur le rôle
 
 class Cars_info extends StatefulWidget {
   final int selectedImageIndex; // Index de l'image sélectionnée
@@ -29,13 +32,13 @@ class _CarsinfoState extends State<Cars_info> {
     _currentImageIndex = widget.selectedImageIndex;
   }
 
-  // Fonction utilitaire pour ajuster la taille en fonction de l'écran
-  double responsiveSize(double screenWidth, double smallSize, double largeSize) {
-    return screenWidth < 600 ? smallSize : largeSize;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final userService = UserService(); // Instance du service utilisateur
+    final isAcheteur =
+        userService.currentRole ==
+        UserRole.acheteur; // Vérifie si l'utilisateur est un acheteur
+
     // Récupération des dimensions de l'écran pour la responsivité
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
@@ -47,8 +50,14 @@ class _CarsinfoState extends State<Cars_info> {
       body: ListView(
         physics: const BouncingScrollPhysics(),
         children: [
-          _buildImageSection(screenWidth, screenHeight), // Affiche l'image en grand
-          _buildContentSection(screenWidth), // Affiche les détails et spécifications
+          _buildImageSection(
+            screenWidth,
+            screenHeight,
+          ), // Affiche l'image en grand
+          _buildContentSection(
+            screenWidth,
+            isAcheteur,
+          ), // Affiche les détails et spécifications
           const SizedBox(height: 50),
         ],
       ),
@@ -137,12 +146,16 @@ class _CarsinfoState extends State<Cars_info> {
                       horizontal: 8,
                       vertical: 10,
                     ),
-                    width: screenWidth * 0.3, // Largeur ajustée pour la responsivité
+                    width:
+                        screenWidth *
+                        0.3, // Largeur ajustée pour la responsivité
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: _currentImageIndex == index
-                            ? Colors.amber
-                            : Colors.transparent, // Image sélectionnée mise en évidence
+                        color:
+                            _currentImageIndex == index
+                                ? Colors.amber
+                                : Colors
+                                    .transparent, // Image sélectionnée mise en évidence
                         width: 2,
                       ),
                     ),
@@ -167,7 +180,7 @@ class _CarsinfoState extends State<Cars_info> {
   }
 
   // Section des détails et spécifications
-  Widget _buildContentSection(double screenWidth) {
+  Widget _buildContentSection(double screenWidth, bool isAcheteur) {
     return Padding(
       padding: EdgeInsets.all(screenWidth * 0.04), // Espacement ajusté
       child: Column(
@@ -179,9 +192,12 @@ class _CarsinfoState extends State<Cars_info> {
           const SizedBox(height: 24),
           _buildSpecifications(screenWidth), // Liste des spécifications
           const SizedBox(height: 24),
-          _buildCheckboxes(screenWidth), // Cases à cocher
+          _buildCheckboxes(
+            screenWidth,
+            isAcheteur,
+          ), // Cases à cocher (si applicable)
           const SizedBox(height: 24),
-          _buildOrderButton(), // Bouton pour passer commande
+          _buildActionButton(isAcheteur), // Bouton d'action dynamique
         ],
       ),
     );
@@ -192,25 +208,30 @@ class _CarsinfoState extends State<Cars_info> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Tesla Modèle 3',
-              style: TextStyle(
-                fontSize: responsiveSize(screenWidth, 20, 24), // Taille ajustée
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+        Text(
+          'Tesla Modèle 3',
+          style: TextStyle(
+            fontSize: screenWidth * 0.06,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        //Nom de l'entreprise
+        Text(
+          'Tranoo', // widget;companyName
+          style: TextStyle(
+            fontSize: screenWidth * 0.05,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
+
         const SizedBox(height: 8),
         Text(
           '18,00 000,00 f',
           style: TextStyle(
-            fontSize: responsiveSize(screenWidth, 16, 20), // Taille ajustée
-            color: Colors.grey[800],
-            fontWeight: FontWeight.w500,
+            fontSize: screenWidth * 0.05,
+            fontWeight: FontWeight.bold,
+            color: Colors.amber,
           ),
         ),
       ],
@@ -219,13 +240,9 @@ class _CarsinfoState extends State<Cars_info> {
 
   // Description de la voiture
   Widget _buildDescription(double screenWidth) {
-    return Text(
+    return const Text(
       'La Tesla Model 3 est une berline électrique de taille moyenne, reconnue pour ses performances impressionnantes, son accélération et son autonomie.',
-      style: TextStyle(
-        fontSize: responsiveSize(screenWidth, 14, 16), // Taille ajustée
-        color: Colors.grey,
-        height: 1.5,
-      ),
+      style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
     );
   }
 
@@ -239,21 +256,21 @@ class _CarsinfoState extends State<Cars_info> {
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
       children: [
-        _buildSpecCard('Cylindre', '4', Icons.settings, screenWidth),
-        _buildSpecCard('Boîte À Vitesses', 'Automate', Icons.settings, screenWidth),
-        _buildSpecCard('Carburant', 'Essence', Icons.local_gas_station, screenWidth),
-        _buildSpecCard('Climatiseur', 'Oui', Icons.ac_unit, screenWidth),
-        _buildSpecCard('Distance', '500 km', Icons.speed, screenWidth),
-        _buildSpecCard('Sièges', '5', Icons.event_seat, screenWidth),
-        _buildSpecCard('Portes', '2', Icons.door_front_door, screenWidth),
+        _buildSpecCard('Cylindre', '4', Icons.settings),
+        _buildSpecCard('Boîte À Vitesses', 'Automate', Icons.settings),
+        _buildSpecCard('Carburant', 'Essence', Icons.local_gas_station),
+        _buildSpecCard('Climatiseur', 'Oui', Icons.ac_unit),
+        _buildSpecCard('Distance', '500 km', Icons.speed),
+        _buildSpecCard('Sièges', '5', Icons.event_seat),
+        _buildSpecCard('Portes', '2', Icons.door_front_door),
       ],
     );
   }
 
   // Carte d'information générique pour les spécifications
-  Widget _buildSpecCard(String title, String value, IconData icon, double screenWidth) {
+  Widget _buildSpecCard(String title, String value, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFE8F1FF),
         borderRadius: BorderRadius.circular(12),
@@ -261,23 +278,20 @@ class _CarsinfoState extends State<Cars_info> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: responsiveSize(screenWidth, 20, 24), color: Colors.black87),
-          const SizedBox(height: 8),
+          Icon(icon, size: 20, color: Colors.black87),
+          const SizedBox(height: 4),
           Text(
             title,
-            style: TextStyle(
-              fontSize: responsiveSize(screenWidth, 14, 16), // Taille ajustée
+            style: const TextStyle(
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             value,
-            style: TextStyle(
-              fontSize: responsiveSize(screenWidth, 12, 14), // Taille ajustée
-              color: Colors.black54,
-            ),
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
           ),
         ],
       ),
@@ -285,7 +299,9 @@ class _CarsinfoState extends State<Cars_info> {
   }
 
   // Cases à cocher pour les options
-  Widget _buildCheckboxes(double screenWidth) {
+  Widget _buildCheckboxes(double screenWidth, bool isAcheteur) {
+    if (isAcheteur)
+      return const SizedBox(); // Pas de cases à cocher pour les acheteurs
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -293,23 +309,23 @@ class _CarsinfoState extends State<Cars_info> {
           setState(() {
             isNew = value!;
           });
-        }, screenWidth),
+        }),
         _buildCheckbox('Modèle 2023', is2023, (value) {
           setState(() {
             is2023 = value!;
           });
-        }, screenWidth),
+        }),
         _buildCheckbox('Béninoise', isBeninese, (value) {
           setState(() {
             isBeninese = value!;
           });
-        }, screenWidth),
+        }),
       ],
     );
   }
 
   // Widget générique pour une case à cocher
-  Widget _buildCheckbox(String label, bool value, Function(bool?) onChanged, double screenWidth) {
+  Widget _buildCheckbox(String label, bool value, Function(bool?) onChanged) {
     return Row(
       children: [
         Checkbox(
@@ -318,33 +334,39 @@ class _CarsinfoState extends State<Cars_info> {
           activeColor: Colors.black,
           checkColor: Colors.white,
         ),
-        Text(
-          label,
-          style: TextStyle(fontSize: responsiveSize(screenWidth, 12, 14)), // Taille ajustée
-        ),
+        Text(label, style: const TextStyle(fontSize: 12)),
       ],
     );
   }
 
-  // Bouton pour passer une commande
-  Widget _buildOrderButton() {
+  // Bouton d'action dynamique
+  Widget _buildActionButton(bool isAcheteur) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => PayementScreen()),
-          );
+          if (isAcheteur) {
+            // Redirection pour les acheteurs
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PayementScreen()),
+            );
+          } else {
+            // Redirection pour les vendeurs
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => SuccesScreen2()),
+            );
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.amber,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        child: const Text(
-          'Passez la commande',
-          style: TextStyle(
+        child: Text(
+          isAcheteur ? 'Passez la commande' : 'Vendez votre voiture',
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.black,

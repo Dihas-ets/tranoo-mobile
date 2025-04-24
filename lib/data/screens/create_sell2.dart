@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'cars_info2.dart';
+import  'mastervacpage.dart'; // Importez la page MastervacPage
 
 class CreateSellPage2 extends StatefulWidget {
   const CreateSellPage2({Key? key}) : super(key: key);
@@ -558,7 +558,7 @@ class _CreateSellPage2State extends State<CreateSellPage2> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => Cars_info2()),
+            MaterialPageRoute(builder: (context) => MastervacPage()),
           );
         },
         style: ElevatedButton.styleFrom(
