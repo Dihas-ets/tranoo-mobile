@@ -108,8 +108,8 @@ class _PieceState extends State<Piece> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Pièces détachées"),
-        backgroundColor: Colors.amber,
+        //title: const Text("Pièces détachées"),
+        //backgroundColor: Colors.amber,
         actions: isVendeurOrTransitaire
             ? [
                 IconButton(
