@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'cars_info.dart'; // Importez Cars_info
-import 'movie.dart'; // Importez Movies
-import 'notifications.dart'; // Importez Notifications
+import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/role_redirect.dart';
+
+import 'cars_info.dart';
+import 'create_sell.dart';
 
 class voituresPage extends StatefulWidget {
   const voituresPage({super.key});
@@ -11,197 +13,356 @@ class voituresPage extends StatefulWidget {
 }
 
 class _voituresPageState extends State<voituresPage> {
-  // Liste d'images
-  final List<String> Images = [
-    "assets/images/car.png",
-    "assets/images/groupe2.png",
-    "assets/images/groupe3.png",
-    "assets/images/rectangle.png",
-    "assets/images/rectangle 1.png",
-    "assets/images/groupe2.png",
+  final List<Map<String, dynamic>> allCars = [
+    {
+      "image": "assets/images/car.png",
+      "name": "Tesla Model 3",
+      "price": 54777823,
+      "year": 2022,
+    },
+    {
+      "image": "assets/images/groupe2.png",
+      "name": "Audi E-tron",
+      "price": 62000000,
+      "year": 2021,
+    },
+    {
+      "image": "assets/images/groupe3.png",
+      "name": "BMW iX",
+      "price": 70000000,
+      "year": 2023,
+    },
+    {
+      "image": "assets/images/rectangle.png",
+      "name": "Mercedes EQC",
+      "price": 58000000,
+      "year": 2020,
+    },
+    {
+      "image": "assets/images/rectangle 1.png",
+      "name": "Nissan Leaf",
+      "price": 35000000,
+      "year": 2019,
+    },
+    {
+      "image": "assets/images/groupe2.png",
+      "name": "Hyundai Kona Electric",
+      "price": 33000000,
+      "year": 2021,
+    },
   ];
 
-  // Contrôleur pour la barre de recherche
+  List<Map<String, dynamic>> displayedCars = [];
+
   final TextEditingController _searchController = TextEditingController();
+
+  bool filterTesla = false;
+  bool filterAudi = false;
+  bool filterBMW = false; // Ajout du filtre BMW
+  bool filterNissan = false;
+  bool filterPrice = false;
+  bool filterYear = false;
+  bool filterAll = true;
+
+  @override
+  void initState() {
+    super.initState();
+    displayedCars = List.from(allCars); // Affichage initial de toutes les voitures
+  }
+
+  void applyFilters() {
+    setState(() {
+      displayedCars = allCars.where((car) {
+        bool matches = true;
+
+        if (filterAll) {
+          return true; // Affiche toutes les voitures si "Tous" est sélectionné
+        }
+
+        // Si un des filtres est activé, on vérifie si le nom de la voiture correspond
+        if (filterTesla) {
+          matches = matches && car['name'].toString().contains('Tesla');
+        }
+        if (filterAudi) {
+          matches = matches && car['name'].toString().contains('Audi');
+        }
+        if (filterBMW) {
+          matches = matches && car['name'].toString().contains('BMW');
+        }
+        if (filterNissan) {
+          matches = matches && car['name'].toString().contains('Nissan');
+        }
+
+        return matches;
+      }).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final userService = UserService();
+    final isVendeurOrTransitaire =
+        userService.currentRole == UserRole.vendeur ||
+            userService.currentRole == UserRole.transitaire;
+    final isAcheteur = userService.currentRole == UserRole.acheteur;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            // Retour à la page précédente
-            Navigator.pop(context);
-          },
-        ),
-        title: Center(
-          child: Image.asset(
-            "assets/images/logo_connexion.png", // Icône Tranoo
-            height: 40,
-          ),
-        ),
+        automaticallyImplyLeading: false,
         actions: [
-          IconButton(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.notifications_none_outlined, color: Colors.black),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.red,
-                    ),
+          if (isVendeurOrTransitaire)
+            IconButton(
+              icon: const Icon(Icons.add_circle, color: Colors.blue),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreateSellPage(),
                   ),
-                ),
-              ],
+                );
+              },
             ),
-            onPressed: () {
-              // Redirection vers la page des notifications
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const Notifications()),
-              );
-            },
-          ),
         ],
       ),
-      body: Column(
-        children: [
-          // Barre de recherche
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: "Rechercher une voiture...",
-                hintStyle: const TextStyle(color: Colors.grey),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                filled: true,
-                fillColor: Colors.grey[200],
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 6.0,
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: "Rechercher une voiture...",
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 0,
+                    horizontal: 16,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    displayedCars = allCars.where((car) {
+                      return car['name'].toString().toLowerCase().contains(
+                        value.toLowerCase(),
+                      );
+                    }).toList();
+                  });
+                },
+              ),
+            ),
+
+            if (isAcheteur)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 8.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        FilterChip(
+                          label: const Text('Tous'),
+                          selected: filterAll,
+                          selectedColor:
+                          Colors.orange, // Orange color when selected
+                          onSelected: (bool selected) {
+                            setState(() {
+                              filterAll = selected;
+                              filterTesla = false;
+                              filterAudi = false;
+                              filterBMW = false; // Reset other filters
+                              filterNissan = false;
+                              applyFilters();
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        FilterChip(
+                          label: const Text('Tesla'),
+                          selected: filterTesla,
+                          selectedColor:
+                          Colors.orange, // Orange color when selected
+                          onSelected: (bool selected) {
+                            setState(() {
+                              filterTesla = selected;
+                              filterAll = false; // "Tous" is deselected
+                              filterAudi = false; // Inactive other filters
+                              filterBMW = false;
+                              filterNissan = false;
+                              applyFilters();
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        FilterChip(
+                          label: const Text('Audi'),
+                          selected: filterAudi,
+                          selectedColor:
+                          Colors.orange, // Orange color when selected
+                          onSelected: (bool selected) {
+                            setState(() {
+                              filterAudi = selected;
+                              filterAll = false; // "Tous" is deselected
+                              filterTesla = false; // Inactive other filters
+                              filterBMW = false;
+                              filterNissan = false;
+                              applyFilters();
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        FilterChip(
+                          label: const Text('BMW'),
+                          selected: filterBMW,
+                          selectedColor:
+                          Colors.orange, // Orange color when selected
+                          onSelected: (bool selected) {
+                            setState(() {
+                              filterBMW = selected;
+                              filterAll = false; // "Tous" is deselected
+                              filterTesla = false; // Inactive other filters
+                              filterAudi = false;
+                              filterNissan = false;
+                              applyFilters();
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        FilterChip(
+                          label: const Text('Nissan'),
+                          selected: filterNissan,
+                          selectedColor:
+                          Colors.orange, // Orange color when selected
+                          onSelected: (bool selected) {
+                            setState(() {
+                              filterNissan = selected;
+                              filterAll = false; // "Tous" is deselected
+                              filterTesla = false; // Inactive other filters
+                              filterAudi = false;
+                              filterBMW = false;
+                              applyFilters();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Recommandé",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-          ),
-          // Texte "Recommandé"
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: const [
-                Text(
-                  "Recommandé",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
+
+            Padding(
               padding: const EdgeInsets.all(8.0),
               child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, // Nombre de colonnes
-                  crossAxisSpacing: 10, // Espacement horizontal
-                  mainAxisSpacing: 10, // Espacement vertical
-                  childAspectRatio: 0.75, // Ratio largeur/hauteur
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 0.75,
                 ),
-                itemCount: Images.length,
+                itemCount: displayedCars.length,
                 itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      // Redirection vers Cars_info
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => Cars_info(
-                            selectedImageIndex: index, // Passer l'index cliqué
-                            images: Images, // Passer les images
-                          ),
-                        ),
-                      );
-                    },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
+                  final car = displayedCars[index];
+                  return Stack(
+                    children: [
+                      GestureDetector(
+                        onTap:
+                        isVendeurOrTransitaire
+                            ? null
+                            : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => Cars_info(
+                                selectedImageIndex: index,
+                                images:
+                                displayedCars
+                                    .map(
+                                      (c) =>
+                                  c['image'] as String,
+                                )
+                                    .toList(),
+                              ),
+                            ),
+                          );
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.asset(
-                                Images[index],
+                                car['image'],
                                 height: 120,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
                               ),
                             ),
-                            Positioned(
-                              bottom: 8,
-                              left: 8,
-                              child: CircleAvatar(
-                                radius: 16,
-                                backgroundColor: Colors.white,
-                                child: IconButton(
-                                  icon: const Icon(
-                                    Icons.play_circle_fill,
-                                    color: Colors.red,
-                                    size: 18,
-                                  ),
-                                  onPressed: () {
-                                    // Redirection vers Movies
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const Movie(),
-                                      ),
-                                    );
-                                  },
-                                ),
+                            const SizedBox(height: 4),
+                            Text(
+                              car['name'],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          "Audi E-tron Premium",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const Text(
-                          "54,77 823,73 f",
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        Row(
-                          children: const [
-                            Icon(Icons.verified, color: Colors.green, size: 15),
-                            SizedBox(width: 5),
                             Text(
-                              "Vérifiée",
-                              style: TextStyle(color: Color(0xFF188100)),
+                              "${car['price'].toString()} f",
+                              style: const TextStyle(color: Colors.grey),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      if (isVendeurOrTransitaire)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              setState(() {
+                                allCars.removeAt(index);
+                                displayedCars = List.from(allCars);
+                              });
+                            },
+                          ),
+                        ),
+                    ],
                   );
                 },
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

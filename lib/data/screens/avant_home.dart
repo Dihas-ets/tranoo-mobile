@@ -361,6 +361,8 @@ import 'package:tranoo/data/screens/marque.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/piece.dart';
 import 'package:tranoo/data/screens/profil3.dart';
+import 'package:tranoo/data/screens/profil_utilisateur2.dart';
+import 'package:tranoo/data/screens/profilutilisateurpage.dart';
 import 'package:tranoo/data/screens/tarif.dart';
 import 'package:tranoo/data/screens/transit.dart';
 import 'package:tranoo/data/screens/une.dart';
@@ -636,20 +638,28 @@ class _AvantHomeState extends State<AvantHome> {
               context,
               text: 'Profil',
               onTap: () {
-                if (userService.currentRole == UserRole.transitaire) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const Profil3()),
-                  );
+                Widget destination;
+
+                // Redirection selon le rôle de l'utilisateur
+                if (userService.currentRole == UserRole.acheteur) {
+                  destination = const Profil3();
+                } else if (userService.currentRole == UserRole.transitaire) {
+                  destination = const ProfilUtilisateur2();
+                } else if (userService.currentRole == UserRole.vendeur) {
+                  destination = const ProfilUtilisateurPage();
                 } else {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const Profil3()),
-                  );
+                  // Optionnel : un profil par défaut en cas de rôle inconnu
+                  destination = const Profil3();
                 }
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => destination),
+                );
               },
               icon: Icon(Icons.person, color: Colors.black, size: iconSize),
             ),
+
             _buildDrawerButton(
               context,
               text: 'Déconnexion',

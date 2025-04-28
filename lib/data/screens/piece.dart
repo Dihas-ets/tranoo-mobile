@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/role_redirect.dart'; // Assure-toi que ce fichier contient enum UserRole { acheteur, vendeur, transitaire }
 
-import 'mastervacpage.dart'; // Assure-toi que le fichier existe bien
+import 'create_sell2.dart';
+import 'mastervacpage.dart';
 
 class Piece extends StatefulWidget {
   const Piece({super.key});
@@ -12,6 +15,9 @@ class Piece extends StatefulWidget {
 class _PieceState extends State<Piece> {
   final TextEditingController _searchController = TextEditingController();
   String _searchText = "";
+
+  final List<String> _filtres = ['Tous', 'Frein', 'Moteur', 'Électricité'];
+  String _filtreActif = 'Tous';
 
   final List<String> piecesImages = [
     "assets/images/image1.png",
@@ -35,12 +41,6 @@ class _PieceState extends State<Piece> {
     "Flexible de frein",
     "Pompe à vide",
     "Mastervac",
-    "Mastervac",
-    "Mastervac",
-    "Disque de frein",
-    "Mastervac",
-    "Kit de frein",
-    "Flexible de frein",
     "Courroie de distribution",
     "Batterie",
     "Alternateur",
@@ -84,53 +84,98 @@ class _PieceState extends State<Piece> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> allPiecesImages = [];
-    List<String> allPiecesNames = [];
-    for (int i = 0; i < 40; i++) {
-      allPiecesImages.add(piecesImages[i % piecesImages.length]);
-      allPiecesNames.add(piecesNames[i % piecesNames.length]);
+    final userService = UserService();
+    final currentRole = userService.currentRole;
+
+    // Sécurité : en cas de rôle non défini
+    if (currentRole == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    List<Map<String, dynamic>> filteredPieces = [];
-    List<String> searchWords =
-        _searchText.split(' ').where((word) => word.isNotEmpty).toList();
+    final isAcheteur = currentRole == UserRole.acheteur;
+    final isVendeurOrTransitaire =
+        currentRole == UserRole.vendeur || currentRole == UserRole.transitaire;
 
-    for (int i = 0; i < allPiecesNames.length; i++) {
-      String pieceName = allPiecesNames[i].toLowerCase();
-      bool matchesAllWords = searchWords.every(
-        (word) => pieceName.contains(word),
-      );
-      if (_searchText.isEmpty || matchesAllWords) {
-        filteredPieces.add({
-          'name': allPiecesNames[i],
-          'image': allPiecesImages[i],
-          'height': piecesImageHeights[i % piecesImageHeights.length],
-          'width': piecesImageWidths[i % piecesImageWidths.length],
-        });
-      }
-    }
+    List<Map<String, dynamic>> allPieces = List.generate(
+      piecesNames.length,
+      (index) => {
+        'name': piecesNames[index],
+        'image': piecesImages[index % piecesImages.length],
+        'height': piecesImageHeights[index % piecesImageHeights.length],
+        'width': piecesImageWidths[index % piecesImageWidths.length],
+      },
+    );
+
+    List<Map<String, dynamic>> filteredPieces =
+        allPieces.where((piece) {
+          final name = piece['name'].toLowerCase();
+          final matchSearch = _searchText.isEmpty || name.contains(_searchText);
+          final matchFiltre =
+              _filtreActif == 'Tous' ||
+              name.contains(_filtreActif.toLowerCase());
+          return matchSearch && matchFiltre;
+        }).toList();
 
     return Scaffold(
+      appBar: AppBar(
+        actions:
+            isVendeurOrTransitaire
+                ? [
+                  IconButton(
+                    icon: const Icon(Icons.add_circle, color: Colors.blue),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CreateSellPage2(),
+                        ),
+                      );
+                    },
+                  ),
+                ]
+                : null,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Rechercher une pièce...',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+            if (isAcheteur)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Wrap(
+                  spacing: 8.0,
+                  children:
+                      _filtres.map((filtre) {
+                        final isSelected = _filtreActif == filtre;
+                        return ChoiceChip(
+                          label: Text(filtre),
+                          selected: isSelected,
+                          onSelected: (_) {
+                            setState(() {
+                              _filtreActif = filtre;
+                            });
+                          },
+                        );
+                      }).toList(),
+                ),
+              ),
+            if (isAcheteur)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Rechercher une pièce...',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.grey[200],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
-            ),
             Expanded(
               child: GridView.builder(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -141,38 +186,62 @@ class _PieceState extends State<Piece> {
                 ),
                 itemCount: filteredPieces.length,
                 itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MastervacPage(),
+                  return Stack(
+                    children: [
+                      GestureDetector(
+                        onTap:
+                            isVendeurOrTransitaire
+                                ? null
+                                : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => MastervacPage(),
+                                    ),
+                                  );
+                                },
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.asset(
+                                filteredPieces[index]['image'],
+                                height: filteredPieces[index]['height'],
+                                width: filteredPieces[index]['width'],
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              filteredPieces[index]['name'],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            filteredPieces[index]['image'],
-                            height: filteredPieces[index]['height'],
-                            width: filteredPieces[index]['width'],
-                            fit: BoxFit.cover,
+                      ),
+                      if (isVendeurOrTransitaire)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              setState(() {
+                                allPieces.removeWhere(
+                                  (piece) =>
+                                      piece['name'] ==
+                                      filteredPieces[index]['name'],
+                                );
+                              });
+                            },
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          filteredPieces[index]['name'],
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                    ],
                   );
                 },
               ),
