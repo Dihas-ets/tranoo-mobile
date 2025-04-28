@@ -44,6 +44,7 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mes Transits'),
+        leading: null,
         backgroundColor: Colors.amber,
         bottom: TabBar(
           controller: _tabController,

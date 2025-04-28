@@ -76,8 +76,9 @@ class _TarifState extends State<Tarif> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tarifs'),
-        backgroundColor: Colors.amber,
+        // title: const Text('Tarifs'),
+        // backgroundColor: Colors.amber,
+        leading: null,
       ),
       body: ListView.builder(
         itemCount: carAds.length,
@@ -126,6 +127,240 @@ class _TarifState extends State<Tarif> {
   }
 }
 
+// class CarDetailsPage extends StatefulWidget {
+//   final Map<String, dynamic> car;
+//   final Function(String) onProposalSubmitted;
+
+//   const CarDetailsPage({
+//     super.key,
+//     required this.car,
+//     required this.onProposalSubmitted,
+//   });
+
+//   @override
+//   State<CarDetailsPage> createState() => _CarDetailsPageState();
+// }
+
+// class _CarDetailsPageState extends State<CarDetailsPage> {
+//   final TextEditingController _tarifController = TextEditingController();
+//   late int _currentImageIndex;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _currentImageIndex = 0;
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text(widget.car['title']!),
+//         backgroundColor: Colors.amber,
+//       ),
+//       body: ListView(
+//         padding: const EdgeInsets.all(16.0),
+//         children: [
+//           _buildImageSection(),
+//           const SizedBox(height: 20),
+//           _buildHeader(),
+//           const SizedBox(height: 16),
+//           _buildDescription(),
+//           const SizedBox(height: 24),
+//           _buildSpecifications(),
+//           const SizedBox(height: 24),
+//           _buildProposalSection(),
+//         ],
+//       ),
+//     );
+//   }
+
+//   Widget _buildImageSection() {
+//     final screenWidth = MediaQuery.of(context).size.width;
+
+//     return Column(
+//       children: [
+//         SizedBox(
+//           height: screenWidth > 600 ? 300 : 200,
+//           width: double.infinity,
+//           child: Image.asset(
+//             widget.car['images'][_currentImageIndex],
+//             fit: BoxFit.cover,
+//             errorBuilder: (context, error, stackTrace) {
+//               return Container(
+//                 color: Colors.grey[300],
+//                 child: const Center(child: Text('Image non disponible')),
+//               );
+//             },
+//           ),
+//         ),
+//         const SizedBox(height: 10),
+//         SingleChildScrollView(
+//           scrollDirection: Axis.horizontal,
+//           child: Row(
+//             mainAxisAlignment: MainAxisAlignment.center,
+//             children: List.generate(
+//               widget.car['images'].length,
+//               (index) => GestureDetector(
+//                 onTap: () {
+//                   setState(() {
+//                     _currentImageIndex = index;
+//                   });
+//                 },
+//                 child: Container(
+//                   margin: const EdgeInsets.symmetric(horizontal: 4),
+//                   width: screenWidth > 600 ? 80 : 60,
+//                   height: screenWidth > 600 ? 80 : 60,
+//                   decoration: BoxDecoration(
+//                     border: Border.all(
+//                       color:
+//                           _currentImageIndex == index
+//                               ? Colors.amber
+//                               : Colors.transparent,
+//                       width: 2,
+//                     ),
+//                   ),
+//                   child: Image.asset(
+//                     widget.car['images'][index],
+//                     fit: BoxFit.cover,
+//                     errorBuilder: (context, error, stackTrace) {
+//                       return Container(
+//                         color: Colors.grey[300],
+//                         child: const Icon(Icons.image_not_supported),
+//                       );
+//                     },
+//                   ),
+//                 ),
+//               ),
+//             ),
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+
+//   Widget _buildSpecifications() {
+//     final specs = widget.car['specs'] as Map<String, String>;
+//     final screenWidth = MediaQuery.of(context).size.width;
+
+//     return GridView.count(
+//       shrinkWrap: true,
+//       physics: const NeverScrollableScrollPhysics(),
+//       crossAxisCount: screenWidth > 600 ? 3 : 2,
+//       childAspectRatio: screenWidth > 600 ? 2.5 : 3,
+//       mainAxisSpacing: 16,
+//       crossAxisSpacing: 16,
+//       children:
+//           specs.entries.map((entry) {
+//             return Container(
+//               padding: const EdgeInsets.all(12),
+//               decoration: BoxDecoration(
+//                 color: const Color(0xFFF2F2F2),
+//                 borderRadius: BorderRadius.circular(8),
+//               ),
+//               child: Column(
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   Text(
+//                     entry.key,
+//                     style: const TextStyle(
+//                       fontSize: 14,
+//                       fontWeight: FontWeight.bold,
+//                       color: Colors.black87,
+//                     ),
+//                   ),
+//                   const SizedBox(height: 4),
+//                   Text(
+//                     entry.value,
+//                     style: const TextStyle(fontSize: 12, color: Colors.black54),
+//                   ),
+//                 ],
+//               ),
+//             );
+//           }).toList(),
+//     );
+//   }
+
+//   Widget _buildHeader() {
+//     final screenWidth = MediaQuery.of(context).size.width;
+
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         Text(
+//           widget.car['title']!,
+//           style: TextStyle(
+//             fontSize: screenWidth > 600 ? 24 : 22,
+//             fontWeight: FontWeight.bold,
+//           ),
+//         ),
+//         Text(
+//           widget.car['company']!,
+//           style: TextStyle(
+//             fontSize: screenWidth > 600 ? 20 : 18,
+//             color: Colors.grey,
+//           ),
+//         ),
+//         const SizedBox(height: 8),
+//         Text(
+//           widget.car['price']!,
+//           style: TextStyle(
+//             fontSize: screenWidth > 600 ? 22 : 20,
+//             fontWeight: FontWeight.bold,
+//             color: Colors.amber,
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+
+//   Widget _buildDescription() {
+//     return Text(
+//       widget.car['description']!,
+//       style: const TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
+//     );
+//   }
+
+//   Widget _buildProposalSection() {
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         const Text(
+//           'Proposez votre tarif pour le transit :',
+//           style: TextStyle(fontSize: 16.0),
+//         ),
+//         const SizedBox(height: 10),
+//         TextField(
+//           controller: _tarifController,
+//           keyboardType: TextInputType.number,
+//           decoration: const InputDecoration(
+//             labelText: 'Entrez votre tarif',
+//             border: OutlineInputBorder(),
+//           ),
+//         ),
+//         const SizedBox(height: 20),
+//         ElevatedButton(
+//           onPressed: () {
+//             final tarif = _tarifController.text;
+//             if (tarif.isNotEmpty) {
+//               widget.onProposalSubmitted(tarif);
+//               Navigator.pop(context);
+//               ScaffoldMessenger.of(context).showSnackBar(
+//                 SnackBar(
+//                   content: Text('Tarif proposé: ${tarif} f'),
+//                   backgroundColor: Colors.amber,
+//                 ),
+//               );
+//             }
+//           },
+//           style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+//           child: const Text('Soumettre'),
+//         ),
+//       ],
+//     );
+//   }
+// }
+
 class CarDetailsPage extends StatefulWidget {
   final Map<String, dynamic> car;
   final Function(String) onProposalSubmitted;
@@ -142,26 +377,20 @@ class CarDetailsPage extends StatefulWidget {
 
 class _CarDetailsPageState extends State<CarDetailsPage> {
   final TextEditingController _tarifController = TextEditingController();
-  late int _currentImageIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentImageIndex = 0;
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.car['title']!),
-        backgroundColor: Colors.amber,
+        leading: null,
+        // title: Text(widget.car['title']!),
+        // backgroundColor: Colors.amber,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          _buildImageSection(),
-          const SizedBox(height: 20),
+          _buildImageSection(), // Affiche une image d'exemple
+          const SizedBox(height: 16),
           _buildHeader(),
           const SizedBox(height: 16),
           _buildDescription(),
@@ -175,15 +404,14 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
   }
 
   Widget _buildImageSection() {
-    final screenWidth = MediaQuery.of(context).size.width;
-
+    // Utilisation d'une image d'exemple pour le front-end
     return Column(
       children: [
         SizedBox(
-          height: screenWidth > 600 ? 300 : 200,
+          height: 200,
           width: double.infinity,
           child: Image.asset(
-            widget.car['images'][_currentImageIndex],
+            'assets/images/car.png', // Image d'exemple
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               return Container(
@@ -194,45 +422,9 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
           ),
         ),
         const SizedBox(height: 10),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              widget.car['images'].length,
-              (index) => GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _currentImageIndex = index;
-                  });
-                },
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: screenWidth > 600 ? 80 : 60,
-                  height: screenWidth > 600 ? 80 : 60,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          _currentImageIndex == index
-                              ? Colors.amber
-                              : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                  child: Image.asset(
-                    widget.car['images'][index],
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.image_not_supported),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
+        const Text(
+          'Description de l\'image',
+          style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
       ],
     );
@@ -241,18 +433,22 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
   Widget _buildSpecifications() {
     final specs = widget.car['specs'] as Map<String, String>;
     final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
 
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: screenWidth > 600 ? 3 : 2,
-      childAspectRatio: screenWidth > 600 ? 2.5 : 3,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
+      crossAxisCount: isSmallScreen ? 2 : 3,
+      childAspectRatio: isSmallScreen ? 2.0 : 2.5, // Réduit pour petits écrans
+      mainAxisSpacing:
+          isSmallScreen ? 8 : 16, // Réduit l'espacement pour petits écrans
+      crossAxisSpacing: isSmallScreen ? 8 : 16,
       children:
           specs.entries.map((entry) {
             return Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(
+                isSmallScreen ? 8 : 12,
+              ), // Padding réduit pour petits écrans
               decoration: BoxDecoration(
                 color: const Color(0xFFF2F2F2),
                 borderRadius: BorderRadius.circular(8),
@@ -262,8 +458,9 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
                 children: [
                   Text(
                     entry.key,
-                    style: const TextStyle(
-                      fontSize: 14,
+                    style: TextStyle(
+                      fontSize:
+                          isSmallScreen ? 12 : 14, // Taille de police réduite
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -271,7 +468,11 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
                   const SizedBox(height: 4),
                   Text(
                     entry.value,
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                    style: TextStyle(
+                      fontSize:
+                          isSmallScreen ? 11 : 12, // Taille de police réduite
+                      color: Colors.black54,
+                    ),
                   ),
                 ],
               ),
