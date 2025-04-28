@@ -299,9 +299,10 @@ class _CarsinfoState extends State<Cars_info> {
   }
 
   // Cases à cocher pour les options
-  Widget _buildCheckboxes(double screenWidth, bool isAcheteur) {
-    if (isAcheteur)
-      return const SizedBox(); // Pas de cases à cocher pour les acheteurs
+// Modification de _buildCheckboxes pour inclure les cases à cocher et le champ de texte pour les acheteurs
+Widget _buildCheckboxes(double screenWidth, bool isAcheteur) {
+  if (!isAcheteur) {
+    // Si ce n'est pas un acheteur, afficher les cases à cocher existantes
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -322,7 +323,45 @@ class _CarsinfoState extends State<Cars_info> {
         }),
       ],
     );
+  } else {
+    // Si c'est un acheteur, afficher deux cases à cocher et un champ de texte
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildCheckbox('En transit', isNew, (value) {
+              setState(() {
+                isNew = value!;
+              });
+            }),
+            _buildCheckbox('En consommation', is2023, (value) {
+              setState(() {
+                is2023 = value!;
+              });
+            }),
+          ],
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Détails supplémentaires :',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          decoration: InputDecoration(
+            hintText: 'Entrez vos détails concernant la destination ici...',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          maxLines: 3,
+        ),
+      ],
+    );
   }
+}
 
   // Widget générique pour une case à cocher
   Widget _buildCheckbox(String label, bool value, Function(bool?) onChanged) {

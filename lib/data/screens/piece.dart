@@ -3,7 +3,7 @@ import 'mastervacpage.dart'; // Assure-toi que le fichier existe bien
 import 'create_sell.dart'; // Import pour ajouter une pièce
 import 'package:tranoo/services/user_service.dart'; // Import pour gérer les rôles
 import 'package:tranoo/utils/role_redirect.dart'; // Import pour la redirection basée sur le rôle
-import 'package:tranoo/services/user_service.dart'; // Import pour les rôles d'utilisateur
+
 import 'create_sell2.dart';
 class Piece extends StatefulWidget {
   const Piece({super.key});
@@ -165,7 +165,7 @@ class _PieceState extends State<Piece> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => MastervacPage(),
+                                    builder: (context) => MastervacPage(isAcheteur: true,),
                                   ),
                                 );
                               },

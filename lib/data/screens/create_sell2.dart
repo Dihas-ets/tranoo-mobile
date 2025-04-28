@@ -558,7 +558,7 @@ class _CreateSellPage2State extends State<CreateSellPage2> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => MastervacPage()),
+            MaterialPageRoute(builder: (context) => MastervacPage(isAcheteur: true,)),
           );
         },
         style: ElevatedButton.styleFrom(

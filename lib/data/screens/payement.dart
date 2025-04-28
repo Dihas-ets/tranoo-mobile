@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'succes.dart'; // Assurez-vous que ce chemin est correct
+import 'finalisation_achat.dart';
 
 class PayementScreen extends StatefulWidget {
   const PayementScreen({Key? key}) : super(key: key);
@@ -10,18 +11,27 @@ class PayementScreen extends StatefulWidget {
   State<PayementScreen> createState() => _PayementScreenState();
 }
 
-class _PayementScreenState extends State<PayementScreen> {
+class _PayementScreenState extends State<PayementScreen> with SingleTickerProviderStateMixin {
   String? selectedPiece;
   TextEditingController numeroController = TextEditingController(text: null);
-  String? selectedChauffeur;
   String? selectedTransitaire;
   File? uploadedImage;
   String? uploadedFileName;
-  bool hasUploadedFile = false; // Added to track if a file has been uploaded
+  bool hasUploadedFile = false;
 
-  final List<String> pieces = ['Carte d\'identité', 'Passeport', 'Permis de conduire'];
-  final List<String> chauffeurs = ['Chauffeur 1', 'Chauffeur 2', 'Chauffeur 3'];
-  final List<String> transitaires = ['Transitaire 1', 'Transitaire 2', 'Transitaire 3'];
+  bool isCarburantChecked = false;
+  bool isChauffeurChecked = false;
+  bool isFraisDeRouteChecked = false;
+
+  late AnimationController _animationController;
+
+  final List<String> pieces = ['Copie de la Carte d\'identité'];
+
+  final List<Map<String, String>> transitaires = [
+    {'name': 'Transitaire 1', 'price': '50,000 f'},
+    {'name': 'Transitaire 2', 'price': '60,000 f'},
+    {'name': 'Transitaire 3', 'price': '70,000 f'},
+  ];
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -31,9 +41,24 @@ class _PayementScreenState extends State<PayementScreen> {
       setState(() {
         uploadedImage = File(image.path);
         uploadedFileName = image.name;
-        hasUploadedFile = true; // Update hasUploadedFile
+        hasUploadedFile = true;
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -51,14 +76,6 @@ class _PayementScreenState extends State<PayementScreen> {
           'Informations supplémentaires',
           style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share, color: Colors.black),
-            onPressed: () {
-              // Action de partage
-            },
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -75,7 +92,7 @@ class _PayementScreenState extends State<PayementScreen> {
                     const SizedBox(height: 8),
                     _buildDropdown(
                       value: selectedPiece,
-                      hint: 'Carte d\'identité, Passeport, Permis de conduire',
+                      hint: 'Copie de la Carte d\'identité',
                       items: pieces,
                       onChanged: (value) => setState(() => selectedPiece = value),
                     ),
@@ -85,10 +102,9 @@ class _PayementScreenState extends State<PayementScreen> {
                     _buildLabel('Numéro de la pièce'),
                     const SizedBox(height: 8),
                     Container(
-                      width: MediaQuery.of(context).size.width * 1, // Réduit la largeur
-                      child:
-                      TextField(
-                        controller: numeroController, // Controller pour récupérer la valeur saisie
+                      width: MediaQuery.of(context).size.width * 1,
+                      child: TextField(
+                        controller: numeroController,
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: const Color(0xFFF2F2F2),
@@ -97,33 +113,17 @@ class _PayementScreenState extends State<PayementScreen> {
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          hintText: '245678399', // Texte d'exemple en fond grisé
-                          hintStyle: TextStyle(color: Colors.grey[500]), // Style optionnel pour le hint
+                          hintText: '245678399',
+                          hintStyle: TextStyle(color: Colors.grey[500]),
                         ),
-                      )
+                      ),
                     ),
                     const SizedBox(height: 24),
-
-                    // Choix du Chauffeur
-                    // _buildLabel('Choix du Chauffeur'),
-                    // const SizedBox(height: 8),
-                    // _buildDropdown(
-                    //   value: selectedChauffeur,
-                    //   hint: 'Choisissez votre chauffeur',
-                    //   items: chauffeurs,
-                    //   onChanged: (value) => setState(() => selectedChauffeur = value),
-                    // ),
-                    // const SizedBox(height: 24),
 
                     // Choix du transitaire
                     _buildLabel('Choix du transitaire'),
                     const SizedBox(height: 8),
-                    _buildDropdown(
-                      value: selectedTransitaire,
-                      hint: 'Choisissez votre transitaire',
-                      items: transitaires,
-                      onChanged: (value) => setState(() => selectedTransitaire = value),
-                    ),
+                    _buildTransitaireDropdown(),
                     const SizedBox(height: 24),
 
                     // Télécharger des images
@@ -160,26 +160,62 @@ class _PayementScreenState extends State<PayementScreen> {
                               uploadedFileName!,
                               style: const TextStyle(color: Colors.black, fontSize: 14),
                             ),
-                            Stack(
-                              children: [
-                                const Icon(Icons.image, size: 24),
-                                Positioned(
-                                  right: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            const Icon(Icons.image, size: 24),
                           ],
                         ),
                       ),
+                    const SizedBox(height: 24),
+
+                    // Processus d'achat nécessaires
+                    _buildLabel('Processus d\'achat nécessaires'),
+                    const SizedBox(height: 8),
+                    _buildCheckbox('Carburant', isCarburantChecked, (value) {
+                      setState(() {
+                        isCarburantChecked = value!;
+                      });
+                    }),
+                    _buildCheckbox('Chauffeur', isChauffeurChecked, (value) {
+                      setState(() {
+                        isChauffeurChecked = value!;
+                      });
+                    }),
+                    _buildCheckbox('Frais de route', isFraisDeRouteChecked, (value) {
+                      setState(() {
+                        isFraisDeRouteChecked = value!;
+                      });
+                    }),
+                    const SizedBox(height: 16),
+
+                    // Note
+                    const Text(
+                      'NB: Pour le service d\'entretien veuillez cliquer sur le bouton ci-dessous.',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Bouton clignotant avec animation en utilisant FadeTransition
+                    // et AnimationController
+                    Center(
+                      child: FadeTransition(
+                        opacity: _animationController,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // Action pour contacter le service d'entretien
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Contacter le service entretien',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -195,6 +231,22 @@ class _PayementScreenState extends State<PayementScreen> {
     return Text(
       text,
       style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+    );
+  }
+
+  Widget _buildCheckbox(String title, bool value, Function(bool?) onChanged) {
+    return Row(
+      children: [
+        Checkbox(
+          value: value,
+          onChanged: onChanged,
+          activeColor: Colors.amber,
+        ),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 14),
+        ),
+      ],
     );
   }
 
@@ -214,7 +266,6 @@ class _PayementScreenState extends State<PayementScreen> {
           value: value,
           hint: Text(hint, style: const TextStyle(color: Colors.grey, fontSize: 14)),
           isExpanded: true,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
           items: items.map((String item) {
             return DropdownMenuItem<String>(
               value: item,
@@ -227,16 +278,60 @@ class _PayementScreenState extends State<PayementScreen> {
     );
   }
 
+  Widget _buildTransitaireDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F2F2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedTransitaire,
+          hint: const Text(
+            'Choisissez votre transitaire',
+            style: TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+          isExpanded: true,
+          items: transitaires.map((transitaire) {
+            return DropdownMenuItem<String>(
+              value: transitaire['name'],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(transitaire['name']!), // Nom du transitaire
+                  Text(
+                    transitaire['price']!, // Prix du transitaire
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: (value) => setState(() => selectedTransitaire = value),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPaymentButton(BuildContext context) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 16),
       child: ElevatedButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SuccesScreen()),
-          );
+          if (isCarburantChecked && isChauffeurChecked && isFraisDeRouteChecked) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const FinalisationAchatScreen()),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Veuillez cocher toutes les cases avant de continuer.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFFFCC00),
@@ -245,9 +340,8 @@ class _PayementScreenState extends State<PayementScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        child: const Text('Payement', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+        child: const Text('Valider pour finaliser', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
       ),
     );
   }
 }
-

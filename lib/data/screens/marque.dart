@@ -328,90 +328,105 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                   ),
                 ),
                 GridView.builder(
-                  shrinkWrap: true,
-                  primary: false,
-                  physics: NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemCount: Images.length,
-                  itemBuilder: (context, index) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.asset(
-                                Images[index],
-                                height: 140,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: CircleAvatar(
-                                radius: 16,
-                                backgroundColor: Colors.white,
-                                child: IconButton(
-                                  icon: Icon(
-                                    Icons.favorite,
-                                    color: Colors.red,
-                                    size: 18,
-                                  ),
-                                  onPressed: () { 
-                                   
-                                  },
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 8,
-                              left: 8,
-                              child: CircleAvatar(
-                                radius: 16,
-                                backgroundColor: Colors.white,
-                                child: IconButton(
-                                  icon: Icon(
-                                    Icons.play_circle_fill,
-                                    color: Colors.red,
-                                    size: 18,
-                                  ),
-                                  onPressed: () {},
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          "Audi E-tron Premium",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          "54,77 823,73 f",
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        Row(
-                          children: [
-                            Icon(Icons.verified, color: Colors.green, size: 15),
-                            SizedBox(width: 5),
-                            Text(
-                              "Vérifiée",
-                              style: TextStyle(color: Color(0xFF188100)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  },
+  shrinkWrap: true,
+  primary: false,
+  physics: NeverScrollableScrollPhysics(),
+  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+    crossAxisCount: 2,
+    crossAxisSpacing: 10,
+    mainAxisSpacing: 10,
+    childAspectRatio: 0.75,
+  ),
+  itemCount: Images.length,
+  itemBuilder: (context, index) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Cars_info(
+              selectedImageIndex: index, // Passe l'index de l'image sélectionnée
+              images: Images, // Passe la liste des images
+            ),
+          ),
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  Images[index],
+                  height: 140,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
                 ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.white,
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.favorite,
+                      color: Colors.red,
+                      size: 18,
+                    ),
+                    onPressed: () {
+                      // Action pour ajouter aux favoris
+                    },
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 8,
+                left: 8,
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.white,
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.play_circle_fill,
+                      color: Colors.red,
+                      size: 18,
+                    ),
+                    onPressed: () {
+                      // Action pour jouer une vidéo ou autre
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            "Audi E-tron Premium",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Text(
+            "54,77 823,73 f",
+            style: TextStyle(color: Colors.grey),
+          ),
+          Row(
+            children: [
+              Icon(Icons.verified, color: Colors.green, size: 15),
+              SizedBox(width: 5),
+              Text(
+                "Vérifiée",
+                style: TextStyle(color: Color(0xFF188100)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  },
+),
                 SizedBox(height: 20),
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -524,6 +539,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                           MaterialPageRoute(
                             builder:
                                 (context) => MastervacPage(
+                                  isAcheteur: true,
                                   // Passe l'image
                                 ),
                           ),
