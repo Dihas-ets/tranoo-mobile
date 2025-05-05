@@ -10,6 +10,9 @@ import 'package:tranoo/data/screens/mastervacpage.dart';
 import 'package:tranoo/data/screens/voitures.dart';
 import 'package:tranoo/utils/role_redirect.dart';
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/data/screens/tarif.dart';
+import 'package:tranoo/data/screens/transit.dart';
+
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -34,7 +37,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       setState(() {});
     });
@@ -328,105 +331,111 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                   ),
                 ),
                 GridView.builder(
-  shrinkWrap: true,
-  primary: false,
-  physics: NeverScrollableScrollPhysics(),
-  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-    crossAxisCount: 2,
-    crossAxisSpacing: 10,
-    mainAxisSpacing: 10,
-    childAspectRatio: 0.75,
-  ),
-  itemCount: Images.length,
-  itemBuilder: (context, index) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Cars_info(
-              selectedImageIndex: index, // Passe l'index de l'image sélectionnée
-              images: Images, // Passe la liste des images
-            ),
-          ),
-        );
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  Images[index],
-                  height: 140,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Colors.white,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.favorite,
-                      color: Colors.red,
-                      size: 18,
-                    ),
-                    onPressed: () {
-                      // Action pour ajouter aux favoris
-                    },
+                  shrinkWrap: true,
+                  primary: false,
+                  physics: NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.75,
                   ),
+                  itemCount: Images.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => Cars_info(
+                                  selectedImageIndex:
+                                      index, // Passe l'index de l'image sélectionnée
+                                  images: Images, // Passe la liste des images
+                                ),
+                          ),
+                        );
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.asset(
+                                  Images[index],
+                                  height: 140,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: Colors.white,
+                                  child: IconButton(
+                                    icon: Icon(
+                                      Icons.favorite,
+                                      color: Colors.red,
+                                      size: 18,
+                                    ),
+                                    onPressed: () {
+                                      // Action pour ajouter aux favoris
+                                    },
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 8,
+                                left: 8,
+                                child: CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: Colors.white,
+                                  child: IconButton(
+                                    icon: Icon(
+                                      Icons.play_circle_fill,
+                                      color: Colors.red,
+                                      size: 18,
+                                    ),
+                                    onPressed: () {
+                                      // Action pour jouer une vidéo ou autre
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "Audi E-tron Premium",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            "54,77 823,73 f",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.verified,
+                                color: Colors.green,
+                                size: 15,
+                              ),
+                              SizedBox(width: 5),
+                              Text(
+                                "Vérifiée",
+                                style: TextStyle(color: Color(0xFF188100)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-              ),
-              Positioned(
-                bottom: 8,
-                left: 8,
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Colors.white,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.play_circle_fill,
-                      color: Colors.red,
-                      size: 18,
-                    ),
-                    onPressed: () {
-                      // Action pour jouer une vidéo ou autre
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8),
-          Text(
-            "Audi E-tron Premium",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Text(
-            "54,77 823,73 f",
-            style: TextStyle(color: Colors.grey),
-          ),
-          Row(
-            children: [
-              Icon(Icons.verified, color: Colors.green, size: 15),
-              SizedBox(width: 5),
-              Text(
-                "Vérifiée",
-                style: TextStyle(color: Color(0xFF188100)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  },
-),
                 SizedBox(height: 20),
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -670,22 +679,220 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                   horizontal: screenWidth * 0.01,
                 ),
                 tabs: [
-                  _buildTabButton("Marque", 0),
-                  _buildTabButton("Modèles", 1),
-                  _buildTabButton("Localisation", 2, isWide: true),
-                  _buildTabButton("Budget", 3),
+                  _buildTabButton("Activités", 0),
+                  _buildTabButton("Marque", 1),
+                  _buildTabButton("Modèles", 2),
+                  _buildTabButton("Localisation", 3, isWide: true),
+                  _buildTabButton("Budget", 4),
                 ],
               ),
             ),
-            if (_tabController.index == 0) _buildMarqueSection(),
-            if (_tabController.index == 1) _buildModeleSection(),
-            if (_tabController.index == 2) _buildLocalisationSection(),
-            if (_tabController.index == 3) _buildBudgetSection(),
+            if (_tabController.index == 0) _buildActivitesSection(),
+            if (_tabController.index == 1) _buildMarqueSection(),
+            if (_tabController.index == 2) _buildModeleSection(),
+            if (_tabController.index == 3) _buildLocalisationSection(),
+            if (_tabController.index == 4) _buildBudgetSection(),
           ],
         ),
       ),
     );
   }
+
+Widget _buildActivitesSection() {
+  List<Map<String, dynamic>> activites = [
+    {
+      "name": "Souscrire",
+      "icon": "assets/images/souscrire.png", // Remplacez par l'image correspondante
+      "route": Tarif(),
+    },
+    {
+      "name": "Soumettre",
+      "icon": "assets/images/soumis.png", // Remplacez par l'image correspondante
+      "route": Tarif(),
+    },
+    {
+      "name": "En Transit",
+      "icon": "assets/images/transit.png", // Remplacez par l'image correspondante
+      "route": Transit(),
+    },
+    {
+      "name": "En Consommation",
+      "icon": "assets/images/en_consommation.png", // Remplacez par l'image correspondante
+      "route": Transit(),
+    },
+  ];
+
+  return SingleChildScrollView(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Activités
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 2,
+            ),
+            itemCount: activites.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => activites[index]["route"],
+                    ),
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: const Color(0xFFE0E0E0), width: 2),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        activites[index]["icon"], // Affiche l'image
+                        height: 50,
+                        width: 50,
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        activites[index]["name"],
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF000000),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        // Section Sponsorisé
+        _buildImageCarousel(),
+
+        // Section Recommandé
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: 10,
+            horizontal: 16,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Recommandé",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF040415),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const voituresPage(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  "Voir tout",
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ),
+            ],
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          primary: false,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 0.75,
+          ),
+          itemCount: 6, // Exemple : nombre d'éléments recommandés
+          itemBuilder: (context, index) {
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Cars_info(
+                      selectedImageIndex: index,
+                      images: const ["assets/images/car.png"], // Exemple d'image
+                    ),
+                  ),
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          "assets/images/car.png", // Exemple d'image
+                          height: 140,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.white,
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.favorite,
+                              color: Colors.red,
+                              size: 18,
+                            ),
+                            onPressed: () {
+                              // Action pour ajouter aux favoris
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Audi E-tron Premium",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const Text(
+                    "54,77 823,73 f",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildMarqueSection() {
     List<Map<String, dynamic>> marques = [
@@ -994,6 +1201,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     );
   }
 }
+
 
 Widget _buildImageCarousel() {
   List<String> images = [

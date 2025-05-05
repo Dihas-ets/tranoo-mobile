@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'mastervacpage.dart'; // Assure-toi que le fichier existe bien
-import 'create_sell.dart'; // Import pour ajouter une pièce
-import 'package:tranoo/services/user_service.dart'; // Import pour gérer les rôles
-import 'package:tranoo/utils/role_redirect.dart'; // Import pour la redirection basée sur le rôle
+import 'create_sell2.dart'; // Importer la page pour les vendeurs
 
-import 'create_sell2.dart';
 class Piece extends StatefulWidget {
   const Piece({super.key});
 
@@ -15,6 +12,9 @@ class Piece extends StatefulWidget {
 class _PieceState extends State<Piece> {
   final TextEditingController _searchController = TextEditingController();
   String _searchText = "";
+
+  final List<String> _filtres = ['Tous', 'Frein', 'Moteur', 'Électricité'];
+  String _filtreActif = 'Tous';
 
   final List<String> piecesImages = [
     "assets/images/image1.png",
@@ -38,12 +38,6 @@ class _PieceState extends State<Piece> {
     "Flexible de frein",
     "Pompe à vide",
     "Mastervac",
-    "Mastervac",
-    "Mastervac",
-    "Disque de frein",
-    "Mastervac",
-    "Kit de frein",
-    "Flexible de frein",
     "Courroie de distribution",
     "Batterie",
     "Alternateur",
@@ -87,48 +81,53 @@ class _PieceState extends State<Piece> {
 
   @override
   Widget build(BuildContext context) {
-    final userService = UserService(); // Instance du service utilisateur
-    final isVendeurOrTransitaire = userService.currentRole == UserRole.vendeur ||
-        userService.currentRole == UserRole.transitaire;
+    List<String> allPiecesImages = [];
+    List<String> allPiecesNames = [];
+    for (int i = 0; i < 40; i++) {
+      allPiecesImages.add(piecesImages[i % piecesImages.length]);
+      allPiecesNames.add(piecesNames[i % piecesNames.length]);
+    }
 
-    List<Map<String, dynamic>> allPieces = List.generate(
-      piecesNames.length,
-      (index) => {
-        'name': piecesNames[index],
-        'image': piecesImages[index % piecesImages.length],
-        'height': piecesImageHeights[index % piecesImageHeights.length],
-        'width': piecesImageWidths[index % piecesImageWidths.length],
-      },
-    );
+    List<Map<String, dynamic>> filteredPieces = [];
+    List<String> searchWords =
+        _searchText.split(' ').where((word) => word.isNotEmpty).toList();
 
-    List<Map<String, dynamic>> filteredPieces = allPieces.where((piece) {
-      if (_searchText.isEmpty) return true;
-      return piece['name'].toLowerCase().contains(_searchText);
-    }).toList();
+    for (int i = 0; i < allPiecesNames.length; i++) {
+      String pieceName = allPiecesNames[i].toLowerCase();
+      bool matchesAllWords = searchWords.every(
+        (word) => pieceName.contains(word),
+      );
+      if (_searchText.isEmpty || matchesAllWords) {
+        filteredPieces.add({
+          'name': allPiecesNames[i],
+          'image': allPiecesImages[i],
+          'height': piecesImageHeights[i % piecesImageHeights.length],
+          'width': piecesImageWidths[i % piecesImageWidths.length],
+        });
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
-        //title: const Text("Pièces détachées"),
-        //backgroundColor: Colors.amber,
-        actions: isVendeurOrTransitaire
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.add_circle, color: Colors.blue),
-                  onPressed: () {
-                    // Redirection vers la page pour ajouter une pièce
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const CreateSellPage2()),
-                    );
-                  },
-                ),
-              ]
-            : null,
+        title: const Text('Pièces disponibles'),
+        backgroundColor: Colors.amber,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_circle, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreateSellPage2()),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // Barre de recherche
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: TextField(
@@ -145,6 +144,26 @@ class _PieceState extends State<Piece> {
                 ),
               ),
             ),
+            // Filtres
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Wrap(
+                spacing: 8.0,
+                children: _filtres.map((filtre) {
+                  final isSelected = _filtreActif == filtre;
+                  return ChoiceChip(
+                    label: Text(filtre),
+                    selected: isSelected,
+                    onSelected: (_) {
+                      setState(() {
+                        _filtreActif = filtre;
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+            // Grille des pièces
             Expanded(
               child: GridView.builder(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -155,60 +174,38 @@ class _PieceState extends State<Piece> {
                 ),
                 itemCount: filteredPieces.length,
                 itemBuilder: (context, index) {
-                  return Stack(
-                    children: [
-                      GestureDetector(
-                        onTap: isVendeurOrTransitaire
-                            ? null // Pas de redirection pour les vendeurs/transitaires
-                            : () {
-                                // Redirection pour les acheteurs
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => MastervacPage(isAcheteur: true,),
-                                  ),
-                                );
-                              },
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.asset(
-                                filteredPieces[index]['image'],
-                                height: filteredPieces[index]['height'],
-                                width: filteredPieces[index]['width'],
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              filteredPieces[index]['name'],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MastervacPage(isAcheteur: true,),
                         ),
-                      ),
-                      if (isVendeurOrTransitaire)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              setState(() {
-                                allPieces.removeWhere((piece) =>
-                                    piece['name'] ==
-                                    filteredPieces[index]['name']);
-                              });
-                            },
+                      );
+                    },
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            filteredPieces[index]['image'],
+                            height: filteredPieces[index]['height'],
+                            width: filteredPieces[index]['width'],
+                            fit: BoxFit.cover,
                           ),
                         ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          filteredPieces[index]['name'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
