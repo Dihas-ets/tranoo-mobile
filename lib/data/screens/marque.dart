@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:tranoo/data/screens/cars_info.dart';
@@ -7,12 +6,10 @@ import 'package:tranoo/data/screens/voitures.dart';
 import 'package:tranoo/data/screens/paymentform.dart';
 import 'package:tranoo/data/screens/piece.dart';
 import 'package:tranoo/data/screens/mastervacpage.dart';
-import 'package:tranoo/data/screens/voitures.dart';
 import 'package:tranoo/utils/role_redirect.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/data/screens/tarif.dart';
 import 'package:tranoo/data/screens/transit.dart';
-
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -22,9 +19,14 @@ class Marque extends StatefulWidget {
 }
 
 class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
   int _currentPage = 0;
   late PageController _pageController;
+  late TabController _tabController;
+  final UserService _userService = UserService();
+  late int _marqueTabIndex;
+  late int _modeleTabIndex;
+  late int _localisationTabIndex;
+  late int _budgetTabIndex;
 
   final imgList = [
     'assets/images/jeni.png',
@@ -37,12 +39,26 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    
+    // Initialisation des indices des onglets selon le rôle
+    final isTransitaire = _userService.currentRole == UserRole.transitaire;
+    _marqueTabIndex = isTransitaire ? 1 : 0;
+    _modeleTabIndex = isTransitaire ? 2 : 1;
+    _localisationTabIndex = isTransitaire ? 3 : 2;
+    _budgetTabIndex = isTransitaire ? 4 : 3;
+
+    _tabController = TabController(
+      length: isTransitaire ? 5 : 4,
+      vsync: this,
+    );
+
     _tabController.addListener(() {
       setState(() {});
     });
+
     _pageController = PageController(initialPage: 0);
 
+    // Configuration du carrousel automatique
     Future.delayed(Duration.zero, () {
       Timer.periodic(const Duration(seconds: 5), (Timer timer) {
         if (_currentPage < imgList.length - 1) {
@@ -82,8 +98,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF007AFF) : Colors.transparent,
           border: Border.all(
-            color:
-                isSelected ? const Color(0xFF007AFF) : const Color(0xFF000000),
+            color: isSelected ? const Color(0xFF007AFF) : const Color(0xFF000000),
             width: 0.8,
           ),
           borderRadius: BorderRadius.circular(7),
@@ -154,33 +169,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     ];
 
     List<double> PiecesImageHeights = [
-      30,
-      31,
-      29,
-      32,
-      36,
-      36,
-      37,
-      38,
-      30,
-      34,
-      40,
-      36,
+      30, 31, 29, 32, 36, 36, 37, 38, 30, 34, 40, 36,
     ];
 
     List<double> PiecesImageWidths = [
-      30,
-      31,
-      29,
-      32,
-      36,
-      36,
-      37,
-      38,
-      30,
-      34,
-      40,
-      36,
+      30, 31, 29, 32, 36, 36, 37, 38, 30, 34, 40, 36,
     ];
 
     return Padding(
@@ -193,23 +186,23 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Icon(
-                Icons.star, // Icône appropriée
-                color: Colors.blue, // Couleur bleue pour l'icône
+                Icons.star,
+                color: Colors.blue,
                 size: 20,
               ),
-              const SizedBox(width: 8), // Espacement entre l'icône et le texte
+              const SizedBox(width: 8),
               Text(
                 "Sponsorisé",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue, // Couleur bleue pour le texte
+                  color: Colors.blue,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          //Sectin du carrousel
+          //Section du carrousel
           SizedBox(
             height: 180,
             child: ListView.builder(
@@ -221,11 +214,10 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder:
-                            (context) => Cars_info(
-                              selectedImageIndex: index,
-                              images: images,
-                            ),
+                        builder: (context) => Cars_info(
+                          selectedImageIndex: index,
+                          images: images,
+                        ),
                       ),
                     );
                   },
@@ -316,9 +308,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder:
-                                  (context) =>
-                                      const voituresPage(), // Page unique pour tous les rôles
+                              builder: (context) => const voituresPage(),
                             ),
                           );
                         },
@@ -347,12 +337,10 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder:
-                                (context) => Cars_info(
-                                  selectedImageIndex:
-                                      index, // Passe l'index de l'image sélectionnée
-                                  images: Images, // Passe la liste des images
-                                ),
+                            builder: (context) => Cars_info(
+                              selectedImageIndex: index,
+                              images: Images,
+                            ),
                           ),
                         );
                       },
@@ -382,9 +370,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                       color: Colors.red,
                                       size: 18,
                                     ),
-                                    onPressed: () {
-                                      // Action pour ajouter aux favoris
-                                    },
+                                    onPressed: () {},
                                   ),
                                 ),
                               ),
@@ -400,9 +386,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                       color: Colors.red,
                                       size: 18,
                                     ),
-                                    onPressed: () {
-                                      // Action pour jouer une vidéo ou autre
-                                    },
+                                    onPressed: () {},
                                   ),
                                 ),
                               ),
@@ -440,7 +424,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     vertical: 10,
-                    horizontal: 10, // Réduit l'espace sur les côtés
+                    horizontal: 10,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -459,7 +443,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                             context,
                             MaterialPageRoute(
                               builder: (context) => Piece(),
-                            ), // Redirection
+                            ),
                           );
                         },
                         child: Text(
@@ -482,75 +466,14 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                   ),
                   itemCount: PiecesImages.length,
                   itemBuilder: (context, index) {
-                    // return Column(
-                    //   mainAxisAlignment: MainAxisAlignment.center,
-                    //   children: [
-                    //     ClipRRect(
-                    //       borderRadius: BorderRadius.circular(8),
-                    //       child: Image.asset(
-                    //         PiecesImages[index],
-                    //         height: PiecesImageHeights[index],
-                    //         width: PiecesImageWidths[index],
-                    //         fit: BoxFit.cover,
-                    //       ),
-                    //     ),
-                    //     SizedBox(height: 8),
-                    //     Text(
-                    //       PiecesNames[index],
-                    //       style: TextStyle(
-                    //         fontWeight: FontWeight.bold,
-                    //         fontSize: 8,
-                    // return GestureDetector(
-                    //   onTap: () {
-                    //     Navigator.push(
-                    //       context,
-                    //       MaterialPageRoute(
-                    //         builder:
-                    //             (context) => PaymentForm(
-                    //               pieceName: PiecesNames[index], // Passe le nom
-                    //               pieceImage:
-                    //                   PiecesImages[index], // Passe l'image
-                    //             ),
-                    //       ),
-                    //     );
-                    //   },
-                    //   child: Column(
-                    //     mainAxisAlignment: MainAxisAlignment.center,
-                    //     children: [
-                    //       ClipRRect(
-                    //         borderRadius: BorderRadius.circular(8),
-                    //         child: Image.asset(
-                    //           PiecesImages[index],
-                    //           height:
-                    //               PiecesImageHeights[index], // Hauteur spécifique
-                    //           width:
-                    //               PiecesImageWidths[index], // Largeur spécifique
-                    //           fit: BoxFit.cover,
-                    //         ),
-                    //       ),
-                    //       SizedBox(height: 8),
-                    //       Text(
-                    //         PiecesNames[index], // Nom de la pièce
-                    //         style: TextStyle(
-                    //           fontWeight: FontWeight.bold,
-                    //           fontSize: 8,
-                    //         ),
-                    //         textAlign: TextAlign.center,
-                    //       ),
-                    //     ],
-                    //   ),
-                    // );
-
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder:
-                                (context) => MastervacPage(
-                                  isAcheteur: true,
-                                  // Passe l'image
-                                ),
+                            builder: (context) => MastervacPage(
+                              isAcheteur: true,
+                            ),
                           ),
                         );
                       },
@@ -561,16 +484,14 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                             borderRadius: BorderRadius.circular(8),
                             child: Image.asset(
                               PiecesImages[index],
-                              height:
-                                  PiecesImageHeights[index], // Hauteur spécifique
-                              width:
-                                  PiecesImageWidths[index], // Largeur spécifique
+                              height: PiecesImageHeights[index],
+                              width: PiecesImageWidths[index],
                               fit: BoxFit.cover,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            PiecesNames[index], // Nom de la pièce
+                            PiecesNames[index],
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 8,
@@ -597,6 +518,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     final screenWidth = mediaQuery.size.width;
     final screenHeight = mediaQuery.size.height;
     final isPortrait = mediaQuery.orientation == Orientation.portrait;
+    final isTransitaire = _userService.currentRole == UserRole.transitaire;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -672,227 +594,116 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               padding: EdgeInsets.all(screenWidth * 0.04),
               child: TabBar(
                 controller: _tabController,
-                isScrollable: false,
+                isScrollable: true,
                 indicator: const BoxDecoration(),
                 padding: EdgeInsets.zero,
                 labelPadding: EdgeInsets.symmetric(
                   horizontal: screenWidth * 0.01,
                 ),
                 tabs: [
-                  _buildTabButton("Activités", 0),
-                  _buildTabButton("Marque", 1),
-                  _buildTabButton("Modèles", 2),
-                  _buildTabButton("Localisation", 3, isWide: true),
-                  _buildTabButton("Budget", 4),
+                  if (isTransitaire) _buildTabButton("Activités", 0),
+                  _buildTabButton("Marque", _marqueTabIndex),
+                  _buildTabButton("Modèles", _modeleTabIndex),
+                  _buildTabButton("Localisation", _localisationTabIndex, isWide: true),
+                  _buildTabButton("Budget", _budgetTabIndex),
                 ],
               ),
             ),
-            if (_tabController.index == 0) _buildActivitesSection(),
-            if (_tabController.index == 1) _buildMarqueSection(),
-            if (_tabController.index == 2) _buildModeleSection(),
-            if (_tabController.index == 3) _buildLocalisationSection(),
-            if (_tabController.index == 4) _buildBudgetSection(),
+            if (_tabController.index == 0 && isTransitaire) _buildActivitesSection(),
+            if (_tabController.index == _marqueTabIndex) _buildMarqueSection(),
+            if (_tabController.index == _modeleTabIndex) _buildModeleSection(),
+            if (_tabController.index == _localisationTabIndex) _buildLocalisationSection(),
+            if (_tabController.index == _budgetTabIndex) _buildBudgetSection(),
           ],
         ),
       ),
     );
   }
 
-Widget _buildActivitesSection() {
-  List<Map<String, dynamic>> activites = [
-    {
-      "name": "Souscrire",
-      "icon": "assets/images/souscrire.png", // Remplacez par l'image correspondante
-      "route": Tarif(),
-    },
-    {
-      "name": "Soumettre",
-      "icon": "assets/images/soumis.png", // Remplacez par l'image correspondante
-      "route": Tarif(),
-    },
-    {
-      "name": "En Transit",
-      "icon": "assets/images/transit.png", // Remplacez par l'image correspondante
-      "route": Transit(),
-    },
-    {
-      "name": "En Consommation",
-      "icon": "assets/images/en_consommation.png", // Remplacez par l'image correspondante
-      "route": Transit(),
-    },
-  ];
+  Widget _buildActivitesSection() {
+    List<Map<String, dynamic>> activites = [
+      {
+        "name": "Souscrire",
+        "icon": "assets/images/souscrire.png",
+        "route": Tarif(),
+      },
+      {
+        "name": "Soumettre",
+        "icon": "assets/images/soumis.png",
+        "route": Tarif(),
+      },
+      {
+        "name": "En Transit",
+        "icon": "assets/images/transit.png",
+        "route": Transit(),
+      },
+      {
+        "name": "En Consommation",
+        "icon": "assets/images/en_consommation.png",
+        "route": Transit(),
+      },
+    ];
 
-  return SingleChildScrollView(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Section Activités
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 2,
-            ),
-            itemCount: activites.length,
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => activites[index]["route"],
-                    ),
-                  );
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
-                    borderRadius: BorderRadius.circular(5),
-                    border: Border.all(color: const Color(0xFFE0E0E0), width: 2),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        activites[index]["icon"], // Affiche l'image
-                        height: 50,
-                        width: 50,
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 2,
+              ),
+              itemCount: activites.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => activites[index]["route"],
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        activites[index]["name"],
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF000000),
+                    );
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: const Color(0xFFE0E0E0), width: 2),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          activites[index]["icon"],
+                          height: 50,
+                          width: 50,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-
-        // Section Sponsorisé
-        _buildImageCarousel(),
-
-        // Section Recommandé
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: 10,
-            horizontal: 16,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Recommandé",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF040415),
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const voituresPage(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  "Voir tout",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ),
-            ],
-          ),
-        ),
-        GridView.builder(
-          shrinkWrap: true,
-          primary: false,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 0.75,
-          ),
-          itemCount: 6, // Exemple : nombre d'éléments recommandés
-          itemBuilder: (context, index) {
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Cars_info(
-                      selectedImageIndex: index,
-                      images: const ["assets/images/car.png"], // Exemple d'image
+                        const SizedBox(height: 5),
+                        Text(
+                          activites[index]["name"],
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF000000),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   ),
                 );
               },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          "assets/images/car.png", // Exemple d'image
-                          height: 140,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.white,
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.favorite,
-                              color: Colors.red,
-                              size: 18,
-                            ),
-                            onPressed: () {
-                              // Action pour ajouter aux favoris
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Audi E-tron Premium",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const Text(
-                    "54,77 823,73 f",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ],
-    ),
-  );
-}
+            ),
+          ),
+          _buildImageCarousel(),
+        ],
+      ),
+    );
+  }
 
   Widget _buildMarqueSection() {
     List<Map<String, dynamic>> marques = [
@@ -1196,10 +1007,126 @@ Widget _buildActivitesSection() {
             ),
           ),
           _buildImageCarousel(),
-        ],
-      ),
-    );
-  }
+    
+
+        // Section Recommandé
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: 10,
+            horizontal: 16,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Recommandé",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF040415),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const voituresPage(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  "Voir tout",
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ),
+            ],
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          primary: false,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 0.75,
+          ),
+          itemCount: 6, // Exemple : nombre d'éléments recommandés
+          itemBuilder: (context, index) {
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Cars_info(
+                      selectedImageIndex: index,
+                      images: const ["assets/images/car.png"], // Exemple d'image
+                    ),
+                  ),
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          "assets/images/car.png", // Exemple d'image
+                          height: 140,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.white,
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.favorite,
+                              color: Colors.red,
+                              size: 18,
+                            ),
+                            onPressed: () {
+                              // Action pour ajouter aux favoris
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Audi E-tron Premium",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const Text(
+                    "54,77 823,73 f",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+
+
+
+
+
+
+ 
 }
 
 

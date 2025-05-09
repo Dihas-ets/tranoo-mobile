@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/data/screens/paymentscreen.dart';
 import 'movie.dart'; // Importer la page pour les vidéos
 import 'payement.dart'; // Importer la page pour le paiement
 import 'succes2.dart'; // Importer la page pour le succès
@@ -35,9 +36,10 @@ class _CarsinfoState extends State<Cars_info> {
   @override
   Widget build(BuildContext context) {
     final userService = UserService(); // Instance du service utilisateur
-    final isAcheteur =
+    final isAcheteurOrTransitaire =
         userService.currentRole ==
-        UserRole.acheteur; // Vérifie si l'utilisateur est un acheteur
+        UserRole.acheteur || userService.currentRole ==
+        UserRole.transitaire  ; // Vérifie si l'utilisateur est un acheteur
 
     // Récupération des dimensions de l'écran pour la responsivité
     final mediaQuery = MediaQuery.of(context);
@@ -56,7 +58,7 @@ class _CarsinfoState extends State<Cars_info> {
           ), // Affiche l'image en grand
           _buildContentSection(
             screenWidth,
-            isAcheteur,
+            isAcheteurOrTransitaire,
           ), // Affiche les détails et spécifications
           const SizedBox(height: 50),
         ],
@@ -394,7 +396,7 @@ Widget _buildCheckboxes(double screenWidth, bool isAcheteur) {
             // Redirection pour les vendeurs
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => SuccesScreen2()),
+              MaterialPageRoute(builder: (context) => PaymentScreen()),
             );
           }
         },

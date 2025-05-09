@@ -53,14 +53,46 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   fit: BoxFit.contain,
                 ),
               ),
-              SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
-              Text(
-                "S'inscrire",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: screenWidth * (isPortrait ? 0.06 : 0.04),
-                ),
-              ),
+             // Dans votre méthode build(), remplacez le bouton d'inscription par ceci :
+SizedBox(
+  width: double.infinity,
+  child: Padding(
+    padding: EdgeInsets.only(
+      bottom: MediaQuery.of(context).viewInsets.bottom + 20, // Marge de sécurité
+    ),
+    child: ElevatedButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ConnexionPage(),
+          ),
+        );
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFFF8BF13),
+        foregroundColor: Colors.black,
+        padding: EdgeInsets.symmetric(
+          vertical: screenHeight * 0.02,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        minimumSize: Size(0, screenHeight * 0.06), // Hauteur minimale adaptable
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          "S'inscrire",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: screenWidth * 0.04, // Taille de police fixe relative
+          ),
+        ),
+      ),
+    ),
+  ),
+),
               SizedBox(height: screenHeight * 0.02),
               Text(
                 "Trouvez votre voiture de rêve!",

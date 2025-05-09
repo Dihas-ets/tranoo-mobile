@@ -9,6 +9,9 @@ class UserService extends ChangeNotifier {
   UserRole? _currentRole;
 
   UserRole? get currentRole => _currentRole;
+  bool get isTransitaire => _currentRole == UserRole.transitaire;
+  bool get isVendeur => _currentRole == UserRole.vendeur;
+  bool get isAcheteur => _currentRole == UserRole.acheteur;
 
   void setRole(UserRole role) {
     _currentRole = role;

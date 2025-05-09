@@ -25,7 +25,7 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
 
   late AnimationController _animationController;
 
-  final List<String> pieces = ['Copie de la Carte d\'identité'];
+  final List<String> pieces = ['Copie de la Carte d\'identité', 'Permis de conduire', 'Passeport'];
 
   final List<Map<String, String>> transitaires = [
     {'name': 'Transitaire 1', 'price': '50,000 f'},

@@ -64,56 +64,62 @@ class _voituresPageState extends State<voituresPage> {
   @override
   void initState() {
     super.initState();
-    displayedCars = List.from(allCars); // Affichage initial de toutes les voitures
+    displayedCars = List.from(
+      allCars,
+    ); // Affichage initial de toutes les voitures
   }
 
   void applyFilters() {
     setState(() {
-      displayedCars = allCars.where((car) {
-        bool matches = true;
+      displayedCars =
+          allCars.where((car) {
+            bool matches = true;
 
-        if (filterAll) {
-          return true; // Affiche toutes les voitures si "Tous" est sélectionné
-        }
+            if (filterAll) {
+              return true; // Affiche toutes les voitures si "Tous" est sélectionné
+            }
 
-        if (filterTesla) {
-          matches = matches && car['name'].toString().contains('Tesla');
-        }
-        if (filterAudi) {
-          matches = matches && car['name'].toString().contains('Audi');
-        }
-        if (filterBMW) {
-          matches = matches && car['name'].toString().contains('BMW');
-        }
-        if (filterNissan) {
-          matches = matches && car['name'].toString().contains('Nissan');
-        }
+            if (filterTesla) {
+              matches = matches && car['name'].toString().contains('Tesla');
+            }
+            if (filterAudi) {
+              matches = matches && car['name'].toString().contains('Audi');
+            }
+            if (filterBMW) {
+              matches = matches && car['name'].toString().contains('BMW');
+            }
+            if (filterNissan) {
+              matches = matches && car['name'].toString().contains('Nissan');
+            }
 
-        return matches;
-      }).toList();
+            return matches;
+          }).toList();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final userService = UserService(); // Instance du service utilisateur
-    final isVendeurOrTransitaire =
-        userService.currentRole == UserRole.vendeur ||
+    final isVendeur = userService.currentRole == UserRole.vendeur;
+
+    final isAcheteurOrTransitaire =
+        userService.currentRole == UserRole.acheteur ||
         userService.currentRole == UserRole.transitaire;
-    final isAcheteur = userService.currentRole == UserRole.acheteur;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Voitures disponibles'),
         backgroundColor: Colors.amber,
         actions: [
-          if (isVendeurOrTransitaire)
+          if (isVendeur)
             IconButton(
               icon: const Icon(Icons.add_circle, color: Colors.white),
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const CreateSellPage()),
+                  MaterialPageRoute(
+                    builder: (context) => const CreateSellPage(),
+                  ),
                 );
               },
             ),
@@ -140,18 +146,18 @@ class _voituresPageState extends State<voituresPage> {
                 ),
                 onChanged: (value) {
                   setState(() {
-                    displayedCars = allCars.where((car) {
-                      return car['name']
-                          .toString()
-                          .toLowerCase()
-                          .contains(value.toLowerCase());
-                    }).toList();
+                    displayedCars =
+                        allCars.where((car) {
+                          return car['name'].toString().toLowerCase().contains(
+                            value.toLowerCase(),
+                          );
+                        }).toList();
                   });
                 },
               ),
             ),
             // Filtres
-            if (isAcheteur)
+            if (isAcheteurOrTransitaire)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Wrap(
@@ -250,21 +256,27 @@ class _voituresPageState extends State<voituresPage> {
                   return Stack(
                     children: [
                       GestureDetector(
-                        onTap: isVendeurOrTransitaire
-                            ? null
-                            : () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => Cars_info(
-                                      selectedImageIndex: index,
-                                      images: displayedCars
-                                          .map((c) => c['image'] as String)
-                                          .toList(),
+                        onTap:
+                            isVendeur
+                                ? null
+                                : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => Cars_info(
+                                            selectedImageIndex: index,
+                                            images:
+                                                displayedCars
+                                                    .map(
+                                                      (c) =>
+                                                          c['image'] as String,
+                                                    )
+                                                    .toList(),
+                                          ),
                                     ),
-                                  ),
-                                );
-                              },
+                                  );
+                                },
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -291,7 +303,7 @@ class _voituresPageState extends State<voituresPage> {
                           ],
                         ),
                       ),
-                      if (isVendeurOrTransitaire)
+                      if (isVendeur)
                         Positioned(
                           top: 8,
                           right: 8,
