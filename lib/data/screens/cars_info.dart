@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:tranoo/data/screens/paymentscreen.dart';
 import 'movie.dart'; // Importer la page pour les vidéos
 import 'payement.dart'; // Importer la page pour le paiement
-import 'succes2.dart'; // Importer la page pour le succès
 import 'package:tranoo/services/user_service.dart'; // Importer UserService pour gérer les rôles
 import 'package:tranoo/utils/role_redirect.dart'; // Importer RoleRedirect pour la redirection basée sur le rôle
 

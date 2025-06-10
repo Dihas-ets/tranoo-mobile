@@ -6,9 +6,10 @@ import 'package:image_picker/image_picker.dart';
 import 'cars_info.dart'; // Importer le fichier combiné cars_info
 
 class CreateSellPage extends StatefulWidget {
-  const CreateSellPage({Key? key}) : super(key: key);
+  const CreateSellPage({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _CreateSellPageState createState() => _CreateSellPageState();
 }
 
@@ -17,28 +18,43 @@ class _CreateSellPageState extends State<CreateSellPage> {
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _companyController = TextEditingController();
+  final TextEditingController _cylindreController = TextEditingController();
+  final TextEditingController _distanceController = TextEditingController();
+  final TextEditingController _siegesController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
   String? _selectedCondition; // Gardé en String pour "Nouveau" et "Occasion"
   int? _selectedModel; // Modèle
   int? _selectedMarques;
-  int? _selectedPortes; // Portes
-  int? _selectedVitesse; // Vitesse
-  int? _selectedCarburant; // Carburant
-  int? _selectedClimatiseur; // Climatiseur
-  int? _selectedDistance; // Distance
-  int? _selectedSieges; // Sièges
+  int? _selectedPorte; // Portes
+  // int? _selectedVitesse; // Vitesse
+  // int? _selectedCarburant; // Carburant
+  // int? _selectedClimatiseur; // Climatiseur
+  // int? _selectedDistance; // Distance
+  // int? _selectedSieges; // Sièges
+  String? _selectedBoiteVitesse;
+  String? _selectedCarburantDropdown;
+  String? _selectedClimatiseurDropdown;
   File? _uploadedImage;
   String? _uploadedFileName;
   bool _hasUploadedFile = false;
 
   final List<String> _conditions = ['Nouveau', 'Occasion']; // Reste en String
   final List<String> _models = ['Modèle1', 'Modèle2']; // Modèles
-  final List<String> _marques = ['BMW', 'Mercedes'];
-  final List<int> _portes = [1, 2]; // Portes
-  final List<int> _vitesses = [1, 2]; // Vitesses
-  final List<int> _carburants = [1, 2]; // Carburants
-  final List<int> _climatiseurs = [1, 2]; // Climatiseurs
-  final List<int> _distances = [1, 2]; // Distances
-  final List<int> _sieges = [1, 2]; // Sièges
+  final List<String> _marques = ['BMW', 'Mercedes', 'Audi', 'Ford', 'Lexus'];
+  final List<String> _boiteVitesses = ['Manuelle', 'Automatique'];
+  final List<String> _carburantsList = [
+    'Essence',
+    'Diesel',
+    'Électrique',
+    'Hybride',
+  ];
+  final List<String> _climatiseursList = ['Oui', 'Non'];
+  final List<int> _portesList = [
+    2,
+    3,
+    4,
+    5,
+  ]; // Liste d'options pour le nombre de portes
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -96,7 +112,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                             children: [
                               _buildLabel('Condition'),
                               const SizedBox(height: 8),
-                              _buildDropdown(
+                              _buildDropdown<String>(
                                 value: _selectedCondition,
                                 hint: 'Choisissez la condition',
                                 items: _conditions,
@@ -148,10 +164,11 @@ class _CreateSellPageState extends State<CreateSellPage> {
                             children: [
                               _buildLabel('Marques'),
                               const SizedBox(height: 8),
-                              _buildDropdown(
+                              _buildDropdown<String>(
                                 value: _selectedMarques?.toString(),
                                 hint: 'Choisissez la marque',
-                                items: _marques.map((e) => e.toString()).toList(),
+                                items:
+                                    _marques.map((e) => e.toString()).toList(),
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedMarques = int.tryParse(value!);
@@ -168,10 +185,11 @@ class _CreateSellPageState extends State<CreateSellPage> {
                             children: [
                               _buildLabel('Modèle'),
                               const SizedBox(height: 8),
-                              _buildDropdown(
+                              _buildDropdown<String>(
                                 value: _selectedModel?.toString(),
                                 hint: 'Choisissez le modèle',
-                                items: _models.map((e) => e.toString()).toList(),
+                                items:
+                                    _models.map((e) => e.toString()).toList(),
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedModel = int.tryParse(value!);
@@ -182,6 +200,252 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Cylindre
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Cylindre'),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _cylindreController,
+                          decoration: InputDecoration(
+                            hintText: 'Entrer le cylindre',
+                            filled: true,
+                            fillColor: const Color(0xFFF2F2F2),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Porte et Boîte à vitesse
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('Porte'),
+                              const SizedBox(height: 8),
+                              _buildDropdown<int>(
+                                value: _selectedPorte,
+                                hint: 'Choisissez le nombre de portes',
+                                items: _portesList,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedPorte = value;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('Boîte à vitesse'),
+                              const SizedBox(height: 8),
+                              _buildDropdown<String>(
+                                value: _selectedBoiteVitesse,
+                                hint: 'Choisissez la vitesse',
+                                items: _boiteVitesses,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedBoiteVitesse = value;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Carburant et Climatiseur
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('Carburant'),
+                              const SizedBox(height: 8),
+                              _buildDropdown<String>(
+                                value: _selectedCarburantDropdown,
+                                hint: 'Choisissez le carburant',
+                                items: _carburantsList,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedCarburantDropdown = value;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('Climatiseur'),
+                              const SizedBox(height: 8),
+                              _buildDropdown<String>(
+                                value: _selectedClimatiseurDropdown,
+                                hint: 'Choisissez le climatiseur',
+                                items: _climatiseursList,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedClimatiseurDropdown = value;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Distance et Siège
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('Distance'),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _distanceController,
+                                decoration: InputDecoration(
+                                  hintText: 'Entrer la distance',
+                                  filled: true,
+                                  fillColor: const Color(0xFFF2F2F2),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('Siège'),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _siegesController,
+                                decoration: InputDecoration(
+                                  hintText: 'Entrer le siège',
+                                  filled: true,
+                                  fillColor: const Color(0xFFF2F2F2),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Prix
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Prix'),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _priceController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: 'Saisir le Prix',
+                            filled: true,
+                            fillColor: const Color(0xFFF2F2F2),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Description
+                    _buildLabel('Description'),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _descriptionController,
+                      maxLines: 5,
+                      decoration: InputDecoration(
+                        hintText: 'Entrer une description de votre voiture',
+                        filled: true,
+                        fillColor: const Color(0xFFF2F2F2),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Nom de l'entreprise possédant le BL
+                    _buildLabel('Nom de l\'entreprise possédant le BL'),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _companyController,
+                      decoration: InputDecoration(
+                        hintText: 'Entrer le nom de l\'entreprise',
+                        filled: true,
+                        fillColor: const Color(0xFFF2F2F2),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 24),
 
@@ -250,11 +514,11 @@ class _CreateSellPageState extends State<CreateSellPage> {
     );
   }
 
-  Widget _buildDropdown({
-    required String? value,
+  Widget _buildDropdown<T>({
+    required T? value,
     required String hint,
-    required List<String> items,
-    required Function(String?) onChanged,
+    required List<T> items,
+    required ValueChanged<T?> onChanged,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -262,16 +526,20 @@ class _CreateSellPageState extends State<CreateSellPage> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
+        child: DropdownButton<T>(
           value: value,
           hint: Text(
             hint,
             style: const TextStyle(color: Colors.grey, fontSize: 14),
           ),
           isExpanded: true,
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(value: item, child: Text(item));
-          }).toList(),
+          items:
+              items.map((T item) {
+                return DropdownMenuItem<T>(
+                  value: item,
+                  child: Text(item.toString()),
+                );
+              }).toList(),
           onChanged: onChanged,
         ),
       ),
@@ -284,13 +552,35 @@ class _CreateSellPageState extends State<CreateSellPage> {
       margin: const EdgeInsets.only(top: 16),
       child: ElevatedButton(
         onPressed: () {
+          print('Titre: ${_titleController.text}');
+          print('Année: ${_yearController.text}');
+          print('Condition: ${_selectedCondition}');
+          print('Marque: ${_selectedMarques}');
+          print('Modèle: ${_selectedModel}');
+          print('Porte: ${_selectedPorte}');
+          print('Cylindre: ${_cylindreController.text}');
+          print('Boîte à vitesse: ${_selectedBoiteVitesse}');
+          print('Carburant: ${_selectedCarburantDropdown}');
+          print('Climatiseur: ${_selectedClimatiseurDropdown}');
+          print('Distance: ${_distanceController.text}');
+          print('Siège: ${_siegesController.text}');
+          print('Prix: ${_priceController.text}');
+          print('Description: ${_descriptionController.text}');
+          print('Nom de l\'entreprise: ${_companyController.text}');
+          print('Fichier téléchargé: ${_uploadedFileName}');
+
+          // Restore navigation to cars_info.dart with original example data
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => Cars_info(
-                selectedImageIndex: 0, // Exemple d'index par défaut
-                images: ['assets/images/car1.png', 'assets/images/car2.png'], // Exemple d'images
-              ),
+              builder:
+                  (context) => Cars_info(
+                    selectedImageIndex: 0, // Original example index
+                    images: [
+                      'assets/images/car1.png',
+                      'assets/images/car2.png',
+                    ], // Original example images
+                  ),
             ),
           );
         },
@@ -307,5 +597,18 @@ class _CreateSellPageState extends State<CreateSellPage> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _yearController.dispose();
+    _descriptionController.dispose();
+    _companyController.dispose();
+    _cylindreController.dispose();
+    _distanceController.dispose();
+    _siegesController.dispose();
+    _priceController.dispose();
+    super.dispose();
   }
 }
