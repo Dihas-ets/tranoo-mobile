@@ -3,6 +3,8 @@ import 'payement.dart';
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
 import 'package:tranoo/utils/role_redirect.dart';
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/data/screens/paymentscreen.dart';
+
 class MastervacPage extends StatefulWidget {
   const MastervacPage({super.key, required bool isAcheteur});
 
@@ -21,16 +23,39 @@ class _MastervacPageState extends State<MastervacPage> {
   // Définition des booléens nécessaires
   bool isNew = false;
   bool is2023 = false;
-  bool isBeninese = false;
+  String? _selectedCountry;
   bool isGarantieIncluse = false;
   bool isLivraisonRapide = false;
   TextEditingController detailsController = TextEditingController();
+  final List<String> africanCountries = [
+    'Bénin',
+    'Burkina Faso',
+    'Côte d\'Ivoire',
+    'Mali',
+    'Niger',
+    'Sénégal',
+    'Togo',
+    'Cameroun',
+    'Gabon',
+    'Guinée',
+    'Congo',
+    'RDC',
+    'Maroc',
+    'Algérie',
+    'Tunisie',
+    'Afrique du Sud',
+    'Nigeria',
+    'Ghana',
+    'Kenya',
+    'Éthiopie',
+  ];
 
   @override
   Widget build(BuildContext context) {
     final userService = UserService(); // Instance du service utilisateur
-    final isAcheteurOrTransitaire = userService.currentRole == UserRole.acheteur
-        || userService.currentRole == UserRole.transitaire;
+    final isAcheteurOuChauffeur =
+        userService.currentRole == UserRole.acheteur ||
+        userService.currentRole == UserRole.chauffeur;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -39,7 +64,7 @@ class _MastervacPageState extends State<MastervacPage> {
         physics: const BouncingScrollPhysics(),
         children: [
           _buildImageSection(),
-          _buildContentSection(isAcheteurOrTransitaire),
+          _buildContentSection(isAcheteurOuChauffeur),
           const SizedBox(height: 50),
         ],
       ),
@@ -106,9 +131,10 @@ class _MastervacPageState extends State<MastervacPage> {
                     width: 120,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: _currentImageIndex == index
-                            ? Colors.amber
-                            : Colors.transparent,
+                        color:
+                            _currentImageIndex == index
+                                ? Colors.amber
+                                : Colors.transparent,
                         width: 2,
                       ),
                     ),
@@ -228,10 +254,7 @@ class _MastervacPageState extends State<MastervacPage> {
           const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.black54,
-            ),
+            style: const TextStyle(fontSize: 13, color: Colors.black54),
           ),
         ],
       ),
@@ -240,18 +263,38 @@ class _MastervacPageState extends State<MastervacPage> {
 
   Widget _buildCheckboxes(bool isAcheteur) {
     if (!isAcheteur) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCheckboxContainer('Nouveau', isNew, (val) {
-            setState(() => isNew = val);
-          }),
-          _buildCheckboxContainer('Modèle', is2023, (val) {
-            setState(() => is2023 = val);
-          }),
-          _buildCheckboxContainer('Bénin', isBeninese, (val) {
-            setState(() => isBeninese = val);
-          }),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildCheckboxContainer('Nouveau', isNew, (val) {
+                setState(() => isNew = val);
+              }),
+              _buildCheckboxContainer('Occasion', is2023, (val) {
+                setState(() => is2023 = val);
+              }),
+            ],
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            value: _selectedCountry,
+            items:
+                africanCountries
+                    .map(
+                      (country) => DropdownMenuItem(
+                        value: country,
+                        child: Text(country),
+                      ),
+                    )
+                    .toList(),
+            decoration: const InputDecoration(
+              labelText: 'Lieu',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) => setState(() => _selectedCountry = value),
+          ),
         ],
       );
     } else {
@@ -264,7 +307,9 @@ class _MastervacPageState extends State<MastervacPage> {
               _buildCheckboxContainer('En transit', isLivraisonRapide, (val) {
                 setState(() => isLivraisonRapide = val);
               }),
-              _buildCheckboxContainer('En consommation', isGarantieIncluse, (val) {
+              _buildCheckboxContainer('En consommation', isGarantieIncluse, (
+                val,
+              ) {
                 setState(() => isGarantieIncluse = val);
               }),
             ],
@@ -290,7 +335,11 @@ class _MastervacPageState extends State<MastervacPage> {
     }
   }
 
-  Widget _buildCheckboxContainer(String label, bool value, Function(bool) onChanged) {
+  Widget _buildCheckboxContainer(
+    String label,
+    bool value,
+    Function(bool) onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(1),
       child: Container(
@@ -316,10 +365,114 @@ class _MastervacPageState extends State<MastervacPage> {
     return Center(
       child: GestureDetector(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const PayementScreen()),
-          );
+          if (isAcheteur) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PayementScreen()),
+            );
+          } else {
+            // Affiche un popup de paiement pour les vendeurs
+            showDialog(
+              context: context,
+              builder: (context) {
+                return Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.amber,
+                              size: 32,
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Frais à payer',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Pour publier votre pièce, vous devez payer les frais suivants :',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                            horizontal: 24,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Color(0xFFFFF8E1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.amber, width: 2),
+                          ),
+                          child: const Text(
+                            'Montant : 120 000 FCFA',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context); // Ferme le dialog
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const PaymentScreen(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber,
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: const BorderSide(
+                                    color: Colors.amber,
+                                    width: 2,
+                                  ),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 12,
+                                ),
+                              ),
+                              child: const Text(
+                                'Payer',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          }
         },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 14),

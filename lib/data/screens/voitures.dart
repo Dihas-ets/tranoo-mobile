@@ -256,27 +256,21 @@ class _voituresPageState extends State<voituresPage> {
                   return Stack(
                     children: [
                       GestureDetector(
-                        onTap:
-                            isVendeur
-                                ? null
-                                : () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) => Cars_info(
-                                            selectedImageIndex: index,
-                                            images:
-                                                displayedCars
-                                                    .map(
-                                                      (c) =>
-                                                          c['image'] as String,
-                                                    )
-                                                    .toList(),
-                                          ),
-                                    ),
-                                  );
-                                },
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => Cars_info(
+                                    selectedImageIndex: index,
+                                    images:
+                                        displayedCars
+                                            .map((c) => c['image'] as String)
+                                            .toList(),
+                                  ),
+                            ),
+                          );
+                        },
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

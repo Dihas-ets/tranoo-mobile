@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/user_service.dart';
 
-enum UserRole { acheteur, vendeur, transitaire }
+enum UserRole { acheteur, vendeur, transitaire, chauffeur }
 
 class RoleRedirect extends StatelessWidget {
   final Widget child;

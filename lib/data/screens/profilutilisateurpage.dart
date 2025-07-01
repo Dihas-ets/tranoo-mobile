@@ -211,17 +211,6 @@ class _ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
             },
           ),
           _buildListTile(
-            title: "Devenir chauffeur certifié",
-            subtitle: "Proposer des services de livraison",
-            icon: Icons.delivery_dining,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => DriverCertifiedPage()),
-              );
-            },
-          ),
-          _buildListTile(
             title: "Mon portefeuille",
             icon: Icons.account_balance_wallet,
             trailing: Text(

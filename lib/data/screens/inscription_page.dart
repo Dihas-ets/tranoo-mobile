@@ -22,7 +22,13 @@ class _InscriptionPageState extends State<InscriptionPage> {
     'Niger',
   ];
 
-  final List<String> roles = ['Transitaires', 'Acheteur', 'Vendeur'];
+  final List<String> roles = [
+    'Transitaires',
+    'Acheteur',
+    'Vendeur',
+    'Chauffeur',
+  ];
+  final TextEditingController _entrepriseController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -53,46 +59,53 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   fit: BoxFit.contain,
                 ),
               ),
-             // Dans votre méthode build(), remplacez le bouton d'inscription par ceci :
-SizedBox(
-  width: double.infinity,
-  child: Padding(
-    padding: EdgeInsets.only(
-      bottom: MediaQuery.of(context).viewInsets.bottom + 20, // Marge de sécurité
-    ),
-    child: ElevatedButton(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ConnexionPage(),
-          ),
-        );
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFF8BF13),
-        foregroundColor: Colors.black,
-        padding: EdgeInsets.symmetric(
-          vertical: screenHeight * 0.02,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        minimumSize: Size(0, screenHeight * 0.06), // Hauteur minimale adaptable
-      ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          "S'inscrire",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: screenWidth * 0.04, // Taille de police fixe relative
-          ),
-        ),
-      ),
-    ),
-  ),
-),
+              // Dans votre méthode build(), remplacez le bouton d'inscription par ceci :
+              SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom:
+                        MediaQuery.of(context).viewInsets.bottom +
+                        20, // Marge de sécurité
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ConnexionPage(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF8BF13),
+                      foregroundColor: Colors.black,
+                      padding: EdgeInsets.symmetric(
+                        vertical: screenHeight * 0.02,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      minimumSize: Size(
+                        0,
+                        screenHeight * 0.06,
+                      ), // Hauteur minimale adaptable
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        "S'inscrire",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize:
+                              screenWidth *
+                              0.04, // Taille de police fixe relative
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               SizedBox(height: screenHeight * 0.02),
               Text(
                 "Trouvez votre voiture de rêve!",
@@ -223,6 +236,43 @@ SizedBox(
                   },
                 ),
               ),
+              if (selectedRole == 'Transitaires') ...[
+                SizedBox(height: screenHeight * 0.02),
+                TextField(
+                  controller: _entrepriseController,
+                  decoration: InputDecoration(
+                    labelText: 'Entreprise',
+                    hintText: 'Nom de l\'entreprise',
+                    labelStyle: TextStyle(
+                      color: Colors.grey,
+                      fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.business,
+                      color: Colors.grey,
+                      size: screenWidth * (isPortrait ? 0.06 : 0.04),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: screenHeight * 0.02,
+                      horizontal: screenWidth * 0.04,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFF8BF13)),
+                    ),
+                  ),
+                ),
+              ],
               SizedBox(height: screenHeight * 0.02),
 
               // Sélection du Pays

@@ -12,7 +12,10 @@ class PaymentScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: Icon(Icons.arrow_back, color: Colors.black),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(
           'Mettre ma voiture à la une',
           style: TextStyle(color: Colors.black),
@@ -57,15 +60,15 @@ class PaymentScreen extends StatelessWidget {
                   // Logos de cartes
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildImage('assets/images/American Express.png'),
-                    SizedBox(width: 10), // Espacement réduit entre les images
-                    _buildImage('assets/images/Visa.png'),
-                    SizedBox(width: 10),
-                    _buildImage('assets/images/American Express.png'),
-                    SizedBox(width: 10),
-                    _buildImage('assets/images/Discover.png'),
-                  ],
+                    children: [
+                      _buildImage('assets/images/American Express.png'),
+                      SizedBox(width: 10), // Espacement réduit entre les images
+                      _buildImage('assets/images/Visa.png'),
+                      SizedBox(width: 10),
+                      _buildImage('assets/images/American Express.png'),
+                      SizedBox(width: 10),
+                      _buildImage('assets/images/Discover.png'),
+                    ],
                   ),
                   const SizedBox(height: 30),
 
@@ -174,8 +177,8 @@ class PaymentScreen extends StatelessWidget {
         ),
       ),
     );
-    
   }
+
   Widget _buildImage(String imagePath) {
     return Container(
       width: 50,
@@ -185,7 +188,12 @@ class PaymentScreen extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-           color: Color.fromRGBO(128, 128, 128, 0.2), // Remplace Colors.grey.withOpacity(0.2)
+            color: Color.fromRGBO(
+              128,
+              128,
+              128,
+              0.2,
+            ), // Remplace Colors.grey.withOpacity(0.2)
             blurRadius: 5,
             offset: Offset(0, 3),
           ),

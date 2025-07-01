@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'mastervacpage.dart'; // Assure-toi que le fichier existe bien
 import 'create_sell2.dart'; // Importer la page pour les vendeurs
+import 'package:tranoo/services/user_service.dart';
 
 class Piece extends StatefulWidget {
   const Piece({super.key});
@@ -81,6 +82,10 @@ class _PieceState extends State<Piece> {
 
   @override
   Widget build(BuildContext context) {
+    final userService = UserService();
+    final isVendeur = userService.isVendeur;
+    final isAcheteurOuChauffeur =
+        userService.isAcheteur || userService.isChauffeur;
     List<String> allPiecesImages = [];
     List<String> allPiecesNames = [];
     for (int i = 0; i < 40; i++) {
@@ -111,17 +116,22 @@ class _PieceState extends State<Piece> {
       appBar: AppBar(
         title: const Text('Pièces disponibles'),
         backgroundColor: Colors.amber,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CreateSellPage2()),
-              );
-            },
-          ),
-        ],
+        actions:
+            isVendeur
+                ? [
+                  IconButton(
+                    icon: const Icon(Icons.add_circle, color: Colors.white),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CreateSellPage2(),
+                        ),
+                      );
+                    },
+                  ),
+                ]
+                : null,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -149,18 +159,19 @@ class _PieceState extends State<Piece> {
               padding: const EdgeInsets.only(bottom: 16),
               child: Wrap(
                 spacing: 8.0,
-                children: _filtres.map((filtre) {
-                  final isSelected = _filtreActif == filtre;
-                  return ChoiceChip(
-                    label: Text(filtre),
-                    selected: isSelected,
-                    onSelected: (_) {
-                      setState(() {
-                        _filtreActif = filtre;
-                      });
-                    },
-                  );
-                }).toList(),
+                children:
+                    _filtres.map((filtre) {
+                      final isSelected = _filtreActif == filtre;
+                      return ChoiceChip(
+                        label: Text(filtre),
+                        selected: isSelected,
+                        onSelected: (_) {
+                          setState(() {
+                            _filtreActif = filtre;
+                          });
+                        },
+                      );
+                    }).toList(),
               ),
             ),
             // Grille des pièces
@@ -174,38 +185,72 @@ class _PieceState extends State<Piece> {
                 ),
                 itemCount: filteredPieces.length,
                 itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MastervacPage(isAcheteur: true,),
+                  return Stack(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          if (isVendeur) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        MastervacPage(isAcheteur: false),
+                              ),
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        MastervacPage(isAcheteur: true),
+                              ),
+                            );
+                          }
+                        },
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.asset(
+                                filteredPieces[index]['image'],
+                                height: filteredPieces[index]['height'],
+                                width: filteredPieces[index]['width'],
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              filteredPieces[index]['name'],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            filteredPieces[index]['image'],
-                            height: filteredPieces[index]['height'],
-                            width: filteredPieces[index]['width'],
-                            fit: BoxFit.cover,
+                      ),
+                      if (isVendeur)
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Colors.red,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                filteredPieces.removeAt(index);
+                              });
+                            },
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          filteredPieces[index]['name'],
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                    ],
                   );
                 },
               ),

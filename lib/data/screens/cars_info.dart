@@ -23,7 +23,29 @@ class _CarsinfoState extends State<Cars_info> {
   late int _currentImageIndex; // Gère l'image actuelle affichée
   bool isNew = false;
   bool is2023 = false;
-  bool isBeninese = false;
+  String? _selectedCountry;
+  final List<String> africanCountries = [
+    'Bénin',
+    'Burkina Faso',
+    'Côte d\'Ivoire',
+    'Mali',
+    'Niger',
+    'Sénégal',
+    'Togo',
+    'Cameroun',
+    'Gabon',
+    'Guinée',
+    'Congo',
+    'RDC',
+    'Maroc',
+    'Algérie',
+    'Tunisie',
+    'Afrique du Sud',
+    'Nigeria',
+    'Ghana',
+    'Kenya',
+    'Éthiopie',
+  ];
 
   @override
   void initState() {
@@ -35,10 +57,9 @@ class _CarsinfoState extends State<Cars_info> {
   @override
   Widget build(BuildContext context) {
     final userService = UserService(); // Instance du service utilisateur
-    final isAcheteurOrTransitaire =
-        userService.currentRole ==
-        UserRole.acheteur || userService.currentRole ==
-        UserRole.transitaire  ; // Vérifie si l'utilisateur est un acheteur
+    final isAcheteurOuChauffeur =
+        userService.currentRole == UserRole.acheteur ||
+        userService.currentRole == UserRole.chauffeur;
 
     // Récupération des dimensions de l'écran pour la responsivité
     final mediaQuery = MediaQuery.of(context);
@@ -57,7 +78,7 @@ class _CarsinfoState extends State<Cars_info> {
           ), // Affiche l'image en grand
           _buildContentSection(
             screenWidth,
-            isAcheteurOrTransitaire,
+            isAcheteurOuChauffeur,
           ), // Affiche les détails et spécifications
           const SizedBox(height: 50),
         ],
@@ -300,69 +321,68 @@ class _CarsinfoState extends State<Cars_info> {
   }
 
   // Cases à cocher pour les options
-// Modification de _buildCheckboxes pour inclure les cases à cocher et le champ de texte pour les acheteurs
-Widget _buildCheckboxes(double screenWidth, bool isAcheteur) {
-  if (!isAcheteur) {
-    // Si ce n'est pas un acheteur, afficher les cases à cocher existantes
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildCheckbox('Nouveau', isNew, (value) {
-          setState(() {
-            isNew = value!;
-          });
-        }),
-        _buildCheckbox('Modèle 2023', is2023, (value) {
-          setState(() {
-            is2023 = value!;
-          });
-        }),
-        _buildCheckbox('Béninoise', isBeninese, (value) {
-          setState(() {
-            isBeninese = value!;
-          });
-        }),
-      ],
-    );
-  } else {
-    // Si c'est un acheteur, afficher deux cases à cocher et un champ de texte
+  Widget _buildCheckboxes(double screenWidth, bool isAcheteur) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildCheckbox('En transit', isNew, (value) {
+            _buildCheckbox(isAcheteur ? 'En transit' : 'Nouveau', isNew, (
+              value,
+            ) {
               setState(() {
                 isNew = value!;
               });
             }),
-            _buildCheckbox('En consommation', is2023, (value) {
-              setState(() {
-                is2023 = value!;
-              });
-            }),
+            _buildCheckbox(
+              isAcheteur ? 'En consommation' : 'Occasion',
+              is2023,
+              (value) {
+                setState(() {
+                  is2023 = value!;
+                });
+              },
+            ),
           ],
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Détails supplémentaires :',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          decoration: InputDecoration(
-            hintText: 'Entrez vos détails concernant la destination ici...',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+        // Menu déroulant Lieu
+        DropdownButtonFormField<String>(
+          value: _selectedCountry,
+          items:
+              africanCountries
+                  .map(
+                    (country) =>
+                        DropdownMenuItem(value: country, child: Text(country)),
+                  )
+                  .toList(),
+          decoration: const InputDecoration(
+            labelText: 'Lieu',
+            border: OutlineInputBorder(),
           ),
-          maxLines: 3,
+          onChanged: (value) => setState(() => _selectedCountry = value),
         ),
+        if (isAcheteur) ...[
+          const SizedBox(height: 16),
+          const Text(
+            'Détails supplémentaires :',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Entrez vos détails concernant la destination ici...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            maxLines: 3,
+          ),
+        ],
       ],
     );
   }
-}
 
   // Widget générique pour une case à cocher
   Widget _buildCheckbox(String label, bool value, Function(bool?) onChanged) {
@@ -392,10 +412,106 @@ Widget _buildCheckboxes(double screenWidth, bool isAcheteur) {
               MaterialPageRoute(builder: (context) => PayementScreen()),
             );
           } else {
-            // Redirection pour les vendeurs
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => PaymentScreen()),
+            // Affiche un popup de paiement pour les vendeurs
+            showDialog(
+              context: context,
+              builder: (context) {
+                return Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.amber,
+                              size: 32,
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Frais à payer',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Pour publier votre voiture, vous devez payer les frais suivants :',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                            horizontal: 24,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Color(0xFFFFF8E1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.amber, width: 2),
+                          ),
+                          child: const Text(
+                            'Montant : 120 000 FCFA',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context); // Ferme le dialog
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PaymentScreen(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber,
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: const BorderSide(
+                                    color: Colors.amber,
+                                    width: 2,
+                                  ),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32,
+                                  vertical: 12,
+                                ),
+                              ),
+                              child: const Text(
+                                'Payer',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             );
           }
         },

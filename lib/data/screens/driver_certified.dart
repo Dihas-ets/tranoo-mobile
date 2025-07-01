@@ -67,7 +67,9 @@ class _DriverCertifiedPageState extends State<DriverCertifiedPage> {
             const SizedBox(height: 8),
             TextField(
               controller: _phoneController,
-              decoration: _buildInputDecoration('Tapez votre numéro de Téléphone'),
+              decoration: _buildInputDecoration(
+                'Tapez votre numéro de Téléphone',
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -85,7 +87,9 @@ class _DriverCertifiedPageState extends State<DriverCertifiedPage> {
             const SizedBox(height: 8),
             TextField(
               controller: _permitController,
-              decoration: _buildInputDecoration('Entrer votre numéro de permit'),
+              decoration: _buildInputDecoration(
+                'Entrer votre numéro de permit',
+              ),
             ),
             const SizedBox(height: 16),
 

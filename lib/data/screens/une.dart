@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,33 +19,62 @@ class _UneState extends State<Une> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedVoiture;
   String? _selectedPaiement;
+  String? _selectedDuree;
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _prixController = TextEditingController();
 
   List<File> _mediaFiles = [];
 
   final List<String> voitures = ['Sponsorisée', 'À la une'];
   final List<String> moyensPaiement = ['Paiement bancaire', 'Mobile Money'];
+  final List<String> durees = [
+    '1 semaine',
+    '2 semaines',
+    '10 jours',
+    '1 mois',
+    '2 mois',
+  ];
 
   final ImagePicker picker = ImagePicker();
 
   Future<void> _pickMedia() async {
-    var permissionPhotos = await Permission.photos.request();
-    var permissionVideos = await Permission.videos.request();
-
-    if (permissionPhotos.isGranted || permissionVideos.isGranted) {
+    if (kIsWeb) {
+      // Sur le web, pas besoin de permission
       final List<XFile> images = await picker.pickMultiImage();
-      final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
-
       setState(() {
         _mediaFiles.addAll(images.map((xfile) => File(xfile.path)));
-        if (video != null) {
-          _mediaFiles.add(File(video.path));
-        }
       });
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Permission refusée')));
+      var permissionPhotos = await Permission.photos.request();
+      var permissionVideos = await Permission.videos.request();
+
+      if (permissionPhotos.isGranted || permissionVideos.isGranted) {
+        final List<XFile> images = await picker.pickMultiImage();
+        final XFile? video = await picker.pickVideo(
+          source: ImageSource.gallery,
+        );
+
+        setState(() {
+          _mediaFiles.addAll(images.map((xfile) => File(xfile.path)));
+          if (video != null) {
+            _mediaFiles.add(File(video.path));
+          }
+        });
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Permission refusée')));
+      }
     }
+  }
+
+  String get prixEnLettres {
+    if (_selectedVoiture == 'Sponsorisée') {
+      return 'Cent mille FCFA';
+    } else if (_selectedVoiture == 'À la une') {
+      return 'Deux cent mille FCFA';
+    }
+    return '';
   }
 
   @override
@@ -85,6 +115,17 @@ class _UneState extends State<Une> {
                     ),
                     const SizedBox(height: 30),
 
+                    // Champ description
+                    TextFormField(
+                      controller: _descriptionController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
                     // Type de publicité
                     DropdownButtonFormField<String>(
                       value: _selectedVoiture,
@@ -101,9 +142,63 @@ class _UneState extends State<Une> {
                         labelText: 'Type de publicité',
                         border: OutlineInputBorder(),
                       ),
-                      onChanged:
-                          (value) => setState(() => _selectedVoiture = value),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedVoiture = value;
+                          // Met à jour le prix selon le type de pub
+                          if (value == 'Sponsorisée') {
+                            _prixController.text = '100000';
+                          } else if (value == 'À la une') {
+                            _prixController.text = '200000';
+                          } else {
+                            _prixController.text = '';
+                          }
+                        });
+                      },
                     ),
+                    const SizedBox(height: 30),
+
+                    // Durée de la pub
+                    DropdownButtonFormField<String>(
+                      value: _selectedDuree,
+                      items:
+                          durees
+                              .map(
+                                (duree) => DropdownMenuItem(
+                                  value: duree,
+                                  child: Text(duree),
+                                ),
+                              )
+                              .toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Durée de la publicité',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged:
+                          (value) => setState(() => _selectedDuree = value),
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Prix (non éditable)
+                    TextFormField(
+                      controller: _prixController,
+                      enabled: false,
+                      decoration: const InputDecoration(
+                        labelText: 'Prix (FCFA)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    if (prixEnLettres.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                        child: Text(
+                          prixEnLettres,
+                          style: const TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 30),
 
                     // Moyen de paiement

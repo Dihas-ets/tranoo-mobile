@@ -260,7 +260,12 @@ class _ConnexionPageState extends State<ConnexionPage> {
   bool isEmailFocused = false;
   bool isPasswordFocused = false;
   String? selectedRole;
-  final List<String> roles = ['Acheteur', 'Vendeur', 'Transitaire'];
+  final List<String> roles = [
+    'Acheteur',
+    'Vendeur',
+    'Transitaire',
+    'Chauffeur',
+  ];
   final userService = UserService();
 
   @override
@@ -508,6 +513,9 @@ class _ConnexionPageState extends State<ConnexionPage> {
                           break;
                         case 'Transitaire':
                           userService.setRole(UserRole.transitaire);
+                          break;
+                        case 'Chauffeur':
+                          userService.setRole(UserRole.chauffeur);
                           break;
                       }
                       Navigator.push(
