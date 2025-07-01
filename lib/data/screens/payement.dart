@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'succes.dart'; // Assurez-vous que ce chemin est correct
 import 'finalisation_achat.dart';
 
 class PayementScreen extends StatefulWidget {
@@ -11,7 +10,8 @@ class PayementScreen extends StatefulWidget {
   State<PayementScreen> createState() => _PayementScreenState();
 }
 
-class _PayementScreenState extends State<PayementScreen> with SingleTickerProviderStateMixin {
+class _PayementScreenState extends State<PayementScreen>
+    with SingleTickerProviderStateMixin {
   String? selectedPiece;
   TextEditingController numeroController = TextEditingController(text: null);
   String? selectedTransitaire;
@@ -22,10 +22,15 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
   bool isCarburantChecked = false;
   bool isChauffeurChecked = false;
   bool isFraisDeRouteChecked = false;
+  bool isTransitaireChecked = true;
 
   late AnimationController _animationController;
 
-  final List<String> pieces = ['Copie de la Carte d\'identité', 'Permis de conduire', 'Passeport'];
+  final List<String> pieces = [
+    'Copie de la Carte d\'identité',
+    'Permis de conduire',
+    'Passeport',
+  ];
 
   final List<Map<String, String>> transitaires = [
     {'name': 'Transitaire 1', 'price': '50,000 f'},
@@ -74,7 +79,11 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
         ),
         title: const Text(
           'Informations supplémentaires',
-          style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
       body: Padding(
@@ -94,7 +103,8 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
                       value: selectedPiece,
                       hint: 'Copie de la Carte d\'identité',
                       items: pieces,
-                      onChanged: (value) => setState(() => selectedPiece = value),
+                      onChanged:
+                          (value) => setState(() => selectedPiece = value),
                     ),
                     const SizedBox(height: 24),
 
@@ -112,7 +122,10 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide.none,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           hintText: '245678399',
                           hintStyle: TextStyle(color: Colors.grey[500]),
                         ),
@@ -137,7 +150,10 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
                             const SizedBox(width: 8),
                             const Text(
                               'Télécharger des images',
-                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
                             ),
                           ],
                         ),
@@ -152,13 +168,19 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
                           color: const Color(0xFFF2F2F2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               uploadedFileName!,
-                              style: const TextStyle(color: Colors.black, fontSize: 14),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 14,
+                              ),
                             ),
                             const Icon(Icons.image, size: 24),
                           ],
@@ -179,9 +201,18 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
                         isChauffeurChecked = value!;
                       });
                     }),
-                    _buildCheckbox('Frais de route', isFraisDeRouteChecked, (value) {
+                    _buildCheckbox('Frais de route', isFraisDeRouteChecked, (
+                      value,
+                    ) {
                       setState(() {
                         isFraisDeRouteChecked = value!;
+                      });
+                    }),
+                    _buildCheckbox('Transitaire', isTransitaireChecked, (
+                      value,
+                    ) {
+                      setState(() {
+                        isTransitaireChecked = value!;
                       });
                     }),
                     const SizedBox(height: 16),
@@ -204,14 +235,20 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                           child: const Text(
                             'Contacter le service entretien',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                       ),
@@ -237,15 +274,8 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
   Widget _buildCheckbox(String title, bool value, Function(bool?) onChanged) {
     return Row(
       children: [
-        Checkbox(
-          value: value,
-          onChanged: onChanged,
-          activeColor: Colors.amber,
-        ),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 14),
-        ),
+        Checkbox(value: value, onChanged: onChanged, activeColor: Colors.amber),
+        Text(title, style: const TextStyle(fontSize: 14)),
       ],
     );
   }
@@ -264,14 +294,15 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          hint: Text(hint, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          hint: Text(
+            hint,
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
+          ),
           isExpanded: true,
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
+          items:
+              items.map((String item) {
+                return DropdownMenuItem<String>(value: item, child: Text(item));
+              }).toList(),
           onChanged: onChanged,
         ),
       ),
@@ -292,21 +323,25 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
             style: TextStyle(color: Colors.grey, fontSize: 14),
           ),
           isExpanded: true,
-          items: transitaires.map((transitaire) {
-            return DropdownMenuItem<String>(
-              value: transitaire['name'],
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(transitaire['name']!), // Nom du transitaire
-                  Text(
-                    transitaire['price']!, // Prix du transitaire
-                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+          items:
+              transitaires.map((transitaire) {
+                return DropdownMenuItem<String>(
+                  value: transitaire['name'],
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(transitaire['name']!), // Nom du transitaire
+                      Text(
+                        transitaire['price']!, // Prix du transitaire
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          }).toList(),
+                );
+              }).toList(),
           onChanged: (value) => setState(() => selectedTransitaire = value),
         ),
       ),
@@ -319,15 +354,22 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
       margin: const EdgeInsets.only(top: 16),
       child: ElevatedButton(
         onPressed: () {
-          if (isCarburantChecked && isChauffeurChecked && isFraisDeRouteChecked) {
+          if (isCarburantChecked &&
+              isChauffeurChecked &&
+              isFraisDeRouteChecked &&
+              isTransitaireChecked) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const FinalisationAchatScreen()),
+              MaterialPageRoute(
+                builder: (context) => const FinalisationAchatScreen(),
+              ),
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Veuillez cocher toutes les cases avant de continuer.'),
+                content: Text(
+                  'Veuillez cocher toutes les cases (y compris Transitaire) avant de continuer.',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -340,7 +382,10 @@ class _PayementScreenState extends State<PayementScreen> with SingleTickerProvid
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        child: const Text('Valider pour finaliser', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+        child: const Text(
+          'Valider pour finaliser',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+        ),
       ),
     );
   }

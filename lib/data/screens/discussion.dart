@@ -190,7 +190,10 @@ class _DiscussionState extends State<Discussion> {
                                 isMe ? Radius.zero : const Radius.circular(12),
                           ),
                           border: Border.all(
-                            color: Colors.grey.withOpacity(
+                            color: Color.fromRGBO(
+                              Colors.grey.r.toInt(),
+                              Colors.grey.g.toInt(),
+                              Colors.grey.b.toInt(),
                               0.5,
                             ), // Bordure grise
                           ),

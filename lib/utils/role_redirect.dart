@@ -8,10 +8,10 @@ class RoleRedirect extends StatelessWidget {
   final UserRole requiredRole;
 
   const RoleRedirect({
-    Key? key,
+    super.key,
     required this.child,
     required this.requiredRole,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

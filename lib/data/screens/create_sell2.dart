@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import  'mastervacpage.dart'; // Importez la page MastervacPage
+import 'mastervacpage.dart'; // Importez la page MastervacPage
 
 class CreateSellPage2 extends StatefulWidget {
   const CreateSellPage2({Key? key}) : super(key: key);
@@ -19,13 +19,13 @@ class _CreateSellPage2State extends State<CreateSellPage2> {
   final TextEditingController _companyController = TextEditingController();
   String? _selectedType; // Gardé en String pour "Rare" et "Normal"
   int? _selectedModel; // Modèle
-  int? _selectedtypes;
-  int? _selectedPortes; // Portes
-  int? _selectedVitesse; // Vitesse
-  int? _selectedCarburant; // Carburant
-  int? _selectedClimatiseur; // Climatiseur
-  int? _selectedDistance; // Distance
-  int? _selectedSieges; // Sièges
+  // int? _selectedtypes;
+  // int? _selectedPortes; // Portes
+  // int? _selectedVitesse; // Vitesse
+  // int? _selectedCarburant; // Carburant
+  // int? _selectedClimatiseur; // Climatiseur
+  // int? _selectedDistance; // Distance
+  // int? _selectedSieges; // Sièges
   File? _uploadedImage;
   String? _uploadedFileName;
   bool _hasUploadedFile = false;
@@ -33,12 +33,12 @@ class _CreateSellPage2State extends State<CreateSellPage2> {
   final List<String> _types = ['Nouveau ', 'Occasion']; // Reste en String
   final List<String> _fuelTypes = ['Essence', 'Gazoil'];
   final List<String> _models = ['Modèle1', 'Modèle2']; // Modèles
-  final List<int> _portes = [1, 2]; // Portes
-  final List<int> _vitesses = [1, 2]; // Vitesses
-  final List<int> _carburants = [1, 2]; // Carburants
-  final List<int> _climatiseurs = [1, 2]; // Climatiseurs
-  final List<int> _distances = [1, 2]; // Distances
-  final List<int> _sieges = [1, 2]; // Sièges
+  // final List<int> _portes = [1, 2]; // Portes
+  // // final List<int> _vitesses = [1, 2]; // Vitesses
+  // final List<int> _carburants = [1, 2]; // Carburants
+  // final List<int> _climatiseurs = [1, 2]; // Climatiseurs
+  // final List<int> _distances = [1, 2]; // Distances
+  // final List<int> _sieges = [1, 2]; // Sièges
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -253,16 +253,15 @@ class _CreateSellPage2State extends State<CreateSellPage2> {
                               ),
                               const SizedBox(height: 8),
                               _buildDropdown(
-                                value: _selectedtypes?.toString(),
+                                value: _selectedType,
                                 hint: 'Essence',
                                 items:
                                     _fuelTypes
                                         .map((e) => e.toString())
                                         .toList(),
                                 onChanged:
-                                    (value) => setState(
-                                      () => _selectedtypes = int.parse(value!),
-                                    ),
+                                    (value) =>
+                                        setState(() => _selectedType = value),
                               ),
                             ],
                           ),
@@ -558,7 +557,9 @@ class _CreateSellPage2State extends State<CreateSellPage2> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => MastervacPage(isAcheteur: true,)),
+            MaterialPageRoute(
+              builder: (context) => MastervacPage(isAcheteur: true),
+            ),
           );
         },
         style: ElevatedButton.styleFrom(

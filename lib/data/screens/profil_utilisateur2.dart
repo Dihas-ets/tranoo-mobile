@@ -2,10 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tranoo/data/screens/WalletScreen.dart';
+import 'package:tranoo/data/screens/wallet_screen.dart';
 import 'package:tranoo/data/screens/connexion_page.dart';
-import 'package:tranoo/data/screens/create_sell.dart';
-import 'package:tranoo/data/screens/driver_certified.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile2.dart';
 import 'package:tranoo/data/screens/historique_transit.dart';
@@ -178,7 +176,9 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => HistoriqueTransitPage()),
+                MaterialPageRoute(
+                  builder: (context) => HistoriqueTransitPage(),
+                ),
               );
             },
           ),

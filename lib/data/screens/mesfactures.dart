@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class MesFacturesPage extends StatelessWidget {
+  MesFacturesPage({super.key});
+
   final List<Map<String, String>> factures = [
     {
       "numero": "FCT1001",

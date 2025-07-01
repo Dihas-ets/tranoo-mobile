@@ -5,10 +5,10 @@ class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
 
   @override
-  _SecondPageState createState() => _SecondPageState();
+  SecondPageState createState() => SecondPageState();
 }
 
-class _SecondPageState extends State<SecondPage> {
+class SecondPageState extends State<SecondPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,7 +29,8 @@ class _SecondPageState extends State<SecondPage> {
           // 📄 Texte, image et bouton avec espacement
           Padding(
             padding: const EdgeInsets.only(right: 30),
-            child: SingleChildScrollView( // Ajout de SingleChildScrollView pour éviter l'overflow
+            child: SingleChildScrollView(
+              // Ajout de SingleChildScrollView pour éviter l'overflow
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -172,17 +172,15 @@ class _LanguesState extends State<LanguesEntreprise> {
                   );
                 },
                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(
-                    const Color(0xFFF8BF13), // Ton fond jaune
+                  backgroundColor: WidgetStateProperty.all(
+                    const Color(0xFFF8BF13),
                   ),
-                  shape: MaterialStateProperty.all(
+                  shape: WidgetStateProperty.all(
                     RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        10,
-                      ), // Bordures arrondies
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  elevation: MaterialStateProperty.all(3),
+                  elevation: WidgetStateProperty.all(3),
                 ),
                 child: Text(
                   'Valider',

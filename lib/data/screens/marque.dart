@@ -39,7 +39,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    
+
     // Initialisation des indices des onglets selon le rôle
     final isTransitaire = _userService.currentRole == UserRole.transitaire;
     _marqueTabIndex = isTransitaire ? 1 : 0;
@@ -47,10 +47,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     _localisationTabIndex = isTransitaire ? 3 : 2;
     _budgetTabIndex = isTransitaire ? 4 : 3;
 
-    _tabController = TabController(
-      length: isTransitaire ? 5 : 4,
-      vsync: this,
-    );
+    _tabController = TabController(length: isTransitaire ? 5 : 4, vsync: this);
 
     _tabController.addListener(() {
       setState(() {});
@@ -98,7 +95,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF007AFF) : Colors.transparent,
           border: Border.all(
-            color: isSelected ? const Color(0xFF007AFF) : const Color(0xFF000000),
+            color:
+                isSelected ? const Color(0xFF007AFF) : const Color(0xFF000000),
             width: 0.8,
           ),
           borderRadius: BorderRadius.circular(7),
@@ -115,21 +113,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildImageCarousel() {
-    List<String> images = [
-      "assets/images/teslapro.png",
-      "assets/images/car.png",
-      "assets/images/care.png",
-      "assets/images/bagnole.png",
-    ];
-
-    List<String> texts = [
-      "Tesla Model 3 Standard Range Plus",
-      "Tesla Model 3 Standard Range Plus",
-      "Tesla Model 3 Standard Range Plus",
-      "Tesla Model 3 Standard Range Plus",
-    ];
-
-    List<String> Images = [
+    List<String> recommendedImages = [
       "assets/images/car.png",
       "assets/images/groupe2.png",
       "assets/images/groupe3.png",
@@ -138,7 +122,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       "assets/images/groupe2.png",
     ];
 
-    List<String> PiecesImages = [
+    List<String> piecesImages = [
       "assets/images/image1.png",
       "assets/images/image.png",
       "assets/images/image2.png",
@@ -153,7 +137,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       "assets/images/image11.png",
     ];
 
-    List<String> PiecesNames = [
+    List<String> piecesNames = [
       "Disque de frein",
       "Plaquette de frein",
       "Kit de frein",
@@ -168,12 +152,34 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       "Flexible de frein",
     ];
 
-    List<double> PiecesImageHeights = [
-      30, 31, 29, 32, 36, 36, 37, 38, 30, 34, 40, 36,
+    List<double> piecesImageHeights = [
+      30,
+      31,
+      29,
+      32,
+      36,
+      36,
+      37,
+      38,
+      30,
+      34,
+      40,
+      36,
     ];
 
-    List<double> PiecesImageWidths = [
-      30, 31, 29, 32, 36, 36, 37, 38, 30, 34, 40, 36,
+    List<double> piecesImageWidths = [
+      30,
+      31,
+      29,
+      32,
+      36,
+      36,
+      37,
+      38,
+      30,
+      34,
+      40,
+      36,
     ];
 
     return Padding(
@@ -185,11 +191,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Icon(
-                Icons.star,
-                color: Colors.blue,
-                size: 20,
-              ),
+              Icon(Icons.star, color: Colors.blue, size: 20),
               const SizedBox(width: 8),
               Text(
                 "Sponsorisé",
@@ -207,17 +209,18 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             height: 180,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: images.length,
+              itemCount: recommendedImages.length,
               itemBuilder: (context, index) {
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => Cars_info(
-                          selectedImageIndex: index,
-                          images: images,
-                        ),
+                        builder:
+                            (context) => CarsInfo(
+                              selectedImageIndex: index,
+                              images: recommendedImages,
+                            ),
                       ),
                     );
                   },
@@ -229,7 +232,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: Image.asset(
-                            images[index],
+                            recommendedImages[index],
                             width: 300,
                             height: 170,
                             fit: BoxFit.cover,
@@ -245,7 +248,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  texts[index],
+                                  "Tesla Model 3 Standard Range Plus",
                                   style: const TextStyle(
                                     fontSize: 17,
                                     color: Colors.white,
@@ -308,7 +311,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const voituresPage(),
+                              builder: (context) => const VoituresPage(),
                             ),
                           );
                         },
@@ -330,17 +333,18 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     mainAxisSpacing: 10,
                     childAspectRatio: 0.75,
                   ),
-                  itemCount: Images.length,
+                  itemCount: recommendedImages.length,
                   itemBuilder: (context, index) {
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => Cars_info(
-                              selectedImageIndex: index,
-                              images: Images,
-                            ),
+                            builder:
+                                (context) => CarsInfo(
+                                  selectedImageIndex: index,
+                                  images: recommendedImages,
+                                ),
                           ),
                         );
                       },
@@ -352,7 +356,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.asset(
-                                  Images[index],
+                                  recommendedImages[index],
                                   height: 140,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
@@ -441,9 +445,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => Piece(),
-                            ),
+                            MaterialPageRoute(builder: (context) => Piece()),
                           );
                         },
                         child: Text(
@@ -464,16 +466,15 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     mainAxisSpacing: 10,
                     childAspectRatio: 1,
                   ),
-                  itemCount: PiecesImages.length,
+                  itemCount: piecesImages.length,
                   itemBuilder: (context, index) {
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => MastervacPage(
-                              isAcheteur: true,
-                            ),
+                            builder:
+                                (context) => MastervacPage(isAcheteur: true),
                           ),
                         );
                       },
@@ -483,15 +484,15 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.asset(
-                              PiecesImages[index],
-                              height: PiecesImageHeights[index],
-                              width: PiecesImageWidths[index],
+                              piecesImages[index],
+                              height: piecesImageHeights[index],
+                              width: piecesImageWidths[index],
                               fit: BoxFit.cover,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            PiecesNames[index],
+                            piecesNames[index],
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 8,
@@ -604,15 +605,21 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                   if (isTransitaire) _buildTabButton("Activités", 0),
                   _buildTabButton("Marque", _marqueTabIndex),
                   _buildTabButton("Modèles", _modeleTabIndex),
-                  _buildTabButton("Localisation", _localisationTabIndex, isWide: true),
+                  _buildTabButton(
+                    "Localisation",
+                    _localisationTabIndex,
+                    isWide: true,
+                  ),
                   _buildTabButton("Budget", _budgetTabIndex),
                 ],
               ),
             ),
-            if (_tabController.index == 0 && isTransitaire) _buildActivitesSection(),
+            if (_tabController.index == 0 && isTransitaire)
+              _buildActivitesSection(),
             if (_tabController.index == _marqueTabIndex) _buildMarqueSection(),
             if (_tabController.index == _modeleTabIndex) _buildModeleSection(),
-            if (_tabController.index == _localisationTabIndex) _buildLocalisationSection(),
+            if (_tabController.index == _localisationTabIndex)
+              _buildLocalisationSection(),
             if (_tabController.index == _budgetTabIndex) _buildBudgetSection(),
           ],
         ),
@@ -673,7 +680,10 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     decoration: BoxDecoration(
                       color: const Color(0xFFF9FAFB),
                       borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: const Color(0xFFE0E0E0), width: 2),
+                      border: Border.all(
+                        color: const Color(0xFFE0E0E0),
+                        width: 2,
+                      ),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1007,175 +1017,49 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             ),
           ),
           _buildImageCarousel(),
-    
 
-        // Section Recommandé
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: 10,
-            horizontal: 16,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Recommandé",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF040415),
+          // Section Recommandé
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Recommandé",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF040415),
+                  ),
                 ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const voituresPage(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  "Voir tout",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const VoituresPage(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    "Voir tout",
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        GridView.builder(
-          shrinkWrap: true,
-          primary: false,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 0.75,
-          ),
-          itemCount: 6, // Exemple : nombre d'éléments recommandés
-          itemBuilder: (context, index) {
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Cars_info(
-                      selectedImageIndex: index,
-                      images: const ["assets/images/car.png"], // Exemple d'image
-                    ),
-                  ),
-                );
-              },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          "assets/images/car.png", // Exemple d'image
-                          height: 140,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.white,
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.favorite,
-                              color: Colors.red,
-                              size: 18,
-                            ),
-                            onPressed: () {
-                              // Action pour ajouter aux favoris
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Audi E-tron Premium",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const Text(
-                    "54,77 823,73 f",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ],
-    ),
-  );
-}
-
-
-
-
-
-
-
- 
-}
-
-
-Widget _buildImageCarousel() {
-  List<String> images = [
-    "assets/images/teslapro.png",
-    "assets/images/car.png",
-    "assets/images/care.png",
-    "assets/images/bagnole.png",
-  ];
-
-  List<String> texts = [
-    "Tesla Model 3 Standard Range Plus",
-    "Tesla Model 3 Standard Range Plus",
-    "Tesla Model 3 Standard Range Plus",
-    "Tesla Model 3 Standard Range Plus",
-  ];
-
-  return Padding(
-    padding: const EdgeInsets.all(16.0),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Ajout du texte "Sponsorisé" avec une icône
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.star, // Icône appropriée
-              color: Colors.blue, // Couleur bleue pour l'icône
-              size: 20,
+              ],
             ),
-            const SizedBox(width: 8), // Espacement entre l'icône et le texte
-            Text(
-              "Sponsorisé",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue, // Couleur bleue pour le texte
-              ),
+          ),
+          GridView.builder(
+            shrinkWrap: true,
+            primary: false,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 0.75,
             ),
-          ],
-        ),
-        const SizedBox(height: 16), // Espacement avant le carrousel
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: images.length,
+            itemCount: 6, // Exemple : nombre d'éléments recommandés
             itemBuilder: (context, index) {
               return GestureDetector(
                 onTap: () {
@@ -1183,75 +1067,65 @@ Widget _buildImageCarousel() {
                     context,
                     MaterialPageRoute(
                       builder:
-                          (context) => Cars_info(
+                          (context) => CarsInfo(
                             selectedImageIndex: index,
-                            images: images,
+                            images: const [
+                              "assets/images/car.png",
+                            ], // Exemple d'image
                           ),
                     ),
                   );
                 },
-                child: Container(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Stack(
-                    alignment: Alignment.bottomLeft,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(
-                          images[index],
-                          width: 300,
-                          height: 170,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 5,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                texts[index],
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  const Icon(
-                                    Icons.verified,
-                                    color: Color(0xFFF8BF13),
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  const Text(
-                                    "Vérifiée",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Color(0xFFF8BF13),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            "assets/images/car.png", // Exemple d'image
+                            height: 140,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Colors.white,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.favorite,
+                                color: Colors.red,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                // Action pour ajouter aux favoris
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Audi E-tron Premium",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const Text(
+                      "54,77 823,73 f",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
                 ),
               );
             },
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }

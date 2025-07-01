@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'payement.dart';
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
 import 'package:tranoo/utils/role_redirect.dart';
-import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/data/screens/paymentscreen.dart';
 
 class MastervacPage extends StatefulWidget {

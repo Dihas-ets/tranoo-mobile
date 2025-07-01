@@ -23,7 +23,7 @@ class _UneState extends State<Une> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _prixController = TextEditingController();
 
-  List<File> _mediaFiles = [];
+  final List<File> _mediaFiles = [];
 
   final List<String> voitures = ['Sponsorisée', 'À la une'];
   final List<String> moyensPaiement = ['Paiement bancaire', 'Mobile Money'];
@@ -61,6 +61,7 @@ class _UneState extends State<Une> {
           }
         });
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Permission refusée')));
@@ -95,7 +96,12 @@ class _UneState extends State<Une> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Color.fromRGBO(
+                      Colors.black.r.toInt(),
+                      Colors.black.g.toInt(),
+                      Colors.black.b.toInt(),
+                      0.1,
+                    ),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),

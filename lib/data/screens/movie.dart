@@ -16,10 +16,7 @@ class _MovieState extends State<Movie> {
       appBar: _buildAppBar(),
       body: ListView(
         physics: const BouncingScrollPhysics(),
-        children: [
-          _buildVideoSection(),
-          _buildContentSection(),
-        ],
+        children: [_buildVideoSection(), _buildContentSection()],
       ),
     );
   }
@@ -46,9 +43,9 @@ class _MovieState extends State<Movie> {
       alignment: Alignment.center,
       children: [
         // Image de fond/Aperçu vidéo
-        Container(
+        SizedBox(
           height: 500,
-          width: 700, //double.infinity(un peu trop grand)
+          width: 700,
           child: Image.asset(
             'assets/images/teslapro.png',
             fit: BoxFit.cover,
@@ -68,11 +65,7 @@ class _MovieState extends State<Movie> {
             color: Colors.deepOrange,
             shape: BoxShape.circle,
           ),
-          child: const Icon(
-            Icons.play_arrow,
-            color: Colors.white,
-            size: 50,
-          ),
+          child: const Icon(Icons.play_arrow, color: Colors.white, size: 50),
         ),
       ],
     );
@@ -102,10 +95,7 @@ class _MovieState extends State<Movie> {
           children: [
             const Text(
               'Tesla Modèle 3',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             // Row(
             //   children: const [
@@ -134,10 +124,7 @@ class _MovieState extends State<Movie> {
         const SizedBox(height: 8),
         const Text(
           'Regarder la vidéo',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey,
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.grey),
         ),
       ],
     );
@@ -156,9 +143,7 @@ class _MovieState extends State<Movie> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.amber,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text(
           'Passez la commande',

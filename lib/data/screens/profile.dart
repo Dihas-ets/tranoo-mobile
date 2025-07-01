@@ -1,7 +1,6 @@
 import 'dart:io'; // Pour manipuler les fichiers images
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart'; // Importer la bibliothèque pour la sélection d'image
 
 class Profile extends StatefulWidget {
@@ -172,7 +171,7 @@ class _ProfileState extends State<Profile> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: Colors.grey.withValues(alpha: 25),
                 spreadRadius: 1,
                 blurRadius: 5,
                 offset: const Offset(0, 2),

@@ -7,12 +7,12 @@ class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
 
   @override
-  _WalletScreenState createState() => _WalletScreenState();
+  WalletScreenState createState() => WalletScreenState();
 }
 
-class _WalletScreenState extends State<WalletScreen> {
-  List<bool> _isStarSelectedList = [false, false, false, false];
-  List<String> _transactionDates = ['', '', '', ''];
+class WalletScreenState extends State<WalletScreen> {
+  final List<bool> _isStarSelectedList = [false, false, false, false];
+  final List<String> _transactionDates = ['', '', '', ''];
 
   // Fonction pour enregistrer la date d'un retrait
   void _onRetrait(int index) {
@@ -151,7 +151,12 @@ class _WalletScreenState extends State<WalletScreen> {
       child: Column(
         children: [
           CircleAvatar(
-            backgroundColor: color.withOpacity(0.2),
+            backgroundColor: Color.fromRGBO(
+              color.r.toInt(),
+              color.g.toInt(),
+              color.b.toInt(),
+              0.2,
+            ),
             child: Icon(icon, color: color),
           ),
           const SizedBox(height: 5),

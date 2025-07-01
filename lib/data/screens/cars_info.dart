@@ -5,21 +5,21 @@ import 'payement.dart'; // Importer la page pour le paiement
 import 'package:tranoo/services/user_service.dart'; // Importer UserService pour gérer les rôles
 import 'package:tranoo/utils/role_redirect.dart'; // Importer RoleRedirect pour la redirection basée sur le rôle
 
-class Cars_info extends StatefulWidget {
+class CarsInfo extends StatefulWidget {
   final int selectedImageIndex; // Index de l'image sélectionnée
   final List<String> images; // Liste des images
 
-  const Cars_info({
+  const CarsInfo({
     super.key,
     required this.selectedImageIndex,
     required this.images,
   });
 
   @override
-  State<Cars_info> createState() => _CarsinfoState();
+  State<CarsInfo> createState() => _CarsinfoState();
 }
 
-class _CarsinfoState extends State<Cars_info> {
+class _CarsinfoState extends State<CarsInfo> {
   late int _currentImageIndex; // Gère l'image actuelle affichée
   bool isNew = false;
   bool is2023 = false;

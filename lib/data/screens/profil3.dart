@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tranoo/data/screens/WalletScreen.dart';
+import 'package:tranoo/data/screens/wallet_screen.dart';
 import 'package:tranoo/data/screens/connexion_page.dart';
 import 'package:tranoo/data/screens/mesachats.dart';
 import 'package:tranoo/data/screens/mesavis.dart';
@@ -30,10 +30,10 @@ class Profil3 extends StatefulWidget {
   const Profil3({super.key});
 
   @override
-  _Profil3State createState() => _Profil3State();
+  Profil3State createState() => Profil3State();
 }
 
-class _Profil3State extends State<Profil3> {
+class Profil3State extends State<Profil3> {
   File? _image;
   String selectedLanguage = "Français";
   String selectedCurrencyValue = "XOF"; // Valeur de devise par défaut

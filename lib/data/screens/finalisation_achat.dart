@@ -138,13 +138,11 @@
 //   }
 // }
 
-
-
 import 'package:flutter/material.dart';
 import 'succes.dart'; // Assurez-vous que ce chemin est correct
 
 class FinalisationAchatScreen extends StatelessWidget {
-  const FinalisationAchatScreen({Key? key}) : super(key: key);
+  const FinalisationAchatScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -153,12 +151,16 @@ class FinalisationAchatScreen extends StatelessWidget {
     const String carTitle = 'Toyota Corolla'; // Exemple de titre
     const String carPrice = '18,000,000 f'; // Exemple de prix de la voiture
     const String fraisTransits = '50,000 f'; // Exemple de frais de transit
-    const String fraisSupplementaires = '20,000 f'; // Exemple de frais supplémentaires
+    const String fraisSupplementaires =
+        '20,000 f'; // Exemple de frais supplémentaires
 
     // Calcul du prix total
-    final double prixFinal = double.parse(carPrice.replaceAll(',', '').replaceAll(' f', '')) +
+    final double prixFinal =
+        double.parse(carPrice.replaceAll(',', '').replaceAll(' f', '')) +
         double.parse(fraisTransits.replaceAll(',', '').replaceAll(' f', '')) +
-        double.parse(fraisSupplementaires.replaceAll(',', '').replaceAll(' f', ''));
+        double.parse(
+          fraisSupplementaires.replaceAll(',', '').replaceAll(' f', ''),
+        );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -171,7 +173,11 @@ class FinalisationAchatScreen extends StatelessWidget {
         ),
         title: const Text(
           'Finalisation de l\'achat',
-          style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
       body: Padding(
@@ -231,12 +237,17 @@ class FinalisationAchatScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SuccesScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const SuccesScreen(),
+                    ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.amber,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -253,13 +264,21 @@ class FinalisationAchatScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPriceRow(String label, String value, {bool isBold = false, Color? color}) {
+  Widget _buildPriceRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    Color? color,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 14, fontWeight: isBold ? FontWeight.bold : FontWeight.normal),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
         Text(
           value,

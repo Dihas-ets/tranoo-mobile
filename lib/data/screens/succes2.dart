@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
 
 class SuccesScreen2 extends StatelessWidget {
-  const SuccesScreen2({Key? key}) : super(key: key);
+  const SuccesScreen2({super.key});
 
   @override
   Widget build(BuildContext context) {

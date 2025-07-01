@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tranoo/data/screens/WalletScreen.dart';
+import 'package:tranoo/data/screens/wallet_screen.dart';
 import 'package:tranoo/data/screens/conditionutilisations.dart';
 import 'package:tranoo/data/screens/marque.dart';
 import 'package:tranoo/data/screens/notifications.dart';
@@ -123,7 +123,7 @@ class _AvantHomeState extends State<AvantHome> {
   // Pages pour les acheteurs
   final List<Widget> _pagesAcheteur = [
     Marque(), // Accueil
-    voituresPage(), // Voitures
+    VoituresPage(), // Voitures
     Piece(), // Pièces
     Profil3(), // Profil
   ];
@@ -131,7 +131,7 @@ class _AvantHomeState extends State<AvantHome> {
   // Pages pour les chauffeurs (identique acheteur sauf dernier onglet)
   final List<Widget> _pagesChauffeur = [
     Marque(), // Accueil
-    voituresPage(), // Voitures
+    VoituresPage(), // Voitures
     Piece(), // Pièces
     DriverCertifiedPage(), // Chauffeur. Certif
   ];

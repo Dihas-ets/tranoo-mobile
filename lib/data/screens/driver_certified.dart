@@ -3,13 +3,13 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 class DriverCertifiedPage extends StatefulWidget {
-  const DriverCertifiedPage({Key? key}) : super(key: key);
+  const DriverCertifiedPage({super.key});
 
   @override
-  _DriverCertifiedPageState createState() => _DriverCertifiedPageState();
+  DriverCertifiedPageState createState() => DriverCertifiedPageState();
 }
 
-class _DriverCertifiedPageState extends State<DriverCertifiedPage> {
+class DriverCertifiedPageState extends State<DriverCertifiedPage> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();

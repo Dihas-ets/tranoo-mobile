@@ -19,7 +19,8 @@ class RetraitScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context), // Retour à la page précédente
+          onPressed:
+              () => Navigator.pop(context), // Retour à la page précédente
         ),
         actions: [
           IconButton(
@@ -39,7 +40,12 @@ class RetraitScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
+                  color: Color.fromRGBO(
+                    Colors.grey.r.toInt(),
+                    Colors.grey.g.toInt(),
+                    Colors.grey.b.toInt(),
+                    0.2,
+                  ),
                   spreadRadius: 5,
                   blurRadius: 10,
                   offset: const Offset(0, 3), // Ombre subtile
@@ -48,7 +54,9 @@ class RetraitScreen extends StatelessWidget {
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min, // Utiliser l'espace nécessaire
-              crossAxisAlignment: CrossAxisAlignment.center, // Centrer les éléments horizontalement
+              crossAxisAlignment:
+                  CrossAxisAlignment
+                      .center, // Centrer les éléments horizontalement
               children: [
                 const Text(
                   "Retrait",
@@ -64,10 +72,14 @@ class RetraitScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8), // Coins arrondis
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center, // Centrer les images horizontalement
+                    mainAxisAlignment:
+                        MainAxisAlignment
+                            .center, // Centrer les images horizontalement
                     children: [
                       _buildImage('assets/images/American Express.png'),
-                      const SizedBox(width: 10), // Espacement réduit entre les images
+                      const SizedBox(
+                        width: 10,
+                      ), // Espacement réduit entre les images
                       _buildImage('assets/images/Visa.png'),
                       const SizedBox(width: 10),
                       _buildImage('assets/images/American Express.png'),
@@ -112,7 +124,8 @@ class RetraitScreen extends StatelessWidget {
                         horizontal: screenWidth < 600 ? 10 : 60,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.zero, // Enlever les coins arrondis
+                        borderRadius:
+                            BorderRadius.zero, // Enlever les coins arrondis
                       ),
                     ),
                     onPressed: () {
@@ -149,7 +162,10 @@ class RetraitScreen extends StatelessWidget {
         labelText: label, // Le texte du label est maintenant en dehors du champ
         hintText: hint, // Le placeholder à l'intérieur du champ
         border: const OutlineInputBorder(),
-        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 10,
+          horizontal: 12,
+        ),
       ),
     );
   }
@@ -160,11 +176,15 @@ class RetraitScreen extends StatelessWidget {
       decoration: InputDecoration(
         labelText: hint, // Le texte du label est en dehors du champ
         border: const OutlineInputBorder(),
-        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 10,
+          horizontal: 12,
+        ),
       ),
-      items: items
-          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
-          .toList(),
+      items:
+          items
+              .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+              .toList(),
       onChanged: (value) {},
     );
   }

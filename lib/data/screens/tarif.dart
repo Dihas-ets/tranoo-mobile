@@ -1,4 +1,4 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class Tarif extends StatefulWidget {
   const Tarif({super.key});
@@ -6,8 +6,6 @@ class Tarif extends StatefulWidget {
   @override
   State<Tarif> createState() => _TarifState();
 }
-
-
 
 class _TarifState extends State<Tarif> {
   // Liste des annonces de voitures
@@ -78,11 +76,13 @@ class _TarifState extends State<Tarif> {
       carAds[index]['proposedAmount'] = amount;
     });
   }
- @override
+
+  @override
   Widget build(BuildContext context) {
-    final filteredAds = activeFilter == 'Souscrire'
-        ? carAds.where((ad) => !ad['proposed']).toList()
-        : carAds.where((ad) => ad['proposed']).toList();
+    final filteredAds =
+        activeFilter == 'Souscrire'
+            ? carAds.where((ad) => !ad['proposed']).toList()
+            : carAds.where((ad) => ad['proposed']).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -106,7 +106,10 @@ class _TarifState extends State<Tarif> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: activeFilter == 'Souscrire' ? Colors.white : Colors.black54,
+                  color:
+                      activeFilter == 'Souscrire'
+                          ? Colors.white
+                          : Colors.black54,
                 ),
               ),
             ),
@@ -122,7 +125,8 @@ class _TarifState extends State<Tarif> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: activeFilter == 'Soumis' ? Colors.white : Colors.black54,
+                  color:
+                      activeFilter == 'Soumis' ? Colors.white : Colors.black54,
                 ),
               ),
             ),
@@ -133,7 +137,10 @@ class _TarifState extends State<Tarif> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
-            alignment: activeFilter == 'Souscrire' ? Alignment.centerLeft : Alignment.centerRight,
+            alignment:
+                activeFilter == 'Souscrire'
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
             child: Container(
               width: MediaQuery.of(context).size.width / 2,
               height: 3.0,
@@ -147,17 +154,24 @@ class _TarifState extends State<Tarif> {
         itemBuilder: (context, index) {
           final car = filteredAds[index];
           return GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CarDetailsPage(
-                  car: car,
-                  onProposalSubmitted: (amount) =>
-                      updateProposalStatus(carAds.indexOf(car), amount),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => CarDetailsPage(
+                          car: car,
+                          onProposalSubmitted:
+                              (amount) => updateProposalStatus(
+                                carAds.indexOf(car),
+                                amount,
+                              ),
+                        ),
+                  ),
                 ),
-              ),
-            ),
-            child: _buildCarAdCard(car), // Utilise le même effet hover que Transit
+            child: _buildCarAdCard(
+              car,
+            ), // Utilise le même effet hover que Transit
           );
         },
       ),
@@ -185,7 +199,12 @@ class _TarifState extends State<Tarif> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
+                  color: Color.fromRGBO(
+                    Colors.grey.r.toInt(),
+                    Colors.grey.g.toInt(),
+                    Colors.grey.b.toInt(),
+                    0.3,
+                  ),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -201,12 +220,16 @@ class _TarifState extends State<Tarif> {
                     height: 80,
                     width: 80,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 80,
-                      width: 80,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.image_not_supported, size: 40),
-                    ),
+                    errorBuilder:
+                        (context, error, stackTrace) => Container(
+                          height: 80,
+                          width: 80,
+                          color: Colors.grey[300],
+                          child: const Icon(
+                            Icons.image_not_supported,
+                            size: 40,
+                          ),
+                        ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -247,7 +270,7 @@ class _TarifState extends State<Tarif> {
                   Padding(
                     padding: const EdgeInsets.only(left: 8.0, top: 16.0),
                     child: Text(
-                      '${car['proposedAmount']} f',
+                      '${car['prColors.amberoposedAmount']} f',
                       style: const TextStyle(
                         color: Colors.blue,
                         fontWeight: FontWeight.bold,
@@ -263,7 +286,6 @@ class _TarifState extends State<Tarif> {
     );
   }
 }
-
 
 // Classe pour afficher les détails d'une voiture
 class CarDetailsPage extends StatefulWidget {

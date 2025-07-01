@@ -552,29 +552,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
       margin: const EdgeInsets.only(top: 16),
       child: ElevatedButton(
         onPressed: () {
-          print('Titre: ${_titleController.text}');
-          print('Année: ${_yearController.text}');
-          print('Condition: ${_selectedCondition}');
-          print('Marque: ${_selectedMarques}');
-          print('Modèle: ${_selectedModel}');
-          print('Porte: ${_selectedPorte}');
-          print('Cylindre: ${_cylindreController.text}');
-          print('Boîte à vitesse: ${_selectedBoiteVitesse}');
-          print('Carburant: ${_selectedCarburantDropdown}');
-          print('Climatiseur: ${_selectedClimatiseurDropdown}');
-          print('Distance: ${_distanceController.text}');
-          print('Siège: ${_siegesController.text}');
-          print('Prix: ${_priceController.text}');
-          print('Description: ${_descriptionController.text}');
-          print('Nom de l\'entreprise: ${_companyController.text}');
-          print('Fichier téléchargé: ${_uploadedFileName}');
-
           // Restore navigation to cars_info.dart with original example data
           Navigator.push(
             context,
             MaterialPageRoute(
               builder:
-                  (context) => Cars_info(
+                  (context) => CarsInfo(
                     selectedImageIndex: 0, // Original example index
                     images: [
                       'assets/images/car1.png',

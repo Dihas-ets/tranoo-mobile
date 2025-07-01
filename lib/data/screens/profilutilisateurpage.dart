@@ -2,10 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tranoo/data/screens/WalletScreen.dart';
+import 'package:tranoo/data/screens/wallet_screen.dart';
 import 'package:tranoo/data/screens/connexion_page.dart';
 import 'package:tranoo/data/screens/create_sell.dart';
-import 'package:tranoo/data/screens/driver_certified.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile.dart';
 import 'package:tranoo/data/screens/create_sell2.dart';
@@ -30,10 +29,10 @@ class ProfilUtilisateurPage extends StatefulWidget {
   const ProfilUtilisateurPage({super.key});
 
   @override
-  _ProfilUtilisateurPageState createState() => _ProfilUtilisateurPageState();
+  ProfilUtilisateurPageState createState() => ProfilUtilisateurPageState();
 }
 
-class _ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
+class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
   File? _image;
   String selectedLanguage = "Français";
   String selectedCurrencyValue = "XOF"; // Valeur de devise par défaut

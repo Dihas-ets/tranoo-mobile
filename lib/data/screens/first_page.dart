@@ -14,6 +14,7 @@ class _FirstPageState extends State<FirstPage> {
     super.initState();
     // Délai de 5 secondes avant la navigation
     Future.delayed(Duration(seconds: 5), () {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => SecondPage()),

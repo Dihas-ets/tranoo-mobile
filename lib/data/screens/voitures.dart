@@ -4,14 +4,14 @@ import 'create_sell.dart'; // Importez CreateSell
 import 'package:tranoo/services/user_service.dart'; // Importez UserService
 import 'package:tranoo/utils/role_redirect.dart'; // Importez RoleRedirect
 
-class voituresPage extends StatefulWidget {
-  const voituresPage({super.key});
+class VoituresPage extends StatefulWidget {
+  const VoituresPage({super.key});
 
   @override
-  State<voituresPage> createState() => _voituresPageState();
+  State<VoituresPage> createState() => VoituresPageState();
 }
 
-class _voituresPageState extends State<voituresPage> {
+class VoituresPageState extends State<VoituresPage> {
   final List<Map<String, dynamic>> allCars = [
     {
       "image": "assets/images/car.png",
@@ -261,7 +261,7 @@ class _voituresPageState extends State<voituresPage> {
                             context,
                             MaterialPageRoute(
                               builder:
-                                  (context) => Cars_info(
+                                  (context) => CarsInfo(
                                     selectedImageIndex: index,
                                     images:
                                         displayedCars

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class MesAchatsPage extends StatelessWidget {
+  MesAchatsPage({super.key});
+
   final List<Map<String, String>> achats = [
     {
       "produit": "Toyota Corolla 2021",

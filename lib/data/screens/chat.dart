@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'discussion.dart';
 
 class ChatListPage extends StatelessWidget {
-  const ChatListPage({Key? key}) : super(key: key);
+  const ChatListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +60,12 @@ class ChatListPage extends StatelessWidget {
                 border: Border.all(color: Colors.amber, width: 1.5),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.amber.withOpacity(0.08),
+                    color: Color.fromRGBO(
+                      Colors.amber.r.toInt(),
+                      Colors.amber.g.toInt(),
+                      Colors.amber.b.toInt(),
+                      0.08,
+                    ),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),

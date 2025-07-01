@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:tranoo/data/screens/paymentscreen.dart';
 
 class SuccesScreen5 extends StatelessWidget {
-  const SuccesScreen5({Key? key}) : super(key: key);
+  const SuccesScreen5({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -6,11 +6,11 @@ class DetailsNotifications extends StatelessWidget {
   final DateTime date;
 
   const DetailsNotifications({
-    Key? key,
+    super.key,
     required this.title,
     required this.message,
     required this.date,
-  }) : super(key: key);
+  });
 
   String formatDate(DateTime date) {
     Duration difference = DateTime.now().difference(date);
@@ -27,8 +27,10 @@ class DetailsNotifications extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(title,
-            style: TextStyle(color: Colors.black)), // Titre dynamique
+        title: Text(
+          title,
+          style: TextStyle(color: Colors.black),
+        ), // Titre dynamique
         backgroundColor: const Color(0xFFF9FAFB),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -43,15 +45,9 @@ class DetailsNotifications extends StatelessWidget {
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            Text(
-              message,
-              style: const TextStyle(fontSize: 18),
-            ),
+            Text(message, style: const TextStyle(fontSize: 18)),
             const SizedBox(height: 20),
-            Text(
-              formatDate(date),
-              style: const TextStyle(color: Colors.grey),
-            ),
+            Text(formatDate(date), style: const TextStyle(color: Colors.grey)),
           ],
         ),
       ),
