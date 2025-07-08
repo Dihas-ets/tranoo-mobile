@@ -4,15 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'mastervacpage.dart'; // Importez la page MastervacPage
+import '../../utils/cloudinary_upload.dart';
 
 class CreateSellPage2 extends StatefulWidget {
   const CreateSellPage2({Key? key}) : super(key: key);
 
   @override
-  _CreateSellPage2State createState() => _CreateSellPage2State();
+  CreateSellPage2State createState() => CreateSellPage2State();
 }
 
-class _CreateSellPage2State extends State<CreateSellPage2> {
+class CreateSellPage2State extends State<CreateSellPage2> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -29,6 +30,7 @@ class _CreateSellPage2State extends State<CreateSellPage2> {
   File? _uploadedImage;
   String? _uploadedFileName;
   bool _hasUploadedFile = false;
+  String? _cloudinaryUrl;
 
   final List<String> _types = ['Nouveau ', 'Occasion']; // Reste en String
   final List<String> _fuelTypes = ['Essence', 'Gazoil'];
@@ -50,6 +52,13 @@ class _CreateSellPage2State extends State<CreateSellPage2> {
         _uploadedFileName = image.name;
         _hasUploadedFile = true;
       });
+      // Upload vers Cloudinary via utilitaire
+      final url = await uploadImageToCloudinary(_uploadedImage!);
+      if (url != null) {
+        setState(() {
+          _cloudinaryUrl = url;
+        });
+      }
     }
   }
 
@@ -486,6 +495,16 @@ class _CreateSellPage2State extends State<CreateSellPage2> {
                               ],
                             ),
                           ],
+                        ),
+                      ),
+                    // Affichage de l'image uploadée depuis Cloudinary
+                    if (_cloudinaryUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Image.network(
+                          _cloudinaryUrl!,
+                          height: 120,
+                          fit: BoxFit.cover,
                         ),
                       ),
                   ],

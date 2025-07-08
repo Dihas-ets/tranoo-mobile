@@ -246,6 +246,9 @@ import 'package:flutter/material.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/utils/role_redirect.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
+import 'package:logging/logging.dart';
 
 import 'inscription_page.dart';
 
@@ -259,14 +262,24 @@ class ConnexionPage extends StatefulWidget {
 class _ConnexionPageState extends State<ConnexionPage> {
   bool isEmailFocused = false;
   bool isPasswordFocused = false;
-  String? selectedRole;
-  final List<String> roles = [
-    'Acheteur',
-    'Vendeur',
-    'Transitaire',
-    'Chauffeur',
-  ];
   final userService = UserService();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  final _logger = Logger('ConnexionPage');
+
+  Future<String?> fetchUserRole() async {
+    // Récupère le token Firebase de l'utilisateur connecté
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+    final idToken = await user.getIdToken();
+    // Appel backend pour récupérer le profil utilisateur (exemple)
+    final response = await userService.dio.get(
+      '/protected/me',
+      options: Options(headers: {'Authorization': 'Bearer $idToken'}),
+    );
+    return response.data['user']['role'];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -320,6 +333,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                   setState(() => isEmailFocused = focused);
                 },
                 child: TextField(
+                  controller: _emailController,
                   decoration: InputDecoration(
                     labelText: 'Email',
                     labelStyle: TextStyle(
@@ -365,6 +379,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                   setState(() => isPasswordFocused = focused);
                 },
                 child: TextField(
+                  controller: _passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: 'Mot de passe',
@@ -405,82 +420,6 @@ class _ConnexionPageState extends State<ConnexionPage> {
 
               SizedBox(height: screenHeight * 0.02),
 
-              // Sélection du rôle
-              Focus(
-                onFocusChange: (hasFocus) {
-                  setState(() {});
-                },
-                child: Builder(
-                  builder: (context) {
-                    final focusNode = Focus.of(context);
-                    final bool isFocused = focusNode.hasFocus;
-
-                    return DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'Rôle',
-                        labelStyle: TextStyle(
-                          color: Colors.grey,
-                          fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
-                        ),
-                        prefixIcon: Icon(
-                          Icons.person_outline,
-                          color:
-                              isFocused ? const Color(0xFFF8BF13) : Colors.grey,
-                          size: screenWidth * (isPortrait ? 0.06 : 0.04),
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: EdgeInsets.symmetric(
-                          vertical: screenHeight * 0.02,
-                          horizontal: screenWidth * 0.04,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color:
-                                isFocused
-                                    ? const Color(0xFFF8BF13)
-                                    : Colors.grey,
-                            width: 2,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.grey),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFF8BF13),
-                          ),
-                        ),
-                      ),
-                      value: selectedRole,
-                      items:
-                          roles.map((role) {
-                            return DropdownMenuItem(
-                              value: role,
-                              child: Text(
-                                role,
-                                style: TextStyle(
-                                  fontSize:
-                                      screenWidth * (isPortrait ? 0.04 : 0.03),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedRole = value;
-                        });
-                      },
-                    );
-                  },
-                ),
-              ),
-
-              SizedBox(height: screenHeight * 0.02),
-
               // Lien "Mot de passe oublié"
               TextButton(
                 onPressed: () {
@@ -501,37 +440,87 @@ class _ConnexionPageState extends State<ConnexionPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (selectedRole != null) {
-                      // Définir le rôle de l'utilisateur
-                      switch (selectedRole) {
-                        case 'Acheteur':
-                          userService.setRole(UserRole.acheteur);
-                          break;
-                        case 'Vendeur':
-                          userService.setRole(UserRole.vendeur);
-                          break;
-                        case 'Transitaire':
-                          userService.setRole(UserRole.transitaire);
-                          break;
-                        case 'Chauffeur':
-                          userService.setRole(UserRole.chauffeur);
-                          break;
-                      }
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AvantHome(),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Veuillez sélectionner un rôle'),
-                        ),
-                      );
-                    }
-                  },
+                  onPressed:
+                      _isLoading
+                          ? null
+                          : () async {
+                            // Vérification des champs obligatoires
+                            if (_emailController.text.trim().isEmpty ||
+                                _passwordController.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Veuillez remplir tous les champs.',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+                            setState(() {
+                              _isLoading = true;
+                            });
+                            _logger.info(
+                              'Tentative de connexion avec email: ${_emailController.text.trim()}',
+                            );
+                            try {
+                              await userService.loginUser(
+                                email: _emailController.text.trim(),
+                                password: _passwordController.text.trim(),
+                              );
+                              _logger.info(
+                                'Connexion Firebase réussie pour: ${_emailController.text.trim()}',
+                              );
+                              final role = await fetchUserRole();
+                              userService.setRole(_getUserRoleFromString(role));
+                              // Redirection selon le rôle
+                              if (userService.currentRole == UserRole.vendeur) {
+                                // Navigator.pushReplacement(...)
+                              } else if (userService.currentRole ==
+                                  UserRole.acheteur) {
+                                // Navigator.pushReplacement(...)
+                              } else if (userService.currentRole ==
+                                  UserRole.transitaire) {
+                                // Navigator.pushReplacement(...)
+                              } else if (userService.currentRole ==
+                                  UserRole.chauffeur) {
+                                // Navigator.pushReplacement(...)
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Connexion réussie !')),
+                              );
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AvantHome(),
+                                ),
+                              );
+                            } catch (e) {
+                              _logger.warning(
+                                'Erreur lors de la connexion Firebase: ${e.toString()}',
+                              );
+                              String errorMsg = 'Erreur : ${e.toString()}';
+                              if (e.toString().contains('user-not-found')) {
+                                errorMsg =
+                                    'Aucun utilisateur trouvé avec cet email.';
+                              } else if (e.toString().contains(
+                                'wrong-password',
+                              )) {
+                                errorMsg = 'Mot de passe incorrect.';
+                              } else if (e.toString().contains(
+                                'invalid-credential',
+                              )) {
+                                errorMsg =
+                                    "Identifiants invalides ou expirés. Vérifiez l'email et le mot de passe, ou réinitialisez le mot de passe si besoin.";
+                              }
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text(errorMsg)));
+                            } finally {
+                              setState(() {
+                                _isLoading = false;
+                              });
+                            }
+                          },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF8BF13),
                     foregroundColor: Colors.black,
@@ -542,13 +531,17 @@ class _ConnexionPageState extends State<ConnexionPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(
-                    'Se connecter',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: screenWidth * (isPortrait ? 0.045 : 0.035),
-                    ),
-                  ),
+                  child:
+                      _isLoading
+                          ? const CircularProgressIndicator(color: Colors.black)
+                          : Text(
+                            'Se connecter',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize:
+                                  screenWidth * (isPortrait ? 0.045 : 0.035),
+                            ),
+                          ),
                 ),
               ),
 
@@ -590,5 +583,20 @@ class _ConnexionPageState extends State<ConnexionPage> {
         ),
       ),
     );
+  }
+
+  UserRole _getUserRoleFromString(String? role) {
+    switch (role) {
+      case 'vendeur':
+        return UserRole.vendeur;
+      case 'acheteur':
+        return UserRole.acheteur;
+      case 'transitaire':
+        return UserRole.transitaire;
+      case 'chauffeur':
+        return UserRole.chauffeur;
+      default:
+        return UserRole.acheteur;
+    }
   }
 }

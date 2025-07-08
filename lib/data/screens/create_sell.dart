@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../utils/cloudinary_upload.dart';
 
 import 'cars_info.dart'; // Importer le fichier combiné cars_info
 
@@ -37,6 +38,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
   File? _uploadedImage;
   String? _uploadedFileName;
   bool _hasUploadedFile = false;
+  String? _cloudinaryUrl;
 
   final List<String> _conditions = ['Nouveau', 'Occasion']; // Reste en String
   final List<String> _models = ['Modèle1', 'Modèle2']; // Modèles
@@ -66,6 +68,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
         _uploadedFileName = image.name;
         _hasUploadedFile = true;
       });
+      // Upload vers Cloudinary via utilitaire
+      final url = await uploadImageToCloudinary(_uploadedImage!);
+      if (url != null) {
+        setState(() {
+          _cloudinaryUrl = url;
+        });
+      }
     }
   }
 
@@ -494,6 +503,16 @@ class _CreateSellPageState extends State<CreateSellPage> {
                             ),
                             const Icon(Icons.image, size: 24),
                           ],
+                        ),
+                      ),
+                    // Affichage de l'image uploadée depuis Cloudinary
+                    if (_cloudinaryUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Image.network(
+                          _cloudinaryUrl!,
+                          height: 120,
+                          fit: BoxFit.cover,
                         ),
                       ),
                   ],

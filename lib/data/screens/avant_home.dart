@@ -19,6 +19,9 @@ import 'package:tranoo/languesentreprise.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/utils/role_redirect.dart';
 
+import 'package:provider/provider.dart';
+import 'package:tranoo/providers/auth_provider.dart' as myauth;
+
 import 'connexion_page.dart';
 import 'discussion.dart';
 import 'chat.dart';
@@ -257,153 +260,205 @@ class _AvantHomeState extends State<AvantHome> {
               height: drawerHeaderHeight,
               child: DrawerHeader(
                 decoration: const BoxDecoration(color: Color(0XffF8BF13)),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: CircleAvatar(
-                        radius: avatarRadius,
-                        backgroundColor: Colors.grey,
-                        backgroundImage:
-                            _image == null
-                                ? const AssetImage("assets/images/jenifer.jpg")
-                                : FileImage(_image!) as ImageProvider,
-                      ),
-                    ),
-                    SizedBox(height: spacing),
-                    Flexible(
-                      child: Text(
-                        "Itunuoluwa Abidoye",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.bold,
+                child: Builder(
+                  builder: (context) {
+                    final auth = Provider.of<myauth.AuthProvider>(context);
+                    if (auth.loading) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    final user = auth.user;
+                    if (user == null) {
+                      return Center(child: Text('Non connecté'));
+                    }
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: CircleAvatar(
+                            radius: avatarRadius,
+                            backgroundColor: Colors.grey,
+                            backgroundImage:
+                                _image == null
+                                    ? const AssetImage(
+                                      "assets/images/jenifer.jpg",
+                                    )
+                                    : FileImage(_image!) as ImageProvider,
+                          ),
                         ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Flexible(
-                      child: Text(
-                        "itunuoluwa@petra.africa",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: fontSize * 0.8,
+                        SizedBox(height: spacing),
+                        Flexible(
+                          child: Text(
+                            user['nom'] ?? "Utilisateur",
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: fontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                        Flexible(
+                          child: Text(
+                            user['email'] ?? "",
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: fontSize * 0.8,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
-            _buildDrawerButton(
-              context,
-              text: 'Accueil',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AvantHome()),
+            Builder(
+              builder: (context) {
+                final auth = Provider.of<myauth.AuthProvider>(context);
+                final user = auth.user;
+                if (auth.loading || user == null) return SizedBox.shrink();
+                return Column(
+                  children: [
+                    _buildDrawerButton(
+                      context,
+                      text: 'Accueil',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AvantHome(),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.home,
+                        color: Colors.black,
+                        size: iconSize,
+                      ),
+                    ),
+                    _buildDrawerButton(
+                      context,
+                      text: 'Portefeuille',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const WalletScreen(),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.account_balance_wallet,
+                        color: Colors.black,
+                        size: iconSize,
+                      ),
+                    ),
+                    _buildDrawerButton(
+                      context,
+                      text: 'Langues',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LanguesEntreprise(),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.language,
+                        color: Colors.black,
+                        size: iconSize,
+                      ),
+                    ),
+                    _buildDrawerButton(
+                      context,
+                      text: 'Notifications',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const Notifications(),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.notifications,
+                        color: Colors.black,
+                        size: iconSize,
+                      ),
+                    ),
+                    _buildDrawerButton(
+                      context,
+                      text: 'Confidentialité',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ConditionUtilisations(),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.lock,
+                        color: Colors.black,
+                        size: iconSize,
+                      ),
+                    ),
+                    _buildDrawerButton(
+                      context,
+                      text: 'Profil',
+                      onTap: () {
+                        Widget destination;
+                        // Redirection selon le rôle de l'utilisateur
+                        if (userService.currentRole == UserRole.acheteur) {
+                          destination = const Profil3();
+                        } else if (userService.currentRole ==
+                            UserRole.transitaire) {
+                          destination = const ProfilUtilisateur2();
+                        } else if (userService.currentRole ==
+                            UserRole.vendeur) {
+                          destination = const ProfilUtilisateurPage();
+                        } else {
+                          destination = const Profil3();
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => destination),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.person,
+                        color: Colors.black,
+                        size: iconSize,
+                      ),
+                    ),
+                    _buildDrawerButton(
+                      context,
+                      text: 'Déconnexion',
+                      onTap: () async {
+                        await Provider.of<myauth.AuthProvider>(
+                          context,
+                          listen: false,
+                        ).logout();
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ConnexionPage(),
+                          ),
+                          (route) => false,
+                        );
+                      },
+                      icon: Icon(
+                        Icons.logout,
+                        color: Colors.black,
+                        size: iconSize,
+                      ),
+                    ),
+                  ],
                 );
               },
-              icon: Icon(Icons.home, color: Colors.black, size: iconSize),
-            ),
-            _buildDrawerButton(
-              context,
-              text: 'Portefeuille',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const WalletScreen()),
-                );
-              },
-              icon: Icon(
-                Icons.account_balance_wallet,
-                color: Colors.black,
-                size: iconSize,
-              ),
-            ),
-            _buildDrawerButton(
-              context,
-              text: 'Langues',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const LanguesEntreprise(),
-                  ),
-                );
-              },
-              icon: Icon(Icons.language, color: Colors.black, size: iconSize),
-            ),
-            _buildDrawerButton(
-              context,
-              text: 'Notifications',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const Notifications(),
-                  ),
-                );
-              },
-              icon: Icon(
-                Icons.notifications,
-                color: Colors.black,
-                size: iconSize,
-              ),
-            ),
-            _buildDrawerButton(
-              context,
-              text: 'Confidentialité',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ConditionUtilisations(),
-                  ),
-                );
-              },
-              icon: Icon(Icons.lock, color: Colors.black, size: iconSize),
-            ),
-            _buildDrawerButton(
-              context,
-              text: 'Profil',
-              onTap: () {
-                Widget destination;
-
-                // Redirection selon le rôle de l'utilisateur
-                if (userService.currentRole == UserRole.acheteur) {
-                  destination = const Profil3();
-                } else if (userService.currentRole == UserRole.transitaire) {
-                  destination = const ProfilUtilisateur2();
-                } else if (userService.currentRole == UserRole.vendeur) {
-                  destination = const ProfilUtilisateurPage();
-                } else {
-                  // Optionnel : un profil par défaut en cas de rôle inconnu
-                  destination = const Profil3();
-                }
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => destination),
-                );
-              },
-              icon: Icon(Icons.person, color: Colors.black, size: iconSize),
-            ),
-
-            _buildDrawerButton(
-              context,
-              text: 'Déconnexion',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ConnexionPage(),
-                  ),
-                );
-              },
-              icon: Icon(Icons.logout, color: Colors.black, size: iconSize),
             ),
           ],
         ),

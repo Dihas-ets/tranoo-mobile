@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../../utils/cloudinary_upload.dart';
 
 class DriverCertifiedPage extends StatefulWidget {
   const DriverCertifiedPage({super.key});
@@ -18,6 +19,7 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
   final TextEditingController _messageController = TextEditingController();
   File? _uploadedImage;
   String? _uploadedFileName;
+  String? _cloudinaryUrl;
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -28,6 +30,13 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
         _uploadedImage = File(image.path);
         _uploadedFileName = image.name;
       });
+      // Upload vers Cloudinary via utilitaire
+      final url = await uploadImageToCloudinary(_uploadedImage!);
+      if (url != null) {
+        setState(() {
+          _cloudinaryUrl = url;
+        });
+      }
     }
   }
 
@@ -127,6 +136,17 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
               ),
             ),
             const SizedBox(height: 24),
+
+            // Affichage de l'image uploadée depuis Cloudinary
+            if (_cloudinaryUrl != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Image.network(
+                  _cloudinaryUrl!,
+                  height: 120,
+                  fit: BoxFit.cover,
+                ),
+              ),
 
             // Bouton de soumission
             SizedBox(

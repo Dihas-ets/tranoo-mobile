@@ -174,6 +174,18 @@ class _PieceState extends State<Piece> {
                     }).toList(),
               ),
             ),
+            // Message pour acheteur ou chauffeur
+            if (isAcheteurOuChauffeur)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  'Vous êtes acheteur ou chauffeur',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             // Grille des pièces
             Expanded(
               child: GridView.builder(

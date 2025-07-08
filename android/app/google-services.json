@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "532909089194",
+    "project_id": "tranoo",
+    "storage_bucket": "tranoo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:532909089194:android:a17e023f3043ef51148bd3",
+        "android_client_info": {
+          "package_name": "tech.dihas.tramoo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGyKoZRckr8JoRvyDN-pMJ0e3UJY7a4h8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

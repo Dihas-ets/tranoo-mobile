@@ -479,7 +479,7 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Tarif proposé: ${tarif} f'),
+                      content: Text('Tarif proposé: $tarif f'),
                       backgroundColor: Colors.amber,
                     ),
                   );

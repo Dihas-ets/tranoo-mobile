@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:tranoo/data/screens/cars_info.dart';
 import 'package:tranoo/data/screens/voitures.dart';
-import 'package:tranoo/data/screens/paymentform.dart';
 import 'package:tranoo/data/screens/piece.dart';
 import 'package:tranoo/data/screens/mastervacpage.dart';
 import 'package:tranoo/utils/role_redirect.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/data/screens/tarif.dart';
 import 'package:tranoo/data/screens/transit.dart';
+import 'package:logging/logging.dart';
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -35,6 +35,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     'assets/images/mask.png',
     'assets/images/jeni.png',
   ];
+
+  final _logger = Logger('MarquePage');
 
   @override
   void initState() {
@@ -552,7 +554,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     horizontal: screenWidth * 0.03,
                   ),
                 ),
-                onChanged: (text) => print('Recherche: $text'),
+                onChanged: (text) => _logger.info('Recherche: $text'),
               ),
             ),
             Column(
