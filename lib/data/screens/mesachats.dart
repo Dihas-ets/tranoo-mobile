@@ -1,42 +1,65 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class MesAchatsPage extends StatelessWidget {
+import 'package:tranoo/services/user_service.dart';
+
+class MesAchatsPage extends StatefulWidget {
   MesAchatsPage({super.key});
 
-  final List<Map<String, String>> achats = [
-    {
-      "produit": "Toyota Corolla 2021",
-      "date": "02 mars 2025",
-      "statut": "Livré",
-      "lieu": "Cotonou",
-      "couleur": "Blanc",
-      "carburant": "Essence",
-    },
-    {
-      "produit": "Jantes alu 18 pouces",
-      "date": "06 mars 2025",
-      "statut": "En cours de livraison",
-      "lieu": "Parakou",
-      "couleur": "Noir Mat",
-      "carburant": "-",
-    },
-    {
-      "produit": "Autoradio écran tactile",
-      "date": "10 mars 2025",
-      "statut": "Livré",
-      "lieu": "Porto-Novo",
-      "couleur": "Gris",
-      "carburant": "-",
-    },
-    {
-      "produit": "Caméra de recul HD",
-      "date": "15 mars 2025",
-      "statut": "Annulé",
-      "lieu": "Abomey",
-      "couleur": "Noir",
-      "carburant": "-",
-    },
-  ];
+  @override
+  State<MesAchatsPage> createState() => _MesAchatsPageState();
+}
+
+class _MesAchatsPageState extends State<MesAchatsPage> {
+  List<Map<String, dynamic>> achats = [];
+  bool isLoading = true;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchAchats();
+  }
+
+  Future<void> fetchAchats() async {
+    setState(() {
+      isLoading = true;
+      error = null;
+    });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      String url = getBaseUrl() + '/achats';
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          achats = data.cast<Map<String, dynamic>>();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          error = 'Erreur lors du chargement des achats';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        error = 'Erreur réseau';
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

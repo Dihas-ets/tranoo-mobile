@@ -1,180 +1,140 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-import 'details_notifications.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:http/http.dart' as http;
+// import 'dart:convert';
+// import 'package:logging/logging.dart';
 
-class Notifications extends StatefulWidget {
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:provider/provider.dart';
+
+// import 'details_notifications.dart';
+
+class NotificationProvider with ChangeNotifier {
+  final List<Map<String, dynamic>> _notifications = [];
+  List<Map<String, dynamic>> get notifications =>
+      List.unmodifiable(_notifications);
+
+  NotificationProvider() {
+    _initFCMListener();
+  }
+
+  void addNotification(Map<String, dynamic> notif) {
+    _notifications.insert(0, notif);
+    notifyListeners();
+  }
+
+  void _initFCMListener() {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      final notif = {
+        'id': message.messageId ?? DateTime.now().toIso8601String(),
+        'title': message.notification?.title ?? 'Notification',
+        'message': message.notification?.body ?? '',
+        'date': DateTime.now(),
+        'isRead': false,
+        'type': message.data['type'] ?? 'general',
+      };
+      addNotification(notif);
+    });
+  }
+}
+
+class Notifications extends StatelessWidget {
   const Notifications({super.key});
 
   @override
-  State<Notifications> createState() => _NotificationsState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => NotificationProvider(),
+      child: const NotificationsBody(),
+    );
+  }
 }
 
-class _NotificationsState extends State<Notifications> {
-  final List<Map<String, dynamic>> notifications = [
-    {
-      "initial": "P",
-      "title": "Paiement confirmé",
-      "message": "Vous avez réussi votre paiement.",
-      "date": DateTime.now().subtract(const Duration(minutes: 10)),
-      "isRead": true,
-    },
-    {
-      "initial": "J",
-      "title": "Promotion de juillet",
-      "message":
-          "Cher client, nous aimerions vous informez que ce mois de juillet beaucoup de surprise vous attendent.",
-      "date": DateTime.now().subtract(const Duration(hours: 3)),
-      "isRead": false,
-    },
-    {
-      "initial": "U",
-      "title": "Alerte",
-      "message":
-          "Cher client nous vous informons que toute la soirée du vendredi les transactions sur MTN MoMo ne seront pas accessibles.",
-      "date": DateTime.now().subtract(const Duration(days: 1)),
-      "isRead": true,
-    },
-    {
-      "initial": "H",
-      "title": "Bonne journée indépendante",
-      "message":
-          "Agréable journée de la fête d'indépendance à toute les compatriotes béninois et béninoise.",
-      "date": DateTime.now().subtract(const Duration(days: 1)),
-      "isRead": false,
-    },
-    {
-      "initial": "P",
-      "title": "Paiement confirmé",
-      "message": "Votre transaction à été effectué.",
-      "date": DateTime.now().subtract(const Duration(days: 1)),
-      "isRead": false,
-    },
-    {
-      "initial": "F",
-      "title": "Paiement écchoué",
-      "message":
-          "Votre paiement à échouer en quelques sortes veillez reprendre la même action un peu plus tard.",
-      "date": DateTime.now().subtract(const Duration(days: 1)),
-      "isRead": true,
-    },
-  ];
+class NotificationsBody extends StatelessWidget {
+  const NotificationsBody({super.key});
+
+  String _getInitialFromTitle(String title) {
+    if (title.isEmpty) return "N";
+    return title[0].toUpperCase();
+  }
+
+  String _getNotificationColor(String type) {
+    switch (type) {
+      case 'paiement':
+        return '#4CAF50'; // Vert
+      case 'promotion':
+        return '#FF9800'; // Orange
+      case 'alerte':
+        return '#F44336'; // Rouge
+      case 'publicite':
+        return '#2196F3'; // Bleu
+      default:
+        return '#9E9E9E'; // Gris
+    }
+  }
 
   String formatDate(DateTime date) {
     Duration difference = DateTime.now().difference(date);
     if (difference.inDays > 0) {
-      return "Il y a ${difference.inDays} jour${difference.inDays > 1 ? 's' : ''}";
+      return "Il y a  {difference.inDays} jour${difference.inDays > 1 ? 's' : ''}";
     } else if (difference.inHours > 0) {
       return "Il y a ${difference.inHours}h";
     } else {
-      final DateFormat formatter = DateFormat('HH:mm');
-      return "Il y a ${difference.inMinutes} min (${formatter.format(date)})";
+      return "Il y a ${difference.inMinutes} min";
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final notifications = context.watch<NotificationProvider>().notifications;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mon compte', style: TextStyle(color: Colors.black)),
-        backgroundColor: const Color(0xFFF9FAFB),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Notifications",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: notifications.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Aucune notification pour le moment',
-                        style: TextStyle(fontSize: 18, color: Colors.black54),
-                      ),
-                    )
-                  : ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: notifications.length,
-                      itemBuilder: (context, index) {
-                        var notification = notifications[index];
-                        return Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          child: ListTile(
-                            leading: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFF7DD),
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                notification["initial"],
-                                style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black),
-                              ),
-                            ),
-                            title: Text(notification["title"],
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  notification["message"],
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  formatDate(notification["date"]),
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.black54),
-                                ),
-                              ],
-                            ),
-                            trailing: Icon(
-                              notification["isRead"] ? Icons.star : Icons.star,
-                              color: notification["isRead"]
-                                  ? Colors.grey
-                                  : const Color(0xFFFCC21B),
-                            ),
-                            onTap: () {
-                              setState(() {
-                                notifications[index]["isRead"] = true;
-                              });
-
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => DetailsNotifications(
-                                    title: notification["title"],
-                                    message: notification["message"],
-                                    date: notification["date"],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+        title: const Text(
+          "Notifications",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
+        foregroundColor: Colors.black,
+        elevation: 0,
+        backgroundColor: Colors.white,
       ),
+      body:
+          notifications.isEmpty
+              ? const Center(
+                child: Text(
+                  'Aucune notification',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              )
+              : RefreshIndicator(
+                onRefresh: () async {},
+                child: ListView.builder(
+                  itemCount: notifications.length,
+                  itemBuilder: (context, index) {
+                    final notification = notifications[index];
+                    final initial = _getInitialFromTitle(notification["title"]);
+                    final color = _getNotificationColor(notification["type"]);
+
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Color(
+                          int.parse(color.replaceAll('#', '0xFF')),
+                        ),
+                        child: Text(
+                          initial,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      title: Text(notification["title"] ?? "-"),
+                      subtitle: Text(notification["message"] ?? "-"),
+                      trailing: Text(formatDate(notification["date"])),
+                    );
+                  },
+                ),
+              ),
     );
   }
 }

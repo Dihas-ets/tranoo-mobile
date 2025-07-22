@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/data/screens/succes6.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:developer';
+import 'package:tranoo/services/user_service.dart';
 
 void main() {
-  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: PaymentScreen()));
+  runApp(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: PaymentScreen(pubId: ''),
+    ),
+  );
 }
 
 class PaymentScreen extends StatelessWidget {
-  const PaymentScreen({super.key});
+  final String pubId;
+  const PaymentScreen({super.key, required this.pubId});
 
   @override
   Widget build(BuildContext context) {
@@ -147,14 +158,56 @@ class PaymentScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Aller à la page de succès
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SuccesScreen6(),
-                          ),
-                        );
+                      onPressed: () async {
+                        // Mettre à jour le statut de la pub à 'payee' avant de passer à la page de succès
+                        try {
+                          final user = FirebaseAuth.instance.currentUser;
+                          final idToken = await user?.getIdToken();
+                          final url =
+                              '${getBaseUrl()}/publicites/$pubId/statut';
+                          final headers = {
+                            'Content-Type': 'application/json',
+                            if (idToken != null)
+                              'Authorization': 'Bearer $idToken',
+                          };
+                          final body = jsonEncode({'statut': 'payee'});
+                          log('[DEBUG][PaymentScreen] PATCH URL: $url');
+                          log('[DEBUG][PaymentScreen] PATCH BODY: $body');
+                          log('[DEBUG][PaymentScreen] PATCH HEADERS: $headers');
+                          final response = await http.patch(
+                            Uri.parse(url),
+                            headers: headers,
+                            body: body,
+                          );
+                          log(
+                            '[DEBUG][PaymentScreen] PATCH status: ${response.statusCode}',
+                          );
+                          log(
+                            '[DEBUG][PaymentScreen] PATCH response: ${response.body}',
+                          );
+                          if (response.statusCode == 200) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SuccesScreen6(),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Erreur lors de la mise à jour du statut de la pub.',
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erreur réseau ou serveur: $e'),
+                            ),
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber,

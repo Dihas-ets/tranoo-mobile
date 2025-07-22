@@ -1,14 +1,38 @@
 import 'package:flutter/material.dart';
 import 'payement.dart';
+import 'package:video_player/video_player.dart';
 
 class Movie extends StatefulWidget {
-  const Movie({super.key});
+  final String? videoUrl;
+  const Movie({super.key, this.videoUrl});
 
   @override
   State<Movie> createState() => _MovieState();
 }
 
 class _MovieState extends State<Movie> {
+  VideoPlayerController? _controller;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.videoUrl != null) {
+      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl!));
+      _controller!.initialize().then((_) {
+        setState(() {
+          _initialized = true;
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,36 +63,65 @@ class _MovieState extends State<Movie> {
   }
 
   Widget _buildVideoSection() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Image de fond/Aperçu vidéo
-        SizedBox(
-          height: 500,
-          width: 700,
-          child: Image.asset(
-            'assets/images/teslapro.png',
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: Colors.grey[300],
-                child: const Center(child: Text('Vidéo non disponible')),
-              );
-            },
-          ),
+    if (widget.videoUrl != null && _initialized && _controller != null) {
+      return AspectRatio(
+        aspectRatio: _controller!.value.aspectRatio,
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            VideoPlayer(_controller!),
+            VideoProgressIndicator(_controller!, allowScrubbing: true),
+            Align(
+              alignment: Alignment.center,
+              child: IconButton(
+                icon: Icon(
+                  _controller!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: Colors.white,
+                  size: 50,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _controller!.value.isPlaying
+                        ? _controller!.pause()
+                        : _controller!.play();
+                  });
+                },
+              ),
+            ),
+          ],
         ),
-        // Grand bouton play orange
-        Container(
-          width: 80,
-          height: 80,
-          decoration: const BoxDecoration(
-            color: Colors.deepOrange,
-            shape: BoxShape.circle,
+      );
+    } else {
+      // Fallback : icône play sur image statique
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            height: 500,
+            width: 700,
+            child: Image.asset(
+              'assets/images/teslapro.png',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Colors.grey[300],
+                  child: const Center(child: Text('Vidéo non disponible')),
+                );
+              },
+            ),
           ),
-          child: const Icon(Icons.play_arrow, color: Colors.white, size: 50),
-        ),
-      ],
-    );
+          Container(
+            width: 80,
+            height: 80,
+            decoration: const BoxDecoration(
+              color: Colors.deepOrange,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.play_arrow, color: Colors.white, size: 50),
+          ),
+        ],
+      );
+    }
   }
 
   Widget _buildContentSection() {

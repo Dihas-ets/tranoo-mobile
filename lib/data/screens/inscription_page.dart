@@ -38,7 +38,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
   ];
 
   final List<String> roles = [
-    'Transitaires',
+    'Transitaire',
     'Acheteur',
     'Vendeur',
     'Chauffeur',
@@ -475,6 +475,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                                 // fcmToken: ... (à ajouter si dispo)
                               );
                               _logger.info('Réponse inscription: $response');
+                              if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(

@@ -26,6 +26,8 @@ import 'connexion_page.dart';
 import 'discussion.dart';
 import 'chat.dart';
 import 'package:tranoo/data/screens/driver_certified.dart';
+import 'dart:developer';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AvantHome extends StatefulWidget {
   const AvantHome({super.key});
@@ -38,6 +40,8 @@ class _AvantHomeState extends State<AvantHome> {
   int _selectedIndex = 0;
   File? _image;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  // Ajout pour éviter la boucle infinie du drawer
+  bool _drawerReloadCalled = false;
 
   void _onItemTapped(int index) {
     setState(() {
@@ -168,6 +172,26 @@ class _AvantHomeState extends State<AvantHome> {
     }
   }
 
+  Widget getCurrentPage() {
+    if (isAcheteur) {
+      return _selectedIndex < _pagesAcheteur.length
+          ? _pagesAcheteur[_selectedIndex]
+          : _pagesAcheteur[0];
+    } else if (isChauffeur) {
+      return _selectedIndex < _pagesChauffeur.length
+          ? _pagesChauffeur[_selectedIndex]
+          : _pagesChauffeur[0];
+    } else if (isTransitaire) {
+      return _selectedIndex < _pagesTransitaire.length
+          ? _pagesTransitaire[_selectedIndex]
+          : _pagesTransitaire[0];
+    } else {
+      return _selectedIndex < _pagesVendeur.length
+          ? _pagesVendeur[_selectedIndex]
+          : _pagesVendeur[0];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -243,34 +267,49 @@ class _AvantHomeState extends State<AvantHome> {
           },
         ),
       ),
-      body:
-          isAcheteur
-              ? _pagesAcheteur[_selectedIndex]
-              : isChauffeur
-              ? _pagesChauffeur[_selectedIndex]
-              : isTransitaire
-              ? _pagesTransitaire[_selectedIndex]
-              : _pagesVendeur[_selectedIndex],
+      body: getCurrentPage(),
 
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            SizedBox(
-              height: drawerHeaderHeight,
-              child: DrawerHeader(
-                decoration: const BoxDecoration(color: Color(0XffF8BF13)),
-                child: Builder(
-                  builder: (context) {
-                    final auth = Provider.of<myauth.AuthProvider>(context);
-                    if (auth.loading) {
-                      return Center(child: CircularProgressIndicator());
-                    }
-                    final user = auth.user;
-                    if (user == null) {
-                      return Center(child: Text('Non connecté'));
-                    }
-                    return Column(
+        child: Consumer<myauth.AuthProvider>(
+          builder: (context, auth, _) {
+            log(
+              '[Drawer] auth.user:  {auth.user}, auth.loading:  {auth.loading}',
+            );
+            final user = auth.user;
+            if (auth.loading) {
+              log('[Drawer] Affiche: Loader');
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (user == null) {
+              final firebaseUser = FirebaseAuth.instance.currentUser;
+              if (firebaseUser != null && !_drawerReloadCalled) {
+                _drawerReloadCalled = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  Provider.of<myauth.AuthProvider>(
+                    context,
+                    listen: false,
+                  ).reloadUser().then((_) {
+                    if (mounted)
+                      setState(() {
+                        _drawerReloadCalled = false;
+                      });
+                  });
+                });
+                return const Center(child: CircularProgressIndicator());
+              }
+              log('[Drawer] Affiche: Non connecté');
+              return Center(child: Text('Non connecté ou erreur réseau'));
+            }
+            log('[Drawer] Affiche: Utilisateur connecté: ${user['email']}');
+            // Utilisateur connecté
+            return ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                SizedBox(
+                  height: drawerHeaderHeight,
+                  child: DrawerHeader(
+                    decoration: const BoxDecoration(color: Color(0XffF8BF13)),
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         GestureDetector(
@@ -309,158 +348,129 @@ class _AvantHomeState extends State<AvantHome> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+                _buildDrawerButton(
+                  context,
+                  text: 'Accueil',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AvantHome(),
+                      ),
                     );
                   },
+                  icon: Icon(Icons.home, color: Colors.black, size: iconSize),
                 ),
-              ),
-            ),
-            Builder(
-              builder: (context) {
-                final auth = Provider.of<myauth.AuthProvider>(context);
-                final user = auth.user;
-                if (auth.loading || user == null) return SizedBox.shrink();
-                return Column(
-                  children: [
-                    _buildDrawerButton(
+                _buildDrawerButton(
+                  context,
+                  text: 'Portefeuille',
+                  onTap: () {
+                    Navigator.push(
                       context,
-                      text: 'Accueil',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AvantHome(),
-                          ),
-                        );
-                      },
-                      icon: Icon(
-                        Icons.home,
-                        color: Colors.black,
-                        size: iconSize,
+                      MaterialPageRoute(
+                        builder: (context) => const WalletScreen(),
                       ),
-                    ),
-                    _buildDrawerButton(
+                    );
+                  },
+                  icon: Icon(
+                    Icons.account_balance_wallet,
+                    color: Colors.black,
+                    size: iconSize,
+                  ),
+                ),
+                _buildDrawerButton(
+                  context,
+                  text: 'Langues',
+                  onTap: () {
+                    Navigator.push(
                       context,
-                      text: 'Portefeuille',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const WalletScreen(),
-                          ),
-                        );
-                      },
-                      icon: Icon(
-                        Icons.account_balance_wallet,
-                        color: Colors.black,
-                        size: iconSize,
+                      MaterialPageRoute(
+                        builder: (context) => const LanguesEntreprise(),
                       ),
-                    ),
-                    _buildDrawerButton(
+                    );
+                  },
+                  icon: Icon(
+                    Icons.language,
+                    color: Colors.black,
+                    size: iconSize,
+                  ),
+                ),
+                _buildDrawerButton(
+                  context,
+                  text: 'Notifications',
+                  onTap: () {
+                    Navigator.push(
                       context,
-                      text: 'Langues',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LanguesEntreprise(),
-                          ),
-                        );
-                      },
-                      icon: Icon(
-                        Icons.language,
-                        color: Colors.black,
-                        size: iconSize,
+                      MaterialPageRoute(
+                        builder: (context) => const Notifications(),
                       ),
-                    ),
-                    _buildDrawerButton(
+                    );
+                  },
+                  icon: Icon(
+                    Icons.notifications,
+                    color: Colors.black,
+                    size: iconSize,
+                  ),
+                ),
+                _buildDrawerButton(
+                  context,
+                  text: 'Confidentialité',
+                  onTap: () {
+                    Navigator.push(
                       context,
-                      text: 'Notifications',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const Notifications(),
-                          ),
-                        );
-                      },
-                      icon: Icon(
-                        Icons.notifications,
-                        color: Colors.black,
-                        size: iconSize,
+                      MaterialPageRoute(
+                        builder: (context) => const ConditionUtilisations(),
                       ),
-                    ),
-                    _buildDrawerButton(
+                    );
+                  },
+                  icon: Icon(Icons.lock, color: Colors.black, size: iconSize),
+                ),
+                _buildDrawerButton(
+                  context,
+                  text: 'Profil',
+                  onTap: () {
+                    Widget destination;
+                    final role = user['role'];
+                    if (role == 'acheteur') {
+                      destination = const Profil3();
+                    } else if (role == 'transitaire') {
+                      destination = const ProfilUtilisateur2();
+                    } else if (role == 'vendeur') {
+                      destination = const ProfilUtilisateurPage();
+                    } else {
+                      destination = const Profil3();
+                    }
+                    Navigator.push(
                       context,
-                      text: 'Confidentialité',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ConditionUtilisations(),
-                          ),
-                        );
-                      },
-                      icon: Icon(
-                        Icons.lock,
-                        color: Colors.black,
-                        size: iconSize,
-                      ),
-                    ),
-                    _buildDrawerButton(
+                      MaterialPageRoute(builder: (context) => destination),
+                    );
+                  },
+                  icon: Icon(Icons.person, color: Colors.black, size: iconSize),
+                ),
+                _buildDrawerButton(
+                  context,
+                  text: 'Déconnexion',
+                  onTap: () async {
+                    await Provider.of<myauth.AuthProvider>(
                       context,
-                      text: 'Profil',
-                      onTap: () {
-                        Widget destination;
-                        // Redirection selon le rôle de l'utilisateur
-                        if (userService.currentRole == UserRole.acheteur) {
-                          destination = const Profil3();
-                        } else if (userService.currentRole ==
-                            UserRole.transitaire) {
-                          destination = const ProfilUtilisateur2();
-                        } else if (userService.currentRole ==
-                            UserRole.vendeur) {
-                          destination = const ProfilUtilisateurPage();
-                        } else {
-                          destination = const Profil3();
-                        }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => destination),
-                        );
-                      },
-                      icon: Icon(
-                        Icons.person,
-                        color: Colors.black,
-                        size: iconSize,
-                      ),
-                    ),
-                    _buildDrawerButton(
+                      listen: false,
+                    ).logout();
+                    Navigator.pushAndRemoveUntil(
                       context,
-                      text: 'Déconnexion',
-                      onTap: () async {
-                        await Provider.of<myauth.AuthProvider>(
-                          context,
-                          listen: false,
-                        ).logout();
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ConnexionPage(),
-                          ),
-                          (route) => false,
-                        );
-                      },
-                      icon: Icon(
-                        Icons.logout,
-                        color: Colors.black,
-                        size: iconSize,
+                      MaterialPageRoute(
+                        builder: (context) => const ConnexionPage(),
                       ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
+                      (route) => false,
+                    );
+                  },
+                  icon: Icon(Icons.logout, color: Colors.black, size: iconSize),
+                ),
+              ],
+            );
+          },
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(

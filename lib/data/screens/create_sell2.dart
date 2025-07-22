@@ -5,9 +5,12 @@ import 'package:image_picker/image_picker.dart';
 
 import 'mastervacpage.dart'; // Importez la page MastervacPage
 import '../../utils/cloudinary_upload.dart';
+import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/role_redirect.dart';
+import 'dart:developer';
 
 class CreateSellPage2 extends StatefulWidget {
-  const CreateSellPage2({Key? key}) : super(key: key);
+  const CreateSellPage2({super.key});
 
   @override
   CreateSellPage2State createState() => CreateSellPage2State();
@@ -15,52 +18,78 @@ class CreateSellPage2 extends StatefulWidget {
 
 class CreateSellPage2State extends State<CreateSellPage2> {
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _yearController = TextEditingController();
+  final TextEditingController _anneeController = TextEditingController();
+  final TextEditingController _localisationController = TextEditingController();
+  final TextEditingController _prixController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _companyController = TextEditingController();
-  String? _selectedType; // Gardé en String pour "Rare" et "Normal"
-  int? _selectedModel; // Modèle
-  // int? _selectedtypes;
-  // int? _selectedPortes; // Portes
-  // int? _selectedVitesse; // Vitesse
-  // int? _selectedCarburant; // Carburant
-  // int? _selectedClimatiseur; // Climatiseur
-  // int? _selectedDistance; // Distance
-  // int? _selectedSieges; // Sièges
-  File? _uploadedImage;
+  String? _selectedPieceType; // Nouveau/Occasion
+  String? _selectedFuelType; // Essence/Gazoil/Diezel/Electrique/Hybride
+  String? _selectedModel; // Modèle (String, pas int)
   String? _uploadedFileName;
   bool _hasUploadedFile = false;
-  String? _cloudinaryUrl;
+  List<File?> _uploadedImages = [null, null];
+  List<String?> _cloudinaryUrls = [null, null];
 
-  final List<String> _types = ['Nouveau ', 'Occasion']; // Reste en String
-  final List<String> _fuelTypes = ['Essence', 'Gazoil'];
-  final List<String> _models = ['Modèle1', 'Modèle2']; // Modèles
-  // final List<int> _portes = [1, 2]; // Portes
-  // // final List<int> _vitesses = [1, 2]; // Vitesses
-  // final List<int> _carburants = [1, 2]; // Carburants
-  // final List<int> _climatiseurs = [1, 2]; // Climatiseurs
-  // final List<int> _distances = [1, 2]; // Distances
-  // final List<int> _sieges = [1, 2]; // Sièges
+  String? _cloudinaryVideoUrl;
+  bool _isUploadingVideo = false;
 
-  Future<void> _pickImage() async {
+  final List<String> _pieceTypes = ['Nouveau', 'Occasion'];
+  final List<String> _fuelTypes = [
+    'Essence',
+    'Gazoil',
+    'Diezel',
+    'Electrique',
+    'Hybride',
+    'Aucun',
+  ];
+  final List<String> _models = ['Modèle1', 'Modèle2', 'Autre'];
+  String? _customFuelType;
+  String? _customModel;
+
+  Future<void> _pickImage(int index) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
       setState(() {
-        _uploadedImage = File(image.path);
+        _uploadedImages[index] = File(image.path);
         _uploadedFileName = image.name;
         _hasUploadedFile = true;
       });
       // Upload vers Cloudinary via utilitaire
-      final url = await uploadImageToCloudinary(_uploadedImage!);
+      final url = await uploadImageToCloudinary(_uploadedImages[index]!);
       if (url != null) {
         setState(() {
-          _cloudinaryUrl = url;
+          _cloudinaryUrls[index] = url;
         });
       }
     }
   }
+
+  // Future<void> _pickVideo() async { // supprimé car inutilisé
+  //   final ImagePicker picker = ImagePicker();
+  //   final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
+
+  //   if (video != null) {
+  //     setState(() {
+  //       _isUploadingVideo = true;
+  //       _uploadedVideo = File(video.path);
+  //       _uploadedFileName = video.name;
+  //       _hasUploadedFile = true;
+  //     });
+  //     // Upload vers Cloudinary via utilitaire
+  //     final url = await uploadImageToCloudinary(_uploadedVideo!);
+  //     if (url != null) {
+  //       setState(() {
+  //         _cloudinaryVideoUrl = url;
+  //       });
+  //     }
+  //     setState(() {
+  //       _isUploadingVideo = false;
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +163,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                                       spacing:
                                           8, // Espacement horizontal entre les éléments
                                       children:
-                                          _types.map((type) {
+                                          _pieceTypes.map((type) {
                                             return Row(
                                               mainAxisSize:
                                                   MainAxisSize
@@ -142,10 +171,12 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                                               children: [
                                                 Radio<String>(
                                                   value: type,
-                                                  groupValue: _selectedType,
+                                                  groupValue:
+                                                      _selectedPieceType,
                                                   onChanged: (value) {
                                                     setState(() {
-                                                      _selectedType = value;
+                                                      _selectedPieceType =
+                                                          value;
                                                     });
                                                   },
                                                   activeColor: Colors.amber,
@@ -172,7 +203,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                                     // Pour les grands écrans, on utilise Row
                                     return Row(
                                       children:
-                                          _types.map((type) {
+                                          _pieceTypes.map((type) {
                                             return Padding(
                                               padding: const EdgeInsets.only(
                                                 right: 16,
@@ -182,10 +213,12 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                                                 children: [
                                                   Radio<String>(
                                                     value: type,
-                                                    groupValue: _selectedType,
+                                                    groupValue:
+                                                        _selectedPieceType,
                                                     onChanged: (value) {
                                                       setState(() {
-                                                        _selectedType = value;
+                                                        _selectedPieceType =
+                                                            value;
                                                       });
                                                     },
                                                     activeColor: Colors.amber,
@@ -225,7 +258,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                               ),
                               const SizedBox(height: 8),
                               TextField(
-                                controller: _yearController,
+                                controller: _anneeController,
                                 decoration: InputDecoration(
                                   hintText: 'Entrer l\'année',
                                   filled: true,
@@ -262,19 +295,42 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                               ),
                               const SizedBox(height: 8),
                               _buildDropdown(
-                                value: _selectedType,
-                                hint: 'Essence',
-                                items:
-                                    _fuelTypes
-                                        .map((e) => e.toString())
-                                        .toList(),
-                                onChanged:
-                                    (value) =>
-                                        setState(() => _selectedType = value),
+                                value: _selectedFuelType,
+                                hint: 'Type de moteur',
+                                items: _fuelTypes,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedFuelType = value;
+                                    if (value != 'Aucun')
+                                      _customFuelType = null;
+                                  });
+                                },
                               ),
                             ],
                           ),
                         ),
+                        if (_selectedFuelType == 'Aucun')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: TextField(
+                              decoration: const InputDecoration(
+                                hintText: 'Entrez le type de moteur',
+                                filled: true,
+                                fillColor: Color(0xFFF2F2F2),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(8),
+                                  ),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                              onChanged: (val) {
+                                setState(() {
+                                  _customFuelType = val;
+                                });
+                              },
+                            ),
+                          ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -288,15 +344,63 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                               ),
                               const SizedBox(height: 8),
                               _buildDropdown(
-                                value: _selectedModel?.toString(),
-                                hint: 'Choisissez le modèle',
-                                items:
-                                    _models.map((e) => e.toString()).toList(),
-                                onChanged:
-                                    (value) => setState(
-                                      () => _selectedModel = int.parse(value!),
-                                    ),
+                                value: _selectedModel,
+                                hint: 'Modèle',
+                                items: _models,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedModel = value;
+                                    _customModel = value == 'Autre' ? '' : null;
+                                  });
+                                },
                               ),
+                              if (_selectedModel == 'Autre')
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: TextField(
+                                    decoration: const InputDecoration(
+                                      hintText: 'Entrez le modèle',
+                                      filled: true,
+                                      fillColor: Color(0xFFF2F2F2),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                          Radius.circular(8),
+                                        ),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _customModel = val;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              if (_selectedModel != null &&
+                                  _selectedModel != 'Autre')
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text(
+                                    'Modèle sélectionné : $_selectedModel',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ),
+                              if (_selectedModel == 'Autre' &&
+                                  _customModel != null &&
+                                  _customModel!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text(
+                                    'Modèle personnalisé : $_customModel',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -328,7 +432,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                               ),
                               const SizedBox(height: 8),
                               TextField(
-                                controller: _yearController,
+                                controller: _localisationController,
                                 decoration: InputDecoration(
                                   hintText: 'Localisation',
                                   filled: true,
@@ -359,7 +463,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                               ),
                               const SizedBox(height: 8),
                               TextField(
-                                controller: _yearController,
+                                controller: _prixController,
                                 decoration: InputDecoration(
                                   hintText: 'Saisir le Prix',
                                   filled: true,
@@ -437,14 +541,38 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                     // Télécharger des images
                     Center(
                       child: GestureDetector(
-                        onTap: _pickImage,
+                        onTap: () {
+                          _pickImage(0);
+                        },
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Icon(Icons.camera_alt, size: 20),
                             const SizedBox(width: 8),
                             const Text(
-                              'Télécharger des images/Vidéo',
+                              'Télécharger une image',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          _pickImage(1);
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.camera_alt, size: 20),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Télécharger une image (optionnel)',
                               style: TextStyle(
                                 fontWeight: FontWeight.w500,
                                 fontSize: 14,
@@ -498,11 +626,34 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                         ),
                       ),
                     // Affichage de l'image uploadée depuis Cloudinary
-                    if (_cloudinaryUrl != null)
+                    if (_cloudinaryUrls[0] != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: Image.network(
-                          _cloudinaryUrl!,
+                          _cloudinaryUrls[0]!,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    if (_cloudinaryUrls[1] != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Image.network(
+                          _cloudinaryUrls[1]!,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    if (_isUploadingVideo)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    if (!_isUploadingVideo && _cloudinaryVideoUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Image.network(
+                          _cloudinaryVideoUrl!,
                           height: 120,
                           fit: BoxFit.cover,
                         ),
@@ -574,12 +725,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
       margin: const EdgeInsets.only(top: 16),
       child: ElevatedButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MastervacPage(isAcheteur: true),
-            ),
-          );
+          _onValidate();
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFFFCC00),
@@ -592,6 +738,92 @@ class CreateSellPage2State extends State<CreateSellPage2> {
           'Vérification',
           style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
         ),
+      ),
+    );
+  }
+
+  void _onValidate() {
+    // Vérification des champs obligatoires
+    final title = _titleController.text.trim();
+    final annee = _anneeController.text.trim();
+    final localisation = _localisationController.text.trim();
+    final prix = _prixController.text.trim();
+    final description = _descriptionController.text.trim();
+    final company = _companyController.text.trim();
+    final pieceType = _selectedPieceType;
+    final fuelType =
+        _selectedFuelType == 'Aucun' ? _customFuelType : _selectedFuelType;
+    final model = (_selectedModel == 'Autre') ? _customModel : _selectedModel;
+    final imageUrl = _cloudinaryUrls[0];
+
+    log('[DEBUG] title: "$title" (empty: ${title.isEmpty})');
+    log('[DEBUG] pieceType: "$pieceType" (null: ${pieceType == null})');
+    log('[DEBUG] annee: "$annee" (empty: ${annee.isEmpty})');
+    log(
+      '[DEBUG] fuelType: "$fuelType" (null/empty:  ${fuelType == null || fuelType.isEmpty})',
+    );
+    log(
+      '[DEBUG] model: "$model" (null/empty: ${model == null || model.isEmpty})',
+    );
+    log(
+      '[DEBUG] localisation: "$localisation" (empty: ${localisation.isEmpty})',
+    );
+    log('[DEBUG] prix: "$prix" (empty: ${prix.isEmpty})');
+    log('[DEBUG] description: "$description" (empty: ${description.isEmpty})');
+    log('[DEBUG] company: "$company" (empty: ${company.isEmpty})');
+    log(
+      '[DEBUG] imageUrl: "$imageUrl" (null/empty: ${imageUrl == null || imageUrl.isEmpty})',
+    );
+
+    if (title.isEmpty ||
+        pieceType == null ||
+        annee.isEmpty ||
+        (fuelType == null || fuelType.isEmpty) ||
+        (model == null || model.isEmpty) ||
+        localisation.isEmpty ||
+        prix.isEmpty ||
+        description.isEmpty ||
+        company.isEmpty ||
+        imageUrl == null ||
+        imageUrl.isEmpty) {
+      log('[DEBUG] Validation échouée, un ou plusieurs champs sont invalides.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Veuillez remplir tous les champs obligatoires et au moins une image.',
+          ),
+        ),
+      );
+      return;
+    }
+    log('[DEBUG] Validation OK, navigation vers MastervacPage.');
+    final userService = UserService();
+    final isAcheteur =
+        userService.currentRole == UserRole.acheteur ||
+        userService.currentRole == UserRole.chauffeur;
+    final images =
+        _cloudinaryUrls
+            .whereType<String>()
+            .where((url) => url.isNotEmpty)
+            .toList();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => MastervacPage(
+              isAcheteur: isAcheteur,
+              title: title,
+              year: annee,
+              description: description,
+              company: company,
+              location: localisation,
+              price: prix,
+              fuelType: fuelType,
+              model: model,
+              pieceType: pieceType,
+              images: images,
+              video: _cloudinaryVideoUrl,
+            ),
       ),
     );
   }

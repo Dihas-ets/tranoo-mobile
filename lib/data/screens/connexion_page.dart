@@ -485,9 +485,11 @@ class _ConnexionPageState extends State<ConnexionPage> {
                                   UserRole.chauffeur) {
                                 // Navigator.pushReplacement(...)
                               }
+                              if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text('Connexion réussie !')),
                               );
+                              if (!mounted) return;
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
@@ -512,6 +514,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                                 errorMsg =
                                     "Identifiants invalides ou expirés. Vérifiez l'email et le mot de passe, ou réinitialisez le mot de passe si besoin.";
                               }
+                              if (!mounted) return;
                               ScaffoldMessenger.of(
                                 context,
                               ).showSnackBar(SnackBar(content: Text(errorMsg)));

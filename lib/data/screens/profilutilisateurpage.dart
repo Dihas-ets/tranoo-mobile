@@ -8,6 +8,9 @@ import 'package:tranoo/data/screens/create_sell.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile.dart';
 import 'package:tranoo/data/screens/create_sell2.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
+import 'package:tranoo/services/user_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -35,7 +38,51 @@ class ProfilUtilisateurPage extends StatefulWidget {
 class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
   File? _image;
   String selectedLanguage = "Français";
-  String selectedCurrencyValue = "XOF"; // Valeur de devise par défaut
+  String selectedCurrencyValue = "XOF";
+  Map<String, dynamic>? userData;
+  bool loading = true;
+  String? errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUser();
+  }
+
+  Future<void> fetchUser() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          loading = false;
+          userData = null;
+          errorMsg = "Utilisateur non connecté.";
+        });
+        return;
+      }
+      final idToken = await user.getIdToken();
+      final String baseUrl = getBaseUrl();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+      final response = await dio.get('/protected/me');
+      setState(() {
+        userData = response.data['user'];
+        loading = false;
+        errorMsg = null;
+      });
+    } catch (e) {
+      setState(() {
+        loading = false;
+        userData = null;
+        errorMsg =
+            "Impossible de charger le profil. Vérifiez votre connexion ou vos droits.";
+      });
+    }
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(
@@ -45,11 +92,43 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
       setState(() {
         _image = File(pickedFile.path);
       });
+      await _uploadPhoto(_image!);
     }
+  }
+
+  Future<void> _uploadPhoto(File image) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final idToken = await user.getIdToken();
+    final String baseUrl = getBaseUrl();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        headers: {'Authorization': 'Bearer $idToken'},
+      ),
+    );
+    FormData formData = FormData.fromMap({
+      "photo": await MultipartFile.fromFile(
+        image.path,
+        filename: "profile.jpg",
+      ),
+    });
+    final response = await dio.post('/users/photo', data: formData);
+    setState(() {
+      userData?["photo"] = response.data["photo"];
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (loading) return Center(child: CircularProgressIndicator());
+    if (errorMsg != null) return Center(child: Text(errorMsg!));
+    if (userData == null) {
+      return Center(child: Text("Aucune donnée utilisateur"));
+    }
+    if (userData != null && userData?['role'] != 'vendeur') {
+      return Center(child: Text("Accès réservé aux vendeurs."));
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -65,7 +144,75 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 15),
-            _buildProfileCard(),
+            // Profile card dynamique
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8BF13),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Colors.grey[300],
+                          backgroundImage:
+                              _image != null
+                                  ? FileImage(_image!)
+                                  : (userData != null &&
+                                      userData!["photo"] != null &&
+                                      userData!["photo"].toString().isNotEmpty)
+                                  ? NetworkImage(userData!["photo"])
+                                  : const AssetImage(
+                                        "assets/images/jenifer.jpg",
+                                      )
+                                      as ImageProvider,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: -5,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.black,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userData?["nom"] ?? "",
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        userData?["email"] ?? "",
+                        style: const TextStyle(color: Colors.black),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 50),
             _buildAccountOptions(),
             const SizedBox(height: 20),
@@ -77,68 +224,6 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
             _buildMoreOptions(),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildProfileCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8BF13),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: _pickImage,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.grey[300],
-                  backgroundImage:
-                      _image != null
-                          ? FileImage(_image!)
-                          : const AssetImage("assets/images/jenifer.jpg")
-                              as ImageProvider,
-                ),
-                Positioned(
-                  bottom: 0,
-                  right: -5,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      color: Colors.black,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                "Itunuoluwa Abidoye",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              Text("abidoye@itunuakwa", style: TextStyle(color: Colors.black)),
-            ],
-          ),
-        ],
       ),
     );
   }

@@ -2,6 +2,17 @@ import 'package:flutter/material.dart';
 import '../utils/role_redirect.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+String getBaseUrl() {
+  // Détection automatique selon la plateforme
+  if (kIsWeb) {
+    return 'http://localhost:5000/api'; //sur web
+  } else {
+    // Remplace par l'IP de ton PC sur le réseau local
+    return 'http://192.168.100.21:5000/api';  //sur mobile
+  }
+}
 
 class UserService extends ChangeNotifier {
   static final UserService _instance = UserService._internal();
@@ -19,8 +30,7 @@ class UserService extends ChangeNotifier {
   // =============================
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl:
-          'http://192.168.100.21:5000/api', // Port corrigé pour correspondre au backend
+      baseUrl: getBaseUrl(), // Utilise la fonction getBaseUrl()
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {'Content-Type': 'application/json'},

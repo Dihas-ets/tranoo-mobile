@@ -2,6 +2,10 @@ import 'dart:io'; // Pour manipuler les fichiers images
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // Importer la bibliothèque pour la sélection d'image
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
+import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/cloudinary_upload.dart'; // Importer le composant d'upload Cloudinary
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -14,6 +18,20 @@ class _ProfileState extends State<Profile> {
   String? selectedGender;
   String? selectedCountry;
   File? _image; // Pour stocker l'image sélectionnée
+  Map<String, dynamic>? userData;
+  bool loading = true;
+  String? errorMsg;
+
+  // Ajout pour édition dynamique
+  bool isEditingName = false;
+  bool isEditingEmail = false;
+  bool isEditingPhone = false;
+  bool isEditingPassword = false;
+  String? editedName;
+  String? editedEmail;
+  String? editedPhone;
+  String? newPassword;
+  bool isSaving = false;
 
   final List<Map<String, String>> countries = [
     {"name": "Bénin", "flag": "assets/flags/benin.svg"},
@@ -22,7 +40,51 @@ class _ProfileState extends State<Profile> {
     {"name": "Canada", "flag": "assets/flags/canada.svg"},
   ];
 
-  // Fonction pour choisir une image depuis la galerie
+  @override
+  void initState() {
+    super.initState();
+    fetchUser();
+  }
+
+  Future<void> fetchUser() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          loading = false;
+          userData = null;
+          errorMsg = "Utilisateur non connecté.";
+        });
+        return;
+      }
+      final idToken = await user.getIdToken();
+      final String baseUrl = getBaseUrl();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+      final response = await dio.get('/protected/me');
+      setState(() {
+        userData = response.data['user'];
+        loading = false;
+        errorMsg = null;
+        editedName = userData?["nom"] ?? "";
+        editedEmail = userData?["email"] ?? "";
+        editedPhone = userData?["telephone"] ?? "";
+      });
+    } catch (e) {
+      setState(() {
+        loading = false;
+        userData = null;
+        errorMsg =
+            "Impossible de charger le profil. Vérifiez votre connexion ou vos droits.";
+      });
+    }
+  }
+
+  // Fonction pour choisir une image depuis la galerie et upload Cloudinary
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(
       source: ImageSource.gallery,
@@ -31,22 +93,98 @@ class _ProfileState extends State<Profile> {
       setState(() {
         _image = File(pickedFile.path);
       });
+      // Upload Cloudinary
+      final url = await uploadImageToCloudinary(_image!);
+      if (url != null) {
+        await _uploadPhotoUrl(url);
+      }
     }
+  }
+
+  // Met à jour la photo de profil avec l'URL Cloudinary
+  Future<void> _uploadPhotoUrl(String url) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final idToken = await user.getIdToken();
+    final String baseUrl = getBaseUrl();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        headers: {'Authorization': 'Bearer $idToken'},
+      ),
+    );
+    final response = await dio.patch('/users/me', data: {"photo": url});
+    setState(() {
+      userData?['photo'] = url;
+    });
+  }
+
+  // Edition des infos utilisateur
+  Future<void> _saveProfileField(String field, String value) async {
+    setState(() {
+      isSaving = true;
+    });
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final idToken = await user.getIdToken();
+    final String baseUrl = getBaseUrl();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        headers: {'Authorization': 'Bearer $idToken'},
+      ),
+    );
+    await dio.patch('/users/me', data: {field: value});
+    // Après modification, on resynchronise toutes les données
+    await fetchUser();
+    setState(() {
+      isSaving = false;
+      isEditingName = false;
+      isEditingEmail = false;
+      isEditingPhone = false;
+    });
+  }
+
+  // Edition du mot de passe
+  Future<void> _savePassword() async {
+    if (newPassword == null || newPassword!.length < 6) return;
+    setState(() {
+      isSaving = true;
+    });
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final idToken = await user.getIdToken();
+    final String baseUrl = getBaseUrl();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        headers: {'Authorization': 'Bearer $idToken'},
+      ),
+    );
+    await dio.patch('/users/password', data: {"password": newPassword});
+    setState(() {
+      isEditingPassword = false;
+      isSaving = false;
+      newPassword = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Mot de passe modifié avec succès.')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Récupération des dimensions de l'écran
+    if (loading) return Center(child: CircularProgressIndicator());
+    if (errorMsg != null) return Center(child: Text(errorMsg!));
+    if (userData == null)
+      return Center(child: Text("Aucune donnée utilisateur"));
+    if (userData != null && userData?['role'] == 'vendeur') {
+      return Center(child: Text("Accès réservé aux vendeurs."));
+    }
     final mediaQuery = MediaQuery.of(context);
-    final screenWidth = mediaQuery.size.width;
     final screenHeight = mediaQuery.size.height;
     final isPortrait = mediaQuery.orientation == Orientation.portrait;
-
-    // Calcul des dimensions adaptatives
-    final avatarRadius = screenWidth * (isPortrait ? 0.15 : 0.1);
-    final fontSize = screenWidth * (isPortrait ? 0.04 : 0.03);
     final spacing = screenHeight * (isPortrait ? 0.02 : 0.03);
-    final padding = screenWidth * (isPortrait ? 0.05 : 0.1);
 
     return Scaffold(
       appBar: AppBar(
@@ -54,7 +192,7 @@ class _ProfileState extends State<Profile> {
           "Mon compte",
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: fontSize * 1.2,
+            fontSize: 20,
             color: Colors.black,
           ),
         ),
@@ -63,42 +201,261 @@ class _ProfileState extends State<Profile> {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(padding),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GestureDetector(
                 onTap: _pickImage,
-                child: CircleAvatar(
-                  radius: avatarRadius,
-                  backgroundImage:
-                      _image != null
-                          ? FileImage(_image!)
-                          : const AssetImage("assets/images/jenifer.jpg")
-                              as ImageProvider,
-                  child:
-                      _image == null
-                          ? Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: avatarRadius * 0.5,
-                          )
-                          : null,
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundImage:
+                          _image != null
+                              ? FileImage(_image!)
+                              : (userData != null &&
+                                  userData!["photo"] != null &&
+                                  userData!["photo"].toString().isNotEmpty)
+                              ? NetworkImage(userData!["photo"])
+                              : const AssetImage("assets/images/jenifer.jpg")
+                                  as ImageProvider,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(color: Colors.grey, width: 1),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          size: 24,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(height: spacing),
-              Text(
-                "Itunuoluwa Abidoye",
-                style: TextStyle(
-                  fontSize: fontSize * 1.2,
-                  fontWeight: FontWeight.bold,
-                ),
+              const SizedBox(height: 20),
+              // Nom
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  isEditingName
+                      ? Expanded(
+                        child: TextField(
+                          autofocus: true,
+                          onChanged: (v) => editedName = v,
+                          controller: TextEditingController(text: editedName),
+                          decoration: const InputDecoration(
+                            labelText: "Nom complet",
+                          ),
+                        ),
+                      )
+                      : Text(
+                        userData?["nom"] ?? "",
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  IconButton(
+                    icon: Icon(isEditingName ? Icons.close : Icons.edit),
+                    onPressed: () {
+                      setState(() {
+                        if (isEditingName) {
+                          isEditingName = false;
+                          editedName = userData?["nom"] ?? "";
+                        } else {
+                          isEditingName = true;
+                        }
+                      });
+                    },
+                  ),
+                  if (isEditingName)
+                    IconButton(
+                      icon: const Icon(Icons.check, color: Colors.green),
+                      onPressed:
+                          isSaving
+                              ? null
+                              : () async {
+                                if (editedName != null &&
+                                    editedName!.trim().isNotEmpty) {
+                                  await _saveProfileField(
+                                    "nom",
+                                    editedName!.trim(),
+                                  );
+                                }
+                              },
+                    ),
+                ],
               ),
-              Text(
-                "itunuoluwa@petra.africa",
-                style: TextStyle(color: Colors.grey, fontSize: fontSize),
+              // Email
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  isEditingEmail
+                      ? Expanded(
+                        child: TextField(
+                          autofocus: true,
+                          onChanged: (v) => editedEmail = v,
+                          controller: TextEditingController(text: editedEmail),
+                          decoration: const InputDecoration(labelText: "Email"),
+                        ),
+                      )
+                      : Text(
+                        userData?["email"] ?? "",
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 16,
+                        ),
+                      ),
+                  IconButton(
+                    icon: Icon(isEditingEmail ? Icons.close : Icons.edit),
+                    onPressed: () {
+                      setState(() {
+                        if (isEditingEmail) {
+                          isEditingEmail = false;
+                          editedEmail = userData?["email"] ?? "";
+                        } else {
+                          isEditingEmail = true;
+                        }
+                      });
+                    },
+                  ),
+                  if (isEditingEmail)
+                    IconButton(
+                      icon: const Icon(Icons.check, color: Colors.green),
+                      onPressed:
+                          isSaving
+                              ? null
+                              : () async {
+                                if (editedEmail != null &&
+                                    editedEmail!.trim().isNotEmpty) {
+                                  await _saveProfileField(
+                                    "email",
+                                    editedEmail!.trim(),
+                                  );
+                                }
+                              },
+                    ),
+                ],
+              ),
+              // Téléphone
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  isEditingPhone
+                      ? Expanded(
+                        child: TextField(
+                          autofocus: true,
+                          onChanged: (v) => editedPhone = v,
+                          controller: TextEditingController(text: editedPhone),
+                          decoration: const InputDecoration(
+                            labelText: "Téléphone",
+                          ),
+                        ),
+                      )
+                      : Text(
+                        userData?["telephone"] ?? "",
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 16,
+                        ),
+                      ),
+                  IconButton(
+                    icon: Icon(isEditingPhone ? Icons.close : Icons.edit),
+                    onPressed: () {
+                      setState(() {
+                        if (isEditingPhone) {
+                          isEditingPhone = false;
+                          editedPhone = userData?["telephone"] ?? "";
+                        } else {
+                          isEditingPhone = true;
+                        }
+                      });
+                    },
+                  ),
+                  if (isEditingPhone)
+                    IconButton(
+                      icon: const Icon(Icons.check, color: Colors.green),
+                      onPressed:
+                          isSaving
+                              ? null
+                              : () async {
+                                if (editedPhone != null &&
+                                    editedPhone!.trim().isNotEmpty) {
+                                  await _saveProfileField(
+                                    "telephone",
+                                    editedPhone!.trim(),
+                                  );
+                                }
+                              },
+                    ),
+                ],
               ),
               SizedBox(height: spacing * 2),
+              // Mot de passe
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  isEditingPassword
+                      ? Expanded(
+                        child: TextField(
+                          autofocus: true,
+                          obscureText: true,
+                          onChanged: (v) => newPassword = v,
+                          decoration: const InputDecoration(
+                            labelText: "Nouveau mot de passe",
+                          ),
+                        ),
+                      )
+                      : const Text(
+                        "********",
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                  IconButton(
+                    icon: Icon(isEditingPassword ? Icons.close : Icons.edit),
+                    onPressed: () {
+                      setState(() {
+                        if (isEditingPassword) {
+                          isEditingPassword = false;
+                          newPassword = null;
+                        } else {
+                          isEditingPassword = true;
+                        }
+                      });
+                    },
+                  ),
+                  if (isEditingPassword)
+                    IconButton(
+                      icon: const Icon(Icons.check, color: Colors.green),
+                      onPressed:
+                          isSaving
+                              ? null
+                              : () async {
+                                if (newPassword != null &&
+                                    newPassword!.length >= 6) {
+                                  await _savePassword();
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Le mot de passe doit contenir au moins 6 caractères.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                    ),
+                ],
+              ),
+              SizedBox(height: spacing * 2),
+              // Section informations personnelles (readonly)
               _buildProfileSection(
                 context,
                 title: "Informations personnelles",
@@ -107,19 +464,19 @@ class _ProfileState extends State<Profile> {
                     context,
                     icon: Icons.person,
                     label: "Nom complet",
-                    value: "Itunuoluwa Abidoye",
+                    value: userData?["nom"] ?? "",
                   ),
                   _buildProfileItem(
                     context,
                     icon: Icons.email,
                     label: "Email",
-                    value: "itunuoluwa@petra.africa",
+                    value: userData?["email"] ?? "",
                   ),
                   _buildProfileItem(
                     context,
                     icon: Icons.phone,
                     label: "Téléphone",
-                    value: "+229 12345678",
+                    value: userData?["telephone"] ?? "",
                   ),
                 ],
               ),
@@ -133,7 +490,7 @@ class _ProfileState extends State<Profile> {
                     icon: Icons.lock,
                     label: "Mot de passe",
                     value: "********",
-                    showEdit: true,
+                    showEdit: false,
                   ),
                 ],
               ),
