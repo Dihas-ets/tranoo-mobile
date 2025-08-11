@@ -4,15 +4,16 @@ import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+
+// String getBaseUrl() {
+//   return 'http://192.168.1.80:5000/api';  // Remplace par l'IP de ton PC sur le réseau local
+// }
+
+
 String getBaseUrl() {
-  // Détection automatique selon la plateforme
-  if (kIsWeb) {
-    return 'http://localhost:5000/api'; //sur web
-  } else {
-    // Remplace par l'IP de ton PC sur le réseau local
-    return 'http://192.168.1.73:5000/api'; //sur mobile
-  }
+  return 'https://api.tranoo.store/api'; // URL déployée pour mobile
 }
+
 
 class UserService extends ChangeNotifier {
   static final UserService _instance = UserService._internal();
@@ -26,7 +27,7 @@ class UserService extends ChangeNotifier {
   // - Sur ÉMULATEUR ANDROID : utilisez 'http://10.0.2.2:5000/api'
   // - Sur TÉLÉPHONE PHYSIQUE : utilisez l'IP locale de votre PC, ex : 'http://192.168.1.10:5000/api'
   // - Sur le WEB : 'http://localhost:5000/api' ou l'IP locale
-  // - En PRODUCTION : l'URL de votre serveur déployé
+  // - En PRODUCTION : l'URL du serveur déployé
   // =============================
   final Dio _dio = Dio(
     BaseOptions(
