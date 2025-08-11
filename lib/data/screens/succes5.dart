@@ -94,7 +94,9 @@ class SuccesScreen5 extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const PaymentScreen(),
+                                  builder:
+                                      (context) =>
+                                          PaymentScreen(pubId: "simulation"),
                                 ),
                               );
                             },

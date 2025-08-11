@@ -2,10 +2,46 @@ import 'package:flutter/material.dart';
 import 'payement.dart';
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
 import 'package:tranoo/utils/role_redirect.dart';
-import 'package:tranoo/data/screens/paymentscreen.dart';
+// import 'package:tranoo/data/screens/paymentscreen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tranoo/data/screens/succes6.dart';
+import 'package:confetti/confetti.dart';
+import 'dart:developer';
+import 'une.dart'; // Import pour la page de demande de pub
 
 class MastervacPage extends StatefulWidget {
-  const MastervacPage({super.key, required bool isAcheteur});
+  final bool isAcheteur;
+  final String title;
+  final String year;
+  final String description;
+  final String company;
+  final String location;
+  final String price;
+  final String? fuelType;
+  final String? model;
+  final String? pieceType;
+  final List<String?> images;
+  final String? video;
+  final bool fromPub;
+
+  const MastervacPage({
+    super.key,
+    required this.isAcheteur,
+    required this.title,
+    required this.year,
+    required this.description,
+    required this.company,
+    required this.location,
+    required this.price,
+    this.fuelType,
+    this.model,
+    this.pieceType,
+    required this.images,
+    this.video,
+    this.fromPub = false,
+  });
 
   @override
   State<MastervacPage> createState() => _MastervacPageState();
@@ -13,16 +49,11 @@ class MastervacPage extends StatefulWidget {
 
 class _MastervacPageState extends State<MastervacPage> {
   int _currentImageIndex = 0;
-  final List<String> _images = [
-    'assets/images/piece.png',
-    'assets/images/piece.png',
-    'assets/images/piece.png',
-  ];
+  // SUPPRIME la liste statique _images
 
   // Définition des booléens nécessaires
   bool isNew = false;
   bool is2023 = false;
-  String? _selectedCountry;
   bool isGarantieIncluse = false;
   bool isLivraisonRapide = false;
   TextEditingController detailsController = TextEditingController();
@@ -48,14 +79,25 @@ class _MastervacPageState extends State<MastervacPage> {
     'Kenya',
     'Éthiopie',
   ];
+  late ConfettiController _confettiController;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final userService = UserService(); // Instance du service utilisateur
-    final isAcheteurOuChauffeur =
-        userService.currentRole == UserRole.acheteur ||
-        userService.currentRole == UserRole.chauffeur;
-
+    // On ne passe plus de booléen, on déduit le rôle ici
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: _buildAppBar(),
@@ -63,7 +105,7 @@ class _MastervacPageState extends State<MastervacPage> {
         physics: const BouncingScrollPhysics(),
         children: [
           _buildImageSection(),
-          _buildContentSection(isAcheteurOuChauffeur),
+          _buildContentSection(),
           const SizedBox(height: 50),
         ],
       ),
@@ -93,16 +135,50 @@ class _MastervacPageState extends State<MastervacPage> {
         SizedBox(
           height: 300,
           width: double.infinity,
-          child: Image.asset(
-            _images[_currentImageIndex],
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: Colors.grey[300],
-                child: const Center(child: Text('Image non disponible')),
-              );
-            },
-          ),
+          child:
+              (() {
+                final String img = widget.images[_currentImageIndex] ?? '';
+                if (img.startsWith('http')) {
+                  return Image.network(
+                    img,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Text('Image non disponible'),
+                        ),
+                      );
+                    },
+                  );
+                } else if (img.isNotEmpty) {
+                  return Image.asset(
+                    img,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Text('Image non disponible'),
+                        ),
+                      );
+                    },
+                  );
+                } else {
+                  return Image.asset(
+                    'assets/images/image_not_found.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Text('Image non disponible'),
+                        ),
+                      );
+                    },
+                  );
+                }
+              })(),
         ),
         Positioned(
           bottom: 0,
@@ -113,7 +189,7 @@ class _MastervacPageState extends State<MastervacPage> {
             color: Colors.black.withAlpha(50),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: _images.length,
+              itemCount: widget.images.length,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemBuilder: (context, index) {
                 return GestureDetector(
@@ -137,16 +213,44 @@ class _MastervacPageState extends State<MastervacPage> {
                         width: 2,
                       ),
                     ),
-                    child: Image.asset(
-                      _images[index],
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.image_not_supported),
-                        );
-                      },
-                    ),
+                    child:
+                        (() {
+                          final String img = widget.images[index] ?? '';
+                          if (img.startsWith('http')) {
+                            return Image.network(
+                              img,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image_not_supported),
+                                );
+                              },
+                            );
+                          } else if (img.isNotEmpty) {
+                            return Image.asset(
+                              img,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image_not_supported),
+                                );
+                              },
+                            );
+                          } else {
+                            return Image.asset(
+                              'assets/images/image_not_found.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image_not_supported),
+                                );
+                              },
+                            );
+                          }
+                        })(),
                   ),
                 );
               },
@@ -157,7 +261,7 @@ class _MastervacPageState extends State<MastervacPage> {
     );
   }
 
-  Widget _buildContentSection(bool isAcheteur) {
+  Widget _buildContentSection() {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -169,9 +273,9 @@ class _MastervacPageState extends State<MastervacPage> {
           const SizedBox(height: 24),
           _buildSpecifications(),
           const SizedBox(height: 24),
-          _buildCheckboxes(isAcheteur),
+          _buildCheckboxes(),
           const SizedBox(height: 24),
-          _buildActionButton(isAcheteur),
+          _buildActionButton(),
         ],
       ),
     );
@@ -183,34 +287,37 @@ class _MastervacPageState extends State<MastervacPage> {
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: const [
+          children: [
             Text(
-              'Mastervac',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              widget.title.isNotEmpty ? widget.title : 'Non renseigné',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Text(
-              'Mastervac SARL',
-              style: TextStyle(fontSize: 16, color: Colors.black87),
+              widget.company.isNotEmpty
+                  ? widget.company
+                  : 'Entreprise non renseignée',
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
             ),
           ],
         ),
         const SizedBox(height: 8),
         Text(
-          '10,000 f',
+          widget.price.isNotEmpty ? widget.price : 'Non renseigné',
           style: TextStyle(
             fontSize: 20,
             color: Colors.grey[800],
             fontWeight: FontWeight.w500,
           ),
         ),
+        // Année retirée de l'en-tête
       ],
     );
   }
 
   Widget _buildDescription() {
-    return const Text(
-      'Composant essentiel du système de freinage, le mastervac amplifie la force exercée sur la pédale de frein pour faciliter le freinage.',
-      style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
+    return Text(
+      (widget.description.isNotEmpty) ? widget.description : 'Non renseigné',
+      style: const TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
     );
   }
 
@@ -223,8 +330,37 @@ class _MastervacPageState extends State<MastervacPage> {
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
       children: [
-        _buildSpecCard('Model', '124-CFDS', Icons.settings),
-        _buildSpecCard('Type', 'Rare', Icons.local_gas_station),
+        _buildSpecCard(
+          'Modèle',
+          (widget.model != null && widget.model!.isNotEmpty)
+              ? widget.model!
+              : 'Non renseigné',
+          Icons.settings,
+        ),
+        _buildSpecCard(
+          'Type de pièce',
+          (widget.pieceType != null && widget.pieceType!.isNotEmpty)
+              ? widget.pieceType!
+              : 'Non renseigné',
+          Icons.category,
+        ),
+        _buildSpecCard(
+          'Type moteur',
+          (widget.fuelType != null && widget.fuelType!.isNotEmpty)
+              ? widget.fuelType!
+              : 'Non renseigné',
+          Icons.local_gas_station,
+        ),
+        _buildSpecCard(
+          'Année',
+          widget.year.isNotEmpty ? widget.year : 'Non renseigné',
+          Icons.calendar_today,
+        ),
+        _buildSpecCard(
+          'Localisation',
+          (widget.location.isNotEmpty) ? widget.location : 'Non renseigné',
+          Icons.location_on,
+        ),
       ],
     );
   }
@@ -260,78 +396,8 @@ class _MastervacPageState extends State<MastervacPage> {
     );
   }
 
-  Widget _buildCheckboxes(bool isAcheteur) {
-    if (!isAcheteur) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildCheckboxContainer('Nouveau', isNew, (val) {
-                setState(() => isNew = val);
-              }),
-              _buildCheckboxContainer('Occasion', is2023, (val) {
-                setState(() => is2023 = val);
-              }),
-            ],
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _selectedCountry,
-            items:
-                africanCountries
-                    .map(
-                      (country) => DropdownMenuItem(
-                        value: country,
-                        child: Text(country),
-                      ),
-                    )
-                    .toList(),
-            decoration: const InputDecoration(
-              labelText: 'Lieu',
-              border: OutlineInputBorder(),
-            ),
-            onChanged: (value) => setState(() => _selectedCountry = value),
-          ),
-        ],
-      );
-    } else {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildCheckboxContainer('En transit', isLivraisonRapide, (val) {
-                setState(() => isLivraisonRapide = val);
-              }),
-              _buildCheckboxContainer('En consommation', isGarantieIncluse, (
-                val,
-              ) {
-                setState(() => isGarantieIncluse = val);
-              }),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Détails supplémentaires :',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: detailsController,
-            decoration: InputDecoration(
-              hintText: 'Entrez vos détails concernant la destination ici...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            maxLines: 3,
-          ),
-        ],
-      );
-    }
+  Widget _buildCheckboxes() {
+    return const SizedBox.shrink();
   }
 
   Widget _buildCheckboxContainer(
@@ -360,135 +426,210 @@ class _MastervacPageState extends State<MastervacPage> {
     );
   }
 
-  Widget _buildActionButton(bool isAcheteur) {
-    return Center(
-      child: GestureDetector(
-        onTap: () {
-          if (isAcheteur) {
+  Widget _buildActionButton() {
+    final userService = UserService();
+    final isVendeur = userService.currentRole == UserRole.vendeur;
+    if (widget.fromPub == true) {
+      // Toujours afficher uniquement le bouton Acheter
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.amber,
+            padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const PayementScreen()),
             );
-          } else {
-            // Affiche un popup de paiement pour les vendeurs
-            showDialog(
-              context: context,
-              builder: (context) {
-                return Dialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: const [
-                            Icon(
-                              Icons.info_outline,
-                              color: Colors.amber,
-                              size: 32,
-                            ),
-                            SizedBox(width: 12),
-                            Text(
-                              'Frais à payer',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'Pour publier votre pièce, vous devez payer les frais suivants :',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 16,
-                            horizontal: 24,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Color(0xFFFFF8E1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.amber, width: 2),
-                          ),
-                          child: const Text(
-                            'Montant : 120 000 FCFA',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.amber,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context); // Ferme le dialog
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const PaymentScreen(),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.amber,
-                                foregroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  side: const BorderSide(
-                                    color: Colors.amber,
-                                    width: 2,
-                                  ),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 32,
-                                  vertical: 12,
-                                ),
-                              ),
-                              child: const Text(
-                                'Payer',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.amber,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            isAcheteur ? 'Acheter la pièce' : 'Vendez votre pièce',
-            style: const TextStyle(
+          },
+          child: const Text(
+            'Acheter la pièce',
+            style: TextStyle(
               color: Colors.black,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
           ),
         ),
-      ),
-    );
+      );
+    }
+    if (!isVendeur) {
+      // Acheteur ou chauffeur : bouton acheter
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.amber,
+            padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PayementScreen()),
+            );
+          },
+          child: const Text(
+            'Acheter la pièce',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
+      );
+    } else {
+      // Vendeur : boutons vendre + pub
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 64,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () async {
+                log('[DEBUG] Bouton Vendez votre pièce cliqué');
+                final pieceData = {
+                  'type': 'piece',
+                  'titre': widget.title,
+                  'annee': widget.year,
+                  'description': widget.description,
+                  'entreprise': widget.company,
+                  'localisation': widget.location,
+                  'prix': widget.price,
+                  'typeMoteur': widget.fuelType,
+                  'modele': widget.model,
+                  'pieceType': widget.pieceType,
+                  'photos': widget.images.whereType<String>().toList(),
+                  'video': widget.video,
+                };
+                try {
+                  final user = FirebaseAuth.instance.currentUser;
+                  final token = await user?.getIdToken();
+                  final response = await http
+                      .post(
+                        Uri.parse(getBaseUrl() + '/articles/'),
+                        headers: {
+                          'Content-Type': 'application/json',
+                          if (token != null) 'Authorization': 'Bearer $token',
+                        },
+                        body: jsonEncode(pieceData),
+                      )
+                      .timeout(const Duration(seconds: 8));
+                  if (response.statusCode == 201 ||
+                      response.statusCode == 200) {
+                    if (!mounted) return;
+                    _confettiController.play();
+                    await Future.delayed(const Duration(seconds: 2));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SuccesScreen6()),
+                    );
+                  } else {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Erreur lors de l\'enregistrement en BDD',
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  log('[DEBUG] Exception lors de l\'appel API (mastervac): $e');
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Erreur réseau ou serveur')),
+                  );
+                }
+              },
+              child: const Text(
+                'Vendez votre pièce',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 64,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () {
+                log('[DEBUG] Bouton Faire une pub cliqué');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => Une(
+                          articleId: null,
+                          articleType: 'piece',
+                          articleTitle: widget.title,
+                          articleYear: widget.year,
+                          articleLocation: widget.location,
+                          articlePrice: widget.price,
+                          articleDescription: widget.description,
+                          articleCompany: widget.company,
+                          articleModel: widget.model,
+                          articleFuelType: widget.fuelType,
+                          articlePieceType: widget.pieceType,
+                          articleImages:
+                              widget.images.whereType<String>().toList(),
+                          articleVideo: widget.video,
+                        ),
+                  ),
+                );
+              },
+              child: const Text(
+                'Faire une pub pour cette pièce',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+          ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirectionality: BlastDirectionality.explosive,
+            shouldLoop: false,
+            emissionFrequency: 0.05,
+            numberOfParticles: 30,
+            maxBlastForce: 20,
+            minBlastForce: 8,
+            gravity: 0.3,
+          ),
+        ],
+      );
+    }
   }
 }

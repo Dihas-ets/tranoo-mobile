@@ -2,6 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 
 class Profile2 extends StatefulWidget {
   const Profile2({super.key});
@@ -14,8 +18,56 @@ class _Profile2State extends State<Profile2> {
   File? _image;
   String? selectedGender = "Mâle";
   String? selectedCountry = "Mali";
+  Map<String, dynamic>? userData;
+  bool loading = true;
+  String? errorMsg;
 
-  // Fonction pour choisir une image depuis la galerie
+  @override
+  void initState() {
+    super.initState();
+    fetchUser();
+  }
+
+  Future<void> fetchUser() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          loading = false;
+          userData = null;
+          errorMsg = "Utilisateur non connecté.";
+        });
+        return;
+      }
+      final idToken = await user.getIdToken();
+      final String baseUrl =
+          kIsWeb
+              ? 'http://localhost:5000/api'
+              : (Platform.isAndroid
+                  ? 'http://10.0.2.2:5000/api'
+                  : 'http://192.168.100.21:5000/api');
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+      final response = await dio.get('/protected/me');
+      setState(() {
+        userData = response.data['user'];
+        loading = false;
+        errorMsg = null;
+      });
+    } catch (e) {
+      setState(() {
+        loading = false;
+        userData = null;
+        errorMsg =
+            "Impossible de charger le profil. Vérifiez votre connexion ou vos droits.";
+      });
+    }
+  }
+
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(
       source: ImageSource.gallery,
@@ -24,11 +76,41 @@ class _Profile2State extends State<Profile2> {
       setState(() {
         _image = File(pickedFile.path);
       });
+      await _uploadPhoto(_image!);
     }
+  }
+
+  Future<void> _uploadPhoto(File image) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final idToken = await user.getIdToken();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: 'http://10.0.2.2:5000/api',
+        headers: {'Authorization': 'Bearer $idToken'},
+      ),
+    );
+    FormData formData = FormData.fromMap({
+      "photo": await MultipartFile.fromFile(
+        image.path,
+        filename: "profile.jpg",
+      ),
+    });
+    final response = await dio.post('/users/photo', data: formData);
+    setState(() {
+      userData?["photo"] = response.data["photo"];
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (loading) return Center(child: CircularProgressIndicator());
+    if (errorMsg != null) return Center(child: Text(errorMsg!));
+    if (userData == null)
+      return Center(child: Text("Aucune donnée utilisateur"));
+    if (userData != null && userData?['role'] != 'vendeur') {
+      return Center(child: Text("Accès réservé aux vendeurs."));
+    }
     // Récupération des dimensions de l'écran
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
@@ -67,6 +149,10 @@ class _Profile2State extends State<Profile2> {
                   backgroundImage:
                       _image != null
                           ? FileImage(_image!)
+                          : (userData != null &&
+                              userData!["photo"] != null &&
+                              userData!["photo"].toString().isNotEmpty)
+                          ? NetworkImage(userData!["photo"])
                           : const AssetImage("assets/images/jenifer.jpg")
                               as ImageProvider,
                   child:
@@ -74,42 +160,42 @@ class _Profile2State extends State<Profile2> {
                           ? Icon(
                             Icons.camera_alt,
                             color: Colors.white,
-                            size: avatarRadius * 0.5,
+                            size: fontSize * 1.5,
                           )
                           : null,
                 ),
               ),
-              SizedBox(height: spacing),
+              SizedBox(height: spacing * 2),
               Text(
-                "Itunuoluwa abidoye",
+                userData?["nom"] ?? "",
                 style: TextStyle(
                   fontSize: fontSize * 1.2,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
-                "itunuoluwa@petra.africa",
+                userData?["email"] ?? "",
                 style: TextStyle(color: Colors.grey, fontSize: fontSize),
               ),
               SizedBox(height: spacing * 2),
 
               // Formulaire simple
-              _buildTextField("Isaac mobiya"),
+              _buildTextField("Isaac mobiya", fontSize),
               SizedBox(height: spacing),
 
-              _buildTextField("Transit Inter SARL"),
+              _buildTextField("Transit Inter SARL", fontSize),
               SizedBox(height: spacing),
 
-              _buildCountryDropdown(),
+              _buildCountryDropdown(fontSize),
               SizedBox(height: spacing),
 
-              _buildGenderDropdown(),
+              _buildGenderDropdown(fontSize),
               SizedBox(height: spacing),
 
-              _buildPasswordField(),
+              _buildPasswordField(fontSize),
               SizedBox(height: spacing * 2),
 
-              _buildUpdateButton(context),
+              _buildUpdateButton(context, fontSize),
             ],
           ),
         ),
@@ -117,7 +203,7 @@ class _Profile2State extends State<Profile2> {
     );
   }
 
-  Widget _buildTextField(String hintText) {
+  Widget _buildTextField(String hintText, double fontSize) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -137,11 +223,12 @@ class _Profile2State extends State<Profile2> {
         ],
       ),
       child: TextField(
+        style: TextStyle(fontSize: fontSize),
         decoration: InputDecoration(
           hintText: hintText,
-          contentPadding: const EdgeInsets.symmetric(
+          contentPadding: EdgeInsets.symmetric(
             horizontal: 16,
-            vertical: 16,
+            vertical: fontSize,
           ),
           border: InputBorder.none,
         ),
@@ -149,7 +236,7 @@ class _Profile2State extends State<Profile2> {
     );
   }
 
-  Widget _buildCountryDropdown() {
+  Widget _buildCountryDropdown(double fontSize) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -185,13 +272,16 @@ class _Profile2State extends State<Profile2> {
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: selectedCountry,
-                  hint: const Text("Pays"),
+                  hint: Text("Pays", style: TextStyle(fontSize: fontSize)),
                   isExpanded: true,
                   items:
                       ["Bénin", "Gabon", "Mali", "Canada"].map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
-                          child: Text(value),
+                          child: Text(
+                            value,
+                            style: TextStyle(fontSize: fontSize),
+                          ),
                         );
                       }).toList(),
                   onChanged: (newValue) {
@@ -208,7 +298,7 @@ class _Profile2State extends State<Profile2> {
     );
   }
 
-  Widget _buildGenderDropdown() {
+  Widget _buildGenderDropdown(double fontSize) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -232,13 +322,13 @@ class _Profile2State extends State<Profile2> {
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: selectedGender,
-            hint: const Text("Genre"),
+            hint: Text("Genre", style: TextStyle(fontSize: fontSize)),
             isExpanded: true,
             items:
                 ["Mâle", "Femelle", "Autre"].map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
-                    child: Text(value),
+                    child: Text(value, style: TextStyle(fontSize: fontSize)),
                   );
                 }).toList(),
             onChanged: (newValue) {
@@ -252,7 +342,7 @@ class _Profile2State extends State<Profile2> {
     );
   }
 
-  Widget _buildPasswordField() {
+  Widget _buildPasswordField(double fontSize) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -272,22 +362,31 @@ class _Profile2State extends State<Profile2> {
         ],
       ),
       child: TextField(
+        style: TextStyle(fontSize: fontSize),
         obscureText: true,
         decoration: InputDecoration(
           hintText: "Changer son mot de passe",
-          contentPadding: const EdgeInsets.symmetric(
+          contentPadding: EdgeInsets.symmetric(
             horizontal: 16,
-            vertical: 16,
+            vertical: fontSize,
           ),
           border: InputBorder.none,
-          suffixIcon: Icon(Icons.lock, color: Colors.amber),
-          prefixIcon: Icon(Icons.lock_outline, color: Colors.grey),
+          suffixIcon: Icon(
+            Icons.lock,
+            color: Colors.amber,
+            size: fontSize * 1.2,
+          ),
+          prefixIcon: Icon(
+            Icons.lock_outline,
+            color: Colors.grey,
+            size: fontSize * 1.2,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildUpdateButton(BuildContext context) {
+  Widget _buildUpdateButton(BuildContext context, double fontSize) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -295,13 +394,13 @@ class _Profile2State extends State<Profile2> {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF007BFF),
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: EdgeInsets.symmetric(vertical: fontSize * 1.2),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        child: const Text(
+        child: Text(
           "Mettre à jour le profil",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500),
         ),
       ),
     );

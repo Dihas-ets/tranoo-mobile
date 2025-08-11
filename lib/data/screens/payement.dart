@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'finalisation_achat.dart';
+import 'package:confetti/confetti.dart';
+// import 'package:tranoo/data/screens/succes6.dart';
 
 class PayementScreen extends StatefulWidget {
-  const PayementScreen({Key? key}) : super(key: key);
+  const PayementScreen({super.key});
 
   @override
   State<PayementScreen> createState() => _PayementScreenState();
@@ -25,6 +27,7 @@ class _PayementScreenState extends State<PayementScreen>
   bool isTransitaireChecked = true;
 
   late AnimationController _animationController;
+  late ConfettiController _confettiController;
 
   final List<String> pieces = [
     'Copie de la Carte d\'identité',
@@ -58,11 +61,15 @@ class _PayementScreenState extends State<PayementScreen>
       vsync: this,
       duration: const Duration(seconds: 1),
     )..repeat(reverse: true);
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 2),
+    );
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _confettiController.dispose();
     super.dispose();
   }
 
@@ -258,6 +265,16 @@ class _PayementScreenState extends State<PayementScreen>
               ),
             ),
             _buildPaymentButton(context),
+            ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              emissionFrequency: 0.05,
+              numberOfParticles: 30,
+              maxBlastForce: 20,
+              minBlastForce: 8,
+              gravity: 0.3,
+            ),
           ],
         ),
       ),

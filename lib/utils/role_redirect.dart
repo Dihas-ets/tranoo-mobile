@@ -3,6 +3,21 @@ import '../services/user_service.dart';
 
 enum UserRole { acheteur, vendeur, transitaire, chauffeur }
 
+UserRole? stringToUserRole(String? role) {
+  switch (role) {
+    case 'acheteur':
+      return UserRole.acheteur;
+    case 'vendeur':
+      return UserRole.vendeur;
+    case 'transitaire':
+      return UserRole.transitaire;
+    case 'chauffeur':
+      return UserRole.chauffeur;
+    default:
+      return null;
+  }
+}
+
 class RoleRedirect extends StatelessWidget {
   final Widget child;
   final UserRole requiredRole;

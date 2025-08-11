@@ -7,6 +7,9 @@ import 'package:tranoo/data/screens/connexion_page.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile2.dart';
 import 'package:tranoo/data/screens/historique_transit.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
+import 'package:tranoo/services/user_service.dart';
 
 class ProfilUtilisateur2 extends StatefulWidget {
   const ProfilUtilisateur2({super.key});
@@ -18,7 +21,51 @@ class ProfilUtilisateur2 extends StatefulWidget {
 class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
   File? _image;
   String selectedLanguage = "Français";
-  String selectedCurrencyValue = "XOF"; // Valeur de devise par défaut
+  String selectedCurrencyValue = "XOF";
+  Map<String, dynamic>? userData;
+  bool loading = true;
+  String? errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUser();
+  }
+
+  Future<void> fetchUser() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          loading = false;
+          userData = null;
+          errorMsg = "Utilisateur non connecté.";
+        });
+        return;
+      }
+      final idToken = await user.getIdToken();
+      final String baseUrl = getBaseUrl();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+      final response = await dio.get('/protected/me');
+      setState(() {
+        userData = response.data['user'];
+        loading = false;
+        errorMsg = null;
+      });
+    } catch (e) {
+      setState(() {
+        loading = false;
+        userData = null;
+        errorMsg =
+            "Impossible de charger le profil. Vérifiez votre connexion ou vos droits.";
+      });
+    }
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(
@@ -28,11 +75,42 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
       setState(() {
         _image = File(pickedFile.path);
       });
+      await _uploadPhoto(_image!);
     }
+  }
+
+  Future<void> _uploadPhoto(File image) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final idToken = await user.getIdToken();
+    final String baseUrl = getBaseUrl();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        headers: {'Authorization': 'Bearer $idToken'},
+      ),
+    );
+    FormData formData = FormData.fromMap({
+      "photo": await MultipartFile.fromFile(
+        image.path,
+        filename: "profile.jpg",
+      ),
+    });
+    final response = await dio.post('/users/photo', data: formData);
+    setState(() {
+      userData?["photo"] = response.data["photo"];
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (loading) return Center(child: CircularProgressIndicator());
+    if (errorMsg != null) return Center(child: Text(errorMsg!));
+    if (userData == null)
+      return Center(child: Text("Aucune donnée utilisateur"));
+    if (userData != null && userData?['role'] != 'vendeur') {
+      return Center(child: Text("Accès réservé aux vendeurs."));
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text(

@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../../utils/cloudinary_upload.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:tranoo/services/user_service.dart'; // Ajout pour getBaseUrl
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class DriverCertifiedPage extends StatefulWidget {
   const DriverCertifiedPage({super.key});
@@ -18,6 +25,8 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
   final TextEditingController _messageController = TextEditingController();
   File? _uploadedImage;
   String? _uploadedFileName;
+  String? _cloudinaryUrl;
+  bool _isSubmitting = false;
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -25,8 +34,111 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
 
     if (image != null) {
       setState(() {
-        _uploadedImage = File(image.path);
         _uploadedFileName = image.name;
+      });
+      String? url;
+      if (kIsWeb) {
+        // Web : lire les bytes et uploader
+        final bytes = await image.readAsBytes();
+        url = await uploadImageToCloudinary(bytes);
+      } else {
+        // Mobile : utiliser File
+        _uploadedImage = File(image.path);
+        url = await uploadImageToCloudinary(_uploadedImage!);
+      }
+      if (url != null) {
+        setState(() {
+          _cloudinaryUrl = url;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Échec de l\'upload de l\'image.')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucune image sélectionnée.')),
+      );
+    }
+  }
+
+  Future<void> _submitForm() async {
+    setState(() {
+      _isSubmitting = true;
+    });
+    final lastName = _lastNameController.text.trim();
+    final firstName = _firstNameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final email = _emailController.text.trim();
+    final permit = _permitController.text.trim();
+    final message = _messageController.text.trim();
+    final permitUrl = _cloudinaryUrl;
+    if (lastName.isEmpty ||
+        firstName.isEmpty ||
+        phone.isEmpty ||
+        email.isEmpty ||
+        permit.isEmpty ||
+        permitUrl == null) {
+      setState(() {
+        _isSubmitting = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Veuillez remplir tous les champs obligatoires et uploader votre permis.',
+          ),
+        ),
+      );
+      return;
+    }
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final response = await http.post(
+        Uri.parse(getBaseUrl() + '/chauffeurs/demandes'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (idToken != null) 'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode({
+          'nom': lastName,
+          'prenom': firstName,
+          'telephone': phone,
+          'email': email,
+          'numeroPermit': permit, // <-- correction ici
+          'message': message,
+          'permisFile': permitUrl, // <-- correction ici
+        }),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Demande envoyée avec succès !')),
+        );
+        _lastNameController.clear();
+        _firstNameController.clear();
+        _phoneController.clear();
+        _emailController.clear();
+        _permitController.clear();
+        _messageController.clear();
+        setState(() {
+          _cloudinaryUrl = null;
+          _uploadedImage = null;
+          _uploadedFileName = null;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de l\'envoi : \\${response.body}'),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur réseau : $e')));
+    } finally {
+      setState(() {
+        _isSubmitting = false;
       });
     }
   }
@@ -128,13 +240,22 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
             ),
             const SizedBox(height: 24),
 
+            // Affichage de l'image uploadée depuis Cloudinary
+            if (_cloudinaryUrl != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Image.network(
+                  _cloudinaryUrl!,
+                  height: 120,
+                  fit: BoxFit.cover,
+                ),
+              ),
+
             // Bouton de soumission
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // Action de soumission
-                },
+                onPressed: _isSubmitting ? null : _submitForm,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
@@ -143,7 +264,17 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text('Soumettre'),
+                child:
+                    _isSubmitting
+                        ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                        : const Text('Soumettre'),
               ),
             ),
           ],

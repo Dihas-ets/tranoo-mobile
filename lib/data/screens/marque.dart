@@ -3,13 +3,162 @@ import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:tranoo/data/screens/cars_info.dart';
 import 'package:tranoo/data/screens/voitures.dart';
-import 'package:tranoo/data/screens/paymentform.dart';
 import 'package:tranoo/data/screens/piece.dart';
 import 'package:tranoo/data/screens/mastervacpage.dart';
 import 'package:tranoo/utils/role_redirect.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/data/screens/tarif.dart';
 import 'package:tranoo/data/screens/transit.dart';
+import 'package:logging/logging.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tranoo/data/screens/movie.dart';
+
+class Article {
+  final String title;
+  final String year;
+  final String description;
+  final String company;
+  final String location;
+  final String price;
+  final List<String> images;
+  final String? fuelType;
+  final String? model;
+  final String? pieceType;
+  final String? video;
+  final String? statut;
+
+  Article({
+    required this.title,
+    required this.year,
+    required this.description,
+    required this.company,
+    required this.location,
+    required this.price,
+    required this.images,
+    this.fuelType,
+    this.model,
+    this.pieceType,
+    this.video,
+    this.statut,
+  });
+
+  factory Article.fromJson(Map<String, dynamic> json) {
+    return Article(
+      title: json['titre'] ?? '',
+      year: json['annee'] ?? '',
+      description: json['description'] ?? '',
+      company: json['entreprise'] ?? '',
+      location: json['localisation'] ?? '',
+      price: json['prix']?.toString() ?? '',
+      images:
+          (json['photos'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      fuelType: json['typeMoteur'],
+      model: json['modele']?.toString(),
+      pieceType: json['pieceType'],
+      video: json['video'],
+      statut: json['statut'],
+    );
+  }
+}
+
+class ArticleVoiture {
+  final String titre;
+  final String description;
+  final String marque;
+  final String modele;
+  final String annee;
+  final String prix;
+  final String? condition;
+  final String? boiteVitesse;
+  final String? carburant;
+  final String? climatiseur;
+  final String? distance;
+  final String? sieges;
+  final String? portes;
+  final String? cylindre;
+  final List<String> images;
+  final String? video;
+  final String? entreprise;
+  final String? statut;
+
+  ArticleVoiture({
+    required this.titre,
+    required this.description,
+    required this.marque,
+    required this.modele,
+    required this.annee,
+    required this.prix,
+    this.condition,
+    this.boiteVitesse,
+    this.carburant,
+    this.climatiseur,
+    this.distance,
+    this.sieges,
+    this.portes,
+    this.cylindre,
+    required this.images,
+    this.video,
+    this.entreprise,
+    this.statut,
+  });
+
+  factory ArticleVoiture.fromJson(Map<String, dynamic> json) {
+    return ArticleVoiture(
+      titre: json['titre'] ?? '',
+      description: json['description'] ?? '',
+      marque: json['marque'] ?? '',
+      modele: json['modele']?.toString() ?? '',
+      annee: json['annee'] ?? '',
+      prix: json['prix']?.toString() ?? '',
+      condition: json['condition'],
+      boiteVitesse: json['boiteVitesse'],
+      carburant: json['carburant'],
+      climatiseur: json['climatiseur'],
+      distance: json['distance'],
+      sieges: json['sieges'],
+      portes: json['portes'],
+      cylindre: json['cylindre'],
+      images:
+          (json['photos'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      video: json['video'],
+      entreprise: json['entreprise'],
+      statut: json['statut'],
+    );
+  }
+}
+
+List<ArticleVoiture> voituresRecommandees = [];
+bool isLoadingVoitures = true;
+String? errorVoitures;
+
+// Ajout : modèle Pub pour la récupération des publicités
+class Pub {
+  final String id;
+  final String description;
+  final String typePub;
+  final String statut;
+  final List<String> media;
+
+  Pub({
+    required this.id,
+    required this.description,
+    required this.typePub,
+    required this.statut,
+    required this.media,
+  });
+
+  factory Pub.fromJson(Map<String, dynamic> json) {
+    return Pub(
+      id: json['_id'] ?? '',
+      description: json['description'] ?? '',
+      typePub: json['typePub'] ?? '',
+      statut: json['statut'] ?? '',
+      media: (json['media'] as List?)?.map((e) => e.toString()).toList() ?? [],
+    );
+  }
+}
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -27,14 +176,19 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   late int _modeleTabIndex;
   late int _localisationTabIndex;
   late int _budgetTabIndex;
+  List<Article> articlesPieces = [];
+  bool isLoadingPieces = true;
+  String? errorPieces;
+  List<Pub> pubsSponsorisees = [];
+  List<Pub> pubsALaUne = [];
+  bool isLoadingPubs = true;
+  String? errorPubs;
 
-  final imgList = [
-    'assets/images/jeni.png',
-    'assets/images/mask.png',
-    'assets/images/jeni.png',
-    'assets/images/mask.png',
-    'assets/images/jeni.png',
-  ];
+  // Ajout d'un contrôleur et d'une variable pour la recherche
+  final TextEditingController _searchPieceController = TextEditingController();
+  String _searchPieceText = '';
+
+  final _logger = Logger('MarquePage');
 
   @override
   void initState() {
@@ -58,19 +212,194 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     // Configuration du carrousel automatique
     Future.delayed(Duration.zero, () {
       Timer.periodic(const Duration(seconds: 5), (Timer timer) {
-        if (_currentPage < imgList.length - 1) {
+        if (pubsALaUne.isEmpty) return;
+        if (_currentPage < pubsALaUne.length - 1) {
           _currentPage++;
         } else {
           _currentPage = 0;
         }
-
-        _pageController.animateToPage(
-          _currentPage,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+        if (pubsALaUne.isNotEmpty) {
+          _pageController.animateToPage(
+            _currentPage,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
       });
     });
+    fetchArticlesPieces();
+    fetchVoituresRecommandees();
+    fetchPubs();
+    fetchPubsSponsorisees();
+  }
+
+  Future<void> fetchArticlesPieces() async {
+    setState(() {
+      isLoadingPieces = true;
+      errorPieces = null;
+    });
+    try {
+      final role = _userService.currentRole;
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final userId = user?.uid;
+      String url = getBaseUrl() + '/articles?type=piece&statut=en_ligne';
+      if (role == UserRole.vendeur && userId != null) {
+        url += '&vendeur=$userId';
+      }
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final body = response.body;
+        try {
+          final List<dynamic> data = json.decode(body);
+          setState(() {
+            articlesPieces = data.map((e) => Article.fromJson(e)).toList();
+            isLoadingPieces = false;
+          });
+        } catch (e) {
+          _logger.info('[DEBUG] Erreur de décodage JSON: $e');
+          setState(() {
+            errorPieces = 'Erreur de format de données';
+            isLoadingPieces = false;
+          });
+        }
+      } else {
+        setState(() {
+          errorPieces = 'Erreur lors du chargement des pièces';
+          isLoadingPieces = false;
+        });
+      }
+    } catch (e) {
+      _logger.info('[DEBUG] Exception fetchArticlesPieces: $e');
+      setState(() {
+        errorPieces = 'Erreur réseau';
+        isLoadingPieces = false;
+      });
+    }
+  }
+
+  Future<void> fetchVoituresRecommandees() async {
+    setState(() {
+      isLoadingVoitures = true;
+      errorVoitures = null;
+    });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      String url = getBaseUrl() + '/articles?type=voiture&statut=en_ligne';
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          voituresRecommandees =
+              data.map((e) => ArticleVoiture.fromJson(e)).toList();
+          isLoadingVoitures = false;
+        });
+      } else {
+        setState(() {
+          errorVoitures = 'Erreur lors du chargement des voitures';
+          isLoadingVoitures = false;
+        });
+      }
+    } catch (e) {
+      _logger.info('[DEBUG] Exception fetchVoituresRecommandees: $e');
+      setState(() {
+        errorVoitures = 'Erreur réseau';
+        isLoadingVoitures = false;
+      });
+    }
+  }
+
+  Future<void> fetchPubs() async {
+    setState(() {
+      isLoadingPubs = true;
+      errorPubs = null;
+    });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      String url = getBaseUrl() + '/publicites?typePub=À la une&statut=valide';
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final pubs = data.map((e) => Pub.fromJson(e)).toList();
+        setState(() {
+          pubsSponsorisees =
+              pubs.where((p) => p.typePub == 'Sponsorisée').toList();
+          pubsALaUne = pubs.where((p) => p.typePub == 'À la une').toList();
+          isLoadingPubs = false;
+        });
+      } else {
+        setState(() {
+          errorPubs = 'Erreur lors du chargement des publicités';
+          isLoadingPubs = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorPubs = 'Erreur réseau';
+        isLoadingPubs = false;
+      });
+    }
+  }
+
+  Future<void> fetchPubsSponsorisees() async {
+    setState(() {
+      isLoadingPubs = true;
+      errorPubs = null;
+    });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      String url =
+          getBaseUrl() + '/publicites?typePub=Sponsorisée&statut=valide';
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          pubsSponsorisees = data.map((e) => Pub.fromJson(e)).toList();
+          isLoadingPubs = false;
+        });
+      } else {
+        setState(() {
+          errorPubs = 'Erreur lors du chargement des publicités';
+          isLoadingPubs = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorPubs = 'Erreur réseau';
+        isLoadingPubs = false;
+      });
+    }
   }
 
   @override
@@ -112,272 +441,437 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     );
   }
 
-  Widget _buildImageCarousel() {
-    List<String> recommendedImages = [
-      "assets/images/car.png",
-      "assets/images/groupe2.png",
-      "assets/images/groupe3.png",
-      "assets/images/rectangle.png",
-      "assets/images/rectangle 1.png",
-      "assets/images/groupe2.png",
-    ];
-
-    List<String> piecesImages = [
-      "assets/images/image1.png",
-      "assets/images/image.png",
-      "assets/images/image2.png",
-      "assets/images/image3.png",
-      "assets/images/image4.png",
-      "assets/images/image5.png",
-      "assets/images/image6.png",
-      "assets/images/image7.png",
-      "assets/images/image8.png",
-      "assets/images/image9.png",
-      "assets/images/image10.png",
-      "assets/images/image11.png",
-    ];
-
-    List<String> piecesNames = [
-      "Disque de frein",
-      "Plaquette de frein",
-      "Kit de frein",
-      "Flexible de frein",
-      "Pompe à vide",
-      "Mastevac",
-      "Mastevac",
-      "Mastevac",
-      "Disque de frein",
-      "Mastevac",
-      "Kit de frein",
-      "Flexible de frein",
-    ];
-
-    List<double> piecesImageHeights = [
-      30,
-      31,
-      29,
-      32,
-      36,
-      36,
-      37,
-      38,
-      30,
-      34,
-      40,
-      36,
-    ];
-
-    List<double> piecesImageWidths = [
-      30,
-      31,
-      29,
-      32,
-      36,
-      36,
-      37,
-      38,
-      30,
-      34,
-      40,
-      36,
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          //Ajout du texte "Sponsorisé"
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
+  // Section Recommandé :
+  Widget buildVoituresRecommandeesGrid() {
+    if (isLoadingVoitures) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (errorVoitures != null) {
+      return Center(child: Text(errorVoitures!));
+    }
+    // Filtrer les voitures avec statut 'en_ligne'
+    final userService = _userService;
+    final isVendeur = userService.currentRole == UserRole.vendeur;
+    final voituresEnLigne =
+        voituresRecommandees
+            .where((v) => (v.statut ?? 'en_ligne') == 'en_ligne')
+            .toList();
+    if (voituresEnLigne.isEmpty) {
+      return Center(
+        child: Text(
+          isVendeur
+              ? "Vous n'avez aucune voiture en ligne"
+              : "Aucune voiture disponible pour le moment.",
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
+      );
+    }
+    return GridView.builder(
+      shrinkWrap: true,
+      primary: false,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.75,
+      ),
+      itemCount: voituresEnLigne.length > 8 ? 8 : voituresEnLigne.length,
+      itemBuilder: (context, index) {
+        final voiture = voituresEnLigne[index];
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => CarsInfo(
+                      titre: voiture.titre,
+                      description: voiture.description,
+                      marque: voiture.marque,
+                      modele: voiture.modele,
+                      annee: voiture.annee,
+                      prix: voiture.prix,
+                      condition: voiture.condition,
+                      boiteVitesse: voiture.boiteVitesse,
+                      carburant: voiture.carburant,
+                      climatiseur: voiture.climatiseur,
+                      distance: voiture.distance,
+                      sieges: voiture.sieges,
+                      portes: voiture.portes,
+                      cylindre: voiture.cylindre,
+                      images: voiture.images,
+                      video: voiture.video,
+                      entreprise: voiture.entreprise,
+                    ),
+              ),
+            );
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.star, color: Colors.blue, size: 20),
-              const SizedBox(width: 8),
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child:
+                        voiture.images.isNotEmpty
+                            ? Image.network(
+                              voiture.images.first,
+                              height: 140,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            )
+                            : Container(
+                              height: 140,
+                              width: double.infinity,
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.image_not_supported),
+                            ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.white,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.favorite,
+                          color: Colors.red,
+                          size: 18,
+                        ),
+                        onPressed: () {},
+                      ),
+                    ),
+                  ),
+                  if (voiture.video != null && voiture.video!.isNotEmpty)
+                    Positioned(
+                      bottom: 8,
+                      left: 8,
+                      child: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.white,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.play_circle_fill,
+                            color: Colors.red,
+                            size: 18,
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => Movie(videoUrl: voiture.video),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
               Text(
-                "Sponsorisé",
+                voiture.marque + ' ' + voiture.modele,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(voiture.prix, style: const TextStyle(color: Colors.grey)),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.verified,
+                    color: Color(0xFF188100),
+                    size: 15,
+                  ),
+                  const SizedBox(width: 5),
+                  const Text(
+                    "Vérifiée",
+                    style: TextStyle(color: Color(0xFF188100)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildPiecesGrid() {
+    if (isLoadingPieces) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (errorPieces != null) {
+      return Center(child: Text(errorPieces!));
+    }
+    final userService = _userService;
+    final isVendeur = userService.currentRole == UserRole.vendeur;
+    final piecesEnLigne =
+        articlesPieces
+            .where((p) => (p.statut ?? 'en_ligne') == 'en_ligne')
+            .toList();
+    // Filtrage recherche
+    final filteredPieces =
+        piecesEnLigne
+            .where(
+              (p) => p.title.toLowerCase().contains(
+                _searchPieceText.toLowerCase(),
+              ),
+            )
+            .toList();
+    if (filteredPieces.isEmpty) {
+      return Center(
+        child: Text(
+          isVendeur
+              ? "Vous n'avez aucune pièce en ligne actuellement"
+              : "Aucune pièce en ligne actuellement",
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
+      );
+    }
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: TextField(
+            controller: _searchPieceController,
+            decoration: const InputDecoration(
+              hintText: 'Rechercher une pièce...',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (val) {
+              _searchPieceText = val;
+              // Rafraîchir l'affichage
+              (this as dynamic).setState(() {});
+            },
+          ),
+        ),
+        Expanded(
+          child: GridView.builder(
+            shrinkWrap: true,
+            primary: false,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1,
+            ),
+            itemCount: filteredPieces.length > 8 ? 8 : filteredPieces.length,
+            itemBuilder: (context, index) {
+              final piece = filteredPieces[index];
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => MastervacPage(
+                            isAcheteur: true,
+                            title: piece.title,
+                            year: piece.year,
+                            description: piece.description,
+                            company: piece.company,
+                            location: piece.location,
+                            price: piece.price,
+                            images: piece.images,
+                            fuelType: piece.fuelType,
+                            model: piece.model,
+                            pieceType: piece.pieceType,
+                            video: piece.video,
+                          ),
+                    ),
+                  );
+                },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child:
+                          piece.images.isNotEmpty
+                              ? Image.network(
+                                piece.images.first,
+                                height: 40,
+                                width: 40,
+                                fit: BoxFit.cover,
+                              )
+                              : Container(
+                                height: 40,
+                                width: 40,
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.image_not_supported),
+                              ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      piece.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 8,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildVoituresRecommandeesSection() {
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    final voituresEnLigne =
+        voituresRecommandees
+            .where((v) => (v.statut ?? 'en_ligne') == 'en_ligne')
+            .toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Recommandé",
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue,
+                  color: Color(0xFF040415),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const VoituresPage(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  "Voir tout",
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          //Section du carrousel
-          SizedBox(
-            height: 180,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: recommendedImages.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => CarsInfo(
-                              selectedImageIndex: index,
-                              images: recommendedImages,
-                            ),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: Stack(
-                      alignment: Alignment.bottomLeft,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.asset(
-                            recommendedImages[index],
-                            width: 300,
-                            height: 170,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 5,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Tesla Model 3 Standard Range Plus",
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    const Icon(
-                                      Icons.verified,
-                                      color: Color(0xFFF8BF13),
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 5),
-                                    const Text(
-                                      "Vérifiée",
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Color(0xFFF8BF13),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+        ),
+        if (isLoadingVoitures) const Center(child: CircularProgressIndicator()),
+        if (errorVoitures != null) Center(child: Text(errorVoitures!)),
+        if (!isLoadingVoitures && errorVoitures == null)
+          voituresEnLigne.isEmpty
+              ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    isVendeur
+                        ? "Vous n'avez aucune voiture en ligne"
+                        : "Aucune voiture disponible pour le moment.",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-          SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 30),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 16,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Recommandé",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF040415),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const VoituresPage(),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          "Voir tout",
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
-                GridView.builder(
-                  shrinkWrap: true,
-                  primary: false,
-                  physics: NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemCount: recommendedImages.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => CarsInfo(
-                                  selectedImageIndex: index,
-                                  images: recommendedImages,
-                                ),
-                          ),
-                        );
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.asset(
-                                  recommendedImages[index],
-                                  height: 140,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                ),
+              )
+              : GridView.builder(
+                shrinkWrap: true,
+                primary: false,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 0.75,
+                ),
+                itemCount:
+                    voituresEnLigne.length > 8 ? 8 : voituresEnLigne.length,
+                itemBuilder: (context, index) {
+                  final voiture = voituresEnLigne[index];
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => CarsInfo(
+                                titre: voiture.titre,
+                                description: voiture.description,
+                                marque: voiture.marque,
+                                modele: voiture.modele,
+                                annee: voiture.annee,
+                                prix: voiture.prix,
+                                condition: voiture.condition,
+                                boiteVitesse: voiture.boiteVitesse,
+                                carburant: voiture.carburant,
+                                climatiseur: voiture.climatiseur,
+                                distance: voiture.distance,
+                                sieges: voiture.sieges,
+                                portes: voiture.portes,
+                                cylindre: voiture.cylindre,
+                                images: voiture.images,
+                                video: voiture.video,
+                                entreprise: voiture.entreprise,
                               ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: CircleAvatar(
-                                  radius: 16,
-                                  backgroundColor: Colors.white,
-                                  child: IconButton(
-                                    icon: Icon(
-                                      Icons.favorite,
-                                      color: Colors.red,
-                                      size: 18,
-                                    ),
-                                    onPressed: () {},
+                        ),
+                      );
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child:
+                                  voiture.images.isNotEmpty
+                                      ? Image.network(
+                                        voiture.images.first,
+                                        height: 140,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                      )
+                                      : Container(
+                                        height: 140,
+                                        width: double.infinity,
+                                        color: Colors.grey[300],
+                                        child: const Icon(
+                                          Icons.image_not_supported,
+                                        ),
+                                      ),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Colors.white,
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.favorite,
+                                    color: Colors.red,
+                                    size: 18,
                                   ),
+                                  onPressed: () {},
                                 ),
                               ),
+                            ),
+                            if (voiture.video != null &&
+                                voiture.video!.isNotEmpty)
                               Positioned(
                                 bottom: 8,
                                 left: 8,
@@ -385,131 +879,554 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                   radius: 16,
                                   backgroundColor: Colors.white,
                                   child: IconButton(
-                                    icon: Icon(
+                                    icon: const Icon(
                                       Icons.play_circle_fill,
                                       color: Colors.red,
                                       size: 18,
                                     ),
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => Movie(
+                                                videoUrl: voiture.video,
+                                              ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            "Audi E-tron Premium",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            "54,77 823,73 f",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.verified,
-                                color: Colors.green,
-                                size: 15,
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          voiture.marque + ' ' + voiture.modele,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          voiture.prix,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.verified,
+                              color: Color(0xFF188100),
+                              size: 15,
+                            ),
+                            const SizedBox(width: 5),
+                            const Text(
+                              "Vérifiée",
+                              style: TextStyle(color: Color(0xFF188100)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+      ],
+    );
+  }
+
+  Widget buildPiecesSection() {
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    final piecesEnLigne =
+        articlesPieces
+            .where((p) => (p.statut ?? 'en_ligne') == 'en_ligne')
+            .toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Pièces détachées",
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF040415),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Piece()),
+                  );
+                },
+                child: const Text(
+                  "Voir plus",
+                  style: TextStyle(fontSize: 16, color: Colors.black),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (isLoadingPieces) const Center(child: CircularProgressIndicator()),
+        if (errorPieces != null) Center(child: Text(errorPieces!)),
+        if (!isLoadingPieces && errorPieces == null)
+          piecesEnLigne.isEmpty
+              ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    isVendeur
+                        ? "Vous n'avez aucune pièce en ligne actuellement"
+                        : "Aucune pièce en ligne actuellement",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+              )
+              : GridView.builder(
+                shrinkWrap: true,
+                primary: false,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 1,
+                ),
+                itemCount: piecesEnLigne.length > 8 ? 8 : piecesEnLigne.length,
+                itemBuilder: (context, index) {
+                  final piece = piecesEnLigne[index];
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => MastervacPage(
+                                isAcheteur: true,
+                                title: piece.title,
+                                year: piece.year,
+                                description: piece.description,
+                                company: piece.company,
+                                location: piece.location,
+                                price: piece.price,
+                                images: piece.images,
+                                fuelType: piece.fuelType,
+                                model: piece.model,
+                                pieceType: piece.pieceType,
+                                video: piece.video,
                               ),
-                              SizedBox(width: 5),
-                              Text(
-                                "Vérifiée",
-                                style: TextStyle(color: Color(0xFF188100)),
-                              ),
-                            ],
+                        ),
+                      );
+                    },
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child:
+                              piece.images.isNotEmpty
+                                  ? Image.network(
+                                    piece.images.first,
+                                    height: 40,
+                                    width: 40,
+                                    fit: BoxFit.cover,
+                                  )
+                                  : Container(
+                                    height: 40,
+                                    width: 40,
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.image_not_supported,
+                                    ),
+                                  ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          piece.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 8,
                           ),
-                        ],
-                      ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+      ],
+    );
+  }
+
+  // SECTION SPONSORISÉE
+  Widget buildPubsSponsoriseesSection() {
+    if (isLoadingPubs) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (errorPubs != null) {
+      return Center(child: Text(errorPubs!));
+    }
+    if (pubsSponsorisees.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    // Affichage horizontal des pubs sponsorisées avec description en overlay
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Icon(Icons.star, color: Colors.blue, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              "Sponsorisé",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 210,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: pubsSponsorisees.length,
+            itemBuilder: (context, index) {
+              final pub = pubsSponsorisees[index];
+              return GestureDetector(
+                onTap: () async {
+                  if (pub.id.isEmpty) return;
+                  // Afficher un indicateur de chargement
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder:
+                        (context) =>
+                            const Center(child: CircularProgressIndicator()),
+                  );
+                  try {
+                    // Récupérer la pub complète pour avoir l'articleId
+                    final user = FirebaseAuth.instance.currentUser;
+                    final idToken = await user?.getIdToken();
+                    final pubResponse = await http.get(
+                      Uri.parse(getBaseUrl() + '/publicites/${pub.id}'),
+                      headers: {
+                        'Content-Type': 'application/json',
+                        if (idToken != null) 'Authorization': 'Bearer $idToken',
+                      },
                     );
-                  },
-                ),
-                SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 10,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Pièces détachées",
-                        style: TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF040415),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => Piece()),
+                    if (pubResponse.statusCode == 200) {
+                      final pubData = jsonDecode(pubResponse.body);
+                      final articleId = pubData['articleId'];
+                      if (articleId != null &&
+                          articleId.toString().isNotEmpty) {
+                        // Récupérer l'article
+                        final articleResponse = await http.get(
+                          Uri.parse(getBaseUrl() + '/articles/$articleId'),
+                          headers: {
+                            'Content-Type': 'application/json',
+                            if (idToken != null)
+                              'Authorization': 'Bearer $idToken',
+                          },
+                        );
+                        if (articleResponse.statusCode == 200) {
+                          final article = jsonDecode(articleResponse.body);
+                          Navigator.pop(context); // Fermer le loader
+                          if (article['type'] == 'voiture') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => CarsInfo(
+                                      titre: article['titre'] ?? '',
+                                      description: article['description'] ?? '',
+                                      marque: article['marque'] ?? '',
+                                      modele: article['modele'] ?? '',
+                                      annee: article['annee'] ?? '',
+                                      prix: article['prix']?.toString() ?? '',
+                                      condition: article['condition'] ?? '',
+                                      boiteVitesse:
+                                          article['boiteVitesse'] ?? '',
+                                      carburant: article['carburant'] ?? '',
+                                      climatiseur: article['climatiseur'] ?? '',
+                                      distance: article['distance'] ?? '',
+                                      sieges: article['sieges'] ?? '',
+                                      portes: article['portes'] ?? '',
+                                      cylindre: article['cylindre'] ?? '',
+                                      lieu: article['lieu'] ?? '',
+                                      images:
+                                          (article['photos'] as List?)
+                                              ?.map((e) => e.toString())
+                                              .toList() ??
+                                          [],
+                                      video: article['video'],
+                                      entreprise: article['entreprise'],
+                                      fromPub: true,
+                                    ),
+                              ),
+                            );
+                          } else if (article['type'] == 'piece') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => MastervacPage(
+                                      isAcheteur: true,
+                                      title: article['titre'] ?? '',
+                                      year: article['annee'] ?? '',
+                                      description: article['description'] ?? '',
+                                      company: article['entreprise'] ?? '',
+                                      location: article['localisation'] ?? '',
+                                      price: article['prix']?.toString() ?? '',
+                                      images:
+                                          (article['photos'] as List?)
+                                              ?.map((e) => e.toString())
+                                              .toList() ??
+                                          [],
+                                      fuelType: article['typeMoteur'],
+                                      model: article['modele']?.toString(),
+                                      pieceType: article['pieceType'],
+                                      video: article['video'],
+                                      fromPub: true,
+                                    ),
+                              ),
+                            );
+                          } else {
+                            // Type inconnu
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Type d\'article inconnu.'),
+                              ),
+                            );
+                          }
+                        } else {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Erreur lors du chargement de l\'article.',
+                              ),
+                            ),
                           );
-                        },
-                        child: Text(
-                          "Voir plus",
-                          style: TextStyle(fontSize: 16, color: Colors.black),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                GridView.builder(
-                  shrinkWrap: true,
-                  primary: false,
-                  physics: NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: piecesImages.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => MastervacPage(isAcheteur: true),
+                        }
+                      } else {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Aucun article lié à cette pub.'),
                           ),
                         );
-                      },
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.asset(
-                              piecesImages[index],
-                              height: piecesImageHeights[index],
-                              width: piecesImageWidths[index],
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            piecesNames[index],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 8,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
+                      }
+                    } else {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Erreur lors du chargement de la pub.'),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erreur réseau : $e')),
                     );
-                  },
+                  }
+                },
+                child: SizedBox(
+                  width: 340,
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(10),
+                                topRight: Radius.circular(10),
+                              ),
+                              child:
+                                  pub.media.isNotEmpty
+                                      ? Image.network(
+                                        pub.media[0],
+                                        width: 340,
+                                        height: 170,
+                                        fit: BoxFit.cover,
+                                      )
+                                      : Container(
+                                        height: 170,
+                                        width: 340,
+                                        color: Colors.grey[300],
+                                        child: Icon(
+                                          Icons.image_not_supported,
+                                          size: 80,
+                                        ),
+                                      ),
+                            ),
+                            Positioned(
+                              left: 8,
+                              bottom: 12,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      pub.description,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: const [
+                                        Icon(
+                                          Icons.verified,
+                                          color: Color(0xFFF8BF13),
+                                          size: 18,
+                                        ),
+                                        SizedBox(width: 5),
+                                        Text(
+                                          "Vérifiée",
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Color(0xFFF8BF13),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                SizedBox(height: 10),
-              ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // SECTION À LA UNE (carrousel)
+  Widget buildPubsALaUneCarousel() {
+    if (isLoadingPubs) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (errorPubs != null) {
+      return Center(child: Text(errorPubs!));
+    }
+    if (pubsALaUne.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    // Affiche le carrousel et l'indicateur uniquement si la liste n'est pas vide
+    return Column(
+      children: [
+        SizedBox(
+          height: 200,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: pubsALaUne.length,
+            itemBuilder: (context, index) {
+              final pub = pubsALaUne[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 16,
+                ),
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child:
+                          pub.media.isNotEmpty
+                              ? Image.network(
+                                pub.media[0],
+                                width: double.infinity,
+                                height: 200,
+                                fit: BoxFit.cover,
+                              )
+                              : Container(
+                                height: 200,
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.image, size: 120),
+                              ),
+                    ),
+                    Positioned(
+                      left: 8,
+                      bottom: 8,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          pub.description,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (pubsALaUne.length > 1)
+          SmoothPageIndicator(
+            controller: _pageController,
+            count: pubsALaUne.length,
+            effect: JumpingDotEffect(
+              activeDotColor: Color(0xFFF8BF13),
+              dotColor: Colors.grey.shade300,
+              dotHeight: 10,
+              dotWidth: 10,
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -552,45 +1469,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     horizontal: screenWidth * 0.03,
                   ),
                 ),
-                onChanged: (text) => print('Recherche: $text'),
+                onChanged: (text) => _logger.info('Recherche: $text'),
               ),
             ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: screenWidth * (isPortrait ? 0.8 : 0.6),
-                  height: screenHeight * (isPortrait ? 0.2 : 0.3),
-                  child: PageView.builder(
-                    controller: _pageController,
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentPage = index;
-                      });
-                    },
-                    itemCount: imgList.length,
-                    itemBuilder: (context, index) {
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                        child: Image.asset(imgList[index], fit: BoxFit.cover),
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(height: screenHeight * 0.01),
-                SmoothPageIndicator(
-                  controller: _pageController,
-                  count: imgList.length,
-                  effect: JumpingDotEffect(
-                    activeDotColor: const Color(0xFFF8BF13),
-                    dotColor: const Color(0xFFFFF7DD),
-                    dotHeight: screenHeight * 0.01,
-                    dotWidth: screenHeight * 0.01,
-                    radius: screenHeight * 0.005,
-                  ),
-                ),
-              ],
-            ),
+            buildPubsALaUneCarousel(),
+            // Section filtres/tabbar
             Container(
               padding: EdgeInsets.all(screenWidth * 0.04),
               child: TabBar(
@@ -621,6 +1504,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             if (_tabController.index == _localisationTabIndex)
               _buildLocalisationSection(),
             if (_tabController.index == _budgetTabIndex) _buildBudgetSection(),
+            // Section sponsorisée (UN SEUL APPEL)
+            buildPubsSponsoriseesSection(),
+            buildVoituresRecommandeesSection(),
+            buildPiecesSection(),
+            // Add the new sections here
           ],
         ),
       ),
@@ -709,7 +1597,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               },
             ),
           ),
-          _buildImageCarousel(),
         ],
       ),
     );
@@ -802,7 +1689,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               },
             ),
           ),
-          _buildImageCarousel(),
         ],
       ),
     );
@@ -858,7 +1744,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               },
             ),
           ),
-          _buildImageCarousel(),
         ],
       ),
     );
@@ -937,7 +1822,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               },
             ),
           ),
-          _buildImageCarousel(),
         ],
       ),
     );
@@ -1015,114 +1899,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 );
               },
             ),
-          ),
-          _buildImageCarousel(),
-
-          // Section Recommandé
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Recommandé",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF040415),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const VoituresPage(),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    "Voir tout",
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          GridView.builder(
-            shrinkWrap: true,
-            primary: false,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 0.75,
-            ),
-            itemCount: 6, // Exemple : nombre d'éléments recommandés
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => CarsInfo(
-                            selectedImageIndex: index,
-                            images: const [
-                              "assets/images/car.png",
-                            ], // Exemple d'image
-                          ),
-                    ),
-                  );
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            "assets/images/car.png", // Exemple d'image
-                            height: 140,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: CircleAvatar(
-                            radius: 16,
-                            backgroundColor: Colors.white,
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.favorite,
-                                color: Colors.red,
-                                size: 18,
-                              ),
-                              onPressed: () {
-                                // Action pour ajouter aux favoris
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Audi E-tron Premium",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const Text(
-                      "54,77 823,73 f",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              );
-            },
           ),
         ],
       ),

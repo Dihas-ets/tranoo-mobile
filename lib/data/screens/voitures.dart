@@ -1,105 +1,128 @@
 import 'package:flutter/material.dart';
-import 'cars_info.dart'; // Importez Cars_info
-import 'create_sell.dart'; // Importez CreateSell
-import 'package:tranoo/services/user_service.dart'; // Importez UserService
-import 'package:tranoo/utils/role_redirect.dart'; // Importez RoleRedirect
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'cars_info.dart';
+import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/role_redirect.dart';
+import 'create_sell.dart';
 
 class VoituresPage extends StatefulWidget {
   const VoituresPage({super.key});
 
   @override
-  State<VoituresPage> createState() => VoituresPageState();
+  State<VoituresPage> createState() => _VoituresPageState();
 }
 
-class VoituresPageState extends State<VoituresPage> {
-  final List<Map<String, dynamic>> allCars = [
-    {
-      "image": "assets/images/car.png",
-      "name": "Tesla Model 3",
-      "price": 54777823,
-      "year": 2022,
-    },
-    {
-      "image": "assets/images/groupe2.png",
-      "name": "Audi E-tron",
-      "price": 62000000,
-      "year": 2021,
-    },
-    {
-      "image": "assets/images/groupe3.png",
-      "name": "BMW iX",
-      "price": 70000000,
-      "year": 2023,
-    },
-    {
-      "image": "assets/images/rectangle.png",
-      "name": "Mercedes EQC",
-      "price": 58000000,
-      "year": 2020,
-    },
-    {
-      "image": "assets/images/rectangle 1.png",
-      "name": "Nissan Leaf",
-      "price": 35000000,
-      "year": 2019,
-    },
-    {
-      "image": "assets/images/groupe2.png",
-      "name": "Hyundai Kona Electric",
-      "price": 33000000,
-      "year": 2021,
-    },
-  ];
-
-  List<Map<String, dynamic>> displayedCars = [];
-  final TextEditingController _searchController = TextEditingController();
-
-  // Filtres
-  bool filterTesla = false;
-  bool filterAudi = false;
-  bool filterBMW = false;
-  bool filterNissan = false;
-  bool filterAll = true;
+class _VoituresPageState extends State<VoituresPage> {
+  List<dynamic> voitures = [];
+  bool isLoading = true;
+  String? error;
+  List<bool> _isVisible = [];
 
   @override
   void initState() {
     super.initState();
-    displayedCars = List.from(
-      allCars,
-    ); // Affichage initial de toutes les voitures
+    fetchVoitures();
   }
 
-  void applyFilters() {
+  Future<void> fetchVoitures() async {
     setState(() {
-      displayedCars =
-          allCars.where((car) {
-            bool matches = true;
-
-            if (filterAll) {
-              return true; // Affiche toutes les voitures si "Tous" est sélectionné
-            }
-
-            if (filterTesla) {
-              matches = matches && car['name'].toString().contains('Tesla');
-            }
-            if (filterAudi) {
-              matches = matches && car['name'].toString().contains('Audi');
-            }
-            if (filterBMW) {
-              matches = matches && car['name'].toString().contains('BMW');
-            }
-            if (filterNissan) {
-              matches = matches && car['name'].toString().contains('Nissan');
-            }
-
-            return matches;
-          }).toList();
+      isLoading = true;
+      error = null;
     });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final userService = UserService();
+      final role = userService.currentRole;
+      final userId = user?.uid;
+      String url = getBaseUrl() + '/articles?type=voiture&statut=en_ligne';
+      if (role == UserRole.vendeur && userId != null) {
+        url += '&vendeur=$userId';
+      }
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          voitures = data;
+          _isVisible = List.generate(data.length, (index) => true);
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          error = 'Erreur lors du chargement des voitures';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        error = 'Erreur réseau';
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _deleteVoiture(String articleId, int index) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmer la suppression'),
+            content: const Text(
+              'Voulez-vous vraiment supprimer cette voiture ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+    );
+    if (confirm != true) return;
+    setState(() {
+      _isVisible[index] = false;
+    });
+    await Future.delayed(const Duration(milliseconds: 400));
+    try {
+      final response = await http.delete(
+        Uri.parse(getBaseUrl() + '/articles/$articleId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Voiture supprimée avec succès !')),
+        );
+        fetchVoitures();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la suppression.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur réseau ou serveur.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final userService = UserService(); // Instance du service utilisateur
+    final userService = UserService();
     final isVendeur = userService.currentRole == UserRole.vendeur;
 
     final isAcheteurOrTransitaire =
@@ -108,7 +131,7 @@ class VoituresPageState extends State<VoituresPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Voitures disponibles'),
+        title: const Text('Voitures en ligne'),
         backgroundColor: Colors.amber,
         actions: [
           if (isVendeur)
@@ -125,200 +148,131 @@ class VoituresPageState extends State<VoituresPage> {
             ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Barre de recherche
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Rechercher une voiture...',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : error != null
+              ? Center(child: Text(error!))
+              : voitures.isEmpty
+              ? Center(
+                child: Text(
+                  isVendeur
+                      ? "Vous n'avez aucune voiture en ligne"
+                      : "Aucune voiture disponible pour le moment.",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
                   ),
                 ),
-                onChanged: (value) {
-                  setState(() {
-                    displayedCars =
-                        allCars.where((car) {
-                          return car['name'].toString().toLowerCase().contains(
-                            value.toLowerCase(),
-                          );
-                        }).toList();
-                  });
-                },
-              ),
-            ),
-            // Filtres
-            if (isAcheteurOrTransitaire)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Wrap(
-                  spacing: 8.0,
-                  children: [
-                    FilterChip(
-                      label: const Text('Tous'),
-                      selected: filterAll,
-                      selectedColor: Colors.orange,
-                      onSelected: (bool selected) {
-                        setState(() {
-                          filterAll = selected;
-                          filterTesla = false;
-                          filterAudi = false;
-                          filterBMW = false;
-                          filterNissan = false;
-                          applyFilters();
-                        });
-                      },
-                    ),
-                    FilterChip(
-                      label: const Text('Tesla'),
-                      selected: filterTesla,
-                      selectedColor: Colors.orange,
-                      onSelected: (bool selected) {
-                        setState(() {
-                          filterTesla = selected;
-                          filterAll = false;
-                          filterAudi = false;
-                          filterBMW = false;
-                          filterNissan = false;
-                          applyFilters();
-                        });
-                      },
-                    ),
-                    FilterChip(
-                      label: const Text('Audi'),
-                      selected: filterAudi,
-                      selectedColor: Colors.orange,
-                      onSelected: (bool selected) {
-                        setState(() {
-                          filterAudi = selected;
-                          filterAll = false;
-                          filterTesla = false;
-                          filterBMW = false;
-                          filterNissan = false;
-                          applyFilters();
-                        });
-                      },
-                    ),
-                    FilterChip(
-                      label: const Text('BMW'),
-                      selected: filterBMW,
-                      selectedColor: Colors.orange,
-                      onSelected: (bool selected) {
-                        setState(() {
-                          filterBMW = selected;
-                          filterAll = false;
-                          filterTesla = false;
-                          filterAudi = false;
-                          filterNissan = false;
-                          applyFilters();
-                        });
-                      },
-                    ),
-                    FilterChip(
-                      label: const Text('Nissan'),
-                      selected: filterNissan,
-                      selectedColor: Colors.orange,
-                      onSelected: (bool selected) {
-                        setState(() {
-                          filterNissan = selected;
-                          filterAll = false;
-                          filterTesla = false;
-                          filterAudi = false;
-                          filterBMW = false;
-                          applyFilters();
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            // Grille des voitures
-            Expanded(
-              child: GridView.builder(
+              )
+              : GridView.builder(
+                padding: const EdgeInsets.all(16),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                   childAspectRatio: 0.75,
                 ),
-                itemCount: displayedCars.length,
+                itemCount: voitures.length,
                 itemBuilder: (context, index) {
-                  final car = displayedCars[index];
-                  return Stack(
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => CarsInfo(
-                                    selectedImageIndex: index,
-                                    images:
-                                        displayedCars
-                                            .map((c) => c['image'] as String)
-                                            .toList(),
-                                  ),
-                            ),
-                          );
-                        },
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.asset(
-                                car['image'],
-                                height: 120,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
+                  final voiture = voitures[index];
+                  return AnimatedOpacity(
+                    opacity: _isVisible[index] ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 400),
+                    child: Stack(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => CarsInfo(
+                                      titre: voiture['titre'] ?? '',
+                                      description: voiture['description'] ?? '',
+                                      marque: voiture['marque'] ?? '',
+                                      modele:
+                                          voiture['modele']?.toString() ?? '',
+                                      annee: voiture['annee'] ?? '',
+                                      prix: voiture['prix']?.toString() ?? '',
+                                      condition: voiture['condition'],
+                                      boiteVitesse: voiture['boiteVitesse'],
+                                      carburant: voiture['carburant'],
+                                      climatiseur: voiture['climatiseur'],
+                                      distance: voiture['distance'],
+                                      sieges: voiture['sieges'],
+                                      portes: voiture['portes'],
+                                      cylindre: voiture['cylindre'],
+                                      images:
+                                          (voiture['photos'] as List?)
+                                              ?.map((e) => e.toString())
+                                              .toList() ??
+                                          [],
+                                      video: voiture['video'],
+                                      entreprise: voiture['entreprise'],
+                                    ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              car['name'],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                            );
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child:
+                                    (voiture['photos'] as List?)?.isNotEmpty ==
+                                            true
+                                        ? Image.network(
+                                          voiture['photos'][0],
+                                          height: 140,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                        )
+                                        : Container(
+                                          height: 140,
+                                          width: double.infinity,
+                                          color: Colors.grey[300],
+                                          child: const Icon(
+                                            Icons.image_not_supported,
+                                          ),
+                                        ),
                               ),
-                            ),
-                            Text(
-                              "${car['price']} f",
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isVendeur)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              setState(() {
-                                allCars.removeAt(index);
-                                displayedCars = List.from(allCars);
-                              });
-                            },
+                              const SizedBox(height: 8),
+                              Text(
+                                (voiture['marque'] ?? '') +
+                                    ' ' +
+                                    (voiture['modele']?.toString() ?? ''),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                voiture['prix']?.toString() ?? '',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                            ],
                           ),
                         ),
-                    ],
+                        if (isVendeur)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.delete,
+                                color: Colors.red,
+                                size: 24,
+                              ),
+                              onPressed: () {
+                                _deleteVoiture(voiture['_id'] ?? '', index);
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
                   );
                 },
               ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

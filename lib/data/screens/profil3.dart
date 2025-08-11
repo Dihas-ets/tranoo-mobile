@@ -9,6 +9,12 @@ import 'package:tranoo/data/screens/mesavis.dart';
 import 'package:tranoo/data/screens/mesfactures.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:tranoo/services/user_service.dart';
+import 'package:provider/provider.dart';
+import 'package:tranoo/providers/auth_provider.dart' as myauth;
 
 void main() {
   runApp(const MyApp());
@@ -36,7 +42,51 @@ class Profil3 extends StatefulWidget {
 class Profil3State extends State<Profil3> {
   File? _image;
   String selectedLanguage = "Français";
-  String selectedCurrencyValue = "XOF"; // Valeur de devise par défaut
+  String selectedCurrencyValue = "XOF";
+  Map<String, dynamic>? userData;
+  bool loading = true;
+  String? errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUser();
+  }
+
+  Future<void> fetchUser() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          loading = false;
+          userData = null;
+          errorMsg = "Utilisateur non connecté.";
+        });
+        return;
+      }
+      final idToken = await user.getIdToken();
+      final String baseUrl = getBaseUrl();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+      final response = await dio.get('/protected/me');
+      setState(() {
+        userData = response.data['user'];
+        loading = false;
+        errorMsg = null;
+      });
+    } catch (e) {
+      setState(() {
+        loading = false;
+        userData = null;
+        errorMsg =
+            "Impossible de charger le profil. Vérifiez votre connexion ou vos droits.";
+      });
+    }
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(
@@ -46,11 +96,43 @@ class Profil3State extends State<Profil3> {
       setState(() {
         _image = File(pickedFile.path);
       });
+      await _uploadPhoto(_image!);
     }
+  }
+
+  Future<void> _uploadPhoto(File image) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final idToken = await user.getIdToken();
+    final String baseUrl = getBaseUrl();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        headers: {'Authorization': 'Bearer $idToken'},
+      ),
+    );
+    FormData formData = FormData.fromMap({
+      "photo": await MultipartFile.fromFile(
+        image.path,
+        filename: "profile.jpg",
+      ),
+    });
+    final response = await dio.post('/users/photo', data: formData);
+    setState(() {
+      userData?["photo"] = response.data["photo"];
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (loading) return Center(child: CircularProgressIndicator());
+    if (errorMsg != null) return Center(child: Text(errorMsg!));
+    if (userData == null) {
+      return Center(child: Text("Aucune donnée utilisateur"));
+    }
+    if (userData != null && userData?['role'] == 'vendeur') {
+      return Center(child: Text("Accès réservé aux vendeurs."));
+    }
     return Scaffold(
       // appBar: AppBar(
       //   title: const Text(
@@ -83,6 +165,10 @@ class Profil3State extends State<Profil3> {
   }
 
   Widget _buildProfileCard() {
+    final hasPhoto =
+        userData != null &&
+        userData!["photo"] != null &&
+        userData!["photo"].toString().isNotEmpty;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -102,8 +188,9 @@ class Profil3State extends State<Profil3> {
                   backgroundImage:
                       _image != null
                           ? FileImage(_image!)
-                          : const AssetImage("assets/images/jenifer.jpg")
-                              as ImageProvider,
+                          : hasPhoto
+                          ? NetworkImage(userData!["photo"]) as ImageProvider
+                          : const AssetImage("assets/images/jenifer.jpg"),
                 ),
                 Positioned(
                   bottom: 0,
@@ -127,16 +214,19 @@ class Profil3State extends State<Profil3> {
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
-                "Itunuoluwa Abidoye",
-                style: TextStyle(
+                userData?["nom"] ?? "",
+                style: const TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
               ),
-              Text("abidoye@itunuakwa", style: TextStyle(color: Colors.black)),
+              Text(
+                userData?["email"] ?? "",
+                style: const TextStyle(color: Colors.black),
+              ),
             ],
           ),
         ],
@@ -244,10 +334,15 @@ class Profil3State extends State<Profil3> {
             title: "Déconnexion",
             icon: Icons.logout,
             color: Color(0xFFFFCE31),
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              await Provider.of<myauth.AuthProvider>(
+                context,
+                listen: false,
+              ).logout();
+              Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => ConnexionPage()),
+                (route) => false,
               );
             },
           ),

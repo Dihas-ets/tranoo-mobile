@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class MesAvisPage extends StatelessWidget {
+  const MesAvisPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     final produits = [

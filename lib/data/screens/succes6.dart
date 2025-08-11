@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
+import 'dart:developer';
 
 class SuccesScreen6 extends StatelessWidget {
   const SuccesScreen6({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // LOG pour tracer l'affichage de la page de succès
+    log('[SuccesScreen6] Affichage de la page de succès');
     // Définir la barre d'état en noir avec des icônes blanches
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
