@@ -10,12 +10,16 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:logging/logging.dart';
+import 'package:tranoo/services/chat_service.dart';
 
 class AuthProvider with ChangeNotifier {
   String? _token;
   Map<String, dynamic>? _user;
   bool _loading = true;
   final Logger _logger = Logger('AuthProvider');
+
+  static const String _tokenKey = 'token';
+  static const String _userKey = 'user';
 
   String? get token => _token;
   Map<String, dynamic>? get user => _user;
@@ -24,6 +28,50 @@ class AuthProvider with ChangeNotifier {
   AuthProvider() {
     debugPrint('[AuthProvider] CONSTRUCTEUR appelé');
     _init();
+  }
+
+  // --- PERSISTENCE SHARED PREFERENCES ---
+  static Future<void> saveUserToPrefs(
+    String? token,
+    Map<String, dynamic>? user,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (token != null) {
+      debugPrint('[AuthProvider] Sauvegarde token dans SharedPreferences');
+      await prefs.setString(_tokenKey, token);
+    }
+    if (user != null) {
+      debugPrint('[AuthProvider] Sauvegarde user dans SharedPreferences');
+      await prefs.setString(_userKey, jsonEncode(user));
+    }
+  }
+
+  static Future<void> clearUserFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    debugPrint('[AuthProvider] Suppression user/token du cache');
+    await prefs.remove(_tokenKey);
+    await prefs.remove(_userKey);
+  }
+
+  static Future<Map<String, dynamic>?> loadUserFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userStr = prefs.getString(_userKey);
+    debugPrint('[AuthProvider] Chargement user du cache: $userStr');
+    if (userStr != null) {
+      try {
+        return jsonDecode(userStr) as Map<String, dynamic>;
+      } catch (e) {
+        debugPrint('[AuthProvider] Erreur décodage user du cache: $e');
+      }
+    }
+    return null;
+  }
+
+  static Future<String?> loadTokenFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(_tokenKey);
+    debugPrint('[AuthProvider] Chargement token du cache: $token');
+    return token;
   }
 
   Future<void> _sendFcmTokenToBackend() async {
@@ -63,10 +111,28 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> _init() async {
+    debugPrint('[AuthProvider] _init() démarré');
+    // 1. Charger d'abord le user/token du cache pour affichage immédiat
+    _token = await loadTokenFromPrefs();
+    _user = await loadUserFromPrefs();
+    debugPrint(
+      '[AuthProvider] Après chargement cache: _token=$_token, _user=$_user',
+    );
+    _loading = false;
+    notifyListeners();
+    debugPrint('[AuthProvider] notifyListeners() après cache');
+
+    // Initialiser le WebSocket si l'utilisateur est connecté
+    if (_user != null) {
+      await ChatService().initializeSocket();
+    }
+
+    // 2. Ensuite, écouter FirebaseAuth pour les changements d'état
     FirebaseAuth.instance.authStateChanges().listen((firebaseUser) async {
       debugPrint('[AuthProvider] Firebase user: $firebaseUser');
       _loading = true;
       notifyListeners();
+      debugPrint('[AuthProvider] notifyListeners() loading=true');
       if (firebaseUser != null) {
         debugPrint(
           '[AuthProvider] Firebase user (avant getIdToken): $firebaseUser',
@@ -75,15 +141,7 @@ class AuthProvider with ChangeNotifier {
         debugPrint('[AuthProvider] idToken (avant requête backend): $idToken');
         _token = idToken;
         try {
-          // URL dynamique selon la plateforme
-          final String baseUrl =
-              kIsWeb
-                  ? 'http://localhost:5000/api' // compilation via web
-                  : (Platform.isAndroid &&
-                          !Platform.isFuchsia &&
-                          !isPhysicalDevice()
-                      ? 'http://10.0.2.2:5000/api' // émulateur Android
-                      : 'http://192.168.100.21:5000/api'); //  IP de la machine sur le réseau local téléphone physique (Android/iOS)
+          final String baseUrl = getBaseUrl();
           final dio = Dio(
             BaseOptions(
               baseUrl: baseUrl,
@@ -93,11 +151,17 @@ class AuthProvider with ChangeNotifier {
             ),
           );
           try {
+            debugPrint('[AuthProvider] Appel backend /protected/me');
             final response = await dio.get('/protected/me');
             debugPrint('[AuthProvider] /protected/me: ${response.data}');
             _user = response.data['user'];
-            // Envoyer le token FCM après connexion réussie
+            debugPrint('[AuthProvider] _user après /protected/me: \n${_user}');
+            await saveUserToPrefs(_token, _user);
             await _sendFcmTokenToBackend();
+
+            // Initialiser le WebSocket après connexion réussie
+            await ChatService().initializeSocket();
+
             if (_user != null && _user!['role'] != null) {
               final role = stringToUserRole(_user!['role']);
               if (role != null) {
@@ -118,38 +182,49 @@ class AuthProvider with ChangeNotifier {
               );
             }
             _user = null;
+            await clearUserFromPrefs();
             debugPrint('[AuthProvider] clearRole (catch)');
             UserService().clearRole();
           } finally {
             _loading = false;
             debugPrint('[AuthProvider] _loading: $_loading, _user: $_user');
             notifyListeners();
+            debugPrint('[AuthProvider] notifyListeners() après backend');
           }
         } catch (e) {
-          // Erreur de configuration Dio ou autre
           debugPrint('[AuthProvider] Erreur globale: $e');
           _user = null;
+          await clearUserFromPrefs();
           UserService().clearRole();
           _loading = false;
           notifyListeners();
+          debugPrint('[AuthProvider] notifyListeners() après erreur globale');
         }
       } else {
         debugPrint('[AuthProvider] Utilisateur Firebase null, clearRole');
         _token = null;
         _user = null;
+        await clearUserFromPrefs();
         UserService().clearRole();
+
+        // Déconnecter le WebSocket
+        ChatService().disconnect();
+
         _loading = false;
         debugPrint('[AuthProvider] _loading: $_loading, _user: $_user');
         notifyListeners();
+        debugPrint('[AuthProvider] notifyListeners() après déconnexion');
       }
     });
   }
 
-  Future<void> login(String token) async {
+  Future<void> login(String token, Map<String, dynamic> user) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', token);
+    await prefs.setString(_tokenKey, token);
+    await prefs.setString(_userKey, jsonEncode(user));
     _token = token;
-    _loading = true;
+    _user = user;
+    _loading = false;
     notifyListeners();
   }
 
@@ -157,7 +232,12 @@ class AuthProvider with ChangeNotifier {
     await FirebaseAuth.instance.signOut();
     _token = null;
     _user = null;
+    await clearUserFromPrefs();
     UserService().clearRole();
+
+    // Déconnecter le WebSocket
+    ChatService().disconnect();
+
     notifyListeners();
   }
 
@@ -170,14 +250,7 @@ class AuthProvider with ChangeNotifier {
       final idToken = await firebaseUser.getIdToken();
       _token = idToken;
       try {
-        final String baseUrl =
-            kIsWeb
-                ? 'http://localhost:5000/api'
-                : (Platform.isAndroid &&
-                        !Platform.isFuchsia &&
-                        !isPhysicalDevice()
-                    ? 'http://10.0.2.2:5000/api'
-                    : 'http://192.168.100.21:5000/api');
+        final String baseUrl = getBaseUrl();
         final dio = Dio(
           BaseOptions(
             baseUrl: baseUrl,

@@ -66,6 +66,12 @@ class _TarifState extends State<Tarif> {
     },
   ];
 
+  // Ajout pour les nouveaux filtres
+  int _selectedFilter = 0; // 0: Soumis, 1: Soumettre, 2: Validés, 3: Archivés
+  final List<String> _filters = ['Soumis', 'Soumettre', 'Validés', 'Archivés'];
+  List<Map<String, dynamic>> archives = [];
+  List<Map<String, dynamic>> valides = [];
+
   // Filtre actif : "Souscrire" ou "Soumis"
   String activeFilter = 'Souscrire';
 
@@ -79,136 +85,100 @@ class _TarifState extends State<Tarif> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredAds =
-        activeFilter == 'Souscrire'
-            ? carAds.where((ad) => !ad['proposed']).toList()
-            : carAds.where((ad) => ad['proposed']).toList();
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.amber,
-        automaticallyImplyLeading: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Bouton "Souscrire" avec style amélioré
-            TextButton(
-              onPressed: () => setState(() => activeFilter = 'Souscrire'),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              child: Text(
-                'Souscrire',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color:
-                      activeFilter == 'Souscrire'
-                          ? Colors.white
-                          : Colors.black54,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            // Bouton "Soumis" avec style amélioré
-            TextButton(
-              onPressed: () => setState(() => activeFilter = 'Soumis'),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              child: Text(
-                'Soumis',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color:
-                      activeFilter == 'Soumis' ? Colors.white : Colors.black54,
-                ),
-              ),
-            ),
-          ],
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4.0),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            alignment:
-                activeFilter == 'Souscrire'
-                    ? Alignment.centerLeft
-                    : Alignment.centerRight,
-            child: Container(
-              width: MediaQuery.of(context).size.width / 2,
-              height: 3.0,
-              color: Colors.black, // Soulignement noir animé
-            ),
-          ),
-        ),
+        automaticallyImplyLeading: false,
+        title: const Text('Tarif'),
+        backgroundColor: const Color(0xFFF8BF13),
+        foregroundColor: Colors.black,
+        elevation: 0,
       ),
-      body: ListView.builder(
-        itemCount: filteredAds.length,
-        itemBuilder: (context, index) {
-          final car = filteredAds[index];
-          return GestureDetector(
-            onTap:
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (context) => CarDetailsPage(
-                          car: car,
-                          onProposalSubmitted:
-                              (amount) => updateProposalStatus(
-                                carAds.indexOf(car),
-                                amount,
-                              ),
-                        ),
+      body: Column(
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(
+                _filters.length,
+                (i) => Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 8,
+                  ),
+                  child: ChoiceChip(
+                    label: Text(
+                      _filters[i],
+                      style: TextStyle(
+                        color:
+                            _selectedFilter == i
+                                ? Colors.black
+                                : Colors.grey[700],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    selected: _selectedFilter == i,
+                    selectedColor: const Color(0xFFF8BF13),
+                    backgroundColor: Colors.grey[200],
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedFilter = i;
+                      });
+                    },
                   ),
                 ),
-            child: _buildCarAdCard(
-              car,
-            ), // Utilise le même effet hover que Transit
-          );
-        },
+              ),
+            ),
+          ),
+          Expanded(child: _buildFilteredList()),
+        ],
       ),
     );
   }
 
-  // Widget _buildCarAdCard identique à celui de Transit (avec hover et animation)
-  Widget _buildCarAdCard(Map<String, dynamic> car) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool isHovered = false;
-        return MouseRegion(
-          onEnter: (_) => setState(() => isHovered = true),
-          onExit: (_) => setState(() => isHovered = false),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isHovered ? Colors.amber : Colors.transparent,
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Color.fromRGBO(
-                    Colors.grey.r.toInt(),
-                    Colors.grey.g.toInt(),
-                    Colors.grey.b.toInt(),
-                    0.3,
-                  ),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
+  Widget _buildFilteredList() {
+    if (_selectedFilter == 0) {
+      // Soumis
+      final filteredAds = carAds.where((ad) => !ad['proposed']).toList();
+      return _buildCarList(filteredAds);
+    } else if (_selectedFilter == 1) {
+      // Soumettre
+      final filteredAds = carAds.where((ad) => ad['proposed']).toList();
+      return _buildCarList(filteredAds);
+    } else if (_selectedFilter == 2) {
+      // Validés
+      return _buildValidesList();
+    } else {
+      // Archivés
+      return _buildArchivesList();
+    }
+  }
+
+  Widget _buildCarList(List<Map<String, dynamic>> ads) {
+    return ListView.builder(
+      itemCount: ads.length,
+      itemBuilder: (context, index) {
+        final car = ads[index];
+        return GestureDetector(
+          onTap:
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => CarDetailsPage(
+                        car: car,
+                        onProposalSubmitted:
+                            (amount) => updateProposalStatus(
+                              carAds.indexOf(car),
+                              amount,
+                            ),
+                      ),
                 ),
-              ],
+              ),
+          child: Card(
+            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,60 +196,162 @@ class _TarifState extends State<Tarif> {
                           width: 80,
                           color: Colors.grey[300],
                           child: const Icon(
-                            Icons.image_not_supported,
-                            size: 40,
+                            Icons.directions_car,
+                            color: Colors.grey,
                           ),
                         ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        car['title'],
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          car['title'] ?? '',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        car['description'],
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                        const SizedBox(height: 4),
+                        Text(
+                          car['description'] ?? '',
+                          style: const TextStyle(color: Colors.grey),
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "${car['price']} f",
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.amber,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (activeFilter == 'Soumis' && car['proposedAmount'] != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0, top: 16.0),
-                    child: Text(
-                      '${car['prColors.amberoposedAmount']} f',
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                        const SizedBox(height: 4),
+                        if (car['proposed'] == true &&
+                            car['proposedAmount'] != null)
+                          Text(
+                            'Proposé : ${car['proposedAmount']} f',
+                            style: const TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        else
+                          Text(
+                            car['price'] ?? '',
+                            style: const TextStyle(
+                              color: Colors.amber,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
+                ),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildValidesList() {
+    if (valides.isEmpty) {
+      return const Center(child: Text('Aucune proposition validée.'));
+    }
+    return ListView.builder(
+      itemCount: valides.length,
+      itemBuilder: (context, index) {
+        final item = valides[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          elevation: 2,
+          child: ListTile(
+            leading:
+                item['images'] != null && item['images'].isNotEmpty
+                    ? Image.asset(
+                      item['images'][0],
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                    )
+                    : null,
+            title: Text(
+              item['title'] ?? '',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item['description'] ?? ''),
+                Row(
+                  children: [
+                    const Icon(Icons.verified, color: Colors.green, size: 18),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Validé',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.cancel, color: Colors.red),
+                  tooltip: 'Je ne suis pas disponible',
+                  onPressed: () {
+                    setState(() {
+                      archives.add(item);
+                      valides.remove(item);
+                    });
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.check_circle, color: Colors.amber),
+                  tooltip: 'J\'accepte',
+                  onPressed: () {
+                    setState(() {
+                      // Passe dans transit.dart (enTransit ou enConsumption selon le détail)
+                      // Ici, on simule juste le retrait de la liste
+                      valides.remove(item);
+                    });
+                  },
+                ),
+              ],
+            ),
+            isThreeLine: true,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildArchivesList() {
+    if (archives.isEmpty) {
+      return const Center(child: Text('Aucune proposition archivée.'));
+    }
+    return ListView.builder(
+      itemCount: archives.length,
+      itemBuilder: (context, index) {
+        final item = archives[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          elevation: 2,
+          child: ListTile(
+            leading:
+                item['images'] != null && item['images'].isNotEmpty
+                    ? Image.asset(
+                      item['images'][0],
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                    )
+                    : null,
+            title: Text(
+              item['title'] ?? '',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(item['description'] ?? ''),
+            isThreeLine: true,
           ),
         );
       },

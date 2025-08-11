@@ -9,10 +9,6 @@ import 'package:tranoo/data/screens/mesavis.dart';
 import 'package:tranoo/data/screens/mesfactures.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:tranoo/services/user_service.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 
@@ -43,95 +39,22 @@ class Profil3State extends State<Profil3> {
   File? _image;
   String selectedLanguage = "Français";
   String selectedCurrencyValue = "XOF";
-  Map<String, dynamic>? userData;
-  bool loading = true;
-  String? errorMsg;
-
-  @override
-  void initState() {
-    super.initState();
-    fetchUser();
-  }
-
-  Future<void> fetchUser() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        setState(() {
-          loading = false;
-          userData = null;
-          errorMsg = "Utilisateur non connecté.";
-        });
-        return;
-      }
-      final idToken = await user.getIdToken();
-      final String baseUrl = getBaseUrl();
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: baseUrl,
-          headers: {'Authorization': 'Bearer $idToken'},
-        ),
-      );
-      final response = await dio.get('/protected/me');
-      setState(() {
-        userData = response.data['user'];
-        loading = false;
-        errorMsg = null;
-      });
-    } catch (e) {
-      setState(() {
-        loading = false;
-        userData = null;
-        errorMsg =
-            "Impossible de charger le profil. Vérifiez votre connexion ou vos droits.";
-      });
-    }
-  }
-
-  Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
-      await _uploadPhoto(_image!);
-    }
-  }
-
-  Future<void> _uploadPhoto(File image) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final idToken = await user.getIdToken();
-    final String baseUrl = getBaseUrl();
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl,
-        headers: {'Authorization': 'Bearer $idToken'},
-      ),
-    );
-    FormData formData = FormData.fromMap({
-      "photo": await MultipartFile.fromFile(
-        image.path,
-        filename: "profile.jpg",
-      ),
-    });
-    final response = await dio.post('/users/photo', data: formData);
-    setState(() {
-      userData?["photo"] = response.data["photo"];
-    });
-  }
+  // SUPPRIME : Map<String, dynamic>? userData;
+  // SUPPRIME : bool loading = true;
+  // SUPPRIME : String? errorMsg;
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<myauth.AuthProvider>(context);
+    final userData = authProvider.user;
+    final loading = authProvider.loading;
+    final errorMsg =
+        userData == null && !loading ? "Utilisateur non connecté." : null;
+
     if (loading) return Center(child: CircularProgressIndicator());
-    if (errorMsg != null) return Center(child: Text(errorMsg!));
+    if (errorMsg != null) return Center(child: Text(errorMsg));
     if (userData == null) {
       return Center(child: Text("Aucune donnée utilisateur"));
-    }
-    if (userData != null && userData?['role'] == 'vendeur') {
-      return Center(child: Text("Accès réservé aux vendeurs."));
     }
     return Scaffold(
       // appBar: AppBar(
@@ -148,7 +71,7 @@ class Profil3State extends State<Profil3> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 15),
-            _buildProfileCard(),
+            _buildProfileCard(userData),
             const SizedBox(height: 50),
             _buildAccountOptions(),
             const SizedBox(height: 20),
@@ -164,11 +87,9 @@ class Profil3State extends State<Profil3> {
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(Map<String, dynamic> userData) {
     final hasPhoto =
-        userData != null &&
-        userData!["photo"] != null &&
-        userData!["photo"].toString().isNotEmpty;
+        userData["photo"] != null && userData["photo"].toString().isNotEmpty;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -189,7 +110,7 @@ class Profil3State extends State<Profil3> {
                       _image != null
                           ? FileImage(_image!)
                           : hasPhoto
-                          ? NetworkImage(userData!["photo"]) as ImageProvider
+                          ? NetworkImage(userData["photo"]) as ImageProvider
                           : const AssetImage("assets/images/jenifer.jpg"),
                 ),
                 Positioned(
@@ -216,7 +137,7 @@ class Profil3State extends State<Profil3> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                userData?["nom"] ?? "",
+                userData["nom"] ?? "",
                 style: const TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
@@ -224,7 +145,7 @@ class Profil3State extends State<Profil3> {
                 ),
               ),
               Text(
-                userData?["email"] ?? "",
+                userData["email"] ?? "",
                 style: const TextStyle(color: Colors.black),
               ),
             ],
@@ -232,6 +153,18 @@ class Profil3State extends State<Profil3> {
         ],
       ),
     );
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+      // Ici, tu peux ajouter l'upload si besoin
+    }
   }
 
   Widget _buildListTile({

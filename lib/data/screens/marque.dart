@@ -218,7 +218,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         } else {
           _currentPage = 0;
         }
-        if (pubsALaUne.isNotEmpty) {
+        if (pubsALaUne.isNotEmpty && _pageController.hasClients) {
           _pageController.animateToPage(
             _currentPage,
             duration: const Duration(milliseconds: 300),
@@ -260,18 +260,21 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         final body = response.body;
         try {
           final List<dynamic> data = json.decode(body);
+          if (!mounted) return;
           setState(() {
             articlesPieces = data.map((e) => Article.fromJson(e)).toList();
             isLoadingPieces = false;
           });
         } catch (e) {
           _logger.info('[DEBUG] Erreur de décodage JSON: $e');
+          if (!mounted) return;
           setState(() {
             errorPieces = 'Erreur de format de données';
             isLoadingPieces = false;
           });
         }
       } else {
+        if (!mounted) return;
         setState(() {
           errorPieces = 'Erreur lors du chargement des pièces';
           isLoadingPieces = false;
@@ -279,6 +282,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       }
     } catch (e) {
       _logger.info('[DEBUG] Exception fetchArticlesPieces: $e');
+      if (!mounted) return;
       setState(() {
         errorPieces = 'Erreur réseau';
         isLoadingPieces = false;
@@ -306,12 +310,14 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        if (!mounted) return;
         setState(() {
           voituresRecommandees =
               data.map((e) => ArticleVoiture.fromJson(e)).toList();
           isLoadingVoitures = false;
         });
       } else {
+        if (!mounted) return;
         setState(() {
           errorVoitures = 'Erreur lors du chargement des voitures';
           isLoadingVoitures = false;
@@ -319,6 +325,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       }
     } catch (e) {
       _logger.info('[DEBUG] Exception fetchVoituresRecommandees: $e');
+      if (!mounted) return;
       setState(() {
         errorVoitures = 'Erreur réseau';
         isLoadingVoitures = false;
@@ -345,6 +352,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         final pubs = data.map((e) => Pub.fromJson(e)).toList();
+        if (!mounted) return;
         setState(() {
           pubsSponsorisees =
               pubs.where((p) => p.typePub == 'Sponsorisée').toList();
@@ -352,12 +360,14 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           isLoadingPubs = false;
         });
       } else {
+        if (!mounted) return;
         setState(() {
           errorPubs = 'Erreur lors du chargement des publicités';
           isLoadingPubs = false;
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         errorPubs = 'Erreur réseau';
         isLoadingPubs = false;
@@ -384,17 +394,20 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        if (!mounted) return;
         setState(() {
           pubsSponsorisees = data.map((e) => Pub.fromJson(e)).toList();
           isLoadingPubs = false;
         });
       } else {
+        if (!mounted) return;
         setState(() {
           errorPubs = 'Erreur lors du chargement des publicités';
           isLoadingPubs = false;
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         errorPubs = 'Erreur réseau';
         isLoadingPubs = false;

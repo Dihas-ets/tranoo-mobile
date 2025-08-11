@@ -10,7 +10,7 @@ String getBaseUrl() {
     return 'http://localhost:5000/api'; //sur web
   } else {
     // Remplace par l'IP de ton PC sur le réseau local
-    return 'http://192.168.100.21:5000/api';  //sur mobile
+    return 'http://192.168.1.73:5000/api'; //sur mobile
   }
 }
 
