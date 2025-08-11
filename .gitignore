@@ -67,5 +67,6 @@ firebase_options.dart
 
 # Environment files
 .env
+.env.*
 .env.local
 .env.production
