@@ -11,10 +11,6 @@ import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
-<<<<<<< HEAD
-=======
-import 'package:flutter/foundation.dart' show kIsWeb;
->>>>>>> 4f4bd90b735a4682a406fe615c5da8ce3a99aa9d
 import 'package:tranoo/services/user_service.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;

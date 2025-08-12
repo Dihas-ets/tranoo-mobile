@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 // ignore_for_file: unused_local_variable
 
-=======
->>>>>>> 4f4bd90b735a4682a406fe615c5da8ce3a99aa9d
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';

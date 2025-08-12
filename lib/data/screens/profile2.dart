@@ -4,11 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
-<<<<<<< HEAD
-
-=======
-import 'package:flutter/foundation.dart' show kIsWeb;
->>>>>>> 4f4bd90b735a4682a406fe615c5da8ce3a99aa9d
 
 
 class Profile2 extends StatefulWidget {
@@ -44,7 +39,6 @@ class _Profile2State extends State<Profile2> {
         return;
       }
       final idToken = await user.getIdToken();
-<<<<<<< HEAD
       final String baseUrl = 'https://api.tranoo.store/api';
 
       // final String baseUrl =
@@ -53,14 +47,6 @@ class _Profile2State extends State<Profile2> {
       //         : (Platform.isAndroid
       //             ? 'http://10.0.2.2:5000/api'
       //             : 'http://192.168.100.21:5000/api');
-=======
-      final String baseUrl =
-          kIsWeb
-              ? 'http://localhost:5000/api'
-              : (Platform.isAndroid
-                  ? 'http://10.0.2.2:5000/api'
-                  : 'http://192.168.100.21:5000/api');
->>>>>>> 4f4bd90b735a4682a406fe615c5da8ce3a99aa9d
       final dio = Dio(
         BaseOptions(
           baseUrl: baseUrl,
