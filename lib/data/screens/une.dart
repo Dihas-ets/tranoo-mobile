@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field, unused_element, unused_local_variable
+
 import 'dart:io';
 import 'dart:typed_data'; // Added for Uint8List
 import 'package:flutter/foundation.dart' show kIsWeb;
