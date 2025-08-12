@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 // ignore_for_file: unused_element
 
+=======
+>>>>>>> 4f4bd90b735a4682a406fe615c5da8ce3a99aa9d
 import 'package:flutter/material.dart';
 import 'payement.dart';
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
