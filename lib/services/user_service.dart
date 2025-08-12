@@ -4,15 +4,20 @@ import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+// String getBaseUrl() {
+//   // Détection automatique selon la plateforme
+//   if (kIsWeb) {
+//     return 'http://localhost:5000/api'; //sur web
+//   } else {
+//     // Remplace par l'IP de ton PC sur le réseau local
+//     return 'http://192.168.100.21:5000/api';  //sur mobile
+//   }
+// }
+
 String getBaseUrl() {
-  // Détection automatique selon la plateforme
-  if (kIsWeb) {
-    return 'http://localhost:5000/api'; //sur web
-  } else {
-    // Remplace par l'IP de ton PC sur le réseau local
-    return 'http://192.168.100.21:5000/api';  //sur mobile
-  }
+  return 'https://api.tranoo.store/api'; // URL déployée pour mobile
 }
+
 
 class UserService extends ChangeNotifier {
   static final UserService _instance = UserService._internal();

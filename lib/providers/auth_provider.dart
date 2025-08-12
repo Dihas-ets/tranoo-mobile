@@ -76,14 +76,16 @@ class AuthProvider with ChangeNotifier {
         _token = idToken;
         try {
           // URL dynamique selon la plateforme
-          final String baseUrl =
-              kIsWeb
-                  ? 'http://localhost:5000/api' // compilation via web
-                  : (Platform.isAndroid &&
-                          !Platform.isFuchsia &&
-                          !isPhysicalDevice()
-                      ? 'http://10.0.2.2:5000/api' // émulateur Android
-                      : 'http://192.168.100.21:5000/api'); //  IP de la machine sur le réseau local téléphone physique (Android/iOS)
+          final String baseUrl = 'https://api.tranoo.store/api';
+
+          // final String baseUrl =
+          //     kIsWeb
+          //         ? 'http://localhost:5000/api' // compilation via web
+          //         : (Platform.isAndroid &&
+          //                 !Platform.isFuchsia &&
+          //                 !isPhysicalDevice()
+          //             ? 'http://10.0.2.2:5000/api' // émulateur Android
+          //             : 'http://192.168.100.21:5000/api'); //  IP de la machine sur le réseau local téléphone physique (Android/iOS)
           final dio = Dio(
             BaseOptions(
               baseUrl: baseUrl,
@@ -170,14 +172,16 @@ class AuthProvider with ChangeNotifier {
       final idToken = await firebaseUser.getIdToken();
       _token = idToken;
       try {
-        final String baseUrl =
-            kIsWeb
-                ? 'http://localhost:5000/api'
-                : (Platform.isAndroid &&
-                        !Platform.isFuchsia &&
-                        !isPhysicalDevice()
-                    ? 'http://10.0.2.2:5000/api'
-                    : 'http://192.168.100.21:5000/api');
+        final String baseUrl = 'https://api.tranoo.store/api';
+
+        // final String baseUrl =
+        //     kIsWeb
+        //         ? 'http://localhost:5000/api'
+        //         : (Platform.isAndroid &&
+        //                 !Platform.isFuchsia &&
+        //                 !isPhysicalDevice()
+        //             ? 'http://10.0.2.2:5000/api'
+        //             : 'http://192.168.100.21:5000/api');
         final dio = Dio(
           BaseOptions(
             baseUrl: baseUrl,

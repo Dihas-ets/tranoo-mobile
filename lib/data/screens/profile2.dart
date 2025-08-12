@@ -40,12 +40,14 @@ class _Profile2State extends State<Profile2> {
         return;
       }
       final idToken = await user.getIdToken();
-      final String baseUrl =
-          kIsWeb
-              ? 'http://localhost:5000/api'
-              : (Platform.isAndroid
-                  ? 'http://10.0.2.2:5000/api'
-                  : 'http://192.168.100.21:5000/api');
+      final String baseUrl = 'https://api.tranoo.store/api';
+
+      // final String baseUrl =
+      //     kIsWeb
+      //         ? 'http://localhost:5000/api'
+      //         : (Platform.isAndroid
+      //             ? 'http://10.0.2.2:5000/api'
+      //             : 'http://192.168.100.21:5000/api');
       final dio = Dio(
         BaseOptions(
           baseUrl: baseUrl,
