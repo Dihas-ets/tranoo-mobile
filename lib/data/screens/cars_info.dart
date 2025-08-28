@@ -14,6 +14,7 @@ import 'une.dart'; // Import pour la page de demande de pub
 import 'dart:developer';
 
 class CarsInfo extends StatefulWidget {
+  final String? id;
   final String? titre;
   final String? description;
   final String? marque;
@@ -37,6 +38,7 @@ class CarsInfo extends StatefulWidget {
 
   const CarsInfo({
     super.key,
+    this.id,
     this.titre,
     this.description,
     this.marque,
@@ -239,11 +241,35 @@ class _CarsinfoState extends State<CarsInfo> {
                 size: 40,
               ),
               onPressed: () {
+                // Créer l'objet article pour la page vidéo
+                final article = {
+                  'titre': widget.titre,
+                  'description': widget.description,
+                  'marque': widget.marque,
+                  'modele': widget.modele,
+                  'annee': widget.annee,
+                  'prix': widget.prix,
+                  'condition': widget.condition,
+                  'boiteVitesse': widget.boiteVitesse,
+                  'carburant': widget.carburant,
+                  'climatiseur': widget.climatiseur,
+                  'distance': widget.distance,
+                  'sieges': widget.sieges,
+                  'portes': widget.portes,
+                  'cylindre': widget.cylindre,
+                  'photos': widget.images,
+                  'video': widget.video,
+                  'entreprise': widget.entreprise,
+                  'type': 'voiture',
+                };
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const Movie(),
-                  ), // Redirige vers la page "movie.dart"
+                    builder:
+                        (context) =>
+                            Movie(videoUrl: widget.video, article: article),
+                  ),
                 );
               },
             ),
@@ -583,9 +609,36 @@ class _CarsinfoState extends State<CarsInfo> {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
+            // Créer l'objet article à partir des propriétés du widget
+            final article = {
+              '_id':
+                  widget.id ??
+                  'temp_${DateTime.now().millisecondsSinceEpoch}', // Utiliser l'ID réel si disponible
+              'titre': widget.titre,
+              'description': widget.description,
+              'marque': widget.marque,
+              'modele': widget.modele,
+              'annee': widget.annee,
+              'prix': widget.prix,
+              'condition': widget.condition,
+              'boiteVitesse': widget.boiteVitesse,
+              'carburant': widget.carburant,
+              'climatiseur': widget.climatiseur,
+              'distance': widget.distance,
+              'sieges': widget.sieges,
+              'portes': widget.portes,
+              'cylindre': widget.cylindre,
+              'photos': widget.images,
+              'video': widget.video,
+              'entreprise': widget.entreprise,
+              'type': 'voiture',
+            };
+
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => PayementScreen()),
+              MaterialPageRoute(
+                builder: (context) => PayementScreen(article: article),
+              ),
             );
           },
           style: ElevatedButton.styleFrom(
@@ -612,9 +665,36 @@ class _CarsinfoState extends State<CarsInfo> {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
+            // Créer l'objet article à partir des propriétés du widget
+            final article = {
+              '_id':
+                  widget.id ??
+                  'temp_${DateTime.now().millisecondsSinceEpoch}', // Utiliser l'ID réel si disponible
+              'titre': widget.titre,
+              'description': widget.description,
+              'marque': widget.marque,
+              'modele': widget.modele,
+              'annee': widget.annee,
+              'prix': widget.prix,
+              'condition': widget.condition,
+              'boiteVitesse': widget.boiteVitesse,
+              'carburant': widget.carburant,
+              'climatiseur': widget.climatiseur,
+              'distance': widget.distance,
+              'sieges': widget.sieges,
+              'portes': widget.portes,
+              'cylindre': widget.cylindre,
+              'photos': widget.images,
+              'video': widget.video,
+              'entreprise': widget.entreprise,
+              'type': 'voiture',
+            };
+
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => PayementScreen()),
+              MaterialPageRoute(
+                builder: (context) => PayementScreen(article: article),
+              ),
             );
           },
           style: ElevatedButton.styleFrom(

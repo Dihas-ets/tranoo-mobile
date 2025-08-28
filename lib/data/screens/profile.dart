@@ -134,9 +134,7 @@ class _ProfileState extends State<Profile> {
         headers: {'Authorization': 'Bearer $idToken'},
       ),
     );
-    final userId = userData != null ? userData!["_id"] : null;
-    if (userId == null) return;
-    await dio.put('/users/$userId', data: {field: value});
+    await dio.patch('/users/me', data: {field: value});
     // Après modification, on resynchronise toutes les données
     await fetchUser();
     setState(() {
@@ -163,12 +161,22 @@ class _ProfileState extends State<Profile> {
         headers: {'Authorization': 'Bearer $idToken'},
       ),
     );
-    final userId = userData != null ? userData!["_id"] : null;
-    if (userId == null) return;
-    await dio.put(
-      '/users/$userId/password',
-      data: {"newPassword": newPassword, "oldPassword": ""},
-    );
+    final role = userData?['role']?.toString();
+    final int minLen = role == 'admin' ? 11 : 6;
+    if (newPassword == null || newPassword!.length < minLen) {
+      setState(() {
+        isSaving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Le mot de passe doit contenir au moins ${minLen.toString()} caractères.',
+          ),
+        ),
+      );
+      return;
+    }
+    await dio.patch('/users/password', data: {"newPassword": newPassword});
     setState(() {
       isEditingPassword = false;
       isSaving = false;
@@ -206,8 +214,6 @@ class _ProfileState extends State<Profile> {
               ? Center(child: Text(errorMsg!))
               : userData == null
               ? Center(child: Text("Aucune donnée utilisateur"))
-              : userData != null && userData?["role"] == 'vendeur'
-              ? Center(child: Text("Accès réservé aux vendeurs."))
               : SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(20),

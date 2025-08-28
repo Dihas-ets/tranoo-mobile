@@ -16,6 +16,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tranoo/data/screens/movie.dart';
 
 class Article {
+  final String id;
   final String title;
   final String year;
   final String description;
@@ -30,6 +31,7 @@ class Article {
   final String? statut;
 
   Article({
+    required this.id,
     required this.title,
     required this.year,
     required this.description,
@@ -46,6 +48,7 @@ class Article {
 
   factory Article.fromJson(Map<String, dynamic> json) {
     return Article(
+      id: json['_id'] ?? '',
       title: json['titre'] ?? '',
       year: json['annee'] ?? '',
       description: json['description'] ?? '',
@@ -64,6 +67,7 @@ class Article {
 }
 
 class ArticleVoiture {
+  final String id;
   final String titre;
   final String description;
   final String marque;
@@ -84,6 +88,7 @@ class ArticleVoiture {
   final String? statut;
 
   ArticleVoiture({
+    required this.id,
     required this.titre,
     required this.description,
     required this.marque,
@@ -106,6 +111,7 @@ class ArticleVoiture {
 
   factory ArticleVoiture.fromJson(Map<String, dynamic> json) {
     return ArticleVoiture(
+      id: json['_id'] ?? '',
       titre: json['titre'] ?? '',
       description: json['description'] ?? '',
       marque: json['marque'] ?? '',
@@ -502,6 +508,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               MaterialPageRoute(
                 builder:
                     (context) => CarsInfo(
+                      id: voiture.id,
                       titre: voiture.titre,
                       description: voiture.description,
                       marque: voiture.marque,
@@ -689,6 +696,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     MaterialPageRoute(
                       builder:
                           (context) => MastervacPage(
+                            id: piece.id,
                             isAcheteur: true,
                             title: piece.title,
                             year: piece.year,
@@ -1020,6 +1028,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         MaterialPageRoute(
                           builder:
                               (context) => MastervacPage(
+                                id: piece.id,
                                 isAcheteur: true,
                                 title: piece.title,
                                 year: piece.year,

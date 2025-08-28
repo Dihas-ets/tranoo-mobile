@@ -108,8 +108,8 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
     if (errorMsg != null) return Center(child: Text(errorMsg!));
     if (userData == null)
       return Center(child: Text("Aucune donnée utilisateur"));
-    if (userData != null && userData?['role'] != 'vendeur') {
-      return Center(child: Text("Accès réservé aux vendeurs."));
+    if (userData != null && userData?['role'] != 'transitaire') {
+      return Center(child: Text("Accès réservé aux transitaires."));
     }
     return Scaffold(
       appBar: AppBar(

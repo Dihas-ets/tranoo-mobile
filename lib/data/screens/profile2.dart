@@ -6,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-
 class Profile2 extends StatefulWidget {
   const Profile2({super.key});
 
@@ -21,6 +20,17 @@ class _Profile2State extends State<Profile2> {
   Map<String, dynamic>? userData;
   bool loading = true;
   String? errorMsg;
+  bool isSaving = false;
+
+  // Controllers pour champs dynamiques
+  final TextEditingController _nomController = TextEditingController();
+  final TextEditingController _entrepriseController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _telephoneController = TextEditingController();
+
+  // Password
+  final TextEditingController _newPasswordController = TextEditingController();
+  bool _showNewPassword = false;
 
   @override
   void initState() {
@@ -45,7 +55,7 @@ class _Profile2State extends State<Profile2> {
               ? 'http://localhost:5000/api'
               : (Platform.isAndroid
                   ? 'http://10.0.2.2:5000/api'
-                  : 'http://192.168.100.21:5000/api');
+                  : 'http://192.168.1.75:5000/api');
       final dio = Dio(
         BaseOptions(
           baseUrl: baseUrl,
@@ -57,6 +67,10 @@ class _Profile2State extends State<Profile2> {
         userData = response.data['user'];
         loading = false;
         errorMsg = null;
+        _nomController.text = userData?["nom"] ?? "";
+        _entrepriseController.text = userData?["entreprise"] ?? "";
+        _emailController.text = userData?["email"] ?? "";
+        _telephoneController.text = userData?["telephone"] ?? "";
       });
     } catch (e) {
       setState(() {
@@ -86,7 +100,12 @@ class _Profile2State extends State<Profile2> {
     final idToken = await user.getIdToken();
     final dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.0.2.2:5000/api',
+        baseUrl:
+            kIsWeb
+                ? 'http://localhost:5000/api'
+                : (Platform.isAndroid
+                    ? 'http://10.0.2.2:5000/api'
+                    : 'http:/192.168.1.75/:5000/api'),
         headers: {'Authorization': 'Bearer $idToken'},
       ),
     );
@@ -108,8 +127,8 @@ class _Profile2State extends State<Profile2> {
     if (errorMsg != null) return Center(child: Text(errorMsg!));
     if (userData == null)
       return Center(child: Text("Aucune donnée utilisateur"));
-    if (userData != null && userData?['role'] != 'vendeur') {
-      return Center(child: Text("Accès réservé aux vendeurs."));
+    if (userData != null && userData?['role'] != 'transitaire') {
+      return Center(child: Text("Accès réservé aux transitaires."));
     }
     // Récupération des dimensions de l'écran
     final mediaQuery = MediaQuery.of(context);
@@ -179,13 +198,31 @@ class _Profile2State extends State<Profile2> {
               ),
               SizedBox(height: spacing * 2),
 
-              // Formulaire simple
-              _buildTextField("Isaac mobiya", fontSize),
+              // Champs dynamiques
+              _buildTextField(
+                controller: _nomController,
+                hintText: "Nom complet",
+                fontSize: fontSize,
+              ),
               SizedBox(height: spacing),
-
-              _buildTextField("Transit Inter SARL", fontSize),
+              _buildTextField(
+                controller: _entrepriseController,
+                hintText: "Entreprise",
+                fontSize: fontSize,
+              ),
               SizedBox(height: spacing),
-
+              _buildTextField(
+                controller: _emailController,
+                hintText: "Email",
+                fontSize: fontSize,
+              ),
+              SizedBox(height: spacing),
+              _buildTextField(
+                controller: _telephoneController,
+                hintText: "Téléphone",
+                fontSize: fontSize,
+              ),
+              SizedBox(height: spacing),
               _buildCountryDropdown(fontSize),
               SizedBox(height: spacing),
 
@@ -203,7 +240,11 @@ class _Profile2State extends State<Profile2> {
     );
   }
 
-  Widget _buildTextField(String hintText, double fontSize) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required double fontSize,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -223,6 +264,7 @@ class _Profile2State extends State<Profile2> {
         ],
       ),
       child: TextField(
+        controller: controller,
         style: TextStyle(fontSize: fontSize),
         decoration: InputDecoration(
           hintText: hintText,
@@ -362,35 +404,121 @@ class _Profile2State extends State<Profile2> {
         ],
       ),
       child: TextField(
+        controller: _newPasswordController,
         style: TextStyle(fontSize: fontSize),
-        obscureText: true,
+        obscureText: !_showNewPassword,
         decoration: InputDecoration(
-          hintText: "Changer son mot de passe",
+          hintText: "Nouveau mot de passe",
           contentPadding: EdgeInsets.symmetric(
             horizontal: 16,
             vertical: fontSize,
           ),
           border: InputBorder.none,
-          suffixIcon: Icon(
-            Icons.lock,
-            color: Colors.amber,
-            size: fontSize * 1.2,
-          ),
           prefixIcon: Icon(
             Icons.lock_outline,
             color: Colors.grey,
             size: fontSize * 1.2,
+          ),
+          suffixIcon: IconButton(
+            icon: Icon(
+              _showNewPassword ? Icons.visibility_off : Icons.visibility,
+              color: Colors.amber,
+              size: fontSize * 1.2,
+            ),
+            onPressed: () {
+              setState(() {
+                _showNewPassword = !_showNewPassword;
+              });
+            },
           ),
         ),
       ),
     );
   }
 
+  Future<void> _saveProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    setState(() {
+      isSaving = true;
+    });
+    final idToken = await user.getIdToken();
+    final String baseUrl =
+        kIsWeb
+            ? 'http://localhost:5000/api'
+            : (Platform.isAndroid
+                ? 'http://10.0.2.2:5000/api'
+                : 'http://192.168.1.75:5000/api');
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        headers: {'Authorization': 'Bearer $idToken'},
+      ),
+    );
+
+    final Map<String, dynamic> data = {
+      'nom': _nomController.text.trim(),
+      'entreprise': _entrepriseController.text.trim(),
+      'email': _emailController.text.trim(),
+      'telephone': _telephoneController.text.trim(),
+    };
+
+    try {
+      await dio.patch('/users/me', data: data);
+      // Mot de passe si fourni (nouveau seulement) avec validation minimale
+      final role = userData?['role']?.toString();
+      final int minLen = role == 'admin' ? 11 : 6;
+      final newPwd = _newPasswordController.text;
+      if (newPwd.isNotEmpty) {
+        if (newPwd.length < minLen) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Le mot de passe doit contenir au moins ${minLen.toString()} caractères.',
+                ),
+              ),
+            );
+          }
+        } else {
+          await dio.patch('/users/password', data: {'newPassword': newPwd});
+          _newPasswordController.clear();
+          setState(() {
+            _showNewPassword = false;
+          });
+        }
+      }
+      await fetchUser();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Profil mis à jour.')));
+      }
+    } on DioError catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.response?.data?['message']?.toString() ??
+                  'Erreur lors de la mise à jour',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
+    }
+  }
+
   Widget _buildUpdateButton(BuildContext context, double fontSize) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: isSaving ? null : _saveProfile,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF007BFF),
           foregroundColor: Colors.white,
@@ -399,7 +527,7 @@ class _Profile2State extends State<Profile2> {
           elevation: 0,
         ),
         child: Text(
-          "Mettre à jour le profil",
+          isSaving ? "Enregistrement..." : "Mettre à jour le profil",
           style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500),
         ),
       ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import '../../services/article_service.dart';
 import '../../services/user_service.dart';
 import '../../services/chat_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,7 +14,6 @@ class Transit extends StatefulWidget {
 
 class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final ArticleService _articleService = ArticleService();
   final UserService _userService = UserService();
   final ChatService _chatService = ChatService();
   String? currentUserId;
@@ -66,31 +64,35 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
       setState(() {
         isLoading = true;
       });
-
-      // Charger les articles en transit
-      final transitArticles = await _articleService.getArticlesByStatus(
-        'en_transit',
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+      final idToken = await user.getIdToken();
+      final String baseUrl = getBaseUrl();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
       );
-      final consumptionArticles = await _articleService.getArticlesByStatus(
-        'en_consommation',
-      );
-
+      // Articles acceptés par le transitaire (proposition validée), statutVente = en_attente
+      final resp = await dio.get('/transit/acceptes');
+      final List data = resp.data is List ? resp.data : [];
+      final items =
+          data.map<Map<String, dynamic>>((a) => _mapArticle(a)).toList();
+      // Partition selon type (faute d’un flag dédié achat, on se base sur type)
+      final transit =
+          items.where((e) => (e['type'] ?? '') == 'voiture').toList();
+      final consommation =
+          items.where((e) => (e['type'] ?? '') == 'piece').toList();
       if (mounted) {
         setState(() {
-          inTransit =
-              transitArticles
-                  .map(
-                    (article) =>
-                        _articleService.formatArticleForDisplay(article),
-                  )
-                  .toList();
-          inConsumption =
-              consumptionArticles
-                  .map(
-                    (article) =>
-                        _articleService.formatArticleForDisplay(article),
-                  )
-                  .toList();
+          inTransit = transit;
+          inConsumption = consommation;
           isLoading = false;
         });
       }
@@ -102,6 +104,31 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
         });
       }
     }
+  }
+
+  Map<String, dynamic> _mapArticle(dynamic a) {
+    final List photos = (a['photos'] is List) ? a['photos'] : [];
+    final String? image = photos.isNotEmpty ? photos.first?.toString() : null;
+    final type = (a['type'] ?? '').toString();
+    return {
+      '_id': a['_id'],
+      'id': a['_id'],
+      'title': a['titre'] ?? '',
+      'description': _buildDescriptionFromArticle(a),
+      'price': a['prix'] != null ? '${a['prix']} f' : '',
+      'image': image,
+      'type': type,
+      'vendeur': a['vendeur'],
+    };
+  }
+
+  String _buildDescriptionFromArticle(dynamic a) {
+    final parts = <String>[];
+    if (a['annee'] != null) parts.add('${a['annee']}');
+    if (a['marque'] != null) parts.add('${a['marque']}');
+    if (a['modele'] != null) parts.add('${a['modele']}');
+    if (a['lieu'] != null) parts.add('${a['lieu']}');
+    return parts.where((e) => e.toString().trim().isNotEmpty).join(', ');
   }
 
   void _openDiscussion(Map<String, dynamic> article) async {

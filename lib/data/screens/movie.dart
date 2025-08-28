@@ -4,7 +4,9 @@ import 'package:video_player/video_player.dart';
 
 class Movie extends StatefulWidget {
   final String? videoUrl;
-  const Movie({super.key, this.videoUrl});
+  final Map<String, dynamic>? article;
+
+  const Movie({super.key, this.videoUrl, this.article});
 
   @override
   State<Movie> createState() => _MovieState();
@@ -18,7 +20,9 @@ class _MovieState extends State<Movie> {
   void initState() {
     super.initState();
     if (widget.videoUrl != null) {
-      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl!));
+      _controller = VideoPlayerController.networkUrl(
+        Uri.parse(widget.videoUrl!),
+      );
       _controller!.initialize().then((_) {
         setState(() {
           _initialized = true;
@@ -146,32 +150,25 @@ class _MovieState extends State<Movie> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Tesla Modèle 3',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Expanded(
+              child: Text(
+                widget.article?['titre'] ?? 'Titre non disponible',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            // Row(
-            //   children: const [
-            //     Text(
-            //       '0',
-            //       style: TextStyle(
-            //         fontSize: 16,
-            //         color: Colors.blue,
-            //       ),
-            //     ),
-            //     Text(
-            //       ' / 5 ',
-            //       style: TextStyle(
-            //         fontSize: 16,
-            //         color: Colors.blue,
-            //       ),
-            //     ),
-            //     Icon(
-            //       Icons.star,
-            //       color: Colors.blue,
-            //     ),
-            //   ],
-            // ),
+            if (widget.article?['entreprise'] != null)
+              Text(
+                widget.article!['entreprise'],
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
           ],
         ),
         const SizedBox(height: 8),
@@ -188,10 +185,24 @@ class _MovieState extends State<Movie> {
       width: double.infinity,
       child: ElevatedButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => PayementScreen()),
-          );
+          if (widget.article != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PayementScreen(article: widget.article!),
+              ),
+            );
+          } else {
+            // Si pas d'article, afficher un message d'erreur
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Impossible de passer à la commande : article non trouvé',
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.amber,

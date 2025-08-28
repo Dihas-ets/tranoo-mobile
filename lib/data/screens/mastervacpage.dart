@@ -12,6 +12,7 @@ import 'dart:developer';
 import 'une.dart'; // Import pour la page de demande de pub
 
 class MastervacPage extends StatefulWidget {
+  final String? id;
   final bool isAcheteur;
   final String title;
   final String year;
@@ -28,6 +29,7 @@ class MastervacPage extends StatefulWidget {
 
   const MastervacPage({
     super.key,
+    this.id,
     required this.isAcheteur,
     required this.title,
     required this.year,
@@ -442,9 +444,30 @@ class _MastervacPageState extends State<MastervacPage> {
             ),
           ),
           onPressed: () {
+            // Créer l'objet article à partir des propriétés du widget
+            final article = {
+              '_id':
+                  widget.id ??
+                  'temp_${DateTime.now().millisecondsSinceEpoch}', // Utiliser l'ID réel si disponible
+              'titre': widget.title,
+              'annee': widget.year,
+              'description': widget.description,
+              'entreprise': widget.company,
+              'localisation': widget.location,
+              'prix': widget.price,
+              'typeMoteur': widget.fuelType,
+              'modele': widget.model,
+              'pieceType': widget.pieceType,
+              'photos': widget.images.whereType<String>().toList(),
+              'video': widget.video,
+              'type': 'piece',
+            };
+
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const PayementScreen()),
+              MaterialPageRoute(
+                builder: (context) => PayementScreen(article: article),
+              ),
             );
           },
           child: const Text(
@@ -471,9 +494,30 @@ class _MastervacPageState extends State<MastervacPage> {
             ),
           ),
           onPressed: () {
+            // Créer l'objet article à partir des propriétés du widget
+            final article = {
+              '_id':
+                  widget.id ??
+                  'temp_${DateTime.now().millisecondsSinceEpoch}', // Utiliser l'ID réel si disponible
+              'titre': widget.title,
+              'annee': widget.year,
+              'description': widget.description,
+              'entreprise': widget.company,
+              'localisation': widget.location,
+              'prix': widget.price,
+              'typeMoteur': widget.fuelType,
+              'modele': widget.model,
+              'pieceType': widget.pieceType,
+              'photos': widget.images.whereType<String>().toList(),
+              'video': widget.video,
+              'type': 'piece',
+            };
+
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const PayementScreen()),
+              MaterialPageRoute(
+                builder: (context) => PayementScreen(article: article),
+              ),
             );
           },
           child: const Text(

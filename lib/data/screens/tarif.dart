@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
+import 'package:tranoo/services/user_service.dart';
 
 class Tarif extends StatefulWidget {
   const Tarif({super.key});
@@ -8,8 +11,8 @@ class Tarif extends StatefulWidget {
 }
 
 class _TarifState extends State<Tarif> {
-  // Liste des annonces de voitures
-  final List<Map<String, dynamic>> carAds = [
+  // Données dynamiques
+  List<Map<String, dynamic>> carAds = [
     {
       'title': 'Toyota Corolla',
       'description': '2018, 50,000 km, Blanc',
@@ -71,16 +74,225 @@ class _TarifState extends State<Tarif> {
   final List<String> _filters = ['Soumis', 'Soumettre', 'Validés', 'Archivés'];
   List<Map<String, dynamic>> archives = [];
   List<Map<String, dynamic>> valides = [];
+  bool loading = false;
+  String? errorMsg;
 
   // Filtre actif : "Souscrire" ou "Soumis"
   String activeFilter = 'Souscrire';
 
-  // Met à jour l'état d'une annonce après une proposition de tarif
-  void updateProposalStatus(int index, String amount) {
+  // Met à jour l'état d'une annonce après une proposition de tarif (et envoie au backend)
+  Future<void> updateProposalStatus(int index, String amount) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final idToken = await user.getIdToken();
+      final String baseUrl = getBaseUrl();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+      final articleId = carAds[index]['id'];
+      if (articleId != null) {
+        await dio.post(
+          '/transit/upsert',
+          data: {
+            'articleId': articleId,
+            'montant': double.tryParse(amount) ?? amount,
+          },
+        );
+      }
+      setState(() {
+        carAds[index]['proposed'] = true;
+        carAds[index]['proposedAmount'] = amount;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors de la soumission du tarif.'),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadForTab(0);
+  }
+
+  Future<void> _loadForTab(int tabIndex) async {
     setState(() {
-      carAds[index]['proposed'] = true;
-      carAds[index]['proposedAmount'] = amount;
+      loading = true;
+      errorMsg = null;
     });
+    try {
+      if (tabIndex == 0) {
+        carAds = await _fetchSoumis();
+      } else if (tabIndex == 1) {
+        carAds = await _fetchSoumettre();
+      } else if (tabIndex == 2) {
+        valides = await _fetchValides();
+      } else {
+        // Archivés laissé local pour le moment
+      }
+    } catch (e) {
+      errorMsg = 'Impossible de charger les données';
+    } finally {
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchSoumis() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    final String baseUrl = getBaseUrl();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        headers: {'Authorization': 'Bearer $idToken'},
+      ),
+    );
+    final resp = await dio.get('/transit/soumis');
+    return _mapArticlesToCards(resp.data, proposed: false);
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchSoumettre() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    final String baseUrl = getBaseUrl();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        headers: {'Authorization': 'Bearer $idToken'},
+      ),
+    );
+    final resp = await dio.get('/transit/soumettre');
+    return _mapArticlesToCards(resp.data, proposed: true);
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchValides() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+    final idToken = await user.getIdToken();
+    final String baseUrl = getBaseUrl();
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        headers: {'Authorization': 'Bearer $idToken'},
+      ),
+    );
+    final resp = await dio.get('/transit/valides');
+    return _mapArticlesToCards(resp.data, proposed: true);
+  }
+
+  List<Map<String, dynamic>> _mapArticlesToCards(
+    dynamic data, {
+    required bool proposed,
+  }) {
+    if (data is! List) return [];
+    return data.map<Map<String, dynamic>>((a) {
+      final photos =
+          (a['photos'] is List && a['photos'].isNotEmpty)
+              ? List<String>.from(
+                (a['photos'] as List).map((p) => p.toString()),
+              )
+              : <String>[];
+      final description = _buildDescriptionFromArticle(a);
+      final type = (a['type'] ?? '').toString();
+      final Map<String, dynamic> specs =
+          type == 'piece'
+              ? <String, dynamic>{
+                'Catégorie': a['categorie'] ?? '',
+                'Type moteur': a['typeMoteur'] ?? '',
+                'Lieu': a['lieu'] ?? '',
+                'Condition': a['condition'] ?? '',
+              }
+              : <String, dynamic>{
+                'Cylindre': a['cylindre'] ?? '',
+                'Boîte À Vitesses': a['boiteVitesse'] ?? '',
+                'Carburant': a['carburant'] ?? '',
+                'Climatiseur': a['climatiseur'] ?? '',
+                'Distance': a['distance'] ?? '',
+                'Sièges': a['sieges'] ?? '',
+                'Portes': a['portes'] ?? '',
+              };
+      return {
+        'id': a['_id'],
+        'title': a['titre'] ?? '',
+        'description': description,
+        'company':
+            a['entreprise'] ??
+            (a['vendeur'] != null ? (a['vendeur']['nom'] ?? '') : ''),
+        'price': a['prix'] != null ? '${a['prix']} f' : '',
+        'specs': specs,
+        'type': type,
+        'images': photos,
+        'proposed': proposed,
+        'proposedAmount': proposed ? (a['montant'] ?? null) : null,
+      };
+    }).toList();
+  }
+
+  String _buildDescriptionFromArticle(dynamic a) {
+    final parts = <String>[];
+    if (a['annee'] != null) parts.add('${a['annee']}');
+    if (a['marque'] != null) parts.add('${a['marque']}');
+    if (a['modele'] != null) parts.add('${a['modele']}');
+    if (a['lieu'] != null) parts.add('${a['lieu']}');
+    return parts.where((e) => e.toString().trim().isNotEmpty).join(', ');
+  }
+
+  // Helpers d'image pour la liste
+  Widget _buildImageThumb(
+    Map<String, dynamic> item, {
+    required double height,
+    required double width,
+  }) {
+    final List images = item['images'] ?? [];
+    if (images.isNotEmpty) {
+      final first = images.first.toString();
+      final isNetwork =
+          first.startsWith('http://') || first.startsWith('https://');
+      if (isNetwork) {
+        return Image.network(
+          first,
+          height: height,
+          width: width,
+          fit: BoxFit.cover,
+          errorBuilder:
+              (context, error, stackTrace) => _imageFallback(height, width),
+        );
+      } else {
+        return Image.asset(
+          first,
+          height: height,
+          width: width,
+          fit: BoxFit.cover,
+          errorBuilder:
+              (context, error, stackTrace) => _imageFallback(height, width),
+        );
+      }
+    }
+    return _imageFallback(height, width);
+  }
+
+  Widget _imageFallback(double h, double w) {
+    return Container(
+      height: h,
+      width: w,
+      color: Colors.grey[300],
+      child: const Icon(Icons.directions_car, color: Colors.grey),
+    );
   }
 
   @override
@@ -123,6 +335,7 @@ class _TarifState extends State<Tarif> {
                       setState(() {
                         _selectedFilter = i;
                       });
+                      _loadForTab(i);
                     },
                   ),
                 ),
@@ -136,14 +349,20 @@ class _TarifState extends State<Tarif> {
   }
 
   Widget _buildFilteredList() {
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (errorMsg != null) {
+      return Center(child: Text(errorMsg!));
+    }
     if (_selectedFilter == 0) {
       // Soumis
       final filteredAds = carAds.where((ad) => !ad['proposed']).toList();
       return _buildCarList(filteredAds);
     } else if (_selectedFilter == 1) {
-      // Soumettre
+      // Soumettre: éléments non cliquables et affichage du montant proposé
       final filteredAds = carAds.where((ad) => ad['proposed']).toList();
-      return _buildCarList(filteredAds);
+      return _buildSoumettreList(filteredAds);
     } else if (_selectedFilter == 2) {
       // Validés
       return _buildValidesList();
@@ -185,22 +404,7 @@ class _TarifState extends State<Tarif> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(
-                    car['images'][0],
-                    height: 80,
-                    width: 80,
-                    fit: BoxFit.cover,
-                    errorBuilder:
-                        (context, error, stackTrace) => Container(
-                          height: 80,
-                          width: 80,
-                          color: Colors.grey[300],
-                          child: const Icon(
-                            Icons.directions_car,
-                            color: Colors.grey,
-                          ),
-                        ),
-                  ),
+                  child: _buildImageThumb(car, height: 80, width: 80),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -248,6 +452,62 @@ class _TarifState extends State<Tarif> {
     );
   }
 
+  // Liste Soumettre: non cliquable + montant proposé visible
+  Widget _buildSoumettreList(List<Map<String, dynamic>> ads) {
+    return ListView.builder(
+      itemCount: ads.length,
+      itemBuilder: (context, index) {
+        final car = ads[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: _buildImageThumb(car, height: 80, width: 80),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        car['title'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        car['description'] ?? '',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Text(
+                  (car['proposedAmount'] ?? car['montant'] ?? '') != ''
+                      ? 'Proposé: ${(car['proposedAmount'] ?? car['montant']).toString()} f'
+                      : '',
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildValidesList() {
     if (valides.isEmpty) {
       return const Center(child: Text('Aucune proposition validée.'));
@@ -262,12 +522,7 @@ class _TarifState extends State<Tarif> {
           child: ListTile(
             leading:
                 item['images'] != null && item['images'].isNotEmpty
-                    ? Image.asset(
-                      item['images'][0],
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.cover,
-                    )
+                    ? _buildImageThumb(item, height: 48, width: 48)
                     : null,
             title: Text(
               item['title'] ?? '',
@@ -339,12 +594,7 @@ class _TarifState extends State<Tarif> {
           child: ListTile(
             leading:
                 item['images'] != null && item['images'].isNotEmpty
-                    ? Image.asset(
-                      item['images'][0],
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.cover,
-                    )
+                    ? _buildImageThumb(item, height: 48, width: 48)
                     : null,
             title: Text(
               item['title'] ?? '',
@@ -397,41 +647,76 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
           const SizedBox(height: 24),
           _buildSpecifications(),
           const SizedBox(height: 24),
-          _buildProposalSection(),
+          // Section de proposition déplacée sous le prix, on la supprime ici
         ],
       ),
     );
   }
 
   Widget _buildImageSection() {
-    // Utilisation d'une image d'exemple pour le front-end
+    final List images = widget.car['images'] ?? [];
+    final String? first = images.isNotEmpty ? images.first.toString() : null;
     return Column(
       children: [
         SizedBox(
           height: 200,
           width: double.infinity,
-          child: Image.asset(
-            'assets/images/car.png', // Image d'exemple
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: Colors.grey[300],
-                child: const Center(child: Text('Image non disponible')),
-              );
-            },
-          ),
+          child:
+              first == null
+                  ? Container(
+                    color: Colors.grey[300],
+                    child: const Center(child: Text('Image non disponible')),
+                  )
+                  : (first.startsWith('http://') ||
+                      first.startsWith('https://'))
+                  ? Image.network(
+                    first,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Text('Image non disponible'),
+                        ),
+                      );
+                    },
+                  )
+                  : Image.asset(
+                    first,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Text('Image non disponible'),
+                        ),
+                      );
+                    },
+                  ),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Description de l\'image',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+        Text(
+          widget.car['description']?.toString() ?? '',
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
         ),
       ],
     );
   }
 
   Widget _buildSpecifications() {
-    final specs = widget.car['specs'] as Map<String, String>;
+    final Map specsRaw =
+        (widget.car['specs'] is Map) ? (widget.car['specs'] as Map) : {};
+    // Utiliser des types dynamiques pour éviter les casts stricts
+    final Map<String, dynamic> specs = {
+      for (final entry in specsRaw.entries) entry.key.toString(): entry.value,
+    };
+    // Ne rien afficher si aucune spec utile
+    final hasValue = specs.values.any(
+      (v) => (v?.toString().trim().isNotEmpty ?? false),
+    );
+    if (!hasValue) {
+      return const SizedBox.shrink();
+    }
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
 
@@ -467,7 +752,7 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    entry.value,
+                    entry.value?.toString() ?? '',
                     style: TextStyle(
                       fontSize:
                           isSmallScreen ? 11 : 12, // Taille de police réduite
@@ -478,6 +763,48 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
               ),
             );
           }).toList(),
+    );
+  }
+
+  Widget _buildImageThumb(
+    Map<String, dynamic> item, {
+    required double height,
+    required double width,
+  }) {
+    final List images = item['images'] ?? [];
+    if (images.isNotEmpty) {
+      final first = images.first.toString();
+      final isNetwork =
+          first.startsWith('http://') || first.startsWith('https://');
+      if (isNetwork) {
+        return Image.network(
+          first,
+          height: height,
+          width: width,
+          fit: BoxFit.cover,
+          errorBuilder:
+              (context, error, stackTrace) => _imageFallback(height, width),
+        );
+      } else {
+        return Image.asset(
+          first,
+          height: height,
+          width: width,
+          fit: BoxFit.cover,
+          errorBuilder:
+              (context, error, stackTrace) => _imageFallback(height, width),
+        );
+      }
+    }
+    return _imageFallback(height, width);
+  }
+
+  Widget _imageFallback(double h, double w) {
+    return Container(
+      height: h,
+      width: w,
+      color: Colors.grey[300],
+      child: const Icon(Icons.directions_car, color: Colors.grey),
     );
   }
 
@@ -510,6 +837,8 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
             color: Colors.amber,
           ),
         ),
+        const SizedBox(height: 12),
+        _buildInlineProposal(),
       ],
     );
   }
@@ -569,6 +898,81 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
           ],
         ),
       ],
+    );
+  }
+
+  // Section de soumission de tarif (inline sous le prix)
+  Widget _buildInlineProposal() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 30),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _tarifController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(
+                  Icons.local_shipping,
+                  color: Colors.amber,
+                ),
+                hintText: 'Proposez votre tarif de transit',
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Colors.amber, width: 1.2),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () {
+              final tarif = _tarifController.text.trim();
+              if (tarif.isNotEmpty) {
+                widget.onProposalSubmitted(tarif);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Tarif proposé: $tarif f')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF8BF13),
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            child: const Text('Soumettre'),
+          ),
+        ],
+      ),
     );
   }
 }

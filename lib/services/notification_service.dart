@@ -148,7 +148,7 @@ class NotificationService {
 
 String getBaseUrl() {
   // Retourner l'URL de base de votre API
-  return 'http://10.0.2.2:5000/api'; // Pour l'émulateur Android
+  // return 'http://10.0.2.2:5000/api'; // Pour l'émulateur Android
   // return 'http://localhost:5000/api'; // Pour le web
-  // return 'http://192.168.1.100:5000/api'; // Pour un appareil physique
+  return 'http://192.168.1.75:5000/api'; // Pour un appareil physique
 }

@@ -5,14 +5,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 
-// String getBaseUrl() {
-//   return 'http://192.168.1.80:5000/api';  // Remplace par l'IP de ton PC sur le réseau local
-// }
-
-
 String getBaseUrl() {
-  return 'https://api.tranoo.store/api'; // URL déployée pour mobile
+  return 'http://192.168.1.75:5000/api';  // Remplace par l'IP de ton PC sur le réseau local
 }
+
+
+// String getBaseUrl() {
+//   return 'https://api.tranoo.store/api'; // URL déployée pour mobile
+// }
 
 
 class UserService extends ChangeNotifier {

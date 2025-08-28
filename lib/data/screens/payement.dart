@@ -3,10 +3,15 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'finalisation_achat.dart';
 import 'package:confetti/confetti.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
+import '../../services/user_service.dart';
 // import 'package:tranoo/data/screens/succes6.dart';
 
 class PayementScreen extends StatefulWidget {
-  const PayementScreen({super.key});
+  final Map<String, dynamic> article;
+
+  const PayementScreen({super.key, required this.article});
 
   @override
   State<PayementScreen> createState() => _PayementScreenState();
@@ -25,9 +30,14 @@ class _PayementScreenState extends State<PayementScreen>
   bool isChauffeurChecked = false;
   bool isFraisDeRouteChecked = false;
   bool isTransitaireChecked = true;
+  bool isEnConsommationChecked = false;
+  bool isEnTransitChecked = false;
 
   late AnimationController _animationController;
   late ConfettiController _confettiController;
+
+  List<Map<String, dynamic>> transitPropositions = [];
+  bool isLoadingPropositions = false;
 
   final List<String> pieces = [
     'Copie de la Carte d\'identité',
@@ -35,11 +45,77 @@ class _PayementScreenState extends State<PayementScreen>
     'Passeport',
   ];
 
-  final List<Map<String, String>> transitaires = [
-    {'name': 'Transitaire 1', 'price': '50,000 f'},
-    {'name': 'Transitaire 2', 'price': '60,000 f'},
-    {'name': 'Transitaire 3', 'price': '70,000 f'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 2),
+    );
+
+    // Charger les propositions de transit pour cet article
+    _loadTransitPropositions();
+  }
+
+  Future<void> _loadTransitPropositions() async {
+    setState(() {
+      isLoadingPropositions = true;
+    });
+
+    try {
+      print('[PayementScreen] Article reçu: ${widget.article}');
+      print('[PayementScreen] ID de l\'article: ${widget.article['_id']}');
+
+      // Vérifier si l'article a un ID valide
+      if (widget.article['_id'] == null ||
+          widget.article['_id'].toString().isEmpty) {
+        print(
+          '[PayementScreen] Article sans ID valide: ${widget.article['_id']}',
+        );
+        setState(() {
+          transitPropositions = [];
+          isLoadingPropositions = false;
+        });
+        return;
+      }
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final token = await user.getIdToken();
+      final dio = Dio();
+      dio.options.headers['Authorization'] = 'Bearer $token';
+      dio.options.baseUrl = getBaseUrl();
+
+      final url = '/transit/propositions/${widget.article['_id']}';
+      print('[PayementScreen] Appel API: $url');
+
+      // Récupérer toutes les propositions pour cet article
+      final response = await dio.get(url);
+
+      print('[PayementScreen] Réponse API: ${response.statusCode}');
+      print('[PayementScreen] Données reçues: ${response.data}');
+
+      if (response.statusCode == 200) {
+        setState(() {
+          transitPropositions = List<Map<String, dynamic>>.from(response.data);
+        });
+        print(
+          '[PayementScreen] Propositions chargées: ${transitPropositions.length}',
+        );
+      }
+    } catch (e) {
+      print('[PayementScreen] Erreur lors du chargement des propositions: $e');
+      // Gérer l'erreur silencieusement
+    } finally {
+      setState(() {
+        isLoadingPropositions = false;
+      });
+    }
+  }
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -52,18 +128,6 @@ class _PayementScreenState extends State<PayementScreen>
         hasUploadedFile = true;
       });
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
-    _confettiController = ConfettiController(
-      duration: const Duration(seconds: 2),
-    );
   }
 
   @override
@@ -144,6 +208,29 @@ class _PayementScreenState extends State<PayementScreen>
                     _buildLabel('Choix du transitaire'),
                     const SizedBox(height: 8),
                     _buildTransitaireDropdown(),
+                    const SizedBox(height: 16),
+
+                    // Checkboxes pour le mode de livraison
+                    _buildCheckbox('En Consommation', isEnConsommationChecked, (
+                      value,
+                    ) {
+                      setState(() {
+                        isEnConsommationChecked = value!;
+                        // Si on coche "En Consommation", on décoche "En Transit"
+                        if (value == true) {
+                          isEnTransitChecked = false;
+                        }
+                      });
+                    }),
+                    _buildCheckbox('En Transit', isEnTransitChecked, (value) {
+                      setState(() {
+                        isEnTransitChecked = value!;
+                        // Si on coche "En Transit", on décoche "En Consommation"
+                        if (value == true) {
+                          isEnConsommationChecked = false;
+                        }
+                      });
+                    }),
                     const SizedBox(height: 24),
 
                     // Télécharger des images
@@ -327,6 +414,61 @@ class _PayementScreenState extends State<PayementScreen>
   }
 
   Widget _buildTransitaireDropdown() {
+    if (isLoadingPropositions) {
+      return Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12),
+            Text(
+              'Chargement des propositions...',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (transitPropositions.isEmpty) {
+      // Vérifier si l'article a un ID valide
+      if (widget.article['_id'] == null ||
+          widget.article['_id'].toString().isEmpty) {
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF2F2F2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: const Text(
+            'Article sans ID valide - propositions non disponibles',
+            style: TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+        );
+      }
+
+      // Pour les articles réels sans propositions
+      return Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: const Text(
+          'Aucune proposition de transit disponible pour cet article',
+          style: TextStyle(color: Colors.grey, fontSize: 14),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF2F2F2),
@@ -341,18 +483,33 @@ class _PayementScreenState extends State<PayementScreen>
           ),
           isExpanded: true,
           items:
-              transitaires.map((transitaire) {
+              transitPropositions.map((proposition) {
+                final transitaire = proposition['transitaire'];
+                final montant = proposition['montant'];
+                final nomTransitaire =
+                    transitaire?['nom'] ??
+                    transitaire?['entreprise'] ??
+                    'Transitaire inconnu';
+                final montantFormate = '${montant?.toString() ?? '0'} FCFA';
+
                 return DropdownMenuItem<String>(
-                  value: transitaire['name'],
+                  value: proposition['_id'],
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(transitaire['name']!), // Nom du transitaire
+                      Expanded(
+                        child: Text(
+                          nomTransitaire,
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       Text(
-                        transitaire['price']!, // Prix du transitaire
+                        montantFormate,
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -374,7 +531,9 @@ class _PayementScreenState extends State<PayementScreen>
           if (isCarburantChecked &&
               isChauffeurChecked &&
               isFraisDeRouteChecked &&
-              isTransitaireChecked) {
+              isTransitaireChecked &&
+              (isEnConsommationChecked || isEnTransitChecked) &&
+              selectedTransitaire != null) {
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -382,13 +541,16 @@ class _PayementScreenState extends State<PayementScreen>
               ),
             );
           } else {
+            String message =
+                'Veuillez cocher toutes les cases obligatoires et sélectionner un transitaire.';
+            if (!isEnConsommationChecked && !isEnTransitChecked) {
+              message =
+                  'Veuillez choisir un mode de livraison (En Consommation ou En Transit).';
+            } else if (selectedTransitaire == null) {
+              message = 'Veuillez sélectionner un transitaire.';
+            }
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Veuillez cocher toutes les cases (y compris Transitaire) avant de continuer.',
-                ),
-                backgroundColor: Colors.red,
-              ),
+              SnackBar(content: Text(message), backgroundColor: Colors.red),
             );
           }
         },

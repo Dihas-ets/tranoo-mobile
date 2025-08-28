@@ -90,7 +90,7 @@ class AuthProvider with ChangeNotifier {
 
       final idToken = await user.getIdToken();
       final response = await http.post(
-        Uri.parse('http://192.168.100.21:5000/api/users/fcm-token'),
+        Uri.parse('http://192.168.1.75:5000/api/users/fcm-token'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $idToken',
