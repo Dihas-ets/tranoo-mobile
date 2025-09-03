@@ -3,17 +3,17 @@ import '../utils/role_redirect.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-
+import 'dart:io' show Platform;
 
 String getBaseUrl() {
-  return 'http://192.168.1.75:5000/api';  // Remplace par l'IP de ton PC sur le réseau local
+  // Appareil physique Android/iOS connecté au même Wi‑Fi que le PC
+  // Utilise l'IP LAN de ton PC (ipconfig -> Carte Wi‑Fi IPv4)
+  return 'http://192.168.1.71:5000/api';
 }
-
 
 // String getBaseUrl() {
 //   return 'https://api.tranoo.store/api'; // URL déployée pour mobile
 // }
-
 
 class UserService extends ChangeNotifier {
   static final UserService _instance = UserService._internal();
@@ -32,8 +32,8 @@ class UserService extends ChangeNotifier {
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: getBaseUrl(), // Utilise la fonction getBaseUrl()
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},
     ),
   );

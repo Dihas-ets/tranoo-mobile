@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:tranoo/services/user_service.dart';
 
 class Profile2 extends StatefulWidget {
   const Profile2({super.key});
@@ -50,12 +51,7 @@ class _Profile2State extends State<Profile2> {
         return;
       }
       final idToken = await user.getIdToken();
-      final String baseUrl =
-          kIsWeb
-              ? 'http://localhost:5000/api'
-              : (Platform.isAndroid
-                  ? 'http://10.0.2.2:5000/api'
-                  : 'http://192.168.1.75:5000/api');
+      final String baseUrl = getBaseUrl();
       final dio = Dio(
         BaseOptions(
           baseUrl: baseUrl,
@@ -100,12 +96,7 @@ class _Profile2State extends State<Profile2> {
     final idToken = await user.getIdToken();
     final dio = Dio(
       BaseOptions(
-        baseUrl:
-            kIsWeb
-                ? 'http://localhost:5000/api'
-                : (Platform.isAndroid
-                    ? 'http://10.0.2.2:5000/api'
-                    : 'http:/192.168.1.75/:5000/api'),
+        baseUrl: getBaseUrl(),
         headers: {'Authorization': 'Bearer $idToken'},
       ),
     );
@@ -443,12 +434,7 @@ class _Profile2State extends State<Profile2> {
       isSaving = true;
     });
     final idToken = await user.getIdToken();
-    final String baseUrl =
-        kIsWeb
-            ? 'http://localhost:5000/api'
-            : (Platform.isAndroid
-                ? 'http://10.0.2.2:5000/api'
-                : 'http://192.168.1.75:5000/api');
+    final String baseUrl = getBaseUrl();
     final dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,

@@ -508,7 +508,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               MaterialPageRoute(
                 builder:
                     (context) => CarsInfo(
-                      id: voiture.id,
+                      id: voiture.id?.toString(),
                       titre: voiture.titre,
                       description: voiture.description,
                       marque: voiture.marque,
@@ -830,6 +830,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         MaterialPageRoute(
                           builder:
                               (context) => CarsInfo(
+                                id: voiture.id?.toString(),
                                 titre: voiture.titre,
                                 description: voiture.description,
                                 marque: voiture.marque,

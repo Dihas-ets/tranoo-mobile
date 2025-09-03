@@ -33,6 +33,10 @@ class NotificationProvider with ChangeNotifier {
         'date': DateTime.now(),
         'isRead': false,
         'type': message.data['type'] ?? 'general',
+        // Ajouter les données spécifiques aux notifications de vérification
+        'actions': message.data['actions'] ?? [],
+        'status': message.data['status'] ?? 'pending',
+        'verificationData': message.data['verificationData'] ?? {},
       };
       addNotification(notif);
     });
@@ -61,6 +65,8 @@ class NotificationsBody extends StatelessWidget {
 
   String _getNotificationColor(String type) {
     switch (type) {
+      case 'verification':
+        return '#FF9800'; // Orange pour les vérifications
       case 'paiement':
         return '#4CAF50'; // Vert
       case 'promotion':
@@ -77,12 +83,199 @@ class NotificationsBody extends StatelessWidget {
   String formatDate(DateTime date) {
     Duration difference = DateTime.now().difference(date);
     if (difference.inDays > 0) {
-      return "Il y a  {difference.inDays} jour${difference.inDays > 1 ? 's' : ''}";
+      return "Il y a ${difference.inDays} jour${difference.inDays > 1 ? 's' : ''}";
     } else if (difference.inHours > 0) {
       return "Il y a ${difference.inHours}h";
     } else {
       return "Il y a ${difference.inMinutes} min";
     }
+  }
+
+  // Construire une carte de notification standard
+  Widget _buildStandardNotificationCard(
+    Map<String, dynamic> notification,
+    String color,
+  ) {
+    final initial = _getInitialFromTitle(notification["title"] ?? "");
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Color(int.parse(color.replaceAll('#', '0xFF'))),
+          child: Text(
+            initial,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        title: Text(
+          notification["title"] ?? "-",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(notification["message"] ?? "-"),
+        trailing: Text(
+          formatDate(notification["date"]),
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+      ),
+    );
+  }
+
+  // Construire une carte de notification de vérification avec actions
+  Widget _buildVerificationNotificationCard(
+    BuildContext context,
+    Map<String, dynamic> notification,
+    String color,
+  ) {
+    final initial = _getInitialFromTitle(notification["title"] ?? "");
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 3,
+      child: Column(
+        children: [
+          // En-tête avec icônes
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icône principale
+                CircleAvatar(
+                  backgroundColor: Color(
+                    int.parse(color.replaceAll('#', '0xFF')),
+                  ),
+                  child: Text(
+                    initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Icônes supplémentaires pour la vérification
+                const Icon(Icons.verified, color: Colors.green, size: 20),
+                const SizedBox(width: 8),
+                const Icon(Icons.shopping_cart, color: Colors.blue, size: 20),
+                const Spacer(),
+                // Date
+                Text(
+                  formatDate(notification["date"]),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          // Contenu de la notification
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  notification["title"] ?? "-",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  notification["message"] ?? "-",
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+          // Boutons d'action
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed:
+                        () => _handleVerificationAction(
+                          context,
+                          notification,
+                          'approve',
+                        ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Valider l\'achat',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed:
+                        () => _handleVerificationAction(
+                          context,
+                          notification,
+                          'reject',
+                        ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Rejeter l\'achat',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Gérer les actions de vérification
+  void _handleVerificationAction(
+    BuildContext context,
+    Map<String, dynamic> notification,
+    String action,
+  ) {
+    // TODO: Implémenter l'appel API pour traiter l'action
+    print(
+      'Action de vérification: $action pour la notification: ${notification["id"]}',
+    );
+
+    // Afficher un message de confirmation
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          action == 'approve'
+              ? 'Achat validé avec succès !'
+              : 'Achat rejeté avec succès !',
+        ),
+        backgroundColor: action == 'approve' ? Colors.green : Colors.red,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    // TODO: Appeler l'API pour traiter l'action
+    // await notificationService.handleVerificationAction(notification["id"], action);
   }
 
   @override
@@ -112,26 +305,23 @@ class NotificationsBody extends StatelessWidget {
                   itemCount: notifications.length,
                   itemBuilder: (context, index) {
                     final notification = notifications[index];
-                    final initial = _getInitialFromTitle(notification["title"]);
-                    final color = _getNotificationColor(notification["type"]);
-
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Color(
-                          int.parse(color.replaceAll('#', '0xFF')),
-                        ),
-                        child: Text(
-                          initial,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      title: Text(notification["title"] ?? "-"),
-                      subtitle: Text(notification["message"] ?? "-"),
-                      trailing: Text(formatDate(notification["date"])),
+                    final color = _getNotificationColor(
+                      notification["type"] ?? "general",
                     );
+
+                    // Affichage différencié selon le type
+                    if (notification["type"] == 'verification') {
+                      return _buildVerificationNotificationCard(
+                        context,
+                        notification,
+                        color,
+                      );
+                    } else {
+                      return _buildStandardNotificationCard(
+                        notification,
+                        color,
+                      );
+                    }
                   },
                 ),
               ),

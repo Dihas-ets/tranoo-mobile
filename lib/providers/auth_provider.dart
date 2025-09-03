@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/utils/role_redirect.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+// import 'package:flutter/foundation.dart' show kIsWeb; // unused
 import 'dart:io' show Platform;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
@@ -90,7 +90,7 @@ class AuthProvider with ChangeNotifier {
 
       final idToken = await user.getIdToken();
       final response = await http.post(
-        Uri.parse('http://192.168.1.75:5000/api/users/fcm-token'),
+        Uri.parse('${getBaseUrl().replaceAll('/api', '')}/api/users/fcm-token'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $idToken',
@@ -146,8 +146,8 @@ class AuthProvider with ChangeNotifier {
             BaseOptions(
               baseUrl: baseUrl,
               headers: {'Authorization': 'Bearer $idToken'},
-              connectTimeout: const Duration(seconds: 10),
-              receiveTimeout: const Duration(seconds: 10),
+              connectTimeout: const Duration(seconds: 30),
+              receiveTimeout: const Duration(seconds: 30),
             ),
           );
           try {
@@ -255,8 +255,8 @@ class AuthProvider with ChangeNotifier {
           BaseOptions(
             baseUrl: baseUrl,
             headers: {'Authorization': 'Bearer $idToken'},
-            connectTimeout: const Duration(seconds: 10),
-            receiveTimeout: const Duration(seconds: 10),
+            connectTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 30),
           ),
         );
         final response = await dio.get('/protected/me');

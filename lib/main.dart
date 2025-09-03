@@ -13,6 +13,7 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart' as myauth;
 import 'package:tranoo/data/screens/avant_home.dart';
+import 'package:tranoo/services/user_service.dart';
 
 // Gestionnaire pour les notifications en arrière-plan
 @pragma('vm:entry-point')
@@ -91,7 +92,7 @@ class NotificationService {
 
       final idToken = await user.getIdToken();
       final response = await http.post(
-        Uri.parse('http://192.168.1.75:5000/api/users/fcm-token'),
+        Uri.parse('${getBaseUrl().replaceAll('/api', '')}/api/users/fcm-token'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $idToken',

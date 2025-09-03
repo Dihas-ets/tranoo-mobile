@@ -6,6 +6,7 @@ import 'package:confetti/confetti.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import '../../services/user_service.dart';
+import 'package:tranoo/utils/cloudinary_upload.dart';
 // import 'package:tranoo/data/screens/succes6.dart';
 
 class PayementScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class _PayementScreenState extends State<PayementScreen>
   String? selectedPiece;
   TextEditingController numeroController = TextEditingController(text: null);
   String? selectedTransitaire;
+  Map<String, dynamic>? selectedTransitaireObj; // pour afficher le prix ensuite
   File? uploadedImage;
   String? uploadedFileName;
   bool hasUploadedFile = false;
@@ -30,8 +32,15 @@ class _PayementScreenState extends State<PayementScreen>
   bool isChauffeurChecked = false;
   bool isFraisDeRouteChecked = false;
   bool isTransitaireChecked = true;
-  bool isEnConsommationChecked = false;
-  bool isEnTransitChecked = false;
+  // Champs déplacés en amont (cars_info/mastervac)
+  bool get isEnTransitCheckedFromArticle =>
+      (widget.article['modeLivraison']?.toString() ?? '') == 'transit';
+  bool get isEnConsommationCheckedFromArticle =>
+      (widget.article['modeLivraison']?.toString() ?? '') == 'consommation';
+  String? get selectedCountryFromArticle =>
+      widget.article['paysDestination']?.toString();
+  String get detailsFromArticle =>
+      (widget.article['detailsSupplementaires']?.toString() ?? '');
 
   late AnimationController _animationController;
   late ConfettiController _confettiController;
@@ -67,14 +76,13 @@ class _PayementScreenState extends State<PayementScreen>
 
     try {
       print('[PayementScreen] Article reçu: ${widget.article}');
-      print('[PayementScreen] ID de l\'article: ${widget.article['_id']}');
+      final dynamic rawId = widget.article['_id'] ?? widget.article['id'];
+      final String? articleId = rawId?.toString();
+      print('[PayementScreen] ID de l\'article (fallback _id|id): $articleId');
 
       // Vérifier si l'article a un ID valide
-      if (widget.article['_id'] == null ||
-          widget.article['_id'].toString().isEmpty) {
-        print(
-          '[PayementScreen] Article sans ID valide: ${widget.article['_id']}',
-        );
+      if (articleId == null || articleId.isEmpty) {
+        print('[PayementScreen] Article sans ID valide.');
         setState(() {
           transitPropositions = [];
           isLoadingPropositions = false;
@@ -90,7 +98,7 @@ class _PayementScreenState extends State<PayementScreen>
       dio.options.headers['Authorization'] = 'Bearer $token';
       dio.options.baseUrl = getBaseUrl();
 
-      final url = '/transit/propositions/${widget.article['_id']}';
+      final url = '/transit/propositions/$articleId';
       print('[PayementScreen] Appel API: $url');
 
       // Récupérer toutes les propositions pour cet article
@@ -100,8 +108,11 @@ class _PayementScreenState extends State<PayementScreen>
       print('[PayementScreen] Données reçues: ${response.data}');
 
       if (response.statusCode == 200) {
+        final data = response.data;
+        final List<Map<String, dynamic>> items =
+            data is List ? List<Map<String, dynamic>>.from(data) : [];
         setState(() {
-          transitPropositions = List<Map<String, dynamic>>.from(response.data);
+          transitPropositions = items;
         });
         print(
           '[PayementScreen] Propositions chargées: ${transitPropositions.length}',
@@ -209,29 +220,6 @@ class _PayementScreenState extends State<PayementScreen>
                     const SizedBox(height: 8),
                     _buildTransitaireDropdown(),
                     const SizedBox(height: 16),
-
-                    // Checkboxes pour le mode de livraison
-                    _buildCheckbox('En Consommation', isEnConsommationChecked, (
-                      value,
-                    ) {
-                      setState(() {
-                        isEnConsommationChecked = value!;
-                        // Si on coche "En Consommation", on décoche "En Transit"
-                        if (value == true) {
-                          isEnTransitChecked = false;
-                        }
-                      });
-                    }),
-                    _buildCheckbox('En Transit', isEnTransitChecked, (value) {
-                      setState(() {
-                        isEnTransitChecked = value!;
-                        // Si on coche "En Transit", on décoche "En Consommation"
-                        if (value == true) {
-                          isEnConsommationChecked = false;
-                        }
-                      });
-                    }),
-                    const SizedBox(height: 24),
 
                     // Télécharger des images
                     Center(
@@ -516,10 +504,102 @@ class _PayementScreenState extends State<PayementScreen>
                   ),
                 );
               }).toList(),
-          onChanged: (value) => setState(() => selectedTransitaire = value),
+          onChanged: (value) {
+            setState(() {
+              selectedTransitaire = value;
+              selectedTransitaireObj = transitPropositions.firstWhere(
+                (p) => p['_id'] == value,
+                orElse: () => {},
+              );
+            });
+          },
         ),
       ),
     );
+  }
+
+  Future<void> _submitAchat(BuildContext context) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('Utilisateur non connecté');
+      final token = await user.getIdToken();
+      final dio = Dio();
+      dio.options.baseUrl = getBaseUrl();
+      dio.options.headers['Authorization'] = 'Bearer $token';
+
+      final dynamic rawId = widget.article['_id'] ?? widget.article['id'];
+      final String? articleId = rawId?.toString();
+      if (articleId == null || articleId.isEmpty) {
+        throw Exception('Article sans ID valide');
+      }
+
+      // Upload optionnel de l'image vers Cloudinary si présente
+      String? uploadedUrl;
+      if (uploadedImage != null) {
+        try {
+          // ignore: use_build_context_synchronously
+          uploadedUrl = await uploadImageToCloudinary(uploadedImage!);
+        } catch (_) {}
+      }
+
+      final payload = {
+        'articleId': articleId,
+        'propositionTransitId': selectedTransitaire,
+        'modeLivraison':
+            (widget.article['modeLivraison']?.toString() ?? 'consommation'),
+        'paysDestination': widget.article['paysDestination'],
+        'detailsSupplementaires':
+            (widget.article['detailsSupplementaires']?.toString() ?? ''),
+        'services': {
+          'carburant': isCarburantChecked,
+          'chauffeur': isChauffeurChecked,
+          'fraisRoute': isFraisDeRouteChecked,
+          'transitaire': isTransitaireChecked,
+        },
+        'pieceType': selectedPiece,
+        'pieceNumero': numeroController.text.trim(),
+        'fichierNom': uploadedFileName,
+        'fichierUrl': uploadedUrl,
+      };
+
+      final response = await dio.post('/achats', data: payload);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        // Aller à la finalisation avec données dynamiques
+        final String imageUrl =
+            (widget.article['photos'] is List &&
+                    (widget.article['photos'] as List).isNotEmpty)
+                ? (widget.article['photos'][0].toString())
+                : '';
+        final String titre = (widget.article['titre'] ?? '').toString();
+        final String prixStr =
+            (widget.article['prix'] ?? widget.article['price'] ?? '0')
+                .toString();
+        final int? tarifTransitaire =
+            selectedTransitaireObj?['montant'] is num
+                ? (selectedTransitaireObj!['montant'] as num).toInt()
+                : null;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => FinalisationAchatScreen(
+                  articleImage: imageUrl,
+                  articleTitle: titre,
+                  articlePrice: prixStr,
+                  tarifChoisit: tarifTransitaire?.toString(),
+                ),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildPaymentButton(BuildContext context) {
@@ -532,21 +612,12 @@ class _PayementScreenState extends State<PayementScreen>
               isChauffeurChecked &&
               isFraisDeRouteChecked &&
               isTransitaireChecked &&
-              (isEnConsommationChecked || isEnTransitChecked) &&
               selectedTransitaire != null) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const FinalisationAchatScreen(),
-              ),
-            );
+            _submitAchat(context);
           } else {
             String message =
                 'Veuillez cocher toutes les cases obligatoires et sélectionner un transitaire.';
-            if (!isEnConsommationChecked && !isEnTransitChecked) {
-              message =
-                  'Veuillez choisir un mode de livraison (En Consommation ou En Transit).';
-            } else if (selectedTransitaire == null) {
+            if (selectedTransitaire == null) {
               message = 'Veuillez sélectionner un transitaire.';
             }
             ScaffoldMessenger.of(context).showSnackBar(

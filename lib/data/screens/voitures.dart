@@ -188,6 +188,13 @@ class _VoituresPageState extends State<VoituresPage> {
                               MaterialPageRoute(
                                 builder:
                                     (context) => CarsInfo(
+                                      id:
+                                          (voiture['_id'] ??
+                                                  voiture['id'] ??
+                                                  voiture['articleId'] ??
+                                                  voiture['Id'] ??
+                                                  voiture['article'])
+                                              ?.toString(),
                                       titre: voiture['titre'] ?? '',
                                       description: voiture['description'] ?? '',
                                       marque: voiture['marque'] ?? '',
