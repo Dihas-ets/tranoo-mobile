@@ -1,0 +1,2 @@
+C:/Users/GNACADJA Laurinda/Documents/GitHub/tranoo-api/tranoo/android/app/.cxx/Debug/4y6t2w1s/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/GNACADJA Laurinda/Documents/GitHub/tranoo-api/tranoo/android/app/.cxx/Debug/4y6t2w1s/x86_64/CMakeFiles/rebuild_cache.dir

@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 // import 'payement.dart'; // Plus utilisé
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles

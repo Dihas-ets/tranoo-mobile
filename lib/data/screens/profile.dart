@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable
+
 import 'dart:io'; // Pour manipuler les fichiers images
 
 import 'package:flutter/material.dart';

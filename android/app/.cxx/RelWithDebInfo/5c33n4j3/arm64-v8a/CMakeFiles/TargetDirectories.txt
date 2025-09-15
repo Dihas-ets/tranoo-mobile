@@ -1,0 +1,2 @@
+C:/Users/GNACADJA Laurinda/Documents/gitlab/tranoo/android/app/.cxx/RelWithDebInfo/5c33n4j3/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/GNACADJA Laurinda/Documents/gitlab/tranoo/android/app/.cxx/RelWithDebInfo/5c33n4j3/arm64-v8a/CMakeFiles/rebuild_cache.dir
