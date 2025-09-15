@@ -211,40 +211,40 @@ class Profil3State extends State<Profil3> {
             },
           ),
 
-          _buildListTile(
-            title: "Mes achats",
-            subtitle: "Voir l'historique de vos commandes",
-            icon: Icons.history,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MesAchatsPage()),
-              );
-            },
-          ),
-          _buildListTile(
-            title: "Mes avis",
-            subtitle: "Consulter ou modifier vos commentaires",
-            icon: Icons.reviews,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MesAvisPage()),
-              );
-              // Rediriger vers une page des avis
-            },
-          ),
-          _buildListTile(
-            title: "Mes factures",
-            subtitle: "Télécharger vos justificatifs d'achats",
-            icon: Icons.receipt_long,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MesFacturesPage()),
-              );
-            },
-          ),
+          // _buildListTile(
+          //   title: "Mes achats",
+          //   subtitle: "Voir l'historique de vos commandes",
+          //   icon: Icons.history,
+          //   onTap: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (context) => MesAchatsPage()),
+          //     );
+          //   },
+          // ),
+          // _buildListTile(
+          //   title: "Mes avis",
+          //   subtitle: "Consulter ou modifier vos commentaires",
+          //   icon: Icons.reviews,
+          //   onTap: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (context) => MesAvisPage()),
+          //     );
+          //     // Rediriger vers une page des avis
+          //   },
+          // ),
+          // _buildListTile(
+          //   title: "Mes factures",
+          //   subtitle: "Télécharger vos justificatifs d'achats",
+          //   icon: Icons.receipt_long,
+          //   onTap: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (context) => MesFacturesPage()),
+          //     );
+          //   },
+          // ),
 
           _buildListTile(
             title: "Mon portefeuille",

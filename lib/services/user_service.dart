@@ -5,15 +5,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 
-String getBaseUrl() {
-  // Appareil physique Android/iOS connecté au même Wi‑Fi que le PC
-  // Utilise l'IP LAN de ton PC (ipconfig -> Carte Wi‑Fi IPv4)
-  return 'http://192.168.1.71:5000/api';
-}
-
 // String getBaseUrl() {
-//   return 'https://api.tranoo.store/api'; // URL déployée pour mobile
+//   // Appareil physique Android/iOS connecté au même Wi‑Fi que le PC
+//   // Utilise l'IP LAN de ton PC (ipconfig -> Carte Wi‑Fi IPv4)
+//   return 'http://192.168.1.71:5000/api';
 // }
+
+String getBaseUrl() {
+  return 'https://api.tranoo.store/api'; // URL déployée pour mobile
+}
 
 class UserService extends ChangeNotifier {
   static final UserService _instance = UserService._internal();
@@ -25,7 +25,7 @@ class UserService extends ChangeNotifier {
   // =============================
   // IMPORTANT : URL du backend
   // - Sur ÉMULATEUR ANDROID : utilisez 'http://10.0.2.2:5000/api'
-  // - Sur TÉLÉPHONE PHYSIQUE : utilisez l'IP locale de votre PC, ex : 'http://192.168.1.10:5000/api'
+  // - Sur TÉLÉPHONE PHYSIQUE : utilisez l'IP locale de votre PC, ex : 'http://192.168.1.71:5000/api'
   // - Sur le WEB : 'http://localhost:5000/api' ou l'IP locale
   // - En PRODUCTION : l'URL du serveur déployé
   // =============================
