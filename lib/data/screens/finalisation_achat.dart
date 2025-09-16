@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // import 'package:flutter/material.dart';
 // import 'succes.dart'; // Assurez-vous que ce chemin est correct
 
@@ -138,10 +139,13 @@
 //   }
 // }
 
+=======
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 import 'package:flutter/material.dart';
 import 'succes.dart'; // Assurez-vous que ce chemin est correct
 
 class FinalisationAchatScreen extends StatelessWidget {
+<<<<<<< HEAD
   const FinalisationAchatScreen({super.key});
 
   @override
@@ -161,6 +165,47 @@ class FinalisationAchatScreen extends StatelessWidget {
         double.parse(
           fraisSupplementaires.replaceAll(',', '').replaceAll(' f', ''),
         );
+=======
+  final String? articleImage; // URL image (peut être vide)
+  final String articleTitle;
+  final String articlePrice; // nombre en string
+  final String? tarifChoisit; // montant transitaire en string
+  const FinalisationAchatScreen({
+    super.key,
+    this.articleImage,
+    required this.articleTitle,
+    required this.articlePrice,
+    this.tarifChoisit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Données dynamiques
+    final String displayedImage =
+        (articleImage != null && articleImage!.isNotEmpty)
+            ? articleImage!
+            : 'assets/images/car.png';
+    final String carTitle = articleTitle;
+    final String carPrice = articlePrice; // attendu sans suffixe ' f'
+    final String fraisTransits = tarifChoisit ?? '0';
+    // TODO: récup depuis BDD plus tard
+    const String fraisSupplementaires = '0';
+
+    // Calcul du prix total
+    final double base =
+        double.tryParse(carPrice.replaceAll(',', '').replaceAll(' f', '')) ?? 0;
+    final double transit =
+        double.tryParse(
+          fraisTransits.replaceAll(',', '').replaceAll(' f', ''),
+        ) ??
+        0;
+    final double supp =
+        double.tryParse(
+          fraisSupplementaires.replaceAll(',', '').replaceAll(' f', ''),
+        ) ??
+        0;
+    final double prixFinal = base + transit + supp;
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -187,6 +232,7 @@ class FinalisationAchatScreen extends StatelessWidget {
           children: [
             // Image de la voiture
             Center(
+<<<<<<< HEAD
               child: Container(
                 height: 200,
                 width: double.infinity,
@@ -197,6 +243,24 @@ class FinalisationAchatScreen extends StatelessWidget {
                     fit: BoxFit.cover,
                   ),
                 ),
+=======
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child:
+                    (displayedImage.startsWith('http'))
+                        ? Image.network(
+                          displayedImage,
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        )
+                        : Image.asset(
+                          displayedImage,
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
               ),
             ),
             const SizedBox(height: 24),
@@ -209,11 +273,22 @@ class FinalisationAchatScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Prix de la voiture
+<<<<<<< HEAD
             _buildPriceRow('Prix de la voiture', carPrice),
             const SizedBox(height: 8),
 
             // Frais de transit
             _buildPriceRow('Frais de transit', fraisTransits),
+=======
+            _buildPriceRow('Prix', carPrice.toString()),
+            const SizedBox(height: 8),
+
+            // Frais de transit
+            _buildPriceRow(
+              'Tarif transitaire choisi',
+              fraisTransits.toString(),
+            ),
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             const SizedBox(height: 8),
 
             // Frais supplémentaires

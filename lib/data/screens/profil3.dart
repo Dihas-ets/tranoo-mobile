@@ -9,9 +9,12 @@ import 'package:tranoo/data/screens/mesavis.dart';
 import 'package:tranoo/data/screens/mesfactures.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile.dart';
+<<<<<<< HEAD
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
+=======
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 
@@ -42,6 +45,7 @@ class Profil3State extends State<Profil3> {
   File? _image;
   String selectedLanguage = "Français";
   String selectedCurrencyValue = "XOF";
+<<<<<<< HEAD
   Map<String, dynamic>? userData;
   bool loading = true;
   String? errorMsg;
@@ -132,6 +136,25 @@ class Profil3State extends State<Profil3> {
     if (userData != null && userData?['role'] == 'vendeur') {
       return Center(child: Text("Accès réservé aux vendeurs."));
     }
+=======
+  // SUPPRIME : Map<String, dynamic>? userData;
+  // SUPPRIME : bool loading = true;
+  // SUPPRIME : String? errorMsg;
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = Provider.of<myauth.AuthProvider>(context);
+    final userData = authProvider.user;
+    final loading = authProvider.loading;
+    final errorMsg =
+        userData == null && !loading ? "Utilisateur non connecté." : null;
+
+    if (loading) return Center(child: CircularProgressIndicator());
+    if (errorMsg != null) return Center(child: Text(errorMsg));
+    if (userData == null) {
+      return Center(child: Text("Aucune donnée utilisateur"));
+    }
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     return Scaffold(
       // appBar: AppBar(
       //   title: const Text(
@@ -147,7 +170,11 @@ class Profil3State extends State<Profil3> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 15),
+<<<<<<< HEAD
             _buildProfileCard(),
+=======
+            _buildProfileCard(userData),
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             const SizedBox(height: 50),
             _buildAccountOptions(),
             const SizedBox(height: 20),
@@ -163,11 +190,17 @@ class Profil3State extends State<Profil3> {
     );
   }
 
+<<<<<<< HEAD
   Widget _buildProfileCard() {
     final hasPhoto =
         userData != null &&
         userData!["photo"] != null &&
         userData!["photo"].toString().isNotEmpty;
+=======
+  Widget _buildProfileCard(Map<String, dynamic> userData) {
+    final hasPhoto =
+        userData["photo"] != null && userData["photo"].toString().isNotEmpty;
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -188,7 +221,11 @@ class Profil3State extends State<Profil3> {
                       _image != null
                           ? FileImage(_image!)
                           : hasPhoto
+<<<<<<< HEAD
                           ? NetworkImage(userData!["photo"]) as ImageProvider
+=======
+                          ? NetworkImage(userData["photo"]) as ImageProvider
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                           : const AssetImage("assets/images/jenifer.jpg"),
                 ),
                 Positioned(
@@ -215,7 +252,11 @@ class Profil3State extends State<Profil3> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
+<<<<<<< HEAD
                 userData?["nom"] ?? "",
+=======
+                userData["nom"] ?? "",
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                 style: const TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
@@ -223,7 +264,11 @@ class Profil3State extends State<Profil3> {
                 ),
               ),
               Text(
+<<<<<<< HEAD
                 userData?["email"] ?? "",
+=======
+                userData["email"] ?? "",
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                 style: const TextStyle(color: Colors.black),
               ),
             ],
@@ -233,6 +278,21 @@ class Profil3State extends State<Profil3> {
     );
   }
 
+<<<<<<< HEAD
+=======
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+      // Ici, tu peux ajouter l'upload si besoin
+    }
+  }
+
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   Widget _buildListTile({
     required String title,
     String? subtitle,
@@ -277,6 +337,7 @@ class Profil3State extends State<Profil3> {
             },
           ),
 
+<<<<<<< HEAD
           _buildListTile(
             title: "Mes achats",
             subtitle: "Voir l'historique de vos commandes",
@@ -311,6 +372,42 @@ class Profil3State extends State<Profil3> {
               );
             },
           ),
+=======
+          // _buildListTile(
+          //   title: "Mes achats",
+          //   subtitle: "Voir l'historique de vos commandes",
+          //   icon: Icons.history,
+          //   onTap: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (context) => MesAchatsPage()),
+          //     );
+          //   },
+          // ),
+          // _buildListTile(
+          //   title: "Mes avis",
+          //   subtitle: "Consulter ou modifier vos commentaires",
+          //   icon: Icons.reviews,
+          //   onTap: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (context) => MesAvisPage()),
+          //     );
+          //     // Rediriger vers une page des avis
+          //   },
+          // ),
+          // _buildListTile(
+          //   title: "Mes factures",
+          //   subtitle: "Télécharger vos justificatifs d'achats",
+          //   icon: Icons.receipt_long,
+          //   onTap: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (context) => MesFacturesPage()),
+          //     );
+          //   },
+          // ),
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
           _buildListTile(
             title: "Mon portefeuille",
@@ -499,4 +596,8 @@ class Profil3State extends State<Profil3> {
       }
     });
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274

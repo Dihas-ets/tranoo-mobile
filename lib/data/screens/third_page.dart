@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
+=======
+import 'package:shared_preferences/shared_preferences.dart';
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 import 'package:tranoo/data/screens/connexion_page.dart';
 
 class ThirdPage extends StatelessWidget {
@@ -74,7 +78,15 @@ class ThirdPage extends StatelessWidget {
                         ],
                       ),
                       child: IconButton(
+<<<<<<< HEAD
                         onPressed: () {
+=======
+                        onPressed: () async {
+                          // Marquer l'onboarding comme vu
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool('hasSeenOnboarding', true);
+
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                           Navigator.push(
                             context,
                             MaterialPageRoute(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../utils/role_redirect.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+<<<<<<< HEAD
 
 
 // String getBaseUrl() {
@@ -12,13 +13,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 //     // Remplace par l'IP de ton PC sur le réseau local
 //     return 'http://192.168.100.21:5000/api';  //sur mobile
 //   }
+=======
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
+
+// String getBaseUrl() {
+//   // Appareil physique Android/iOS connecté au même Wi‑Fi que le PC
+//   // Utilise l'IP LAN de ton PC (ipconfig -> Carte Wi‑Fi IPv4)
+//   return 'http://192.168.1.71:5000/api';
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 // }
 
 String getBaseUrl() {
   return 'https://api.tranoo.store/api'; // URL déployée pour mobile
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 class UserService extends ChangeNotifier {
   static final UserService _instance = UserService._internal();
   factory UserService() => _instance;
@@ -29,15 +42,26 @@ class UserService extends ChangeNotifier {
   // =============================
   // IMPORTANT : URL du backend
   // - Sur ÉMULATEUR ANDROID : utilisez 'http://10.0.2.2:5000/api'
+<<<<<<< HEAD
   // - Sur TÉLÉPHONE PHYSIQUE : utilisez l'IP locale de votre PC, ex : 'http://192.168.1.10:5000/api'
   // - Sur le WEB : 'http://localhost:5000/api' ou l'IP locale
   // - En PRODUCTION : l'URL de votre serveur déployé
+=======
+  // - Sur TÉLÉPHONE PHYSIQUE : utilisez l'IP locale de votre PC, ex : 'http://192.168.1.71:5000/api'
+  // - Sur le WEB : 'http://localhost:5000/api' ou l'IP locale
+  // - En PRODUCTION : l'URL du serveur déployé
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   // =============================
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: getBaseUrl(), // Utilise la fonction getBaseUrl()
+<<<<<<< HEAD
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
+=======
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       headers: {'Content-Type': 'application/json'},
     ),
   );

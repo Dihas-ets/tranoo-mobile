@@ -12,8 +12,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:confetti/confetti.dart';
 import 'une.dart'; // Import pour la page de demande de pub
 import 'dart:developer';
+<<<<<<< HEAD
 
 class CarsInfo extends StatefulWidget {
+=======
+import 'verification_payment.dart'; // Import pour la page de vérification de paiement
+
+class CarsInfo extends StatefulWidget {
+  final String? id;
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   final String? titre;
   final String? description;
   final String? marque;
@@ -37,6 +44,10 @@ class CarsInfo extends StatefulWidget {
 
   const CarsInfo({
     super.key,
+<<<<<<< HEAD
+=======
+    this.id,
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     this.titre,
     this.description,
     this.marque,
@@ -239,11 +250,43 @@ class _CarsinfoState extends State<CarsInfo> {
                 size: 40,
               ),
               onPressed: () {
+<<<<<<< HEAD
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const Movie(),
                   ), // Redirige vers la page "movie.dart"
+=======
+                // Créer l'objet article pour la page vidéo
+                final article = {
+                  'titre': widget.titre,
+                  'description': widget.description,
+                  'marque': widget.marque,
+                  'modele': widget.modele,
+                  'annee': widget.annee,
+                  'prix': widget.prix,
+                  'condition': widget.condition,
+                  'boiteVitesse': widget.boiteVitesse,
+                  'carburant': widget.carburant,
+                  'climatiseur': widget.climatiseur,
+                  'distance': widget.distance,
+                  'sieges': widget.sieges,
+                  'portes': widget.portes,
+                  'cylindre': widget.cylindre,
+                  'photos': widget.images,
+                  'video': widget.video,
+                  'entreprise': widget.entreprise,
+                  'type': 'voiture',
+                };
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) =>
+                            Movie(videoUrl: widget.video, article: article),
+                  ),
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                 );
               },
             ),
@@ -499,16 +542,27 @@ class _CarsinfoState extends State<CarsInfo> {
     );
   }
 
+<<<<<<< HEAD
   // Cases à cocher pour les options
   Widget _buildCheckboxes(double screenWidth, bool isAcheteurOuChauffeur) {
     if (!isAcheteurOuChauffeur) {
       // Si vendeur, ne rien afficher
       return Container();
     }
+=======
+  // Cases à cocher et champs de livraison (ramenés ici)
+  bool _isEnConsommationChecked = false;
+  bool _isEnTransitChecked = false;
+  final TextEditingController _detailsController = TextEditingController();
+
+  Widget _buildCheckboxes(double screenWidth, bool isAcheteurOuChauffeur) {
+    if (!isAcheteurOuChauffeur) return const SizedBox.shrink();
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+<<<<<<< HEAD
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _buildCheckbox('En transit', isNew, (value) {
@@ -550,6 +604,81 @@ class _CarsinfoState extends State<CarsInfo> {
           decoration: InputDecoration(
             hintText: 'Entrez vos détails concernant la destination ici...',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+=======
+          children: [
+            Checkbox(
+              value: _isEnConsommationChecked,
+              onChanged: (v) {
+                setState(() {
+                  _isEnConsommationChecked = v ?? false;
+                  if (_isEnConsommationChecked) _isEnTransitChecked = false;
+                });
+              },
+              activeColor: Colors.black,
+            ),
+            const Text('En Consommation'),
+            const SizedBox(width: 16),
+            Checkbox(
+              value: _isEnTransitChecked,
+              onChanged: (v) {
+                setState(() {
+                  _isEnTransitChecked = v ?? false;
+                  if (_isEnTransitChecked) _isEnConsommationChecked = false;
+                });
+              },
+              activeColor: Colors.black,
+            ),
+            const Text('En Transit'),
+          ],
+        ),
+        const SizedBox(height: 12),
+        const Text('Lieu', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF2F2F2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedCountry,
+              hint: const Text(
+                'Choisissez un pays',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              isExpanded: true,
+              items:
+                  africanCountries
+                      .map(
+                        (c) =>
+                            DropdownMenuItem<String>(value: c, child: Text(c)),
+                      )
+                      .toList(),
+              onChanged: (value) => setState(() => _selectedCountry = value),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Détails supplémentaires',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _detailsController,
+          decoration: InputDecoration(
+            hintText: 'Entrez vos détails concernant la destination ici...',
+            filled: true,
+            fillColor: const Color(0xFFF2F2F2),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           ),
           maxLines: 3,
         ),
@@ -583,9 +712,152 @@ class _CarsinfoState extends State<CarsInfo> {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
+<<<<<<< HEAD
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => PayementScreen()),
+=======
+            if (!_isEnConsommationChecked && !_isEnTransitChecked) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Veuillez choisir un mode de livraison (En Consommation ou En Transit).',
+                  ),
+                ),
+              );
+              return;
+            }
+            if (_selectedCountry == null || _selectedCountry!.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Veuillez sélectionner un lieu.')),
+              );
+              return;
+            }
+            // Créer l'objet article à partir des propriétés du widget
+            final article = {
+              '_id': widget.id, // Doit être l'ID Mongo réel
+              'titre': widget.titre,
+              'description': widget.description,
+              'marque': widget.marque,
+              'modele': widget.modele,
+              'annee': widget.annee,
+              'prix': widget.prix,
+              'condition': widget.condition,
+              'boiteVitesse': widget.boiteVitesse,
+              'carburant': widget.carburant,
+              'climatiseur': widget.climatiseur,
+              'distance': widget.distance,
+              'sieges': widget.sieges,
+              'portes': widget.portes,
+              'cylindre': widget.cylindre,
+              'photos': widget.images,
+              'video': widget.video,
+              'entreprise': widget.entreprise,
+              'type': 'voiture',
+              // Pré-sélections pour payement
+              'modeLivraison': _isEnTransitChecked ? 'transit' : 'consommation',
+              'paysDestination': _selectedCountry,
+              'detailsSupplementaires': _detailsController.text.trim(),
+            };
+            showDialog(
+              context: context,
+              builder: (ctx) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  contentPadding: const EdgeInsets.all(20),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'assets/images/smiley.png',
+                        height: 80,
+                        width: 80,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Contrôle en cours',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      RichText(
+                        textAlign: TextAlign.center,
+                        text: const TextSpan(
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 14,
+                            height: 1.5,
+                          ),
+                          children: [
+                            TextSpan(
+                              text:
+                                  'Les vérifications seront effectuées et vous seront envoyées sous ',
+                            ),
+                            TextSpan(
+                              text: '10 jours',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFFFA000),
+                              ),
+                            ),
+                            TextSpan(
+                              text: '. Pour démarrer, veuillez payer les ',
+                            ),
+                            TextSpan(
+                              text: 'frais de vérification',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF00A86B),
+                              ),
+                            ),
+                            TextSpan(text: '.'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '20.000 FCFA',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF00A86B),
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        const VerificationPaymentScreen(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFCC00),
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('Payer les frais de vérification'),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             );
           },
           style: ElevatedButton.styleFrom(
@@ -612,9 +884,154 @@ class _CarsinfoState extends State<CarsInfo> {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
+<<<<<<< HEAD
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => PayementScreen()),
+=======
+            if (!_isEnConsommationChecked && !_isEnTransitChecked) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Veuillez choisir un mode de livraison (En Consommation ou En Transit).',
+                  ),
+                ),
+              );
+              return;
+            }
+            if (_selectedCountry == null || _selectedCountry!.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Veuillez sélectionner un lieu.')),
+              );
+              return;
+            }
+
+            // Créer l'objet article à partir des propriétés du widget
+            final article = {
+              '_id': widget.id, // Doit être l'ID Mongo réel
+              'titre': widget.titre,
+              'description': widget.description,
+              'marque': widget.marque,
+              'modele': widget.modele,
+              'annee': widget.annee,
+              'prix': widget.prix,
+              'condition': widget.condition,
+              'boiteVitesse': widget.boiteVitesse,
+              'carburant': widget.carburant,
+              'climatiseur': widget.climatiseur,
+              'distance': widget.distance,
+              'sieges': widget.sieges,
+              'portes': widget.portes,
+              'cylindre': widget.cylindre,
+              'photos': widget.images,
+              'video': widget.video,
+              'entreprise': widget.entreprise,
+              'type': 'voiture',
+              // Pré-sélections pour payement
+              'modeLivraison': _isEnTransitChecked ? 'transit' : 'consommation',
+              'paysDestination': _selectedCountry,
+              'detailsSupplementaires': _detailsController.text.trim(),
+            };
+
+            showDialog(
+              context: context,
+              builder: (ctx) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  contentPadding: const EdgeInsets.all(20),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'assets/images/smiley.png',
+                        height: 80,
+                        width: 80,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Contrôle en cours',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      RichText(
+                        textAlign: TextAlign.center,
+                        text: const TextSpan(
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 14,
+                            height: 1.5,
+                          ),
+                          children: [
+                            TextSpan(
+                              text:
+                                  'Les vérifications seront effectuées et vous seront envoyées sous ',
+                            ),
+                            TextSpan(
+                              text: '10 jours',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFFFA000),
+                              ),
+                            ),
+                            TextSpan(
+                              text: '. Pour démarrer, veuillez payer les ',
+                            ),
+                            TextSpan(
+                              text: 'frais de vérification',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF00A86B),
+                              ),
+                            ),
+                            TextSpan(text: '.'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '20.000 FCFA',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF00A86B),
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        const VerificationPaymentScreen(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFCC00),
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('Payer les frais de vérification'),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             );
           },
           style: ElevatedButton.styleFrom(

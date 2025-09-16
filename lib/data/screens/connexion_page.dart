@@ -249,6 +249,10 @@ import 'package:tranoo/utils/role_redirect.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
+<<<<<<< HEAD
+=======
+import 'package:shared_preferences/shared_preferences.dart';
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
 import 'inscription_page.dart';
 
@@ -485,6 +489,17 @@ class _ConnexionPageState extends State<ConnexionPage> {
                                   UserRole.chauffeur) {
                                 // Navigator.pushReplacement(...)
                               }
+<<<<<<< HEAD
+=======
+                              // Mettre à jour le timestamp de dernière connexion
+                              final prefs =
+                                  await SharedPreferences.getInstance();
+                              await prefs.setInt(
+                                'lastLoginTime',
+                                DateTime.now().millisecondsSinceEpoch,
+                              );
+
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text('Connexion réussie !')),

@@ -4,7 +4,13 @@ import 'package:video_player/video_player.dart';
 
 class Movie extends StatefulWidget {
   final String? videoUrl;
+<<<<<<< HEAD
   const Movie({super.key, this.videoUrl});
+=======
+  final Map<String, dynamic>? article;
+
+  const Movie({super.key, this.videoUrl, this.article});
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
   @override
   State<Movie> createState() => _MovieState();
@@ -18,7 +24,13 @@ class _MovieState extends State<Movie> {
   void initState() {
     super.initState();
     if (widget.videoUrl != null) {
+<<<<<<< HEAD
       _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl!));
+=======
+      _controller = VideoPlayerController.networkUrl(
+        Uri.parse(widget.videoUrl!),
+      );
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       _controller!.initialize().then((_) {
         setState(() {
           _initialized = true;
@@ -146,6 +158,7 @@ class _MovieState extends State<Movie> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+<<<<<<< HEAD
             const Text(
               'Tesla Modèle 3',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -172,6 +185,27 @@ class _MovieState extends State<Movie> {
             //     ),
             //   ],
             // ),
+=======
+            Expanded(
+              child: Text(
+                widget.article?['titre'] ?? 'Titre non disponible',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (widget.article?['entreprise'] != null)
+              Text(
+                widget.article!['entreprise'],
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           ],
         ),
         const SizedBox(height: 8),
@@ -188,10 +222,31 @@ class _MovieState extends State<Movie> {
       width: double.infinity,
       child: ElevatedButton(
         onPressed: () {
+<<<<<<< HEAD
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => PayementScreen()),
           );
+=======
+          if (widget.article != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PayementScreen(article: widget.article!),
+              ),
+            );
+          } else {
+            // Si pas d'article, afficher un message d'erreur
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Impossible de passer à la commande : article non trouvé',
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.amber,

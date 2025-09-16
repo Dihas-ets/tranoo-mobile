@@ -1,16 +1,22 @@
-import 'package:device_preview/device_preview.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'providers/auth_provider.dart';
-import 'data/screens/first_page.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:logging/logging.dart';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:core';
+
+import 'package:device_preview/device_preview.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
+import 'package:provider/provider.dart';
+import 'package:tranoo/data/screens/avant_home.dart';
+import 'package:tranoo/services/user_service.dart';
+
+// import 'package:flutter/services.dart';
+import 'data/screens/first_page.dart';
+import 'data/screens/marque.dart';
+import 'firebase_options.dart';
+import 'providers/auth_provider.dart' as myauth;
 
 // Gestionnaire pour les notifications en arrière-plan
 @pragma('vm:entry-point')
@@ -89,7 +95,7 @@ class NotificationService {
 
       final idToken = await user.getIdToken();
       final response = await http.post(
-        Uri.parse('http://192.168.100.21:5000/api/users/fcm-token'),
+        Uri.parse('${getBaseUrl().replaceAll('/api', '')}/api/users/fcm-token'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $idToken',
@@ -110,9 +116,11 @@ class NotificationService {
   }
 
   void _showLocalNotification(RemoteMessage message) {
-    // Ici vous pouvez afficher une notification locale si nécessaire
-    // Pour l'instant, on utilise juste les logs
+    // Améliorer l'affichage des notifications locales
     _logger.info('Notification locale: ${message.notification?.title}');
+
+    // Ici tu peux ajouter une notification locale avec flutter_local_notifications
+    // si tu veux afficher des notifications même quand l'app est en premier plan
   }
 
   void _handleNotificationTap(RemoteMessage message) {
@@ -124,14 +132,25 @@ class NotificationService {
     // Exemple de navigation selon le type de notification
     if (message.data.containsKey('type')) {
       switch (message.data['type']) {
+        case 'chat':
+          // Naviguer vers la page de chat spécifique
+          _logger.info('Navigation vers chat: ${message.data['roomId']}');
+          break;
         case 'publicite':
-          // Naviguer vers la page des notifications
+          // Naviguer vers la page des publicités
+          _logger.info('Navigation vers publicités');
           break;
         case 'article':
           // Naviguer vers la page des articles
+          _logger.info('Navigation vers articles');
+          break;
+        case 'system':
+          // Notification système
+          _logger.info('Notification système: ${message.notification?.body}');
           break;
         default:
           // Navigation par défaut
+          _logger.info('Navigation par défaut');
           break;
       }
     }
@@ -141,17 +160,12 @@ class NotificationService {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
   // Initialiser le service de notifications
   await NotificationService().initialize();
-
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
-      child: DevicePreview(
-        enabled: !kReleaseMode,
-        builder: (context) => MyApp(),
-      ),
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => myauth.AuthProvider())],
+      child: const MyApp(),
     ),
   );
 }
@@ -162,14 +176,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Tranoo',
       debugShowCheckedModeBanner: false,
       locale: DevicePreview.locale(context),
       builder: (context, child) {
         return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            // Ajoutez ici des modifications spécifiques si nécessaire
-          ),
+          data: MediaQuery.of(context).copyWith(),
           child: DevicePreview.appBuilder(context, child),
         );
       },
@@ -177,7 +189,11 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: FirstPage(),
+      home: const AvantHome(),
+      routes: {
+        '/marque': (context) => const Marque(),
+        '/first': (context) => const FirstPage(),
+      },
     );
   }
 }
@@ -202,8 +218,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }*/
-
-
 
 // import 'package:flutter/material.dart';
 // import 'nouveau.dart'; // adapte le chemin si besoin

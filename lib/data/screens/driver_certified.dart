@@ -6,6 +6,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:tranoo/services/user_service.dart'; // Ajout pour getBaseUrl
 import 'package:firebase_auth/firebase_auth.dart';
+<<<<<<< HEAD
+=======
+
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class DriverCertifiedPage extends StatefulWidget {

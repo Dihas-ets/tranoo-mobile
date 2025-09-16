@@ -1,7 +1,11 @@
 // ignore_for_file: unused_element
 
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'payement.dart';
+=======
+// import 'payement.dart'; // Plus utilisé
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
 import 'package:tranoo/utils/role_redirect.dart';
 // import 'package:tranoo/data/screens/paymentscreen.dart';
@@ -12,8 +16,15 @@ import 'package:tranoo/data/screens/succes6.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:developer';
 import 'une.dart'; // Import pour la page de demande de pub
+<<<<<<< HEAD
 
 class MastervacPage extends StatefulWidget {
+=======
+import 'verification_payment.dart';
+
+class MastervacPage extends StatefulWidget {
+  final String? id;
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   final bool isAcheteur;
   final String title;
   final String year;
@@ -30,6 +41,10 @@ class MastervacPage extends StatefulWidget {
 
   const MastervacPage({
     super.key,
+<<<<<<< HEAD
+=======
+    this.id,
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     required this.isAcheteur,
     required this.title,
     required this.year,
@@ -59,6 +74,13 @@ class _MastervacPageState extends State<MastervacPage> {
   bool isGarantieIncluse = false;
   bool isLivraisonRapide = false;
   TextEditingController detailsController = TextEditingController();
+<<<<<<< HEAD
+=======
+  // Champs de livraison/lieu déplacés depuis payement.dart
+  bool isEnConsommationChecked = false;
+  bool isEnTransitChecked = false;
+  String? selectedCountry;
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   final List<String> africanCountries = [
     'Bénin',
     'Burkina Faso',
@@ -399,7 +421,89 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Widget _buildCheckboxes() {
+<<<<<<< HEAD
     return const SizedBox.shrink();
+=======
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Mode de livraison (horizontal)
+        Row(
+          children: [
+            _buildCheckboxContainer(
+              'En Consommation',
+              isEnConsommationChecked,
+              (val) {
+                setState(() {
+                  isEnConsommationChecked = val;
+                  if (val) isEnTransitChecked = false;
+                });
+              },
+            ),
+            const SizedBox(width: 16),
+            _buildCheckboxContainer('En Transit', isEnTransitChecked, (val) {
+              setState(() {
+                isEnTransitChecked = val;
+                if (val) isEnConsommationChecked = false;
+              });
+            }),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Lieu
+        const Text('Lieu', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF2F2F2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: selectedCountry,
+              hint: const Text(
+                'Choisissez un pays',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              isExpanded: true,
+              items:
+                  africanCountries
+                      .map(
+                        (c) =>
+                            DropdownMenuItem<String>(value: c, child: Text(c)),
+                      )
+                      .toList(),
+              onChanged: (value) => setState(() => selectedCountry = value),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Détails supplémentaires
+        const Text(
+          'Détails supplémentaires',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: detailsController,
+          decoration: InputDecoration(
+            hintText: 'Entrez vos détails concernant la destination ici...',
+            filled: true,
+            fillColor: const Color(0xFFF2F2F2),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+          maxLines: 3,
+        ),
+      ],
+    );
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   }
 
   Widget _buildCheckboxContainer(
@@ -411,7 +515,11 @@ class _MastervacPageState extends State<MastervacPage> {
       padding: const EdgeInsets.all(1),
       child: Container(
         padding: const EdgeInsets.all(1),
+<<<<<<< HEAD
         color: Colors.amber,
+=======
+        // color: Colors.amber,
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -444,9 +552,164 @@ class _MastervacPageState extends State<MastervacPage> {
             ),
           ),
           onPressed: () {
+<<<<<<< HEAD
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const PayementScreen()),
+=======
+            // Validation des champs obligatoires
+            if (!isEnConsommationChecked && !isEnTransitChecked) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Veuillez choisir un mode de livraison (En Consommation ou En Transit).',
+                  ),
+                ),
+              );
+              return;
+            }
+            if (selectedCountry == null || selectedCountry!.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Veuillez sélectionner un lieu.')),
+              );
+              return;
+            }
+            // Créer l'objet article à partir des propriétés du widget
+            final article = {
+              '_id': widget.id, // nécessite un ID réel pour charger les tarifs
+              'titre': widget.title,
+              'annee': widget.year,
+              'description': widget.description,
+              'entreprise': widget.company,
+              'localisation': widget.location,
+              'prix': widget.price,
+              'typeMoteur': widget.fuelType,
+              'modele': widget.model,
+              'pieceType': widget.pieceType,
+              'photos': widget.images.whereType<String>().toList(),
+              'video': widget.video,
+              'type': 'piece',
+              // Pré-sélections
+              'modeLivraison': isEnTransitChecked ? 'transit' : 'consommation',
+              'paysDestination': selectedCountry,
+              'detailsSupplementaires': detailsController.text.trim(),
+            };
+
+            showDialog(
+              context: context,
+              builder: (ctx) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  contentPadding: const EdgeInsets.all(20),
+                  content: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF00D67D).withOpacity(0.08),
+                          const Color(0xFFFFCC00).withOpacity(0.12),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          'assets/images/smiley.png',
+                          height: 80,
+                          width: 80,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Contrôle en cours',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 14,
+                              height: 1.5,
+                            ),
+                            children: const [
+                              TextSpan(
+                                text:
+                                    'Les vérifications seront effectuées et vous seront envoyées sous ',
+                              ),
+                              TextSpan(
+                                text: '10 jours',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFFFA000),
+                                ),
+                              ),
+                              TextSpan(
+                                text: '. Pour démarrer, veuillez payer les ',
+                              ),
+                              TextSpan(
+                                text: 'frais de vérification',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF00A86B),
+                                ),
+                              ),
+                              TextSpan(text: '.'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          '20.000 FCFA',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF00A86B),
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) =>
+                                          const VerificationPaymentScreen(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFCC00),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text(
+                              'Payer les frais de vérification',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             );
           },
           child: const Text(
@@ -473,9 +736,143 @@ class _MastervacPageState extends State<MastervacPage> {
             ),
           ),
           onPressed: () {
+<<<<<<< HEAD
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const PayementScreen()),
+=======
+            if (!isEnConsommationChecked && !isEnTransitChecked) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Veuillez choisir un mode de livraison (En Consommation ou En Transit).',
+                  ),
+                ),
+              );
+              return;
+            }
+            if (selectedCountry == null || selectedCountry!.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Veuillez sélectionner un lieu.')),
+              );
+              return;
+            }
+            // Créer l'objet article à partir des propriétés du widget
+            final article = {
+              '_id': widget.id, // nécessite un ID réel pour charger les tarifs
+              'titre': widget.title,
+              'annee': widget.year,
+              'description': widget.description,
+              'entreprise': widget.company,
+              'localisation': widget.location,
+              'prix': widget.price,
+              'typeMoteur': widget.fuelType,
+              'modele': widget.model,
+              'pieceType': widget.pieceType,
+              'photos': widget.images.whereType<String>().toList(),
+              'video': widget.video,
+              'type': 'piece',
+            };
+
+            showDialog(
+              context: context,
+              builder: (ctx) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  contentPadding: const EdgeInsets.all(20),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'assets/images/smiley.png',
+                        height: 80,
+                        width: 80,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Contrôle en cours',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      RichText(
+                        textAlign: TextAlign.center,
+                        text: const TextSpan(
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 14,
+                            height: 1.5,
+                          ),
+                          children: [
+                            TextSpan(
+                              text:
+                                  'Les vérifications seront effectuées et vous seront envoyées sous ',
+                            ),
+                            TextSpan(
+                              text: '10 jours',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFFFA000),
+                              ),
+                            ),
+                            TextSpan(
+                              text: '. Pour démarrer, veuillez payer les ',
+                            ),
+                            TextSpan(
+                              text: 'frais de vérification',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF00A86B),
+                              ),
+                            ),
+                            TextSpan(text: '.'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '20.000 FCFA',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF00A86B),
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        const VerificationPaymentScreen(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFCC00),
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('Payer les frais de vérification'),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+>>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             );
           },
           child: const Text(
