@@ -1,0 +1,57 @@
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:logging/logging.dart';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+final _logger = Logger('CloudinaryUpload');
+
+Future<String?> uploadImageToCloudinary(dynamic image) async {
+  final cloudName = 'dy0raj5bh';
+  final uploadPreset = 'unsigned_preset';
+  final url = Uri.parse(
+    'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+  );
+  final request = http.MultipartRequest('POST', url)
+    ..fields['upload_preset'] = uploadPreset;
+
+  if (kIsWeb && image is Uint8List) {
+    request.files.add(
+      http.MultipartFile.fromBytes('file', image, filename: 'upload.jpg'),
+    );
+  } else if (image is File) {
+    request.files.add(await http.MultipartFile.fromPath('file', image.path));
+  } else {
+    return null;
+  }
+
+  final response = await request.send();
+  if (response.statusCode == 200) {
+    final responseData = await response.stream.bytesToString();
+    final jsonData = jsonDecode(responseData);
+    return jsonData['secure_url'];
+  } else {
+    _logger.warning('Erreur upload Cloudinary: ${response.statusCode}');
+    return null;
+  }
+}
+
+Future<String?> uploadVideoToCloudinary(File videoFile) async {
+  // Remplace par ta logique d'upload vidéo (ex: via HTTP POST vers ton backend ou Cloudinary direct)
+  // Ici, exemple simplifié pour Cloudinary direct (si tu utilises le même preset que pour les images)
+  final url = Uri.parse(
+    'https://api.cloudinary.com/v1_1/<cloud_name>/video/upload',
+  );
+  final request =
+      http.MultipartRequest('POST', url)
+        ..fields['upload_preset'] = '<upload_preset>'
+        ..files.add(await http.MultipartFile.fromPath('file', videoFile.path));
+  final response = await request.send();
+  if (response.statusCode == 200) {
+    final respStr = await response.stream.bytesToString();
+    final data = jsonDecode(respStr);
+    return data['secure_url'] as String?;
+  }
+  return null;
+}
