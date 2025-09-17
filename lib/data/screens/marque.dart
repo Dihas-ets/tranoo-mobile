@@ -16,10 +16,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tranoo/data/screens/movie.dart';
 
 class Article {
-<<<<<<< HEAD
-=======
   final String id;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   final String title;
   final String year;
   final String description;
@@ -34,10 +31,7 @@ class Article {
   final String? statut;
 
   Article({
-<<<<<<< HEAD
-=======
     required this.id,
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     required this.title,
     required this.year,
     required this.description,
@@ -54,10 +48,7 @@ class Article {
 
   factory Article.fromJson(Map<String, dynamic> json) {
     return Article(
-<<<<<<< HEAD
-=======
       id: json['_id'] ?? '',
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       title: json['titre'] ?? '',
       year: json['annee'] ?? '',
       description: json['description'] ?? '',
@@ -76,10 +67,7 @@ class Article {
 }
 
 class ArticleVoiture {
-<<<<<<< HEAD
-=======
   final String id;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   final String titre;
   final String description;
   final String marque;
@@ -100,10 +88,7 @@ class ArticleVoiture {
   final String? statut;
 
   ArticleVoiture({
-<<<<<<< HEAD
-=======
     required this.id,
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     required this.titre,
     required this.description,
     required this.marque,
@@ -126,10 +111,7 @@ class ArticleVoiture {
 
   factory ArticleVoiture.fromJson(Map<String, dynamic> json) {
     return ArticleVoiture(
-<<<<<<< HEAD
-=======
       id: json['_id'] ?? '',
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       titre: json['titre'] ?? '',
       description: json['description'] ?? '',
       marque: json['marque'] ?? '',
@@ -242,11 +224,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         } else {
           _currentPage = 0;
         }
-<<<<<<< HEAD
-        if (pubsALaUne.isNotEmpty) {
-=======
         if (pubsALaUne.isNotEmpty && _pageController.hasClients) {
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           _pageController.animateToPage(
             _currentPage,
             duration: const Duration(milliseconds: 300),
@@ -288,30 +266,21 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         final body = response.body;
         try {
           final List<dynamic> data = json.decode(body);
-<<<<<<< HEAD
-=======
           if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           setState(() {
             articlesPieces = data.map((e) => Article.fromJson(e)).toList();
             isLoadingPieces = false;
           });
         } catch (e) {
           _logger.info('[DEBUG] Erreur de décodage JSON: $e');
-<<<<<<< HEAD
-=======
           if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           setState(() {
             errorPieces = 'Erreur de format de données';
             isLoadingPieces = false;
           });
         }
       } else {
-<<<<<<< HEAD
-=======
         if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         setState(() {
           errorPieces = 'Erreur lors du chargement des pièces';
           isLoadingPieces = false;
@@ -319,10 +288,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       }
     } catch (e) {
       _logger.info('[DEBUG] Exception fetchArticlesPieces: $e');
-<<<<<<< HEAD
-=======
       if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       setState(() {
         errorPieces = 'Erreur réseau';
         isLoadingPieces = false;
@@ -350,20 +316,14 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-<<<<<<< HEAD
-=======
         if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         setState(() {
           voituresRecommandees =
               data.map((e) => ArticleVoiture.fromJson(e)).toList();
           isLoadingVoitures = false;
         });
       } else {
-<<<<<<< HEAD
-=======
         if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         setState(() {
           errorVoitures = 'Erreur lors du chargement des voitures';
           isLoadingVoitures = false;
@@ -371,10 +331,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       }
     } catch (e) {
       _logger.info('[DEBUG] Exception fetchVoituresRecommandees: $e');
-<<<<<<< HEAD
-=======
       if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       setState(() {
         errorVoitures = 'Erreur réseau';
         isLoadingVoitures = false;
@@ -401,10 +358,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         final pubs = data.map((e) => Pub.fromJson(e)).toList();
-<<<<<<< HEAD
-=======
         if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         setState(() {
           pubsSponsorisees =
               pubs.where((p) => p.typePub == 'Sponsorisée').toList();
@@ -412,20 +366,14 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           isLoadingPubs = false;
         });
       } else {
-<<<<<<< HEAD
-=======
         if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         setState(() {
           errorPubs = 'Erreur lors du chargement des publicités';
           isLoadingPubs = false;
         });
       }
     } catch (e) {
-<<<<<<< HEAD
-=======
       if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       setState(() {
         errorPubs = 'Erreur réseau';
         isLoadingPubs = false;
@@ -452,29 +400,20 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-<<<<<<< HEAD
-=======
         if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         setState(() {
           pubsSponsorisees = data.map((e) => Pub.fromJson(e)).toList();
           isLoadingPubs = false;
         });
       } else {
-<<<<<<< HEAD
-=======
         if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         setState(() {
           errorPubs = 'Erreur lors du chargement des publicités';
           isLoadingPubs = false;
         });
       }
     } catch (e) {
-<<<<<<< HEAD
-=======
       if (!mounted) return;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       setState(() {
         errorPubs = 'Erreur réseau';
         isLoadingPubs = false;
@@ -569,10 +508,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               MaterialPageRoute(
                 builder:
                     (context) => CarsInfo(
-<<<<<<< HEAD
-=======
                       id: voiture.id?.toString(),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                       titre: voiture.titre,
                       description: voiture.description,
                       marque: voiture.marque,
@@ -760,10 +696,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     MaterialPageRoute(
                       builder:
                           (context) => MastervacPage(
-<<<<<<< HEAD
-=======
                             id: piece.id,
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                             isAcheteur: true,
                             title: piece.title,
                             year: piece.year,
@@ -897,10 +830,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         MaterialPageRoute(
                           builder:
                               (context) => CarsInfo(
-<<<<<<< HEAD
-=======
                                 id: voiture.id?.toString(),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                                 titre: voiture.titre,
                                 description: voiture.description,
                                 marque: voiture.marque,
@@ -1099,10 +1029,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         MaterialPageRoute(
                           builder:
                               (context) => MastervacPage(
-<<<<<<< HEAD
-=======
                                 id: piece.id,
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                                 isAcheteur: true,
                                 title: piece.title,
                                 year: piece.year,

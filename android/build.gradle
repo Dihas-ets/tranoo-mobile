@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 // Force NDK version for all subprojects (ex: rive_common)
 subprojects {
     afterEvaluate { project ->
@@ -8,18 +6,13 @@ subprojects {
         }
     }
 }
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 buildscript {
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-<<<<<<< HEAD
-        classpath 'com.android.tools.build:gradle:8.2.2'
-=======
     classpath 'com.android.tools.build:gradle:8.6.0'
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     }
 }
 

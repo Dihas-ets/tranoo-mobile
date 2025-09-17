@@ -12,15 +12,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:confetti/confetti.dart';
 import 'une.dart'; // Import pour la page de demande de pub
 import 'dart:developer';
-<<<<<<< HEAD
-
-class CarsInfo extends StatefulWidget {
-=======
 import 'verification_payment.dart'; // Import pour la page de vérification de paiement
 
 class CarsInfo extends StatefulWidget {
   final String? id;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   final String? titre;
   final String? description;
   final String? marque;
@@ -44,10 +39,7 @@ class CarsInfo extends StatefulWidget {
 
   const CarsInfo({
     super.key,
-<<<<<<< HEAD
-=======
     this.id,
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     this.titre,
     this.description,
     this.marque,
@@ -250,13 +242,6 @@ class _CarsinfoState extends State<CarsInfo> {
                 size: 40,
               ),
               onPressed: () {
-<<<<<<< HEAD
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const Movie(),
-                  ), // Redirige vers la page "movie.dart"
-=======
                 // Créer l'objet article pour la page vidéo
                 final article = {
                   'titre': widget.titre,
@@ -286,7 +271,6 @@ class _CarsinfoState extends State<CarsInfo> {
                         (context) =>
                             Movie(videoUrl: widget.video, article: article),
                   ),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                 );
               },
             ),
@@ -542,14 +526,6 @@ class _CarsinfoState extends State<CarsInfo> {
     );
   }
 
-<<<<<<< HEAD
-  // Cases à cocher pour les options
-  Widget _buildCheckboxes(double screenWidth, bool isAcheteurOuChauffeur) {
-    if (!isAcheteurOuChauffeur) {
-      // Si vendeur, ne rien afficher
-      return Container();
-    }
-=======
   // Cases à cocher et champs de livraison (ramenés ici)
   bool _isEnConsommationChecked = false;
   bool _isEnTransitChecked = false;
@@ -557,54 +533,10 @@ class _CarsinfoState extends State<CarsInfo> {
 
   Widget _buildCheckboxes(double screenWidth, bool isAcheteurOuChauffeur) {
     if (!isAcheteurOuChauffeur) return const SizedBox.shrink();
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-<<<<<<< HEAD
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildCheckbox('En transit', isNew, (value) {
-              setState(() {
-                isNew = value!;
-              });
-            }),
-            _buildCheckbox('En consommation', is2023, (value) {
-              setState(() {
-                is2023 = value!;
-              });
-            }),
-          ],
-        ),
-        const SizedBox(height: 16),
-        // Menu déroulant Lieu
-        DropdownButtonFormField<String>(
-          value: _selectedCountry,
-          items:
-              africanCountries
-                  .map(
-                    (country) =>
-                        DropdownMenuItem(value: country, child: Text(country)),
-                  )
-                  .toList(),
-          decoration: const InputDecoration(
-            labelText: 'Lieu',
-            border: OutlineInputBorder(),
-          ),
-          onChanged: (value) => setState(() => _selectedCountry = value),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Détails supplémentaires :',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          decoration: InputDecoration(
-            hintText: 'Entrez vos détails concernant la destination ici...',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-=======
           children: [
             Checkbox(
               value: _isEnConsommationChecked,
@@ -678,7 +610,6 @@ class _CarsinfoState extends State<CarsInfo> {
               horizontal: 16,
               vertical: 12,
             ),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           ),
           maxLines: 3,
         ),
@@ -712,11 +643,6 @@ class _CarsinfoState extends State<CarsInfo> {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-<<<<<<< HEAD
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => PayementScreen()),
-=======
             if (!_isEnConsommationChecked && !_isEnTransitChecked) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -857,7 +783,6 @@ class _CarsinfoState extends State<CarsInfo> {
                   ),
                 );
               },
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             );
           },
           style: ElevatedButton.styleFrom(
@@ -884,11 +809,6 @@ class _CarsinfoState extends State<CarsInfo> {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-<<<<<<< HEAD
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => PayementScreen()),
-=======
             if (!_isEnConsommationChecked && !_isEnTransitChecked) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -1031,7 +951,6 @@ class _CarsinfoState extends State<CarsInfo> {
                   ),
                 );
               },
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             );
           },
           style: ElevatedButton.styleFrom(

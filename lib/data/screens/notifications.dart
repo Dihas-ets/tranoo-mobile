@@ -33,13 +33,10 @@ class NotificationProvider with ChangeNotifier {
         'date': DateTime.now(),
         'isRead': false,
         'type': message.data['type'] ?? 'general',
-<<<<<<< HEAD
-=======
         // Ajouter les données spécifiques aux notifications de vérification
         'actions': message.data['actions'] ?? [],
         'status': message.data['status'] ?? 'pending',
         'verificationData': message.data['verificationData'] ?? {},
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       };
       addNotification(notif);
     });
@@ -68,11 +65,8 @@ class NotificationsBody extends StatelessWidget {
 
   String _getNotificationColor(String type) {
     switch (type) {
-<<<<<<< HEAD
-=======
       case 'verification':
         return '#FF9800'; // Orange pour les vérifications
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       case 'paiement':
         return '#4CAF50'; // Vert
       case 'promotion':
@@ -89,11 +83,7 @@ class NotificationsBody extends StatelessWidget {
   String formatDate(DateTime date) {
     Duration difference = DateTime.now().difference(date);
     if (difference.inDays > 0) {
-<<<<<<< HEAD
-      return "Il y a  {difference.inDays} jour${difference.inDays > 1 ? 's' : ''}";
-=======
       return "Il y a ${difference.inDays} jour${difference.inDays > 1 ? 's' : ''}";
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     } else if (difference.inHours > 0) {
       return "Il y a ${difference.inHours}h";
     } else {
@@ -101,8 +91,6 @@ class NotificationsBody extends StatelessWidget {
     }
   }
 
-<<<<<<< HEAD
-=======
   // Construire une carte de notification standard
   Widget _buildStandardNotificationCard(
     Map<String, dynamic> notification,
@@ -290,7 +278,6 @@ class NotificationsBody extends StatelessWidget {
     // await notificationService.handleVerificationAction(notification["id"], action);
   }
 
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   @override
   Widget build(BuildContext context) {
     final notifications = context.watch<NotificationProvider>().notifications;
@@ -318,28 +305,6 @@ class NotificationsBody extends StatelessWidget {
                   itemCount: notifications.length,
                   itemBuilder: (context, index) {
                     final notification = notifications[index];
-<<<<<<< HEAD
-                    final initial = _getInitialFromTitle(notification["title"]);
-                    final color = _getNotificationColor(notification["type"]);
-
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Color(
-                          int.parse(color.replaceAll('#', '0xFF')),
-                        ),
-                        child: Text(
-                          initial,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      title: Text(notification["title"] ?? "-"),
-                      subtitle: Text(notification["message"] ?? "-"),
-                      trailing: Text(formatDate(notification["date"])),
-                    );
-=======
                     final color = _getNotificationColor(
                       notification["type"] ?? "general",
                     );
@@ -357,7 +322,6 @@ class NotificationsBody extends StatelessWidget {
                         color,
                       );
                     }
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                   },
                 ),
               ),

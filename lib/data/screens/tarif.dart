@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-=======
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
 class Tarif extends StatefulWidget {
   const Tarif({super.key});
@@ -14,13 +11,8 @@ class Tarif extends StatefulWidget {
 }
 
 class _TarifState extends State<Tarif> {
-<<<<<<< HEAD
-  // Liste des annonces de voitures
-  final List<Map<String, dynamic>> carAds = [
-=======
   // Données dynamiques
   List<Map<String, dynamic>> carAds = [
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     {
       'title': 'Toyota Corolla',
       'description': '2018, 50,000 km, Blanc',
@@ -77,17 +69,6 @@ class _TarifState extends State<Tarif> {
     },
   ];
 
-<<<<<<< HEAD
-  // Filtre actif : "Souscrire" ou "Soumis"
-  String activeFilter = 'Souscrire';
-
-  // Met à jour l'état d'une annonce après une proposition de tarif
-  void updateProposalStatus(int index, String amount) {
-    setState(() {
-      carAds[index]['proposed'] = true;
-      carAds[index]['proposedAmount'] = amount;
-    });
-=======
   // Ajout pour les nouveaux filtres
   int _selectedFilter = 0; // 0: Soumis, 1: Soumettre, 2: Validés, 3: Archivés
   final List<String> _filters = ['Soumis', 'Soumettre', 'Validés', 'Archivés'];
@@ -312,108 +293,10 @@ class _TarifState extends State<Tarif> {
       color: Colors.grey[300],
       child: const Icon(Icons.directions_car, color: Colors.grey),
     );
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   }
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
-    final filteredAds =
-        activeFilter == 'Souscrire'
-            ? carAds.where((ad) => !ad['proposed']).toList()
-            : carAds.where((ad) => ad['proposed']).toList();
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.amber,
-        automaticallyImplyLeading: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Bouton "Souscrire" avec style amélioré
-            TextButton(
-              onPressed: () => setState(() => activeFilter = 'Souscrire'),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              child: Text(
-                'Souscrire',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color:
-                      activeFilter == 'Souscrire'
-                          ? Colors.white
-                          : Colors.black54,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            // Bouton "Soumis" avec style amélioré
-            TextButton(
-              onPressed: () => setState(() => activeFilter = 'Soumis'),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              child: Text(
-                'Soumis',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color:
-                      activeFilter == 'Soumis' ? Colors.white : Colors.black54,
-                ),
-              ),
-            ),
-          ],
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4.0),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            alignment:
-                activeFilter == 'Souscrire'
-                    ? Alignment.centerLeft
-                    : Alignment.centerRight,
-            child: Container(
-              width: MediaQuery.of(context).size.width / 2,
-              height: 3.0,
-              color: Colors.black, // Soulignement noir animé
-            ),
-          ),
-        ),
-      ),
-      body: ListView.builder(
-        itemCount: filteredAds.length,
-        itemBuilder: (context, index) {
-          final car = filteredAds[index];
-          return GestureDetector(
-            onTap:
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (context) => CarDetailsPage(
-                          car: car,
-                          onProposalSubmitted:
-                              (amount) => updateProposalStatus(
-                                carAds.indexOf(car),
-                                amount,
-                              ),
-                        ),
-                  ),
-                ),
-            child: _buildCarAdCard(
-              car,
-            ), // Utilise le même effet hover que Transit
-          );
-        },
-=======
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -461,44 +344,10 @@ class _TarifState extends State<Tarif> {
           ),
           Expanded(child: _buildFilteredList()),
         ],
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       ),
     );
   }
 
-<<<<<<< HEAD
-  // Widget _buildCarAdCard identique à celui de Transit (avec hover et animation)
-  Widget _buildCarAdCard(Map<String, dynamic> car) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool isHovered = false;
-        return MouseRegion(
-          onEnter: (_) => setState(() => isHovered = true),
-          onExit: (_) => setState(() => isHovered = false),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isHovered ? Colors.amber : Colors.transparent,
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Color.fromRGBO(
-                    Colors.grey.r.toInt(),
-                    Colors.grey.g.toInt(),
-                    Colors.grey.b.toInt(),
-                    0.3,
-                  ),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-=======
   Widget _buildFilteredList() {
     if (loading) {
       return const Center(child: CircularProgressIndicator());
@@ -549,34 +398,12 @@ class _TarifState extends State<Tarif> {
             elevation: 2,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-<<<<<<< HEAD
-                  child: Image.asset(
-                    car['images'][0],
-                    height: 80,
-                    width: 80,
-                    fit: BoxFit.cover,
-                    errorBuilder:
-                        (context, error, stackTrace) => Container(
-                          height: 80,
-                          width: 80,
-                          color: Colors.grey[300],
-                          child: const Icon(
-                            Icons.image_not_supported,
-                            size: 40,
-                          ),
-                        ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-=======
                   child: _buildImageThumb(car, height: 80, width: 80),
                 ),
                 const SizedBox(width: 12),
@@ -646,37 +473,10 @@ class _TarifState extends State<Tarif> {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12.0),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-<<<<<<< HEAD
-                        car['title'],
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        car['description'],
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "${car['price']} f",
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.amber,
-                        ),
-=======
                         car['title'] ?? '',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
@@ -684,27 +484,10 @@ class _TarifState extends State<Tarif> {
                       Text(
                         car['description'] ?? '',
                         style: const TextStyle(color: Colors.grey),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                       ),
                     ],
                   ),
                 ),
-<<<<<<< HEAD
-                if (activeFilter == 'Soumis' && car['proposedAmount'] != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0, top: 16.0),
-                    child: Text(
-                      '${car['prColors.amberoposedAmount']} f',
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-=======
               ),
               Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -819,7 +602,6 @@ class _TarifState extends State<Tarif> {
             ),
             subtitle: Text(item['description'] ?? ''),
             isThreeLine: true,
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           ),
         );
       },
@@ -865,45 +647,20 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
           const SizedBox(height: 24),
           _buildSpecifications(),
           const SizedBox(height: 24),
-<<<<<<< HEAD
-          _buildProposalSection(),
-=======
           // Section de proposition déplacée sous le prix, on la supprime ici
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         ],
       ),
     );
   }
 
   Widget _buildImageSection() {
-<<<<<<< HEAD
-    // Utilisation d'une image d'exemple pour le front-end
-=======
     final List images = widget.car['images'] ?? [];
     final String? first = images.isNotEmpty ? images.first.toString() : null;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     return Column(
       children: [
         SizedBox(
           height: 200,
           width: double.infinity,
-<<<<<<< HEAD
-          child: Image.asset(
-            'assets/images/car.png', // Image d'exemple
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: Colors.grey[300],
-                child: const Center(child: Text('Image non disponible')),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'Description de l\'image',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
-=======
           child:
               first == null
                   ? Container(
@@ -941,16 +698,12 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
         Text(
           widget.car['description']?.toString() ?? '',
           style: const TextStyle(fontSize: 14, color: Colors.grey),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         ),
       ],
     );
   }
 
   Widget _buildSpecifications() {
-<<<<<<< HEAD
-    final specs = widget.car['specs'] as Map<String, String>;
-=======
     final Map specsRaw =
         (widget.car['specs'] is Map) ? (widget.car['specs'] as Map) : {};
     // Utiliser des types dynamiques pour éviter les casts stricts
@@ -964,7 +717,6 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
     if (!hasValue) {
       return const SizedBox.shrink();
     }
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
 
@@ -1000,11 +752,7 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-<<<<<<< HEAD
-                    entry.value,
-=======
                     entry.value?.toString() ?? '',
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                     style: TextStyle(
                       fontSize:
                           isSmallScreen ? 11 : 12, // Taille de police réduite
@@ -1018,8 +766,6 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
     );
   }
 
-<<<<<<< HEAD
-=======
   Widget _buildImageThumb(
     Map<String, dynamic> item, {
     required double height,
@@ -1062,7 +808,6 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
     );
   }
 
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   Widget _buildHeader() {
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -1092,11 +837,8 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
             color: Colors.amber,
           ),
         ),
-<<<<<<< HEAD
-=======
         const SizedBox(height: 12),
         _buildInlineProposal(),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       ],
     );
   }
@@ -1158,8 +900,6 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
       ],
     );
   }
-<<<<<<< HEAD
-=======
 
   // Section de soumission de tarif (inline sous le prix)
   Widget _buildInlineProposal() {
@@ -1235,5 +975,4 @@ class _CarDetailsPageState extends State<CarDetailsPage> {
       ),
     );
   }
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 }

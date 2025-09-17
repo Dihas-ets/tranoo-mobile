@@ -3,12 +3,6 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'finalisation_achat.dart';
 import 'package:confetti/confetti.dart';
-<<<<<<< HEAD
-// import 'package:tranoo/data/screens/succes6.dart';
-
-class PayementScreen extends StatefulWidget {
-  const PayementScreen({super.key});
-=======
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import '../../services/user_service.dart';
@@ -19,7 +13,6 @@ class PayementScreen extends StatefulWidget {
   final Map<String, dynamic> article;
 
   const PayementScreen({super.key, required this.article});
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
   @override
   State<PayementScreen> createState() => _PayementScreenState();
@@ -30,10 +23,7 @@ class _PayementScreenState extends State<PayementScreen>
   String? selectedPiece;
   TextEditingController numeroController = TextEditingController(text: null);
   String? selectedTransitaire;
-<<<<<<< HEAD
-=======
   Map<String, dynamic>? selectedTransitaireObj; // pour afficher le prix ensuite
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   File? uploadedImage;
   String? uploadedFileName;
   bool hasUploadedFile = false;
@@ -42,8 +32,6 @@ class _PayementScreenState extends State<PayementScreen>
   bool isChauffeurChecked = false;
   bool isFraisDeRouteChecked = false;
   bool isTransitaireChecked = true;
-<<<<<<< HEAD
-=======
   // Champs déplacés en amont (cars_info/mastervac)
   bool get isEnTransitCheckedFromArticle =>
       (widget.article['modeLivraison']?.toString() ?? '') == 'transit';
@@ -53,30 +41,19 @@ class _PayementScreenState extends State<PayementScreen>
       widget.article['paysDestination']?.toString();
   String get detailsFromArticle =>
       (widget.article['detailsSupplementaires']?.toString() ?? '');
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
   late AnimationController _animationController;
   late ConfettiController _confettiController;
 
-<<<<<<< HEAD
-=======
   List<Map<String, dynamic>> transitPropositions = [];
   bool isLoadingPropositions = false;
 
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   final List<String> pieces = [
     'Copie de la Carte d\'identité',
     'Permis de conduire',
     'Passeport',
   ];
 
-<<<<<<< HEAD
-  final List<Map<String, String>> transitaires = [
-    {'name': 'Transitaire 1', 'price': '50,000 f'},
-    {'name': 'Transitaire 2', 'price': '60,000 f'},
-    {'name': 'Transitaire 3', 'price': '70,000 f'},
-  ];
-=======
   @override
   void initState() {
     super.initState();
@@ -150,7 +127,6 @@ class _PayementScreenState extends State<PayementScreen>
       });
     }
   }
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -166,21 +142,6 @@ class _PayementScreenState extends State<PayementScreen>
   }
 
   @override
-<<<<<<< HEAD
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
-    _confettiController = ConfettiController(
-      duration: const Duration(seconds: 2),
-    );
-  }
-
-  @override
-=======
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   void dispose() {
     _animationController.dispose();
     _confettiController.dispose();
@@ -258,11 +219,7 @@ class _PayementScreenState extends State<PayementScreen>
                     _buildLabel('Choix du transitaire'),
                     const SizedBox(height: 8),
                     _buildTransitaireDropdown(),
-<<<<<<< HEAD
-                    const SizedBox(height: 24),
-=======
                     const SizedBox(height: 16),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
                     // Télécharger des images
                     Center(
@@ -445,8 +402,6 @@ class _PayementScreenState extends State<PayementScreen>
   }
 
   Widget _buildTransitaireDropdown() {
-<<<<<<< HEAD
-=======
     if (isLoadingPropositions) {
       return Container(
         decoration: BoxDecoration(
@@ -502,7 +457,6 @@ class _PayementScreenState extends State<PayementScreen>
       );
     }
 
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF2F2F2),
@@ -517,20 +471,6 @@ class _PayementScreenState extends State<PayementScreen>
           ),
           isExpanded: true,
           items:
-<<<<<<< HEAD
-              transitaires.map((transitaire) {
-                return DropdownMenuItem<String>(
-                  value: transitaire['name'],
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(transitaire['name']!), // Nom du transitaire
-                      Text(
-                        transitaire['price']!, // Prix du transitaire
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-=======
               transitPropositions.map((proposition) {
                 final transitaire = proposition['transitaire'];
                 final montant = proposition['montant'];
@@ -558,16 +498,12 @@ class _PayementScreenState extends State<PayementScreen>
                           color: Colors.grey,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
                         ),
                       ),
                     ],
                   ),
                 );
               }).toList(),
-<<<<<<< HEAD
-          onChanged: (value) => setState(() => selectedTransitaire = value),
-=======
           onChanged: (value) {
             setState(() {
               selectedTransitaire = value;
@@ -577,14 +513,11 @@ class _PayementScreenState extends State<PayementScreen>
               );
             });
           },
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         ),
       ),
     );
   }
 
-<<<<<<< HEAD
-=======
   Future<void> _submitAchat(BuildContext context) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -669,7 +602,6 @@ class _PayementScreenState extends State<PayementScreen>
     }
   }
 
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   Widget _buildPaymentButton(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -679,23 +611,6 @@ class _PayementScreenState extends State<PayementScreen>
           if (isCarburantChecked &&
               isChauffeurChecked &&
               isFraisDeRouteChecked &&
-<<<<<<< HEAD
-              isTransitaireChecked) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const FinalisationAchatScreen(),
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Veuillez cocher toutes les cases (y compris Transitaire) avant de continuer.',
-                ),
-                backgroundColor: Colors.red,
-              ),
-=======
               isTransitaireChecked &&
               selectedTransitaire != null) {
             _submitAchat(context);
@@ -707,7 +622,6 @@ class _PayementScreenState extends State<PayementScreen>
             }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(message), backgroundColor: Colors.red),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             );
           }
         },

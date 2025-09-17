@@ -4,12 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
-<<<<<<< HEAD
-
-=======
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:tranoo/services/user_service.dart';
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
 class Profile2 extends StatefulWidget {
   const Profile2({super.key});
@@ -25,8 +21,6 @@ class _Profile2State extends State<Profile2> {
   Map<String, dynamic>? userData;
   bool loading = true;
   String? errorMsg;
-<<<<<<< HEAD
-=======
   bool isSaving = false;
 
   // Controllers pour champs dynamiques
@@ -38,7 +32,6 @@ class _Profile2State extends State<Profile2> {
   // Password
   final TextEditingController _newPasswordController = TextEditingController();
   bool _showNewPassword = false;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
   @override
   void initState() {
@@ -58,18 +51,7 @@ class _Profile2State extends State<Profile2> {
         return;
       }
       final idToken = await user.getIdToken();
-<<<<<<< HEAD
-      final String baseUrl = 'https://api.tranoo.store/api';
-
-      // final String baseUrl =
-      //     kIsWeb
-      //         ? 'http://localhost:5000/api'
-      //         : (Platform.isAndroid
-      //             ? 'http://10.0.2.2:5000/api'
-      //             : 'http://192.168.100.21:5000/api');
-=======
       final String baseUrl = getBaseUrl();
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       final dio = Dio(
         BaseOptions(
           baseUrl: baseUrl,
@@ -81,13 +63,10 @@ class _Profile2State extends State<Profile2> {
         userData = response.data['user'];
         loading = false;
         errorMsg = null;
-<<<<<<< HEAD
-=======
         _nomController.text = userData?["nom"] ?? "";
         _entrepriseController.text = userData?["entreprise"] ?? "";
         _emailController.text = userData?["email"] ?? "";
         _telephoneController.text = userData?["telephone"] ?? "";
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       });
     } catch (e) {
       setState(() {
@@ -117,11 +96,7 @@ class _Profile2State extends State<Profile2> {
     final idToken = await user.getIdToken();
     final dio = Dio(
       BaseOptions(
-<<<<<<< HEAD
-        baseUrl: 'http://10.0.2.2:5000/api',
-=======
         baseUrl: getBaseUrl(),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         headers: {'Authorization': 'Bearer $idToken'},
       ),
     );
@@ -143,13 +118,8 @@ class _Profile2State extends State<Profile2> {
     if (errorMsg != null) return Center(child: Text(errorMsg!));
     if (userData == null)
       return Center(child: Text("Aucune donnée utilisateur"));
-<<<<<<< HEAD
-    if (userData != null && userData?['role'] != 'vendeur') {
-      return Center(child: Text("Accès réservé aux vendeurs."));
-=======
     if (userData != null && userData?['role'] != 'transitaire') {
       return Center(child: Text("Accès réservé aux transitaires."));
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     }
     // Récupération des dimensions de l'écran
     final mediaQuery = MediaQuery.of(context);
@@ -219,15 +189,6 @@ class _Profile2State extends State<Profile2> {
               ),
               SizedBox(height: spacing * 2),
 
-<<<<<<< HEAD
-              // Formulaire simple
-              _buildTextField("Isaac mobiya", fontSize),
-              SizedBox(height: spacing),
-
-              _buildTextField("Transit Inter SARL", fontSize),
-              SizedBox(height: spacing),
-
-=======
               // Champs dynamiques
               _buildTextField(
                 controller: _nomController,
@@ -253,7 +214,6 @@ class _Profile2State extends State<Profile2> {
                 fontSize: fontSize,
               ),
               SizedBox(height: spacing),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
               _buildCountryDropdown(fontSize),
               SizedBox(height: spacing),
 
@@ -271,15 +231,11 @@ class _Profile2State extends State<Profile2> {
     );
   }
 
-<<<<<<< HEAD
-  Widget _buildTextField(String hintText, double fontSize) {
-=======
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
     required double fontSize,
   }) {
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -299,10 +255,7 @@ class _Profile2State extends State<Profile2> {
         ],
       ),
       child: TextField(
-<<<<<<< HEAD
-=======
         controller: controller,
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         style: TextStyle(fontSize: fontSize),
         decoration: InputDecoration(
           hintText: hintText,
@@ -442,38 +395,21 @@ class _Profile2State extends State<Profile2> {
         ],
       ),
       child: TextField(
-<<<<<<< HEAD
-        style: TextStyle(fontSize: fontSize),
-        obscureText: true,
-        decoration: InputDecoration(
-          hintText: "Changer son mot de passe",
-=======
         controller: _newPasswordController,
         style: TextStyle(fontSize: fontSize),
         obscureText: !_showNewPassword,
         decoration: InputDecoration(
           hintText: "Nouveau mot de passe",
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           contentPadding: EdgeInsets.symmetric(
             horizontal: 16,
             vertical: fontSize,
           ),
           border: InputBorder.none,
-<<<<<<< HEAD
-          suffixIcon: Icon(
-            Icons.lock,
-            color: Colors.amber,
-            size: fontSize * 1.2,
-          ),
-=======
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           prefixIcon: Icon(
             Icons.lock_outline,
             color: Colors.grey,
             size: fontSize * 1.2,
           ),
-<<<<<<< HEAD
-=======
           suffixIcon: IconButton(
             icon: Icon(
               _showNewPassword ? Icons.visibility_off : Icons.visibility,
@@ -486,14 +422,11 @@ class _Profile2State extends State<Profile2> {
               });
             },
           ),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         ),
       ),
     );
   }
 
-<<<<<<< HEAD
-=======
   Future<void> _saveProfile() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -567,16 +500,11 @@ class _Profile2State extends State<Profile2> {
     }
   }
 
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   Widget _buildUpdateButton(BuildContext context, double fontSize) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-<<<<<<< HEAD
-        onPressed: () {},
-=======
         onPressed: isSaving ? null : _saveProfile,
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF007BFF),
           foregroundColor: Colors.white,
@@ -585,11 +513,7 @@ class _Profile2State extends State<Profile2> {
           elevation: 0,
         ),
         child: Text(
-<<<<<<< HEAD
-          "Mettre à jour le profil",
-=======
           isSaving ? "Enregistrement..." : "Mettre à jour le profil",
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500),
         ),
       ),

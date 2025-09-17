@@ -1,11 +1,7 @@
 // ignore_for_file: unused_element
 
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import 'payement.dart';
-=======
 // import 'payement.dart'; // Plus utilisé
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
 import 'package:tranoo/utils/role_redirect.dart';
 // import 'package:tranoo/data/screens/paymentscreen.dart';
@@ -16,15 +12,10 @@ import 'package:tranoo/data/screens/succes6.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:developer';
 import 'une.dart'; // Import pour la page de demande de pub
-<<<<<<< HEAD
-
-class MastervacPage extends StatefulWidget {
-=======
 import 'verification_payment.dart';
 
 class MastervacPage extends StatefulWidget {
   final String? id;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   final bool isAcheteur;
   final String title;
   final String year;
@@ -41,10 +32,7 @@ class MastervacPage extends StatefulWidget {
 
   const MastervacPage({
     super.key,
-<<<<<<< HEAD
-=======
     this.id,
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     required this.isAcheteur,
     required this.title,
     required this.year,
@@ -74,13 +62,10 @@ class _MastervacPageState extends State<MastervacPage> {
   bool isGarantieIncluse = false;
   bool isLivraisonRapide = false;
   TextEditingController detailsController = TextEditingController();
-<<<<<<< HEAD
-=======
   // Champs de livraison/lieu déplacés depuis payement.dart
   bool isEnConsommationChecked = false;
   bool isEnTransitChecked = false;
   String? selectedCountry;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   final List<String> africanCountries = [
     'Bénin',
     'Burkina Faso',
@@ -421,9 +406,6 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Widget _buildCheckboxes() {
-<<<<<<< HEAD
-    return const SizedBox.shrink();
-=======
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -503,7 +485,6 @@ class _MastervacPageState extends State<MastervacPage> {
         ),
       ],
     );
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   }
 
   Widget _buildCheckboxContainer(
@@ -515,11 +496,7 @@ class _MastervacPageState extends State<MastervacPage> {
       padding: const EdgeInsets.all(1),
       child: Container(
         padding: const EdgeInsets.all(1),
-<<<<<<< HEAD
-        color: Colors.amber,
-=======
         // color: Colors.amber,
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -552,11 +529,6 @@ class _MastervacPageState extends State<MastervacPage> {
             ),
           ),
           onPressed: () {
-<<<<<<< HEAD
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const PayementScreen()),
-=======
             // Validation des champs obligatoires
             if (!isEnConsommationChecked && !isEnTransitChecked) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -709,7 +681,6 @@ class _MastervacPageState extends State<MastervacPage> {
                   ),
                 );
               },
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             );
           },
           child: const Text(
@@ -736,11 +707,6 @@ class _MastervacPageState extends State<MastervacPage> {
             ),
           ),
           onPressed: () {
-<<<<<<< HEAD
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const PayementScreen()),
-=======
             if (!isEnConsommationChecked && !isEnTransitChecked) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -872,7 +838,6 @@ class _MastervacPageState extends State<MastervacPage> {
                   ),
                 );
               },
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             );
           },
           child: const Text(

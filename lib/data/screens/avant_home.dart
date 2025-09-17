@@ -2,10 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-<<<<<<< HEAD
-=======
 import 'package:shared_preferences/shared_preferences.dart';
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 import 'package:tranoo/data/screens/wallet_screen.dart';
 import 'package:tranoo/data/screens/conditionutilisations.dart';
 import 'package:tranoo/data/screens/marque.dart';
@@ -20,20 +17,6 @@ import 'package:tranoo/data/screens/une.dart';
 import 'package:tranoo/data/screens/vendre.dart';
 import 'package:tranoo/data/screens/voitures.dart';
 import 'package:tranoo/languesentreprise.dart';
-<<<<<<< HEAD
-import 'package:tranoo/services/user_service.dart';
-import 'package:tranoo/utils/role_redirect.dart';
-
-import 'package:provider/provider.dart';
-import 'package:tranoo/providers/auth_provider.dart' as myauth;
-
-import 'connexion_page.dart';
-import 'discussion.dart';
-import 'chat.dart';
-import 'package:tranoo/data/screens/driver_certified.dart';
-import 'dart:developer';
-import 'package:firebase_auth/firebase_auth.dart';
-=======
 
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
@@ -43,7 +26,6 @@ import 'connexion_page.dart';
 import 'chat.dart';
 import 'package:tranoo/data/screens/driver_certified.dart';
 import 'package:tranoo/data/screens/first_page.dart';
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
 class AvantHome extends StatefulWidget {
   const AvantHome({super.key});
@@ -56,32 +38,6 @@ class _AvantHomeState extends State<AvantHome> {
   int _selectedIndex = 0;
   File? _image;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-<<<<<<< HEAD
-  // Ajout pour éviter la boucle infinie du drawer
-  bool _drawerReloadCalled = false;
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    if (isAcheteur) {
-      // ... logique existante ...
-    } else if (isChauffeur) {
-      // Chauffeur
-      switch (index) {
-        case 0:
-          // Accueil
-          // ... logique existante ...
-          break;
-        case 1:
-          // Voitures
-          // ... logique existante ...
-          break;
-        case 2:
-          // Pièces
-          // ... logique existante ...
-          break;
-=======
   bool _didRedirectToLogin = false;
   bool _didCheckOnboarding = false;
 
@@ -155,7 +111,6 @@ class _AvantHomeState extends State<AvantHome> {
       // ... logique existante ...
     } else if (role == 'chauffeur') {
       switch (index) {
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         case 3:
           Navigator.push(
             context,
@@ -165,43 +120,15 @@ class _AvantHomeState extends State<AvantHome> {
           );
           break;
       }
-<<<<<<< HEAD
-    } else if (isTransitaire) {
-      // ... logique existante ...
-      // Discussion (index 3)
-=======
     } else if (role == 'transitaire') {
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       if (index == 3) {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ChatListPage()),
         );
       }
-<<<<<<< HEAD
-    } else {
-      // Vendeur
-      switch (index) {
-        case 0:
-          // Accueil
-          // ... logique existante ...
-          break;
-        case 1:
-          // Publicité
-          // ... logique existante ...
-          break;
-        case 2:
-          // Vendre
-          // ... logique existante ...
-          break;
-        case 3:
-          // Pièces
-          // ... logique existante ...
-          break;
-=======
     } else if (role == 'vendeur') {
       switch (index) {
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         case 4:
           Navigator.push(
             context,
@@ -212,25 +139,6 @@ class _AvantHomeState extends State<AvantHome> {
     }
   }
 
-<<<<<<< HEAD
-  final userService = UserService(); // Simuler l'accès au rôle
-  late bool isAcheteur;
-  late bool isTransitaire;
-  late bool isVendeur;
-  late bool isChauffeur;
-
-  @override
-  void initState() {
-    super.initState();
-    final currentRole = userService.currentRole;
-    isAcheteur = currentRole == UserRole.acheteur;
-    isTransitaire = currentRole == UserRole.transitaire;
-    isVendeur = currentRole == UserRole.vendeur;
-    isChauffeur = currentRole == UserRole.chauffeur;
-  }
-
-=======
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   // Pages pour les acheteurs
   final List<Widget> _pagesAcheteur = [
     Marque(), // Accueil
@@ -252,11 +160,7 @@ class _AvantHomeState extends State<AvantHome> {
     Marque(),
     Tarif(),
     Transit(),
-<<<<<<< HEAD
-    Discussion(),
-=======
     ChatListPage(),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   ];
   final List<Widget> _pagesVendeur = [Marque(), Une(), Vendre(), Piece()];
 
@@ -280,25 +184,6 @@ class _AvantHomeState extends State<AvantHome> {
     }
   }
 
-<<<<<<< HEAD
-  Widget getCurrentPage() {
-    if (isAcheteur) {
-      return _selectedIndex < _pagesAcheteur.length
-          ? _pagesAcheteur[_selectedIndex]
-          : _pagesAcheteur[0];
-    } else if (isChauffeur) {
-      return _selectedIndex < _pagesChauffeur.length
-          ? _pagesChauffeur[_selectedIndex]
-          : _pagesChauffeur[0];
-    } else if (isTransitaire) {
-      return _selectedIndex < _pagesTransitaire.length
-          ? _pagesTransitaire[_selectedIndex]
-          : _pagesTransitaire[0];
-    } else {
-      return _selectedIndex < _pagesVendeur.length
-          ? _pagesVendeur[_selectedIndex]
-          : _pagesVendeur[0];
-=======
   Widget getCurrentPage(String? role) {
     if (role == 'acheteur') {
       return _selectedIndex < _pagesAcheteur.length
@@ -318,7 +203,6 @@ class _AvantHomeState extends State<AvantHome> {
           : _pagesVendeur[0];
     } else {
       return const Center(child: CircularProgressIndicator());
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     }
   }
 
@@ -328,19 +212,6 @@ class _AvantHomeState extends State<AvantHome> {
     final screenWidth = mediaQuery.size.width;
     final screenHeight = mediaQuery.size.height;
     final isPortrait = mediaQuery.orientation == Orientation.portrait;
-<<<<<<< HEAD
-
-    // Correction RangeError : si l'utilisateur est vendeur et l'index est hors borne, on le remet sur Pièces
-    if (isVendeur && _selectedIndex > 3) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() {
-          _selectedIndex = 3;
-        });
-      });
-    }
-
-=======
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     final appBarHeight = screenHeight * (isPortrait ? 0.08 : 0.12);
     final iconSize = responsiveSize(screenWidth, 24, 32);
     final logoHeight = screenHeight * (isPortrait ? 0.04 : 0.06);
@@ -349,352 +220,6 @@ class _AvantHomeState extends State<AvantHome> {
     final spacing = screenHeight * (isPortrait ? 0.01 : 0.02);
     final fontSize = responsiveSize(screenWidth, 14, 18);
 
-<<<<<<< HEAD
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF9FAFB),
-        elevation: 0,
-        toolbarHeight: appBarHeight,
-        title: Center(
-          child: Image.asset(
-            "assets/images/logo_connexion.png",
-            height: logoHeight,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(
-                  Icons.notifications_none_outlined,
-                  color: Colors.black,
-                  size: iconSize,
-                ),
-                Positioned(
-                  right: 4,
-                  top: 4,
-                  child: Container(
-                    width: screenWidth * 0.02,
-                    height: screenWidth * 0.02,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0xFFF8BF13),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const Notifications()),
-              );
-            },
-          ),
-        ],
-        leading: IconButton(
-          icon: Icon(Icons.menu, color: Colors.black, size: iconSize),
-          onPressed: () {
-            _scaffoldKey.currentState?.openDrawer();
-          },
-        ),
-      ),
-      body: getCurrentPage(),
-
-      drawer: Drawer(
-        child: Consumer<myauth.AuthProvider>(
-          builder: (context, auth, _) {
-            log(
-              '[Drawer] auth.user:  {auth.user}, auth.loading:  {auth.loading}',
-            );
-            final user = auth.user;
-            if (auth.loading) {
-              log('[Drawer] Affiche: Loader');
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (user == null) {
-              final firebaseUser = FirebaseAuth.instance.currentUser;
-              if (firebaseUser != null && !_drawerReloadCalled) {
-                _drawerReloadCalled = true;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  Provider.of<myauth.AuthProvider>(
-                    context,
-                    listen: false,
-                  ).reloadUser().then((_) {
-                    if (mounted)
-                      setState(() {
-                        _drawerReloadCalled = false;
-                      });
-                  });
-                });
-                return const Center(child: CircularProgressIndicator());
-              }
-              log('[Drawer] Affiche: Non connecté');
-              return Center(child: Text('Non connecté ou erreur réseau'));
-            }
-            log('[Drawer] Affiche: Utilisateur connecté: ${user['email']}');
-            // Utilisateur connecté
-            return ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                SizedBox(
-                  height: drawerHeaderHeight,
-                  child: DrawerHeader(
-                    decoration: const BoxDecoration(color: Color(0XffF8BF13)),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        GestureDetector(
-                          onTap: _pickImage,
-                          child: CircleAvatar(
-                            radius: avatarRadius,
-                            backgroundColor: Colors.grey,
-                            backgroundImage:
-                                _image == null
-                                    ? const AssetImage(
-                                      "assets/images/jenifer.jpg",
-                                    )
-                                    : FileImage(_image!) as ImageProvider,
-                          ),
-                        ),
-                        SizedBox(height: spacing),
-                        Flexible(
-                          child: Text(
-                            user['nom'] ?? "Utilisateur",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: fontSize,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Flexible(
-                          child: Text(
-                            user['email'] ?? "",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: fontSize * 0.8,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                _buildDrawerButton(
-                  context,
-                  text: 'Accueil',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AvantHome(),
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.home, color: Colors.black, size: iconSize),
-                ),
-                _buildDrawerButton(
-                  context,
-                  text: 'Portefeuille',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const WalletScreen(),
-                      ),
-                    );
-                  },
-                  icon: Icon(
-                    Icons.account_balance_wallet,
-                    color: Colors.black,
-                    size: iconSize,
-                  ),
-                ),
-                _buildDrawerButton(
-                  context,
-                  text: 'Langues',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LanguesEntreprise(),
-                      ),
-                    );
-                  },
-                  icon: Icon(
-                    Icons.language,
-                    color: Colors.black,
-                    size: iconSize,
-                  ),
-                ),
-                _buildDrawerButton(
-                  context,
-                  text: 'Notifications',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const Notifications(),
-                      ),
-                    );
-                  },
-                  icon: Icon(
-                    Icons.notifications,
-                    color: Colors.black,
-                    size: iconSize,
-                  ),
-                ),
-                _buildDrawerButton(
-                  context,
-                  text: 'Confidentialité',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ConditionUtilisations(),
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.lock, color: Colors.black, size: iconSize),
-                ),
-                _buildDrawerButton(
-                  context,
-                  text: 'Profil',
-                  onTap: () {
-                    Widget destination;
-                    final role = user['role'];
-                    if (role == 'acheteur') {
-                      destination = const Profil3();
-                    } else if (role == 'transitaire') {
-                      destination = const ProfilUtilisateur2();
-                    } else if (role == 'vendeur') {
-                      destination = const ProfilUtilisateurPage();
-                    } else {
-                      destination = const Profil3();
-                    }
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => destination),
-                    );
-                  },
-                  icon: Icon(Icons.person, color: Colors.black, size: iconSize),
-                ),
-                _buildDrawerButton(
-                  context,
-                  text: 'Déconnexion',
-                  onTap: () async {
-                    await Provider.of<myauth.AuthProvider>(
-                      context,
-                      listen: false,
-                    ).logout();
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ConnexionPage(),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                  icon: Icon(Icons.logout, color: Colors.black, size: iconSize),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFFF9FAFB),
-        selectedItemColor: const Color(0xFFF8BF13),
-        unselectedItemColor: Colors.black,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items:
-            isAcheteur
-                ? [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.home, size: iconSize),
-                    label: 'Accueil',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.directions_car, size: iconSize),
-                    label: 'Voitures',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.build, size: iconSize),
-                    label: 'Pièces',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.person, size: iconSize),
-                    label: 'Profil',
-                  ),
-                ]
-                : isChauffeur
-                ? [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.home, size: iconSize),
-                    label: 'Accueil',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.directions_car, size: iconSize),
-                    label: 'Voitures',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.build, size: iconSize),
-                    label: 'Pièces',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.verified_user, size: iconSize),
-                    label: 'Chauffeur. Certif',
-                  ),
-                ]
-                : isTransitaire
-                ? [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.home, size: iconSize),
-                    label: 'Accueil',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.attach_money, size: iconSize),
-                    label: 'Tarif',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.local_shipping, size: iconSize),
-                    label: 'Transit',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.forum, size: iconSize),
-                    label: 'Discussion',
-                  ),
-                ]
-                : [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.home, size: iconSize),
-                    label: 'Accueil',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.campaign, size: iconSize),
-                    label: 'Publicité',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.sell, size: iconSize),
-                    label: 'Vendre',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.build, size: iconSize),
-                    label: 'Pièces',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.forum, size: iconSize),
-                    label: 'Discussion',
-                  ),
-                ],
-=======
     return MultiProvider(
       providers: [ChangeNotifierProvider(create: (_) => CounterProvider())],
       child: Consumer<myauth.AuthProvider>(
@@ -1253,7 +778,6 @@ class _AvantHomeState extends State<AvantHome> {
                     ),
           );
         },
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       ),
     );
   }

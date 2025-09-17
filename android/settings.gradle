@@ -16,11 +16,7 @@ pluginManagement {
     }
 
     plugins {
-<<<<<<< HEAD
-        id 'com.android.application' version '8.2.2' apply false
-=======
         id 'com.android.application' version '8.6.0' apply false
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     // START: FlutterFire Configuration
     id "com.google.gms.google-services" version "4.3.15" apply false
     // END: FlutterFire Configuration
@@ -29,13 +25,8 @@ pluginManagement {
 
 plugins {
     id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-<<<<<<< HEAD
-    id "com.android.application" version "8.1.4" apply false
-    id "org.jetbrains.kotlin.android" version "1.8.22" apply false
-=======
     id "com.android.application" version "8.6.0" apply false
     id "org.jetbrains.kotlin.android" version "2.1.0" apply false
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 }
 
 include ":app"

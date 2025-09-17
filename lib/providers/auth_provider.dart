@@ -4,19 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/utils/role_redirect.dart';
-<<<<<<< HEAD
-=======
 // import 'package:flutter/foundation.dart' show kIsWeb; // unused
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 import 'dart:io' show Platform;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:logging/logging.dart';
-<<<<<<< HEAD
-=======
 import 'package:tranoo/services/chat_service.dart';
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
 class AuthProvider with ChangeNotifier {
   String? _token;
@@ -24,12 +18,9 @@ class AuthProvider with ChangeNotifier {
   bool _loading = true;
   final Logger _logger = Logger('AuthProvider');
 
-<<<<<<< HEAD
-=======
   static const String _tokenKey = 'token';
   static const String _userKey = 'user';
 
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   String? get token => _token;
   Map<String, dynamic>? get user => _user;
   bool get loading => _loading;
@@ -39,8 +30,6 @@ class AuthProvider with ChangeNotifier {
     _init();
   }
 
-<<<<<<< HEAD
-=======
   // --- PERSISTENCE SHARED PREFERENCES ---
   static Future<void> saveUserToPrefs(
     String? token,
@@ -85,7 +74,6 @@ class AuthProvider with ChangeNotifier {
     return token;
   }
 
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
   Future<void> _sendFcmTokenToBackend() async {
     try {
       final fcmToken = await FirebaseMessaging.instance.getToken();
@@ -102,11 +90,7 @@ class AuthProvider with ChangeNotifier {
 
       final idToken = await user.getIdToken();
       final response = await http.post(
-<<<<<<< HEAD
-        Uri.parse('http://192.168.100.21:5000/api/users/fcm-token'),
-=======
         Uri.parse('${getBaseUrl().replaceAll('/api', '')}/api/users/fcm-token'),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $idToken',
@@ -127,8 +111,6 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> _init() async {
-<<<<<<< HEAD
-=======
     debugPrint('[AuthProvider] _init() démarré');
     // 1. Charger d'abord le user/token du cache pour affichage immédiat
     _token = await loadTokenFromPrefs();
@@ -146,15 +128,11 @@ class AuthProvider with ChangeNotifier {
     }
 
     // 2. Ensuite, écouter FirebaseAuth pour les changements d'état
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     FirebaseAuth.instance.authStateChanges().listen((firebaseUser) async {
       debugPrint('[AuthProvider] Firebase user: $firebaseUser');
       _loading = true;
       notifyListeners();
-<<<<<<< HEAD
-=======
       debugPrint('[AuthProvider] notifyListeners() loading=true');
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       if (firebaseUser != null) {
         debugPrint(
           '[AuthProvider] Firebase user (avant getIdToken): $firebaseUser',
@@ -163,37 +141,11 @@ class AuthProvider with ChangeNotifier {
         debugPrint('[AuthProvider] idToken (avant requête backend): $idToken');
         _token = idToken;
         try {
-<<<<<<< HEAD
-          // URL dynamique selon la plateforme
-          final String baseUrl = 'https://api.tranoo.store/api';
-
-          // final String baseUrl =
-          //     kIsWeb
-          //         ? 'http://localhost:5000/api' // compilation via web
-          //         : (Platform.isAndroid &&
-          //                 !Platform.isFuchsia &&
-          //                 !isPhysicalDevice()
-          //             ? 'http://10.0.2.2:5000/api' // émulateur Android
-          //             : 'http://192.168.100.21:5000/api'); //  IP de la machine sur le réseau local téléphone physique (Android/iOS)
-=======
           final String baseUrl = getBaseUrl();
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           final dio = Dio(
             BaseOptions(
               baseUrl: baseUrl,
               headers: {'Authorization': 'Bearer $idToken'},
-<<<<<<< HEAD
-              connectTimeout: const Duration(seconds: 10),
-              receiveTimeout: const Duration(seconds: 10),
-            ),
-          );
-          try {
-            final response = await dio.get('/protected/me');
-            debugPrint('[AuthProvider] /protected/me: ${response.data}');
-            _user = response.data['user'];
-            // Envoyer le token FCM après connexion réussie
-            await _sendFcmTokenToBackend();
-=======
               connectTimeout: const Duration(seconds: 30),
               receiveTimeout: const Duration(seconds: 30),
             ),
@@ -210,7 +162,6 @@ class AuthProvider with ChangeNotifier {
             // Initialiser le WebSocket après connexion réussie
             await ChatService().initializeSocket();
 
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             if (_user != null && _user!['role'] != null) {
               final role = stringToUserRole(_user!['role']);
               if (role != null) {
@@ -231,26 +182,13 @@ class AuthProvider with ChangeNotifier {
               );
             }
             _user = null;
-<<<<<<< HEAD
-=======
             await clearUserFromPrefs();
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
             debugPrint('[AuthProvider] clearRole (catch)');
             UserService().clearRole();
           } finally {
             _loading = false;
             debugPrint('[AuthProvider] _loading: $_loading, _user: $_user');
             notifyListeners();
-<<<<<<< HEAD
-          }
-        } catch (e) {
-          // Erreur de configuration Dio ou autre
-          debugPrint('[AuthProvider] Erreur globale: $e');
-          _user = null;
-          UserService().clearRole();
-          _loading = false;
-          notifyListeners();
-=======
             debugPrint('[AuthProvider] notifyListeners() après backend');
           }
         } catch (e) {
@@ -261,18 +199,11 @@ class AuthProvider with ChangeNotifier {
           _loading = false;
           notifyListeners();
           debugPrint('[AuthProvider] notifyListeners() après erreur globale');
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         }
       } else {
         debugPrint('[AuthProvider] Utilisateur Firebase null, clearRole');
         _token = null;
         _user = null;
-<<<<<<< HEAD
-        UserService().clearRole();
-        _loading = false;
-        debugPrint('[AuthProvider] _loading: $_loading, _user: $_user');
-        notifyListeners();
-=======
         await clearUserFromPrefs();
         UserService().clearRole();
 
@@ -283,18 +214,10 @@ class AuthProvider with ChangeNotifier {
         debugPrint('[AuthProvider] _loading: $_loading, _user: $_user');
         notifyListeners();
         debugPrint('[AuthProvider] notifyListeners() après déconnexion');
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
       }
     });
   }
 
-<<<<<<< HEAD
-  Future<void> login(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', token);
-    _token = token;
-    _loading = true;
-=======
   Future<void> login(String token, Map<String, dynamic> user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
@@ -302,7 +225,6 @@ class AuthProvider with ChangeNotifier {
     _token = token;
     _user = user;
     _loading = false;
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     notifyListeners();
   }
 
@@ -310,16 +232,12 @@ class AuthProvider with ChangeNotifier {
     await FirebaseAuth.instance.signOut();
     _token = null;
     _user = null;
-<<<<<<< HEAD
-    UserService().clearRole();
-=======
     await clearUserFromPrefs();
     UserService().clearRole();
 
     // Déconnecter le WebSocket
     ChatService().disconnect();
 
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
     notifyListeners();
   }
 
@@ -332,31 +250,13 @@ class AuthProvider with ChangeNotifier {
       final idToken = await firebaseUser.getIdToken();
       _token = idToken;
       try {
-<<<<<<< HEAD
-        final String baseUrl = 'https://api.tranoo.store/api';
-
-        // final String baseUrl =
-        //     kIsWeb
-        //         ? 'http://localhost:5000/api'
-        //         : (Platform.isAndroid &&
-        //                 !Platform.isFuchsia &&
-        //                 !isPhysicalDevice()
-        //             ? 'http://10.0.2.2:5000/api'
-        //             : 'http://192.168.100.21:5000/api');
-=======
         final String baseUrl = getBaseUrl();
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
         final dio = Dio(
           BaseOptions(
             baseUrl: baseUrl,
             headers: {'Authorization': 'Bearer $idToken'},
-<<<<<<< HEAD
-            connectTimeout: const Duration(seconds: 10),
-            receiveTimeout: const Duration(seconds: 10),
-=======
             connectTimeout: const Duration(seconds: 30),
             receiveTimeout: const Duration(seconds: 30),
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
           ),
         );
         final response = await dio.get('/protected/me');
