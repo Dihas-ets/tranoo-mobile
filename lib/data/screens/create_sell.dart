@@ -46,20 +46,18 @@ class _CreateSellPageState extends State<CreateSellPage> {
   String? _cloudinaryUrl;
 
   // Ajout pour plusieurs images et vidéo
-  List<File?> _uploadedImages = [null, null, null]; // mobile
-  List<Uint8List?> _uploadedImagesWeb = [null, null, null]; // web
-  List<String?> _cloudinaryImageUrls = [null, null, null];
-  List<bool> _isUploadingImage = [
-    false,
-    false,
-    false,
-  ]; // Ajouté pour le chargement
+  List<File?> _uploadedImages = List.filled(11, null); // mobile - 11 images max
+  List<Uint8List?> _uploadedImagesWeb = List.filled(11, null); // web - 11 images max
+  List<String?> _cloudinaryImageUrls = List.filled(11, null);
+  List<bool> _isUploadingImage = List.filled(11, false); // Ajouté pour le chargement
   File? _uploadedVideo;
   String? _cloudinaryVideoUrl;
   bool _isUploadingVideo = false; // Ajouté pour le chargement vidéo
 
   String? _customModel; // Ajouté pour la saisie personnalisée du modèle
   String? _customMarque; // Ajouté pour la saisie personnalisée de la marque
+  String? _selectedCouleur; // Couleur sélectionnée
+  bool? _dedouanement; // Dédouanement (true = Oui, false = Non)
 
   final List<String> _conditions = ['Nouveau', 'Occasion']; // Reste en String
   final List<String> _models = [
@@ -89,6 +87,62 @@ class _CreateSellPageState extends State<CreateSellPage> {
     4,
     5,
   ]; // Liste d'options pour le nombre de portes
+  
+  // Liste complète des couleurs avec leurs codes
+  final Map<String, Color> _couleurs = {
+    'Blanc': Colors.white,
+    'Noir': Colors.black,
+    'Gris': Colors.grey,
+    'Argenté': const Color(0xFFC0C0C0),
+    'Rouge': Colors.red,
+    'Bleu': Colors.blue,
+    'Vert': Colors.green,
+    'Jaune': Colors.yellow,
+    'Orange': Colors.orange,
+    'Violet': Colors.purple,
+    'Rose': Colors.pink,
+    'Marron': Colors.brown,
+    'Beige': const Color(0xFFF5F5DC),
+    'Bordeaux': const Color(0xFF800020),
+    'Bleu marine': const Color(0xFF000080),
+    'Vert foncé': const Color(0xFF006400),
+    'Gris foncé': const Color(0xFF696969),
+    'Gris clair': const Color(0xFFD3D3D3),
+    'Rouge foncé': const Color(0xFF8B0000),
+    'Bleu clair': const Color(0xFFADD8E6),
+    'Vert clair': const Color(0xFF90EE90),
+    'Jaune clair': const Color(0xFFFFFFE0),
+    'Orange foncé': const Color(0xFFFF8C00),
+    'Violet foncé': const Color(0xFF4B0082),
+    'Rose foncé': const Color(0xFFC71585),
+    'Marron clair': const Color(0xFFD2B48C),
+    'Crème': const Color(0xFFFFFDD0),
+    'Ivoire': const Color(0xFFFFFFF0),
+    'Champagne': const Color(0xFFF7E7CE),
+    'Bronze': const Color(0xFFCD7F32),
+    'Doré': const Color(0xFFFFD700),
+    'Cuivre': const Color(0xFFB87333),
+    'Turquoise': const Color(0xFF40E0D0),
+    'Cyan': const Color(0xFF00FFFF),
+    'Magenta': const Color(0xFFFF00FF),
+    'Lime': const Color(0xFF00FF00),
+    'Indigo': const Color(0xFF4B0082),
+    'Olive': const Color(0xFF808000),
+    'Saumon': const Color(0xFFFA8072),
+    'Corail': const Color(0xFFFF7F50),
+    'Pêche': const Color(0xFFFFDAB9),
+    'Lavande': const Color(0xFFE6E6FA),
+    'Menthe': const Color(0xFF98FB98),
+    'Bleu pétrole': const Color(0xFF008B8B),
+    'Vert olive': const Color(0xFF6B8E23),
+    'Rouge brique': const Color(0xFFB22222),
+    'Bleu acier': const Color(0xFF4682B4),
+    'Vert forêt': const Color(0xFF228B22),
+    'Prune': const Color(0xFFDDA0DD),
+    'Kaki': const Color(0xFFF0E68C),
+    'Anthracite': const Color(0xFF36454F),
+    'Perle': const Color(0xFFEAE0C8),
+  };
 
   // Supprimer la déclaration, l'utilisation et l'affichage du champ 'lieu' (dropdown, TextField, variables _selectedLieu, _customLieu, _lieux, etc.)
 
@@ -147,12 +201,19 @@ class _CreateSellPageState extends State<CreateSellPage> {
         );
         return;
       }
-      // Idéalement, la vidéo doit faire moins de 1 minute pour une présentation rapide.
       setState(() {
         _uploadedVideo = File(video.path);
         _isUploadingVideo = true;
       });
-      final url = await uploadVideoToCloudinary(_uploadedVideo!);
+      
+      String? url;
+      if (kIsWeb) {
+        final bytes = await video.readAsBytes();
+        url = await uploadVideoToCloudinaryWeb(bytes);
+      } else {
+        url = await uploadVideoToCloudinary(_uploadedVideo!);
+      }
+      
       if (url != null) {
         setState(() {
           _cloudinaryVideoUrl = url;
@@ -181,11 +242,25 @@ class _CreateSellPageState extends State<CreateSellPage> {
   // Après le Dropdown de la condition, ne pas afficher de checkboxes
 
   void _onValidate() {
-    // Vérifie que 3 images sont sélectionnées (locales ou uploadées)
-    if ((kIsWeb && _uploadedImagesWeb.any((img) => img == null)) ||
-        (!kIsWeb && _uploadedImages.any((img) => img == null))) {
+    // Debug logs
+    print('[CreateSell] _cloudinaryVideoUrl: $_cloudinaryVideoUrl');
+    print('[CreateSell] _uploadedVideo: $_uploadedVideo');
+    
+    // Vérifie qu'au moins 3 images (min) et jusqu'à 11 (max)
+    final imagesCount = _cloudinaryImageUrls.whereType<String>().length;
+    if (imagesCount < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez sélectionner 3 images.')),
+        const SnackBar(
+          content: Text('Veuillez sélectionner au minimum 3 images.'),
+        ),
+      );
+      return;
+    }
+    if (imagesCount > 11) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vous pouvez sélectionner au maximum 11 images.'),
+        ),
       );
       return;
     }
@@ -210,6 +285,8 @@ class _CreateSellPageState extends State<CreateSellPage> {
         _selectedBoiteVitesse == null ||
         _selectedCarburantDropdown == null ||
         _selectedClimatiseurDropdown == null ||
+        _selectedCouleur == null ||
+        _dedouanement == null ||
         _distanceController.text.isEmpty ||
         _siegesController.text.isEmpty ||
         _priceController.text.isEmpty ||
@@ -229,6 +306,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
     // Passe toutes les infos à cars_info.dart
     final imagesList = _cloudinaryImageUrls.whereType<String>().toList();
     print('[CreateSell] images transmises à CarsInfo: $imagesList');
+    print('[CreateSell] vidéo transmise à CarsInfo: $_cloudinaryVideoUrl');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -248,6 +326,8 @@ class _CreateSellPageState extends State<CreateSellPage> {
               sieges: _siegesController.text,
               portes: _selectedPorte?.toString(),
               cylindre: _cylindreController.text,
+              couleur: _selectedCouleur,
+              dedouanement: _dedouanement,
               images: imagesList,
               video: _cloudinaryVideoUrl,
               entreprise: _companyController.text,
@@ -450,6 +530,134 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               horizontal: 16,
                               vertical: 14,
                             ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Couleur
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Couleur'),
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 120,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF2F2F2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: GridView.builder(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 6,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                            itemCount: _couleurs.length,
+                            itemBuilder: (context, index) {
+                              final couleurNom = _couleurs.keys.elementAt(index);
+                              final couleurValeur = _couleurs.values.elementAt(index);
+                              final isSelected = _selectedCouleur == couleurNom;
+                              
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedCouleur = couleurNom;
+                                  });
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: couleurValeur,
+                                    border: Border.all(
+                                      color: isSelected ? Colors.amber : Colors.grey,
+                                      width: isSelected ? 3 : 1,
+                                    ),
+                                    boxShadow: isSelected ? [
+                                      BoxShadow(
+                                        color: Colors.amber.withOpacity(0.5),
+                                        blurRadius: 4,
+                                        spreadRadius: 1,
+                                      ),
+                                    ] : null,
+                                  ),
+                                  child: couleurValeur == Colors.white
+                                      ? Container(
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: Colors.grey.shade300,
+                                              width: 1,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        if (_selectedCouleur != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Couleur sélectionnée: $_selectedCouleur',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Dédouanement
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Dédouanement'),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF2F2F2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: RadioListTile<bool>(
+                                  title: const Text('Oui'),
+                                  value: true,
+                                  groupValue: _dedouanement,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _dedouanement = value;
+                                    });
+                                  },
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                ),
+                              ),
+                              Expanded(
+                                child: RadioListTile<bool>(
+                                  title: const Text('Non'),
+                                  value: false,
+                                  groupValue: _dedouanement,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _dedouanement = value;
+                                    });
+                                  },
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -672,76 +880,104 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           horizontal: 16,
                           vertical: 14,
                         ),
-                        ),
                       ),
+                    ),
                     const SizedBox(height: 24),
 
-                    // Télécharger des images
-                    Row(
-                      children: List.generate(
-                        3,
-                        (index) => Expanded(
-                          child: GestureDetector(
-                            onTap: () => _pickImage(index),
-                            child: Container(
-                              height: 80,
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.amber),
-                              ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  if (kIsWeb &&
-                                      _uploadedImagesWeb[index] != null)
-                                    Image.memory(
+                    // Télécharger des images (min 3, max 11)
+                    _buildLabel('Images (min 3, max 11)'),
+                    const SizedBox(height: 8),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        childAspectRatio: 1.2,
+                      ),
+                      itemCount: 11,
+                      itemBuilder: (context, index) {
+                        return GestureDetector(
+                          onTap: () => _pickImage(index),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber),
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                if (kIsWeb && _uploadedImagesWeb[index] != null)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.memory(
                                       _uploadedImagesWeb[index]!,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
-                                    )
-                                  else if (!kIsWeb &&
-                                      _uploadedImages[index] != null)
-                                    Image.file(
+                                      height: double.infinity,
+                                    ),
+                                  )
+                                else if (!kIsWeb && _uploadedImages[index] != null)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.file(
                                       _uploadedImages[index]!,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
-                                    )
-                                  else
-                                    const Icon(
-                                      Icons.add_a_photo,
-                                      color: Colors.grey,
+                                      height: double.infinity,
                                     ),
-                                  if (_isUploadingImage[index])
-                                    const Positioned.fill(
-                                      child: Center(
-                                        child: CircularProgressIndicator(),
+                                  )
+                                else
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.add_a_photo,
+                                        color: Colors.grey,
+                                        size: 30,
                                       ),
-                                    ),
-                                  if (_cloudinaryImageUrls[index] != null)
-                                    const Positioned(
-                                      right: 4,
-                                      top: 4,
-                                      child: Icon(
-                                        Icons.check_circle,
-                                        color: Colors.green,
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${index + 1}',
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
                                       ),
+                                    ],
+                                  ),
+                                if (_isUploadingImage[index])
+                                  const Positioned.fill(
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
                                     ),
-                                ],
-                              ),
+                                  ),
+                                if (_cloudinaryImageUrls[index] != null)
+                                  const Positioned(
+                                    right: 4,
+                                    top: 4,
+                                    child: Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     // Upload vidéo (optionnelle)
-                    // Pour la vidéo, sur web, afficher une icône ou un message (pas d'aperçu File direct)
+                    _buildLabel('Vidéo (optionnelle, max 20 Mo)'),
+                    const SizedBox(height: 8),
                     GestureDetector(
                       onTap: _pickVideo,
                       child: Container(
-                        height: 80,
+                        height: 100,
+                        width: double.infinity,
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(8),
@@ -750,22 +986,54 @@ class _CreateSellPageState extends State<CreateSellPage> {
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            if (_uploadedVideo != null)
-                              kIsWeb
-                                  ? const Icon(
+                            if (_uploadedVideo != null || _cloudinaryVideoUrl != null)
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
                                     Icons.videocam,
                                     color: Colors.blue,
                                     size: 40,
-                                  )
-                                  : const Icon(
-                                    Icons.videocam,
-                                    color: Colors.blue,
-                                    size: 40,
-                                  )
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _cloudinaryVideoUrl != null 
+                                        ? 'Vidéo uploadée \u2713'
+                                        : 'Vidéo sélectionnée',
+                                    style: const TextStyle(
+                                      color: Colors.blue,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (_cloudinaryVideoUrl != null)
+                                    Text(
+                                      'URL: ${_cloudinaryVideoUrl!.substring(0, 30)}...',
+                                      style: const TextStyle(
+                                        color: Colors.green,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                ],
+                              )
                             else
-                              const Icon(
-                                Icons.add_to_photos,
-                                color: Colors.grey,
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.video_call,
+                                    color: Colors.grey,
+                                    size: 40,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Ajouter une vidéo',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
                               ),
                             if (_isUploadingVideo)
                               const Positioned.fill(
@@ -775,11 +1043,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               ),
                             if (_cloudinaryVideoUrl != null)
                               const Positioned(
-                                right: 4,
-                                top: 4,
+                                right: 8,
+                                top: 8,
                                 child: Icon(
                                   Icons.check_circle,
                                   color: Colors.green,
+                                  size: 24,
                                 ),
                               ),
                           ],
@@ -836,7 +1105,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
 
   Widget _buildLabel(String text) {
     return Text(
-      text,
+      text + ' *',
       style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
     );
   }
@@ -938,6 +1207,30 @@ Future<String?> uploadImageToCloudinaryWeb(Uint8List bytes) async {
         ..files.add(
           http.MultipartFile.fromBytes('file', bytes, filename: 'upload.jpg'),
         );
+
+  final response = await request.send();
+  if (response.statusCode == 200) {
+    final respStr = await response.stream.bytesToString();
+    final json = jsonDecode(respStr) as Map<String, dynamic>;
+    return json['secure_url'] as String?;
+  } else {
+    return null;
+  }
+}
+
+// Fonction d'upload vidéo Cloudinary pour Flutter Web
+Future<String?> uploadVideoToCloudinaryWeb(Uint8List bytes) async {
+  const String cloudName = 'dy0raj5bh';
+  const String uploadPreset = 'unsigned_preset';
+  final url = Uri.parse(
+    'https://api.cloudinary.com/v1_1/$cloudName/video/upload',
+  );
+
+  final request = http.MultipartRequest('POST', url)
+    ..fields['upload_preset'] = uploadPreset
+    ..files.add(
+      http.MultipartFile.fromBytes('file', bytes, filename: 'upload.mp4'),
+    );
 
   final response = await request.send();
   if (response.statusCode == 200) {

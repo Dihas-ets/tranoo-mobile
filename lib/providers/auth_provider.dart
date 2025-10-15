@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:logging/logging.dart';
 import 'package:tranoo/services/chat_service.dart';
+import 'package:tranoo/services/blocked_user_service.dart';
 
 class AuthProvider with ChangeNotifier {
   String? _token;
@@ -180,6 +181,15 @@ class AuthProvider with ChangeNotifier {
               debugPrint(
                 '[AuthProvider] DioError: ${e.response?.statusCode} - ${e.response?.data}',
               );
+              
+              // Vérifier si l'utilisateur est bloqué
+              if (e.response?.statusCode == 403) {
+                final data = e.response?.data;
+                if (data is Map && data['blocked'] == true) {
+                  await _handleBlockedUser(data['message'] ?? 'Compte bloqué');
+                  return;
+                }
+              }
             }
             _user = null;
             await clearUserFromPrefs();
@@ -271,6 +281,14 @@ class AuthProvider with ChangeNotifier {
           }
         }
       } catch (e) {
+        // Vérifier si l'utilisateur est bloqué lors du rechargement
+        if (e is DioError && e.response?.statusCode == 403) {
+          final data = e.response?.data;
+          if (data is Map && data['blocked'] == true) {
+            await _handleBlockedUser(data['message'] ?? 'Compte bloqué');
+            return;
+          }
+        }
         _user = null;
         UserService().clearRole();
       } finally {
@@ -283,6 +301,29 @@ class AuthProvider with ChangeNotifier {
       UserService().clearRole();
       _loading = false;
       notifyListeners();
+    }
+  }
+
+  // Gestion des utilisateurs bloqués
+  Future<void> _handleBlockedUser(String message) async {
+    try {
+      // Déconnexion complète
+      await FirebaseAuth.instance.signOut();
+      await clearUserFromPrefs();
+      
+      _token = null;
+      _user = null;
+      _loading = false;
+      
+      UserService().clearRole();
+      ChatService().disconnect();
+      
+      notifyListeners();
+      
+      // Afficher le dialogue de blocage
+      BlockedUserService.showBlockedDialog(message);
+    } catch (e) {
+      debugPrint('Erreur lors de la gestion de l\'utilisateur bloqué: $e');
     }
   }
 }

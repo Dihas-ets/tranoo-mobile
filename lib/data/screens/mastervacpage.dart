@@ -1,6 +1,7 @@
 // ignore_for_file: unused_element
 
 import 'package:flutter/material.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 // import 'payement.dart'; // Plus utilisé
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
 import 'package:tranoo/utils/role_redirect.dart';
@@ -54,6 +55,7 @@ class MastervacPage extends StatefulWidget {
 
 class _MastervacPageState extends State<MastervacPage> {
   int _currentImageIndex = 0;
+  late PageController _pageController;
   // SUPPRIME la liste statique _images
 
   // Définition des booléens nécessaires
@@ -89,6 +91,7 @@ class _MastervacPageState extends State<MastervacPage> {
     'Éthiopie',
   ];
   late ConfettiController _confettiController;
+  bool _isOnline = false;
 
   @override
   void initState() {
@@ -96,11 +99,38 @@ class _MastervacPageState extends State<MastervacPage> {
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
     );
+    _pageController = PageController(initialPage: _currentImageIndex);
+    _loadArticleStatut();
+  }
+
+  Future<void> _loadArticleStatut() async {
+    try {
+      final id = widget.id;
+      if (id == null || id.isEmpty) return;
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+      final res = await http.get(
+        Uri.parse(getBaseUrl() + '/articles/' + id),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer ' + token,
+        },
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final statut = (data['statut'] ?? '').toString().toLowerCase();
+        if (!mounted) return;
+        setState(() {
+          _isOnline = (statut == 'en_ligne');
+        });
+      }
+    } catch (_) {}
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -144,129 +174,131 @@ class _MastervacPageState extends State<MastervacPage> {
         SizedBox(
           height: 300,
           width: double.infinity,
-          child:
-              (() {
-                final String img = widget.images[_currentImageIndex] ?? '';
-                if (img.startsWith('http')) {
-                  return Image.network(
-                    img,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Text('Image non disponible'),
-                        ),
-                      );
-                    },
-                  );
-                } else if (img.isNotEmpty) {
-                  return Image.asset(
-                    img,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Text('Image non disponible'),
-                        ),
-                      );
-                    },
-                  );
-                } else {
-                  return Image.asset(
-                    'assets/images/image_not_found.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Text('Image non disponible'),
-                        ),
-                      );
-                    },
-                  );
-                }
-              })(),
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 100,
-            color: Colors.black.withAlpha(50),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: widget.images.length,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _currentImageIndex = index;
-                    });
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 10,
-                    ),
-                    width: 120,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color:
-                            _currentImageIndex == index
-                                ? Colors.amber
-                                : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
-                    child:
-                        (() {
-                          final String img = widget.images[index] ?? '';
-                          if (img.startsWith('http')) {
-                            return Image.network(
-                              img,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: widget.images.length,
+            onPageChanged: (i) => setState(() => _currentImageIndex = i),
+            itemBuilder: (context, index) {
+              final String img = widget.images[index] ?? '';
+              final Widget child =
+                  img.startsWith('http')
+                      ? Image.network(
+                        img,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (c, e, s) => Container(
+                              color: Colors.grey[300],
+                              child: const Center(
+                                child: Text('Image non disponible'),
+                              ),
+                            ),
+                      )
+                      : (img.isNotEmpty
+                          ? Image.asset(
+                            img,
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (c, e, s) => Container(
                                   color: Colors.grey[300],
-                                  child: const Icon(Icons.image_not_supported),
-                                );
-                              },
-                            );
-                          } else if (img.isNotEmpty) {
-                            return Image.asset(
-                              img,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.image_not_supported),
-                                );
-                              },
-                            );
-                          } else {
-                            return Image.asset(
-                              'assets/images/image_not_found.png',
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.image_not_supported),
-                                );
-                              },
-                            );
-                          }
-                        })(),
+                                  child: const Center(
+                                    child: Text('Image non disponible'),
+                                  ),
+                                ),
+                          )
+                          : Image.asset(
+                            'assets/images/image_not_found.png',
+                            fit: BoxFit.cover,
+                          ));
+              return GestureDetector(
+                onTap: () => _openImageViewer(index),
+                child: ClipRect(
+                  child: InteractiveViewer(
+                    minScale: 1,
+                    maxScale: 4,
+                    child: child,
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
         ),
+        if (widget.images.length > 1)
+          Positioned(
+            bottom: 8,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SmoothPageIndicator(
+                controller: _pageController,
+                count: widget.images.length,
+                effect: JumpingDotEffect(
+                  activeDotColor: Colors.white,
+                  dotColor: Colors.white70,
+                  dotHeight: 8,
+                  dotWidth: 8,
+                ),
+              ),
+            ),
+          ),
       ],
+    );
+  }
+
+  void _openImageViewer(int startIndex) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.95),
+      builder: (ctx) {
+        final controller = PageController(initialPage: startIndex);
+        return GestureDetector(
+          onTap: () => Navigator.pop(ctx),
+          child: Stack(
+            children: [
+              PageView.builder(
+                controller: controller,
+                itemCount: widget.images.length,
+                itemBuilder: (context, index) {
+                  final String img = widget.images[index] ?? '';
+                  final Widget child =
+                      img.startsWith('http')
+                          ? Image.network(img, fit: BoxFit.contain)
+                          : (img.isNotEmpty
+                              ? Image.asset(img, fit: BoxFit.contain)
+                              : const Icon(
+                                Icons.image_not_supported,
+                                color: Colors.white,
+                                size: 80,
+                              ));
+                  return Center(
+                    child: InteractiveViewer(
+                      minScale: 1,
+                      maxScale: 5,
+                      child: child,
+                    ),
+                  );
+                },
+              ),
+              Positioned(
+                bottom: 20,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: SmoothPageIndicator(
+                    controller: controller,
+                    count: widget.images.length,
+                    effect: WormEffect(
+                      activeDotColor: Colors.white,
+                      dotColor: Colors.white24,
+                      dotHeight: 8,
+                      dotWidth: 8,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -858,7 +890,8 @@ class _MastervacPageState extends State<MastervacPage> {
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
+                backgroundColor: _isOnline ? Colors.grey[300] : Colors.amber,
+                foregroundColor: _isOnline ? Colors.grey[600] : Colors.black,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 64,
                   vertical: 14,
@@ -867,69 +900,73 @@ class _MastervacPageState extends State<MastervacPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              onPressed: () async {
-                log('[DEBUG] Bouton Vendez votre pièce cliqué');
-                final pieceData = {
-                  'type': 'piece',
-                  'titre': widget.title,
-                  'annee': widget.year,
-                  'description': widget.description,
-                  'entreprise': widget.company,
-                  'localisation': widget.location,
-                  'prix': widget.price,
-                  'typeMoteur': widget.fuelType,
-                  'modele': widget.model,
-                  'pieceType': widget.pieceType,
-                  'photos': widget.images.whereType<String>().toList(),
-                  'video': widget.video,
-                };
-                try {
-                  final user = FirebaseAuth.instance.currentUser;
-                  final token = await user?.getIdToken();
-                  final response = await http
-                      .post(
-                        Uri.parse(getBaseUrl() + '/articles/'),
-                        headers: {
-                          'Content-Type': 'application/json',
-                          if (token != null) 'Authorization': 'Bearer $token',
-                        },
-                        body: jsonEncode(pieceData),
-                      )
-                      .timeout(const Duration(seconds: 8));
-                  if (response.statusCode == 201 ||
-                      response.statusCode == 200) {
-                    if (!mounted) return;
-                    _confettiController.play();
-                    await Future.delayed(const Duration(seconds: 2));
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SuccesScreen6()),
-                    );
-                  } else {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Erreur lors de l\'enregistrement en BDD',
-                        ),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  log('[DEBUG] Exception lors de l\'appel API (mastervac): $e');
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erreur réseau ou serveur')),
-                  );
-                }
-              },
+              onPressed:
+                  _isOnline
+                      ? null
+                      : () async {
+                        log('[DEBUG] Bouton Vendez votre pièce cliqué');
+                        final pieceData = {
+                          'type': 'piece',
+                          'titre': widget.title,
+                          'annee': widget.year,
+                          'description': widget.description,
+                          'entreprise': widget.company,
+                          'localisation': widget.location,
+                          'prix': widget.price,
+                          'typeMoteur': widget.fuelType,
+                          'modele': widget.model,
+                          'pieceType': widget.pieceType,
+                          'photos': widget.images.whereType<String>().toList(),
+                          'video': widget.video,
+                        };
+                        try {
+                          final user = FirebaseAuth.instance.currentUser;
+                          final token = await user?.getIdToken();
+                          final response = await http
+                              .post(
+                                Uri.parse(getBaseUrl() + '/articles/'),
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  if (token != null)
+                                    'Authorization': 'Bearer $token',
+                                },
+                                body: jsonEncode(pieceData),
+                              )
+                              .timeout(const Duration(seconds: 8));
+                          if (response.statusCode == 201 ||
+                              response.statusCode == 200) {
+                            if (!mounted) return;
+                            _confettiController.play();
+                            await Future.delayed(const Duration(seconds: 2));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SuccesScreen6(),
+                              ),
+                            );
+                          } else {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Erreur lors de l\'enregistrement en BDD',
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          log(
+                            '[DEBUG] Exception lors de l\'appel API (mastervac): $e',
+                          );
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Erreur réseau ou serveur')),
+                          );
+                        }
+                      },
               child: const Text(
                 'Vendez votre pièce',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
           ),

@@ -4,21 +4,47 @@ import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
-
-// String getBaseUrl() {
-//   // Appareil physique Android/iOS connecté au même Wi‑Fi que le PC
-//   // Utilise l'IP LAN de ton PC (ipconfig -> Carte Wi‑Fi IPv4)
-//   return 'http://192.168.1.71:5000/api';
-// }
+import 'package:shared_preferences/shared_preferences.dart';
+import 'blocked_user_service.dart';
 
 String getBaseUrl() {
-  return 'https://api.tranoo.store/api'; // URL déployée pour mobile
+  // Appareil physique Android/iOS connecté au même Wi‑Fi que le PC
+  // Utilise l'IP LAN de ton PC (ipconfig -> Carte Wi‑Fi IPv4)
+  return 'http://192.168.1.80:5000/api';
+  // return 'https://api.tranoo.store/api'; // URL déployée pour mobile
 }
+
+// String getBaseUrl() {
+//   return 'https://api.tranoo.store/api'; // URL déployée pour mobile
+// }
 
 class UserService extends ChangeNotifier {
   static final UserService _instance = UserService._internal();
   factory UserService() => _instance;
-  UserService._internal();
+  UserService._internal() {
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: getBaseUrl(),
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
+    
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 403) {
+            final data = error.response?.data;
+            if (data is Map && data['blocked'] == true) {
+              await _handleUserBlocked(data['message'] ?? 'Compte bloqué');
+            }
+          }
+          handler.next(error);
+        },
+      ),
+    );
+  }
 
   UserRole? _currentRole;
 
@@ -29,14 +55,7 @@ class UserService extends ChangeNotifier {
   // - Sur le WEB : 'http://localhost:5000/api' ou l'IP locale
   // - En PRODUCTION : l'URL du serveur déployé
   // =============================
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: getBaseUrl(), // Utilise la fonction getBaseUrl()
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {'Content-Type': 'application/json'},
-    ),
-  );
+  late final Dio _dio;
 
   Dio get dio => _dio;
 
@@ -65,6 +84,10 @@ class UserService extends ChangeNotifier {
     required String telephone,
     required String role,
     String? fcmToken,
+    String? entreprise,
+    String? registreCommerce,
+    String? numeroIFU,
+    String? entrepriseProvenance,
   }) async {
     UserCredential? credential;
     try {
@@ -76,16 +99,24 @@ class UserService extends ChangeNotifier {
       final idToken = await credential.user!.getIdToken();
 
       // 2. Appel backend
+      final Map<String, dynamic> data = {
+        'email': email,
+        'nom': nom,
+        'prenoms': prenoms,
+        'telephone': telephone,
+        'role': role.toLowerCase(),
+        'fcmToken': fcmToken,
+      };
+      
+      // Ajouter les champs spécifiques selon le rôle
+      if (entreprise != null) data['entreprise'] = entreprise;
+      if (registreCommerce != null) data['registreCommerce'] = registreCommerce;
+      if (numeroIFU != null) data['numeroIFU'] = numeroIFU;
+      if (entrepriseProvenance != null) data['entrepriseProvenance'] = entrepriseProvenance;
+      
       final response = await _dio.post(
         '/auth/register',
-        data: {
-          'email': email,
-          'nom': nom,
-          'prenoms': prenoms,
-          'telephone': telephone,
-          'role': role.toLowerCase(),
-          'fcmToken': fcmToken,
-        },
+        data: data,
         options: Options(headers: {'Authorization': 'Bearer $idToken'}),
       );
       return response;
@@ -110,5 +141,49 @@ class UserService extends ChangeNotifier {
       password: password,
     );
     return credential;
+  }
+
+  // Gestion des utilisateurs bloqués
+  Future<void> _handleUserBlocked(String message) async {
+    try {
+      // Déconnexion Firebase
+      await FirebaseAuth.instance.signOut();
+      
+      // Nettoyage SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      
+      // Nettoyage du rôle
+      clearRole();
+      
+      // Affichage du dialogue de blocage
+      BlockedUserService.showBlockedDialog(message);
+    } catch (e) {
+      print('Erreur lors de la déconnexion: $e');
+    }
+  }
+
+  // Vérification du statut de blocage au démarrage
+  Future<bool> checkUserBlockedStatus() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return false;
+      
+      final idToken = await user.getIdToken();
+      final response = await _dio.get(
+        '/users/me',
+        options: Options(headers: {'Authorization': 'Bearer $idToken'}),
+      );
+      
+      return false; // Si pas d'erreur, utilisateur non bloqué
+    } catch (e) {
+      if (e is DioException && e.response?.statusCode == 403) {
+        final data = e.response?.data;
+        if (data is Map && data['blocked'] == true) {
+          return true; // Utilisateur bloqué
+        }
+      }
+      return false;
+    }
   }
 }

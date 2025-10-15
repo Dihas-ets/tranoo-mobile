@@ -9,6 +9,10 @@ import '../../services/user_service.dart';
 import 'package:tranoo/utils/cloudinary_upload.dart';
 // import 'package:tranoo/data/screens/succes6.dart';
 
+String getBaseUrl() {
+  return UserService().dio.options.baseUrl;
+}
+
 class PayementScreen extends StatefulWidget {
   final Map<String, dynamic> article;
 
@@ -215,11 +219,13 @@ class _PayementScreenState extends State<PayementScreen>
                     ),
                     const SizedBox(height: 24),
 
-                    // Choix du transitaire
-                    _buildLabel('Choix du transitaire'),
-                    const SizedBox(height: 8),
-                    _buildTransitaireDropdown(),
-                    const SizedBox(height: 16),
+                    // Choix du transitaire (masqué si dédouanement = true)
+                    if (widget.article['dedouanement'] != true) ...[
+                      _buildLabel('Choix du transitaire'),
+                      const SizedBox(height: 8),
+                      _buildTransitaireSelector(),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Télécharger des images
                     Center(
@@ -290,13 +296,15 @@ class _PayementScreenState extends State<PayementScreen>
                         isFraisDeRouteChecked = value!;
                       });
                     }),
-                    _buildCheckbox('Transitaire', isTransitaireChecked, (
-                      value,
-                    ) {
-                      setState(() {
-                        isTransitaireChecked = value!;
-                      });
-                    }),
+                    // Checkbox transitaire masquée si dédouanement = true
+                    if (widget.article['dedouanement'] != true)
+                      _buildCheckbox('Transitaire', isTransitaireChecked, (
+                        value,
+                      ) {
+                        setState(() {
+                          isTransitaireChecked = value!;
+                        });
+                      }),
                     const SizedBox(height: 16),
 
                     // Note
@@ -401,119 +409,45 @@ class _PayementScreenState extends State<PayementScreen>
     );
   }
 
-  Widget _buildTransitaireDropdown() {
-    if (isLoadingPropositions) {
-      return Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF2F2F2),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: const Row(
-          children: [
-            SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            SizedBox(width: 12),
-            Text(
-              'Chargement des propositions...',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (transitPropositions.isEmpty) {
-      // Vérifier si l'article a un ID valide
-      if (widget.article['_id'] == null ||
-          widget.article['_id'].toString().isEmpty) {
-        return Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF2F2F2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: const Text(
-            'Article sans ID valide - propositions non disponibles',
-            style: TextStyle(color: Colors.grey, fontSize: 14),
-          ),
-        );
-      }
-
-      // Pour les articles réels sans propositions
-      return Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF2F2F2),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: const Text(
-          'Aucune proposition de transit disponible pour cet article',
-          style: TextStyle(color: Colors.grey, fontSize: 14),
-        ),
-      );
-    }
-
+  Widget _buildTransitaireSelector() {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF2F2F2),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: selectedTransitaire,
-          hint: const Text(
-            'Choisissez votre transitaire',
-            style: TextStyle(color: Colors.grey, fontSize: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          const Icon(Icons.local_shipping, color: Colors.grey),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              selectedTransitaireObj != null
+                  ? selectedTransitaireObj!['nom'] ?? 'Prestataire sélectionné'
+                  : 'Choisissez un prestataire de transit',
+              style: TextStyle(
+                color:
+                    selectedTransitaireObj != null ? Colors.black : Colors.grey,
+                fontSize: 14,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          isExpanded: true,
-          items:
-              transitPropositions.map((proposition) {
-                final transitaire = proposition['transitaire'];
-                final montant = proposition['montant'];
-                final nomTransitaire =
-                    transitaire?['nom'] ??
-                    transitaire?['entreprise'] ??
-                    'Transitaire inconnu';
-                final montantFormate = '${montant?.toString() ?? '0'} FCFA';
-
-                return DropdownMenuItem<String>(
-                  value: proposition['_id'],
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          nomTransitaire,
-                          style: const TextStyle(fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        montantFormate,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-          onChanged: (value) {
-            setState(() {
-              selectedTransitaire = value;
-              selectedTransitaireObj = transitPropositions.firstWhere(
-                (p) => p['_id'] == value,
-                orElse: () => {},
-              );
-            });
-          },
-        ),
+          TextButton(
+            onPressed: () {
+              _showTransitaireBottomSheet(context);
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black,
+              backgroundColor: const Color(0xFFF8BF13),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Voir +'),
+          ),
+        ],
       ),
     );
   }
@@ -542,9 +476,11 @@ class _PayementScreenState extends State<PayementScreen>
         } catch (_) {}
       }
 
+      final bool dedouanementFait = widget.article['dedouanement'] == true;
+      
       final payload = {
         'articleId': articleId,
-        'propositionTransitId': selectedTransitaire,
+        if (!dedouanementFait) 'propositionTransitId': selectedTransitaire,
         'modeLivraison':
             (widget.article['modeLivraison']?.toString() ?? 'consommation'),
         'paysDestination': widget.article['paysDestination'],
@@ -554,7 +490,7 @@ class _PayementScreenState extends State<PayementScreen>
           'carburant': isCarburantChecked,
           'chauffeur': isChauffeurChecked,
           'fraisRoute': isFraisDeRouteChecked,
-          'transitaire': isTransitaireChecked,
+          if (!dedouanementFait) 'transitaire': isTransitaireChecked,
         },
         'pieceType': selectedPiece,
         'pieceNumero': numeroController.text.trim(),
@@ -608,16 +544,22 @@ class _PayementScreenState extends State<PayementScreen>
       margin: const EdgeInsets.only(top: 16),
       child: ElevatedButton(
         onPressed: () {
-          if (isCarburantChecked &&
+          final bool dedouanementFait = widget.article['dedouanement'] == true;
+          final bool transitaireRequis = !dedouanementFait;
+          
+          bool validationOk = isCarburantChecked &&
               isChauffeurChecked &&
-              isFraisDeRouteChecked &&
-              isTransitaireChecked &&
-              selectedTransitaire != null) {
+              isFraisDeRouteChecked;
+          
+          if (transitaireRequis) {
+            validationOk = validationOk && isTransitaireChecked && selectedTransitaire != null;
+          }
+          
+          if (validationOk) {
             _submitAchat(context);
           } else {
-            String message =
-                'Veuillez cocher toutes les cases obligatoires et sélectionner un transitaire.';
-            if (selectedTransitaire == null) {
+            String message = 'Veuillez cocher toutes les cases obligatoires.';
+            if (transitaireRequis && selectedTransitaire == null) {
               message = 'Veuillez sélectionner un transitaire.';
             }
             ScaffoldMessenger.of(context).showSnackBar(
@@ -639,4 +581,311 @@ class _PayementScreenState extends State<PayementScreen>
       ),
     );
   }
+
+  void _showTransitaireBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => TransitaireBottomSheet(
+            transitPropositions: transitPropositions,
+            onTransitaireSelected: (transitaire) {
+              setState(() {
+                selectedTransitaire = transitaire['_id'] ?? transitaire['id'];
+                selectedTransitaireObj = transitaire;
+              });
+              Navigator.pop(context);
+            },
+          ),
+    );
+  }
 }
+
+class TransitaireBottomSheet extends StatefulWidget {
+  final List<Map<String, dynamic>> transitPropositions;
+  final Function(Map<String, dynamic>) onTransitaireSelected;
+
+  const TransitaireBottomSheet({
+    super.key,
+    required this.transitPropositions,
+    required this.onTransitaireSelected,
+  });
+
+  @override
+  State<TransitaireBottomSheet> createState() => _TransitaireBottomSheetState();
+}
+
+class _TransitaireBottomSheetState extends State<TransitaireBottomSheet> {
+  List<Map<String, dynamic>> transitaires = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTransitaires();
+  }
+
+  Future<void> _loadTransitaires() async {
+    // Données statiques pour test
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    final List<Map<String, dynamic>> staticData = [
+      {
+        '_id': '1',
+        'title': 'Express Transit Pro',
+        'description': 'Service premium certifié ⭐ - Livraison rapide et sécurisée',
+        'time': '6h30',
+        'price': '25 000 F',
+        'capacity': 4,
+        'hasSubscription': true,
+      },
+      {
+        '_id': '2', 
+        'title': 'Rapid Logistics',
+        'description': 'Service premium certifié ⭐ - Transport de qualité supérieure',
+        'time': '7h15',
+        'price': '28 500 F',
+        'capacity': 6,
+        'hasSubscription': true,
+      },
+      {
+        '_id': '3',
+        'title': 'Standard Transport',
+        'description': 'Service standard de qualité - Tarif économique',
+        'time': '8h45',
+        'price': '18 000 F',
+        'capacity': 4,
+        'hasSubscription': false,
+      },
+      {
+        '_id': '4',
+        'title': 'City Cargo',
+        'description': 'Service standard de qualité - Transport urbain',
+        'time': '9h20',
+        'price': '22 000 F',
+        'capacity': 4,
+        'hasSubscription': false,
+      },
+      {
+        '_id': '5',
+        'title': 'Quick Delivery',
+        'description': 'Service standard de qualité - Livraison dans la journée',
+        'time': '10h00',
+        'price': '20 500 F',
+        'capacity': 4,
+        'hasSubscription': false,
+      },
+    ];
+    
+    setState(() {
+      transitaires = staticData;
+      isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final premiumTransitaires = transitaires.where((t) => t['hasSubscription'] == true).toList();
+    final standardTransitaires = transitaires.where((t) => t['hasSubscription'] != true).toList();
+    
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // En-tête noir
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: const Text(
+              "Choisissez votre transitaire",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            child: isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFF8BF13),
+                    ),
+                  )
+                : SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Section Premium
+                        if (premiumTransitaires.isNotEmpty) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            child: const Text(
+                              "Nos meilleurs transitaires",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFF8BF13),
+                              ),
+                            ),
+                          ),
+                          ...premiumTransitaires.map((transitaire) => _buildTransitaireCard(transitaire)),
+                          const SizedBox(height: 24),
+                        ],
+                        
+                        // Section Standard
+                        if (standardTransitaires.isNotEmpty) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: const Text(
+                              "Autres transitaires",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ...standardTransitaires.map((transitaire) => _buildTransitaireCard(transitaire)),
+                        ],
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildTransitaireCard(Map<String, dynamic> transitaire) {
+    final hasSubscription = transitaire['hasSubscription'] ?? false;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: hasSubscription 
+            ? Border.all(color: const Color(0xFFF8BF13), width: 2)
+            : Border.all(color: Colors.grey[300]!, width: 1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ListTile(
+        onTap: () => widget.onTransitaireSelected(transitaire),
+        leading: Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: hasSubscription 
+                ? const Color(0xFFF8BF13).withOpacity(0.2)
+                : Colors.grey[200],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            Icons.local_shipping,
+            color: hasSubscription 
+                ? const Color(0xFFF8BF13)
+                : Colors.grey[600],
+            size: 24,
+          ),
+        ),
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                "${transitaire['title']} 🚘 ${transitaire['capacity']}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (hasSubscription) ...[
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.workspace_premium,
+                size: 16,
+                color: Color(0xFFF8BF13),
+              ),
+            ],
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: hasSubscription 
+                    ? const Color(0xFFF8BF13)
+                    : Colors.green,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                hasSubscription ? 'PREMIUM' : 'DISPONIBLE',
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(transitaire['time']),
+            Text(
+              transitaire['description'],
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+}
+
+final List<Map<String, String>> _demoTransitItems = [
+  {
+    'title': 'UberX',
+    'time': '8h15',
+    'price': '25 000 F',
+    'desc': 'Économique, rapide et fiable',
+  },
+  {
+    'title': 'Taxi',
+    'time': '8h18',
+    'price': '16 500 F',
+    'desc': 'Tarif au compteur, accès rapide',
+  },
+  {
+    'title': 'Van',
+    'time': '8h20',
+    'price': '28 500 F',
+    'desc': 'Haut de gamme jusqu’à 6 passagers',
+  },
+  {
+    'title': 'XL',
+    'time': '8h20',
+    'price': '29 600 F',
+    'desc': 'Abordable pour groupes jusqu’à 6',
+  },
+  {
+    'title': 'Berline',
+    'time': '8h20',
+    'price': '39 700 F',
+    'desc': 'Haut de gamme chauffeurs mieux notés',
+  },
+];

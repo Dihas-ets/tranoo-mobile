@@ -78,10 +78,10 @@ class _UneState extends State<Une> {
   String? _selectedCarModel; // Modèle
 
   // Ajout pour plusieurs images et vidéo (comme create_sell.dart)
-  List<File?> _uploadedImages = [null, null, null]; // mobile
-  List<Uint8List?> _uploadedImagesWeb = [null, null, null]; // web
-  List<String?> _cloudinaryImageUrls = [null, null, null];
-  List<bool> _isUploadingImage = [false, false, false];
+  List<File?> _uploadedImages = List.filled(11, null); // mobile
+  List<Uint8List?> _uploadedImagesWeb = List.filled(11, null); // web
+  List<String?> _cloudinaryImageUrls = List.filled(11, null);
+  List<bool> _isUploadingImage = List.filled(11, false);
   File? _uploadedVideo;
   String? _cloudinaryVideoUrl;
   bool _isUploadingVideo = false;
@@ -90,18 +90,22 @@ class _UneState extends State<Une> {
   final List<String> moyensPaiement = ['Paiement bancaire', 'Mobile Money'];
   final List<String> durees = [
     '1 semaine',
-    '2 semaines',
-    '10 jours',
+    '2 semaines', 
     '1 mois',
     '2 mois',
+    '3 mois',
   ];
+  
+  // Prix par jour pour chaque type (à récupérer du backend)
+  double _prixSponsoriseeParJour = 1000.0;
+  double _prixALaUneParJour = 2000.0;
 
   // Listes pour les dropdowns de voiture
   final List<String> _carTypes = ['Nouveau', 'Occasion'];
   final List<String> _carFuelTypes = [
     'Essence',
     'Gazoil',
-    'Diezel',
+    'Diesel',
     'Electrique',
     'Hybride',
     'Aucun',
@@ -121,6 +125,7 @@ class _UneState extends State<Une> {
   @override
   void initState() {
     super.initState();
+    _loadPrixConfig(); // Charger les prix depuis le backend
     // Si on a un articleId, charger ses infos
     if (widget.articleId != null) {
       _loadArticleInfo();
@@ -136,9 +141,9 @@ class _UneState extends State<Une> {
       _carCompanyController.text =
           widget.articleCompany ?? 'Nom de l\'entreprise';
       _carModelController.text = widget.articleModel ?? 'Marque';
-      _selectedCarModel = widget.articleModel ?? 'Modèle1';
-      _selectedCarFuelType = widget.articleFuelType ?? 'Essence';
-      _selectedCarType = widget.articlePieceType ?? 'Nouveau';
+      _selectedCarModel = _carModels.contains(widget.articleModel) ? widget.articleModel : 'Modèle1';
+      _selectedCarFuelType = _carFuelTypes.contains(widget.articleFuelType) ? widget.articleFuelType : 'Essence';
+      _selectedCarType = _carTypes.contains(widget.articlePieceType) ? widget.articlePieceType : 'Nouveau';
 
       // Charger les images si fournies
       if (widget.articleImages != null && widget.articleImages!.isNotEmpty) {
@@ -261,9 +266,9 @@ class _UneState extends State<Une> {
           _carDescriptionController.text = articleData['description'] ?? '';
           _carCompanyController.text = articleData['entreprise'] ?? '';
           _carModelController.text = articleData['marque'] ?? '';
-          _selectedCarModel = articleData['modele'] ?? 'Modèle1';
-          _selectedCarFuelType = articleData['carburant'] ?? 'Essence';
-          _selectedCarType = articleData['condition'] ?? 'Nouveau';
+          _selectedCarModel = _carModels.contains(articleData['modele']) ? articleData['modele'] : 'Modèle1';
+          _selectedCarFuelType = _carFuelTypes.contains(articleData['carburant']) ? articleData['carburant'] : 'Essence';
+          _selectedCarType = _carTypes.contains(articleData['condition']) ? articleData['condition'] : 'Nouveau';
 
           // Charger les images existantes
           if (articleData['photos'] != null) {
@@ -276,9 +281,9 @@ class _UneState extends State<Une> {
           _carPriceController.text = articleData['prix']?.toString() ?? '';
           _carDescriptionController.text = articleData['description'] ?? '';
           _carCompanyController.text = articleData['entreprise'] ?? '';
-          _selectedCarModel = articleData['modele'] ?? 'Modèle1';
-          _selectedCarFuelType = articleData['typeMoteur'] ?? 'Essence';
-          _selectedCarType = articleData['pieceType'] ?? 'Nouveau';
+          _selectedCarModel = _carModels.contains(articleData['modele']) ? articleData['modele'] : 'Modèle1';
+          _selectedCarFuelType = _carFuelTypes.contains(articleData['typeMoteur']) ? articleData['typeMoteur'] : 'Essence';
+          _selectedCarType = _carTypes.contains(articleData['pieceType']) ? articleData['pieceType'] : 'Nouveau';
 
           // Charger les images existantes
           if (articleData['photos'] != null) {
@@ -439,20 +444,122 @@ class _UneState extends State<Une> {
     }
   }
 
+  // Charger la configuration des prix depuis le backend
+  Future<void> _loadPrixConfig() async {
+    try {
+      // Appeler directement le backend au lieu de passer par Next.js
+      final url = '${getBaseUrl()}/admin/pub-pricing';
+      log('[DEBUG] Chargement prix depuis: $url');
+      
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      log('[DEBUG] Réponse prix: ${response.statusCode} - ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _prixSponsoriseeParJour = (data['prixSponsoriseeParJour'] ?? 1000.0).toDouble();
+          _prixALaUneParJour = (data['prixALaUneParJour'] ?? 2000.0).toDouble();
+        });
+        log('[DEBUG] Prix chargés: Sponsorisée $_prixSponsoriseeParJour, À la une $_prixALaUneParJour FCFA/jour');
+      } else {
+        log('[DEBUG] Erreur HTTP: ${response.statusCode}');
+      }
+    } catch (e) {
+      log('[DEBUG] Erreur chargement prix: $e');
+      // Garder le prix par défaut
+    }
+  }
+  
+  // Calculer le nombre de jours selon la durée
+  int _getNombreJours(String? duree) {
+    if (duree == null) return 0;
+    switch (duree) {
+      case '1 semaine': return 7;
+      case '2 semaines': return 14;
+      case '1 mois': return 30;
+      case '2 mois': return 60;
+      case '3 mois': return 90;
+      default: return 0;
+    }
+  }
+  
+  // Récupérer le prix par jour selon le type de pub
+  double _getPrixParJour(String? typePub) {
+    if (typePub == null) return 0.0;
+    switch (typePub) {
+      case 'Sponsorisée': return _prixSponsoriseeParJour;
+      case 'À la une': return _prixALaUneParJour;
+      default: return 0.0;
+    }
+  }
+  
+  // Mettre à jour le prix selon la durée et le type
+  void _updatePrix() {
+    if (_selectedVoiture != null) {
+      final prixParJour = _getPrixParJour(_selectedVoiture);
+      
+      if (_selectedDuree != null) {
+        final jours = _getNombreJours(_selectedDuree);
+        final prixTotal = (prixParJour * jours).round();
+        
+        setState(() {
+          _prixController.text = prixTotal.toString();
+        });
+        
+        log('[DEBUG] Calcul prix: $jours jours x $prixParJour FCFA = $prixTotal FCFA');
+      } else {
+        // Afficher juste le prix par jour quand seul le type est sélectionné
+        setState(() {
+          _prixController.text = '${prixParJour.round()}/jour';
+        });
+        
+        log('[DEBUG] Prix par jour: $prixParJour FCFA');
+      }
+    } else {
+      setState(() {
+        _prixController.text = '';
+      });
+    }
+  }
+  
   String get prixEnLettres {
-    if (_selectedVoiture == 'Sponsorisée') {
-      return 'Cent mille FCFA';
-    } else if (_selectedVoiture == 'À la une') {
-      return 'Deux cent mille FCFA';
+    final prix = int.tryParse(_prixController.text) ?? 0;
+    if (prix > 0) {
+      return '${_formatPrixEnLettres(prix)} FCFA';
     }
     return '';
   }
+  
+  String _formatPrixEnLettres(int prix) {
+    if (prix >= 1000000) {
+      final millions = prix ~/ 1000000;
+      final reste = prix % 1000000;
+      if (reste == 0) {
+        return '$millions ${millions == 1 ? "million" : "millions"}';
+      } else {
+        final milliers = reste ~/ 1000;
+        return '$millions ${millions == 1 ? "million" : "millions"} ${milliers > 0 ? "$milliers mille" : ""}';
+      }
+    } else if (prix >= 1000) {
+      final milliers = prix ~/ 1000;
+      return '$milliers ${milliers == 1 ? "mille" : "mille"}';
+    }
+    return prix.toString();
+  }
 
   Future<void> _onPayer() async {
+    debugPrint('🚀 [DEBUG] Début _onPayer - articleId: ${widget.articleId}');
+    log('🚀 [DEBUG] Début _onPayer - articleId: ${widget.articleId}');
+    
     if (!_formKey.currentState!.validate() ||
         _selectedVoiture == null ||
-        _selectedDuree == null ||
-        _selectedPaiement == null) {
+        _selectedDuree == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Veuillez remplir tous les champs.')),
       );
@@ -472,14 +579,6 @@ class _UneState extends State<Une> {
 
     // Validation spécifique pour les annonces sponsorisées
     if (_selectedVoiture == 'Sponsorisée') {
-      // Vérifier que 3 images sont sélectionnées
-      if ((kIsWeb && _uploadedImagesWeb.any((img) => img == null)) ||
-          (!kIsWeb && _uploadedImages.any((img) => img == null))) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Veuillez sélectionner 3 images.')),
-        );
-        return;
-      }
       if (_isAnyUploading) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -505,6 +604,18 @@ class _UneState extends State<Une> {
         return;
       }
     }
+    
+    // Validation pour "À la une" - image principale obligatoire
+    if (_selectedVoiture == 'À la une') {
+      if (_cloudinaryImageUrls[0] == null || _cloudinaryImageUrls[0]!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Veuillez ajouter une image principale pour "À la une".'),
+          ),
+        );
+        return;
+      }
+    }
 
     setState(() {
       _isLoading = true;
@@ -520,23 +631,37 @@ class _UneState extends State<Une> {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
 
-      // Utiliser l'article existant ou en créer un nouveau
+      // Utiliser uniquement un article existant (pas de création automatique ici)
       String? articleIdToUse;
 
       if (widget.articleId != null) {
-        // Utiliser l'article existant
-        articleIdToUse = widget.articleId;
-        log('[DEBUG] Utilisation de l\'article existant: $articleIdToUse');
-      } else if (_selectedVoiture == 'Sponsorisée') {
-        final createdArticleId = await _createArticle();
-        if (createdArticleId != null) {
-          articleIdToUse = createdArticleId;
-          log('[DEBUG] Article créé avec ID: $articleIdToUse');
+        // Vérifier que l'article existe toujours
+        final checkUrl = '${getBaseUrl()}/articles/${widget.articleId}';
+        log('🔍 [DEBUG] Vérification article URL: $checkUrl');
+        log('🔍 [DEBUG] Article ID: ${widget.articleId}');
+        log('🔍 [DEBUG] Token: ${idToken != null ? "Présent" : "Absent"}');
+        
+        final checkResponse = await http.get(
+          Uri.parse(checkUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            if (idToken != null) 'Authorization': 'Bearer $idToken',
+          },
+        );
+        
+        log('📡 [DEBUG] Réponse vérification: ${checkResponse.statusCode}');
+        log('📡 [DEBUG] Corps réponse: ${checkResponse.body}');
+        
+        if (checkResponse.statusCode == 200) {
+          articleIdToUse = widget.articleId;
+          log('✅ [DEBUG] Utilisation de l\'article existant: $articleIdToUse');
         } else {
-          // Si l'article n'a pas été créé, on ne peut pas créer la pub
+          log('❌ [DEBUG] Article non trouvé - Status: ${checkResponse.statusCode}');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Erreur lors de la création de l\'article.'),
+              content: Text(
+                'Cet article n\'existe pas, veuillez le créer et après validation par l\'admin vous pourrez le mettre en avant.',
+              ),
             ),
           );
           setState(() {
@@ -544,6 +669,19 @@ class _UneState extends State<Une> {
           });
           return;
         }
+      } else {
+          log('⚠️ [DEBUG] Aucun articleId fourni - widget.articleId est null');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Cet article n\'existe pas, veuillez le créer et après validation par l\'admin vous pourrez le mettre en avant.',
+            ),
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
       }
 
       // Préparation des données de publicité
@@ -552,7 +690,7 @@ class _UneState extends State<Une> {
         'typePub': _selectedVoiture,
         'duree': _selectedDuree,
         'prix': int.tryParse(_prixController.text) ?? 0,
-        'moyenPaiement': _selectedPaiement,
+        'moyenPaiement': 'Paiement bancaire',
         'media': pubImages, // Envoyer toutes les images uploadées
         'statut': 'en_attente',
         'vendeur': user?.uid,
@@ -573,22 +711,13 @@ class _UneState extends State<Une> {
         final data = jsonDecode(response.body);
         _createdPubId = data['publicite']['_id'];
 
-        // Redirection immédiate vers la page de paiement, en passant l'ID de la pub
-        if (_selectedPaiement == 'Mobile Money') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MobileMoneyPaymentScreen(pubId: _createdPubId!),
-            ),
-          );
-        } else {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PaymentScreen(pubId: _createdPubId!),
-            ),
-          );
-        }
+        // Redirection vers la page de paiement par défaut (bancaire)
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentScreen(pubId: _createdPubId!),
+          ),
+        );
       } else {
         log(
           '[DEBUG] Erreur création publicité: ${response.statusCode} - ${response.body}',
@@ -660,11 +789,11 @@ class _UneState extends State<Une> {
       '[UNE][build] _cloudinaryImageUrls.length = ${_cloudinaryImageUrls.length}',
     );
     log('[UNE][build] _isUploadingImage.length = ${_isUploadingImage.length}');
-    // Correction : toujours 3 éléments dans les listes
-    while (_cloudinaryImageUrls.length < 3) {
+    // Correction : toujours 11 éléments dans les listes
+    while (_cloudinaryImageUrls.length < 11) {
       _cloudinaryImageUrls.add('');
     }
-    while (_isUploadingImage.length < 3) {
+    while (_isUploadingImage.length < 11) {
       _isUploadingImage.add(false);
     }
 
@@ -810,9 +939,9 @@ class _UneState extends State<Une> {
                       onChanged: (value) {
                         setState(() {
                           _selectedVoiture = value;
+                          _updatePrix(); // Calculer le prix dynamiquement
                           // Met à jour le prix selon le type de pub
                           if (value == 'Sponsorisée') {
-                            _prixController.text = '100000';
                             // Pré-remplir les champs si pas d'article existant
                             if (widget.articleId == null) {
                               // Utiliser les paramètres passés ou des valeurs par défaut
@@ -848,10 +977,6 @@ class _UneState extends State<Une> {
                                 );
                               }
                             }
-                          } else if (value == 'À la une') {
-                            _prixController.text = '200000';
-                          } else {
-                            _prixController.text = '';
                           }
                         });
                       },
@@ -880,8 +1005,12 @@ class _UneState extends State<Une> {
                         }
                         return null;
                       },
-                      onChanged:
-                          (value) => setState(() => _selectedDuree = value),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedDuree = value;
+                          _updatePrix(); // Recalculer le prix
+                        });
+                      },
                     ),
                     const SizedBox(height: 30),
 
@@ -907,32 +1036,7 @@ class _UneState extends State<Une> {
                       ),
                     const SizedBox(height: 30),
 
-                    // Moyen de paiement
-                    DropdownButtonFormField<String>(
-                      value: _selectedPaiement,
-                      items:
-                          moyensPaiement
-                              .map(
-                                (moyen) => DropdownMenuItem(
-                                  value: moyen,
-                                  child: Text(moyen),
-                                ),
-                              )
-                              .toList(),
-                      decoration: const InputDecoration(
-                        labelText: 'Moyen de paiement',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null) {
-                          return 'Veuillez sélectionner un moyen de paiement';
-                        }
-                        return null;
-                      },
-                      onChanged:
-                          (value) => setState(() => _selectedPaiement = value),
-                    ),
-                    const SizedBox(height: 30),
+
 
                     // SECTION DYNAMIQUE : Informations concernant la voiture
                     if (_selectedVoiture == 'Sponsorisée') ...[
@@ -1134,170 +1238,188 @@ class _UneState extends State<Une> {
                       const SizedBox(height: 30),
                     ],
 
-                    const Text(
-                      'Télécharger des images / vidéos (3 images max + 1 vidéo optionnelle)',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Indicateur du nombre d'images et vidéos restantes
-                    Builder(
-                      builder: (context) {
-                        final currentImages =
-                            _uploadedImages.whereType<File>().length;
-                        final currentVideos = _uploadedVideo != null ? 1 : 0;
-
-                        final remainingImages = 3 - currentImages;
-                        final remainingVideos = 1 - currentVideos;
-
-                        return Container(
-                          padding: const EdgeInsets.all(8),
+                    // Section conditionnelle selon le type de pub
+                    if (_selectedVoiture == 'À la une') ...[
+                      const Text(
+                        'Image principale (flyer)',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      
+                      // Upload d'une seule image pour "À la une"
+                      GestureDetector(
+                        onTap: () => _pickImage(0),
+                        child: Container(
+                          height: 150,
+                          width: double.infinity,
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
+                            color: Colors.grey[200],
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue.shade200),
+                            border: Border.all(color: Colors.amber, width: 2),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Stack(
+                            alignment: Alignment.center,
                             children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: Colors.blue.shade600,
-                                    size: 16,
+                              if (_cloudinaryImageUrls[0] != null &&
+                                  _cloudinaryImageUrls[0]!.isNotEmpty)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    _cloudinaryImageUrls[0]!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Limites :',
-                                    style: TextStyle(
-                                      color: Colors.blue.shade600,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '• Images : 3 maximum',
-                                style: TextStyle(
-                                  color: Colors.blue.shade600,
-                                  fontSize: 11,
-                                ),
-                              ),
-                              Text(
-                                '• Vidéos : 1 optionnelle',
-                                style: TextStyle(
-                                  color: Colors.blue.shade600,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Sélection des 3 images (comme create_sell.dart)
-                    Row(
-                      children: List.generate(
-                        3,
-                        (index) => Expanded(
-                          child: GestureDetector(
-                            onTap: () => _pickImage(index),
-                            child: Container(
-                              height: 80,
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.amber),
-                              ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  if (_cloudinaryImageUrls[index] != null &&
-                                      _cloudinaryImageUrls[index]!.isNotEmpty)
-                                    Image.network(
-                                      _cloudinaryImageUrls[index]!,
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                    )
-                                  else
+                                )
+                              else
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
                                     const Icon(
                                       Icons.add_a_photo,
                                       color: Colors.grey,
+                                      size: 40,
                                     ),
-                                  if (_isUploadingImage[index])
-                                    const Positioned.fill(
-                                      child: Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Ajouter image principale',
+                                      style: TextStyle(color: Colors.grey),
                                     ),
-                                  if (_cloudinaryImageUrls[index] != null &&
-                                      _cloudinaryImageUrls[index]!.isNotEmpty)
-                                    const Positioned(
-                                      right: 4,
-                                      top: 4,
-                                      child: Icon(
-                                        Icons.check_circle,
-                                        color: Colors.green,
-                                      ),
+                                  ],
+                                ),
+                              if (_isUploadingImage[0])
+                                const Positioned.fill(
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                              if (_cloudinaryImageUrls[0] != null &&
+                                  _cloudinaryImageUrls[0]!.isNotEmpty)
+                                const Positioned(
+                                  right: 8,
+                                  top: 8,
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                    size: 30,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      const Text(
+                        'Images supplémentaires (optionnel)',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Sélection des images pour "Sponsorisée" (optionnel)
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 1,
+                        ),
+                        itemCount: 6, // Réduire à 6 images max
+                        itemBuilder: (context, index) => GestureDetector(
+                          onTap: () => _pickImage(index),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber),
+                            ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                if (_cloudinaryImageUrls[index] != null &&
+                                    _cloudinaryImageUrls[index]!.isNotEmpty)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      _cloudinaryImageUrls[index]!,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
                                     ),
-                                ],
-                              ),
+                                  )
+                                else
+                                  const Icon(
+                                    Icons.add_a_photo,
+                                    color: Colors.grey,
+                                  ),
+                                if (_isUploadingImage[index])
+                                  const Positioned.fill(
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                if (_cloudinaryImageUrls[index] != null &&
+                                    _cloudinaryImageUrls[index]!.isNotEmpty)
+                                  const Positioned(
+                                    right: 4,
+                                    top: 4,
+                                    child: Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Upload vidéo (optionnelle)
-                    GestureDetector(
-                      onTap: _pickVideo,
-                      child: Container(
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            if (_uploadedVideo != null)
-                              const Icon(
-                                Icons.videocam,
-                                color: Colors.blue,
-                                size: 40,
-                              )
-                            else
-                              const Icon(
-                                Icons.add_to_photos,
-                                color: Colors.grey,
-                              ),
-                            if (_isUploadingVideo)
-                              const Positioned.fill(
-                                child: Center(
-                                  child: CircularProgressIndicator(),
+                      // Upload vidéo (optionnelle)
+                      GestureDetector(
+                        onTap: _pickVideo,
+                        child: Container(
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              if (_uploadedVideo != null)
+                                const Icon(
+                                  Icons.videocam,
+                                  color: Colors.blue,
+                                  size: 40,
+                                )
+                              else
+                                const Icon(
+                                  Icons.add_to_photos,
+                                  color: Colors.grey,
                                 ),
-                              ),
-                            if (_cloudinaryVideoUrl != null)
-                              const Positioned(
-                                right: 4,
-                                top: 4,
-                                child: Icon(
-                                  Icons.check_circle,
-                                  color: Colors.green,
+                              if (_isUploadingVideo)
+                                const Positioned.fill(
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
                                 ),
-                              ),
-                          ],
+                              if (_cloudinaryVideoUrl != null)
+                                const Positioned(
+                                  right: 4,
+                                  top: 4,
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                    ],
 
                     const SizedBox(height: 40),
 

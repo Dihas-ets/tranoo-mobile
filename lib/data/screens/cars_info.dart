@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-// import 'package:tranoo/data/screens/paymentscreen.dart';
-import 'movie.dart'; // Importer la page pour les vidéos
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:http/http.dart' as http;
+import 'movie.dart';
 import 'payement.dart'; // Importer la page pour le paiement
 import 'package:tranoo/services/user_service.dart'; // Importer UserService pour gérer les rôles
 import 'package:tranoo/utils/role_redirect.dart'; // Importer RoleRedirect pour la redirection basée sur le rôle
-import 'package:tranoo/data/screens/succes6.dart'; // Importer SuccesScreen6
+import 'package:tranoo/data/screens/succes_vente.dart'; // Importer SuccesVenteScreen
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,6 +31,8 @@ class CarsInfo extends StatefulWidget {
   final String? sieges;
   final String? portes;
   final String? cylindre; // Ajouté
+  final String? couleur; // Couleur
+  final bool? dedouanement; // Dédouanement
   final String? lieu;
   final List<String> images;
   final String? video;
@@ -54,6 +57,8 @@ class CarsInfo extends StatefulWidget {
     this.sieges,
     this.portes,
     this.cylindre,
+    this.couleur,
+    this.dedouanement,
     this.lieu,
     required this.images,
     this.video,
@@ -68,6 +73,8 @@ class CarsInfo extends StatefulWidget {
 
 class _CarsinfoState extends State<CarsInfo> {
   late int _currentImageIndex; // Gère l'image actuelle affichée
+  late PageController _pageController;
+  Set<String> _favoriteIds = <String>{};
   bool isNew = false;
   bool is2023 = false;
   String? _selectedCountry;
@@ -94,6 +101,7 @@ class _CarsinfoState extends State<CarsInfo> {
     'Éthiopie',
   ];
   late ConfettiController _confettiController;
+  bool _isOnline = false;
 
   @override
   void initState() {
@@ -129,11 +137,94 @@ class _CarsinfoState extends State<CarsInfo> {
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
     );
+    _pageController = PageController(initialPage: _currentImageIndex);
+    _loadArticleStatut();
+  }
+
+  Future<void> _loadArticleStatut() async {
+    try {
+      final id = widget.id;
+      if (id == null || id.isEmpty) return;
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+      final res = await http.get(
+        Uri.parse('${UserService().dio.options.baseUrl}/articles/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final statut = (data['statut'] ?? '').toString().toLowerCase();
+        if (!mounted) return;
+        setState(() {
+          _isOnline = (statut == 'en_ligne');
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _openImageViewer(int startIndex) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.95),
+      builder: (ctx) {
+        final controller = PageController(initialPage: startIndex);
+        return GestureDetector(
+          onTap: () => Navigator.pop(ctx),
+          child: Stack(
+            children: [
+              PageView.builder(
+                controller: controller,
+                itemCount: widget.images.length,
+                itemBuilder: (context, index) {
+                  return Center(
+                    child: InteractiveViewer(
+                      minScale: 1,
+                      maxScale: 5,
+                      child: Image.network(
+                        widget.images[index],
+                        fit: BoxFit.contain,
+                        errorBuilder:
+                            (c, e, s) => const Icon(
+                              Icons.image_not_supported,
+                              color: Colors.white,
+                              size: 80,
+                            ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Positioned(
+                bottom: 20,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: SmoothPageIndicator(
+                    controller: controller,
+                    count: widget.images.length,
+                    effect: WormEffect(
+                      activeDotColor: Colors.white,
+                      dotColor: Colors.white24,
+                      dotHeight: 8,
+                      dotWidth: 8,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -178,14 +269,7 @@ class _CarsinfoState extends State<CarsInfo> {
         icon: const Icon(Icons.arrow_back, color: Colors.black),
         onPressed: () => Navigator.pop(context),
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.share, color: Colors.black),
-          onPressed: () {
-            // Action de partage ici
-          },
-        ),
-      ],
+
     );
   }
 
@@ -205,44 +289,101 @@ class _CarsinfoState extends State<CarsInfo> {
     return Stack(
       children: [
         SizedBox(
-          height: screenHeight * 0.4, // Hauteur ajustée pour la responsivité
+          height: screenHeight * 0.4,
           width: double.infinity,
-          child:
-              (widget.images.isNotEmpty &&
-                      _currentImageIndex < widget.images.length &&
-                      widget.images[_currentImageIndex].isNotEmpty)
-                  ? Image.network(
-                    widget.images[_currentImageIndex],
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Text('Image non disponible'),
-                        ),
-                      );
-                    },
-                  )
-                  : Container(
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Icon(Icons.image_not_supported, size: 80),
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: widget.images.isNotEmpty ? widget.images.length : 1,
+            onPageChanged: (i) => setState(() => _currentImageIndex = i),
+            itemBuilder: (context, index) {
+              final hasImage =
+                  widget.images.isNotEmpty &&
+                  index < widget.images.length &&
+                  widget.images[index].isNotEmpty;
+              if (!hasImage) {
+                return Container(
+                  color: Colors.grey[300],
+                  child: const Center(
+                    child: Icon(Icons.image_not_supported, size: 80),
+                  ),
+                );
+              }
+              return GestureDetector(
+                onTap: () => _openImageViewer(index),
+                child: ClipRect(
+                  child: InteractiveViewer(
+                    minScale: 1,
+                    maxScale: 4,
+                    child: Image.network(
+                      widget.images[index],
+                      fit: BoxFit.cover,
+                      errorBuilder:
+                          (context, error, stackTrace) => Container(
+                            color: Colors.grey[300],
+                            child: const Center(
+                              child: Text('Image non disponible'),
+                            ),
+                          ),
                     ),
                   ),
+                ),
+              );
+            },
+          ),
         ),
-        // Bouton pour accéder à la page des vidéos (seulement si vidéo présente)
-        if (widget.video != null && widget.video!.isNotEmpty)
-          Positioned(
-            right: 16,
-            top: 16,
-            child: IconButton(
-              icon: const Icon(
-                Icons.play_circle_fill,
-                color: Colors.red,
-                size: 40,
+        // Badge condition (gauche)
+        Positioned(
+          top: 16,
+          left: 16,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color:
+                  ((widget.condition ?? '').toLowerCase() == 'nouveau' ||
+                          (widget.condition ?? '').toLowerCase() == 'neuf')
+                      ? Colors.purple
+                      : const Color(0xFFF8BF13),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              ((widget.condition ?? '').toLowerCase() == 'nouveau' ||
+                      (widget.condition ?? '').toLowerCase() == 'neuf')
+                  ? 'Nouveau'
+                  : 'Occasion',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
               ),
-              onPressed: () {
-                // Créer l'objet article pour la page vidéo
+            ),
+          ),
+        ),
+
+        // Favori (droite)
+        Positioned(
+          right: 16,
+          top: 16,
+          child: GestureDetector(
+            onTap: () => _toggleFavorite(widget.id ?? ''),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.white,
+              child: Icon(
+                _favoriteIds.contains((widget.id ?? ''))
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+                color: Colors.red,
+              ),
+            ),
+          ),
+        ),
+        // Icône play vidéo (juste en dessous du favori)
+        Positioned(
+          right: 16,
+          top: 16 + 44,
+          child: GestureDetector(
+            onTap: () {
+              if (widget.video != null && widget.video!.isNotEmpty) {
                 final article = {
                   'titre': widget.titre,
                   'description': widget.description,
@@ -258,85 +399,97 @@ class _CarsinfoState extends State<CarsInfo> {
                   'sieges': widget.sieges,
                   'portes': widget.portes,
                   'cylindre': widget.cylindre,
+                  'couleur': widget.couleur,
+                  'dedouanement': widget.dedouanement,
                   'photos': widget.images,
                   'video': widget.video,
                   'entreprise': widget.entreprise,
                   'type': 'voiture',
                 };
-
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (context) =>
-                            Movie(videoUrl: widget.video, article: article),
+                    builder: (context) => Movie(videoUrl: widget.video, article: article),
                   ),
                 );
-              },
-            ),
-          ),
-        // Liste des miniatures pour changer l'image affichée
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: screenHeight * 0.15, // Hauteur ajustée pour la responsivité
-            color: Colors.black.withAlpha(50),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: widget.images.length,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _currentImageIndex = index; // Change l'image affichée
-                    });
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 10,
-                    ),
-                    width:
-                        screenWidth *
-                        0.3, // Largeur ajustée pour la responsivité
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color:
-                            _currentImageIndex == index
-                                ? Colors.amber
-                                : Colors
-                                    .transparent, // Image sélectionnée mise en évidence
-                        width: 2,
-                      ),
-                    ),
-                    child:
-                        (widget.images.isNotEmpty &&
-                                widget.images[index].isNotEmpty)
-                            ? Image.network(
-                              widget.images[index],
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.image_not_supported),
-                                );
-                              },
-                            )
-                            : Image.asset(
-                              'assets/images/image_not_found.png',
-                              fit: BoxFit.cover,
-                            ),
-                  ),
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Aucune vidéo disponible')),
                 );
-              },
+              }
+            },
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: widget.video != null && widget.video!.isNotEmpty ? Colors.white : Colors.grey[300],
+              child: Icon(
+                Icons.play_circle_fill,
+                color: widget.video != null && widget.video!.isNotEmpty ? Colors.red : Colors.grey,
+                size: 24,
+              ),
             ),
           ),
         ),
+        // Dots indicator
+        if (widget.images.length > 1)
+          Positioned(
+            bottom: 8,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SmoothPageIndicator(
+                controller: _pageController,
+                count: widget.images.length,
+                effect: JumpingDotEffect(
+                  activeDotColor: Colors.white,
+                  dotColor: Colors.white70,
+                  dotHeight: 8,
+                  dotWidth: 8,
+                ),
+              ),
+            ),
+          ),
       ],
     );
+  }
+
+  Future<void> _toggleFavorite(String articleId) async {
+    if (articleId.isEmpty) return;
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      if (idToken == null) return;
+      final isFav = _favoriteIds.contains(articleId);
+      final uri = Uri.parse(
+        '${UserService().dio.options.baseUrl}/users/me/favoris',
+      );
+      final response =
+          await (isFav
+              ? http.delete(
+                uri,
+                headers: {
+                  'Authorization': 'Bearer $idToken',
+                  'Content-Type': 'application/json',
+                },
+                body: jsonEncode({'articleId': articleId}),
+              )
+              : http.post(
+                uri,
+                headers: {
+                  'Authorization': 'Bearer $idToken',
+                  'Content-Type': 'application/json',
+                },
+                body: jsonEncode({'articleId': articleId}),
+              ));
+      if (response.statusCode == 200) {
+        setState(() {
+          if (isFav) {
+            _favoriteIds.remove(articleId);
+          } else {
+            _favoriteIds.add(articleId);
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   // Section des détails et spécifications
@@ -491,9 +644,80 @@ class _CarsinfoState extends State<CarsInfo> {
               : 'Non renseigné',
           Icons.settings,
         ),
+        _buildSpecCardWithColor(
+          'Couleur',
+          (widget.couleur != null && widget.couleur!.isNotEmpty)
+              ? widget.couleur!
+              : 'Non renseigné',
+          Icons.palette,
+          widget.couleur,
+        ),
+        _buildSpecCard(
+          'Dédouanement',
+          widget.dedouanement != null
+              ? (widget.dedouanement! ? 'Oui' : 'Non')
+              : 'Non renseigné',
+          Icons.check_circle,
+        ),
       ],
     );
   }
+
+  // Map des couleurs
+  final Map<String, Color> _couleurs = {
+    'Blanc': Colors.white,
+    'Noir': Colors.black,
+    'Gris': Colors.grey,
+    'Argenté': const Color(0xFFC0C0C0),
+    'Rouge': Colors.red,
+    'Bleu': Colors.blue,
+    'Vert': Colors.green,
+    'Jaune': Colors.yellow,
+    'Orange': Colors.orange,
+    'Violet': Colors.purple,
+    'Rose': Colors.pink,
+    'Marron': Colors.brown,
+    'Beige': const Color(0xFFF5F5DC),
+    'Bordeaux': const Color(0xFF800020),
+    'Bleu marine': const Color(0xFF000080),
+    'Vert foncé': const Color(0xFF006400),
+    'Gris foncé': const Color(0xFF696969),
+    'Gris clair': const Color(0xFFD3D3D3),
+    'Rouge foncé': const Color(0xFF8B0000),
+    'Bleu clair': const Color(0xFFADD8E6),
+    'Vert clair': const Color(0xFF90EE90),
+    'Jaune clair': const Color(0xFFFFFFE0),
+    'Orange foncé': const Color(0xFFFF8C00),
+    'Violet foncé': const Color(0xFF4B0082),
+    'Rose foncé': const Color(0xFFC71585),
+    'Marron clair': const Color(0xFFD2B48C),
+    'Crème': const Color(0xFFFFFDD0),
+    'Ivoire': const Color(0xFFFFFFF0),
+    'Champagne': const Color(0xFFF7E7CE),
+    'Bronze': const Color(0xFFCD7F32),
+    'Doré': const Color(0xFFFFD700),
+    'Cuivre': const Color(0xFFB87333),
+    'Turquoise': const Color(0xFF40E0D0),
+    'Cyan': const Color(0xFF00FFFF),
+    'Magenta': const Color(0xFFFF00FF),
+    'Lime': const Color(0xFF00FF00),
+    'Indigo': const Color(0xFF4B0082),
+    'Olive': const Color(0xFF808000),
+    'Saumon': const Color(0xFFFA8072),
+    'Corail': const Color(0xFFFF7F50),
+    'Pêche': const Color(0xFFFFDAB9),
+    'Lavande': const Color(0xFFE6E6FA),
+    'Menthe': const Color(0xFF98FB98),
+    'Bleu pétrole': const Color(0xFF008B8B),
+    'Vert olive': const Color(0xFF6B8E23),
+    'Rouge brique': const Color(0xFFB22222),
+    'Bleu acier': const Color(0xFF4682B4),
+    'Vert forêt': const Color(0xFF228B22),
+    'Prune': const Color(0xFFDDA0DD),
+    'Kaki': const Color(0xFFF0E68C),
+    'Anthracite': const Color(0xFF36454F),
+    'Perle': const Color(0xFFEAE0C8),
+  };
 
   // Carte d'information générique pour les spécifications
   Widget _buildSpecCard(String title, String value, IconData icon) {
@@ -520,6 +744,57 @@ class _CarsinfoState extends State<CarsInfo> {
           Text(
             value,
             style: const TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Carte spéciale pour la couleur avec carré de couleur
+  Widget _buildSpecCardWithColor(String title, String value, IconData icon, String? couleur) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F1FF),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Colors.black87),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              if (couleur != null && _couleurs.containsKey(couleur))
+                Container(
+                  width: 16,
+                  height: 16,
+                  margin: const EdgeInsets.only(right: 6),
+                  decoration: BoxDecoration(
+                    color: _couleurs[couleur],
+                    border: Border.all(
+                      color: _couleurs[couleur] == Colors.white ? Colors.grey : Colors.transparent,
+                      width: 1,
+                    ),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              Expanded(
+                child: Text(
+                  value,
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -676,6 +951,8 @@ class _CarsinfoState extends State<CarsInfo> {
               'sieges': widget.sieges,
               'portes': widget.portes,
               'cylindre': widget.cylindre,
+              'couleur': widget.couleur,
+              'dedouanement': widget.dedouanement,
               'photos': widget.images,
               'video': widget.video,
               'entreprise': widget.entreprise,
@@ -843,6 +1120,8 @@ class _CarsinfoState extends State<CarsInfo> {
               'sieges': widget.sieges,
               'portes': widget.portes,
               'cylindre': widget.cylindre,
+              'couleur': widget.couleur,
+              'dedouanement': widget.dedouanement,
               'photos': widget.images,
               'video': widget.video,
               'entreprise': widget.entreprise,
@@ -978,71 +1257,82 @@ class _CarsinfoState extends State<CarsInfo> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () async {
-                // Vendeur : enregistre l'article dans la BDD puis redirige vers la page de succès
-                final articleData = {
-                  'type': 'voiture',
-                  'titre': widget.titre,
-                  'description': widget.description,
-                  'marque': widget.marque,
-                  'modele': widget.modele,
-                  'annee': widget.annee,
-                  'prix': widget.prix,
-                  'condition': widget.condition,
-                  'boiteVitesse': widget.boiteVitesse,
-                  'carburant': widget.carburant,
-                  'climatiseur': widget.climatiseur,
-                  'distance': widget.distance,
-                  'sieges': widget.sieges,
-                  'portes': widget.portes,
-                  'cylindre': widget.cylindre,
-                  'photos': widget.images,
-                  'video': widget.video,
-                  'entreprise': widget.entreprise,
-                };
-                log('[DEBUG] Données envoyées à l\'API :');
-                log(articleData.toString());
-                try {
-                  final user = FirebaseAuth.instance.currentUser;
-                  final token = await user?.getIdToken();
-                  final response = await http.post(
-                    Uri.parse('${getBaseUrl()}/articles/'),
-                    headers: {
-                      'Content-Type': 'application/json',
-                      if (token != null) 'Authorization': 'Bearer $token',
-                    },
-                    body: jsonEncode(articleData),
-                  );
-                  log(
-                    '[DEBUG] Status code réponse API : ${response.statusCode}',
-                  );
-                  log('[DEBUG] Body réponse API : ${response.body}');
-                  if (response.statusCode == 201 ||
-                      response.statusCode == 200) {
-                    _confettiController.play();
-                    await Future.delayed(const Duration(seconds: 2));
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SuccesScreen6()),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Erreur lors de l\'enregistrement en BDD',
-                        ),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  log('[DEBUG] Exception lors de l\'appel API : $e');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erreur réseau ou serveur')),
-                  );
-                }
-              },
+              onPressed:
+                  _isOnline
+                      ? null
+                      : () async {
+                        // Vendeur : enregistre l'article dans la BDD puis redirige vers la page de succès
+                        final articleData = {
+                          'type': 'voiture',
+                          'titre': widget.titre,
+                          'description': widget.description,
+                          'marque': widget.marque,
+                          'modele': widget.modele,
+                          'annee': widget.annee,
+                          'prix': widget.prix,
+                          'condition': widget.condition,
+                          'boiteVitesse': widget.boiteVitesse,
+                          'carburant': widget.carburant,
+                          'climatiseur': widget.climatiseur,
+                          'distance': widget.distance,
+                          'sieges': widget.sieges,
+                          'portes': widget.portes,
+                          'cylindre': widget.cylindre,
+                          'couleur': widget.couleur,
+                          'dedouanement': widget.dedouanement,
+                          'photos': widget.images,
+                          'video': widget.video,
+                          'entreprise': widget.entreprise,
+                        };
+                        log('[DEBUG] Données envoyées à l\'API :');
+                        log(articleData.toString());
+                        try {
+                          final user = FirebaseAuth.instance.currentUser;
+                          final token = await user?.getIdToken();
+                          final response = await http.post(
+                            Uri.parse(
+                              '${UserService().dio.options.baseUrl}/articles/',
+                            ),
+                            headers: {
+                              'Content-Type': 'application/json',
+                              if (token != null)
+                                'Authorization': 'Bearer $token',
+                            },
+                            body: jsonEncode(articleData),
+                          );
+                          log(
+                            '[DEBUG] Status code réponse API : ${response.statusCode}',
+                          );
+                          log('[DEBUG] Body réponse API : ${response.body}');
+                          if (response.statusCode == 201 ||
+                              response.statusCode == 200) {
+                            _confettiController.play();
+                            await Future.delayed(const Duration(seconds: 2));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SuccesVenteScreen(),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Erreur lors de l\'enregistrement en BDD',
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          log('[DEBUG] Exception lors de l\'appel API : $e');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Erreur réseau ou serveur')),
+                          );
+                        }
+                      },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
+                backgroundColor: _isOnline ? Colors.grey[300] : Colors.amber,
+                foregroundColor: _isOnline ? Colors.grey[600] : Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -1050,11 +1340,7 @@ class _CarsinfoState extends State<CarsInfo> {
               ),
               child: const Text(
                 'Vendre ma voiture',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -1072,7 +1358,7 @@ class _CarsinfoState extends State<CarsInfo> {
                     builder:
                         (context) => Une(
                           articleId:
-                              null, // Pas d'articleId car c'est une nouvelle voiture
+                              widget.id, // Utiliser l'ID réel de l'article
                           articleType: 'voiture',
                           articleTitle: widget.titre,
                           articleYear: widget.annee,
@@ -1121,3 +1407,5 @@ class _CarsinfoState extends State<CarsInfo> {
     }
   }
 }
+
+

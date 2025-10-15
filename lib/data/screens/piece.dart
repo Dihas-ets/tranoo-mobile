@@ -42,13 +42,8 @@ class _PieceState extends State<Piece> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      final userService = UserService();
-      final role = userService.currentRole;
-      final userId = user?.uid;
-      String url = getBaseUrl() + '/articles?type=piece&statut=en_ligne';
-      if (role == UserRole.vendeur && userId != null) {
-        url += '&vendeur=$userId';
-      }
+      // Le backend applique déjà le filtrage par rôle/statut
+      String url = getBaseUrl() + '/articles?type=piece';
       final response = await http
           .get(
             Uri.parse(url),
@@ -104,9 +99,14 @@ class _PieceState extends State<Piece> {
     });
     await Future.delayed(const Duration(milliseconds: 400));
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
       final response = await http.delete(
         Uri.parse(getBaseUrl() + '/articles/$articleId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
       );
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,8 +129,7 @@ class _PieceState extends State<Piece> {
   Widget build(BuildContext context) {
     final userService = UserService();
     final isVendeur = userService.currentRole == UserRole.vendeur;
-    final isAcheteurOuChauffeur =
-        userService.isAcheteur || userService.isChauffeur;
+    // Les rôles non-vendeurs voient la liste générale
     final filteredPieces =
         pieces.where((p) {
           final title = (p['titre'] ?? '').toString().toLowerCase();
@@ -178,156 +177,139 @@ class _PieceState extends State<Piece> {
                 ),
               ),
             ),
-            // Message pour acheteur ou chauffeur
-            if (isAcheteurOuChauffeur)
-              // Padding(
-              //   padding: const EdgeInsets.only(bottom: 16),
-              //   child: Text(
-              //     'Vous êtes acheteur ou chauffeur',
-              //     style: TextStyle(
-              //       color: Colors.blue,
-              //       fontWeight: FontWeight.bold,
-              //     ),
-              //   ),
-              // ),
-              // Grille des pièces
-              Expanded(
-                child:
-                    isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : error != null
-                        ? Center(child: Text(error!))
-                        : filteredPieces.isEmpty
-                        ? Center(
-                          child: Text(
-                            isVendeur
-                                ? "Vous n'avez aucune pièce en ligne actuellement"
-                                : "Aucune pièce en ligne actuellement",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                            ),
+            // Grille des pièces (affichée pour tous les rôles)
+            Expanded(
+              child:
+                  isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : error != null
+                      ? Center(child: Text(error!))
+                      : filteredPieces.isEmpty
+                      ? Center(
+                        child: Text(
+                          isVendeur
+                              ? "Vous n'avez aucune pièce en ligne actuellement"
+                              : "Aucune pièce en ligne actuellement",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
                           ),
-                        )
-                        : GridView.builder(
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                                childAspectRatio: 0.8,
-                              ),
-                          itemCount: filteredPieces.length,
-                          itemBuilder: (context, index) {
-                            final piece = filteredPieces[index];
-                            final pieceId = piece['_id'] ?? '';
-                            return AnimatedOpacity(
-                              opacity: _isVisible[index] ? 1.0 : 0.0,
-                              duration: const Duration(milliseconds: 400),
-                              child: Stack(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder:
-                                              (context) => MastervacPage(
-                                                id:
-                                                    (piece['_id'] ??
-                                                            piece['id'] ??
-                                                            piece['articleId'] ??
-                                                            piece['Id'] ??
-                                                            piece['article'])
-                                                        ?.toString(),
-                                                isAcheteur: !isVendeur,
-                                                title: piece['titre'] ?? '',
-                                                year: piece['annee'] ?? '',
-                                                description:
-                                                    piece['description'] ?? '',
-                                                company:
-                                                    piece['entreprise'] ?? '',
-                                                location:
-                                                    piece['localisation'] ?? '',
-                                                price:
-                                                    piece['prix']?.toString() ??
-                                                    '',
-                                                images:
-                                                    (piece['photos'] as List?)
-                                                        ?.map(
-                                                          (e) => e.toString(),
-                                                        )
-                                                        .toList() ??
-                                                    [],
-                                                fuelType: piece['typeMoteur'],
-                                                model:
-                                                    piece['modele']?.toString(),
-                                                pieceType: piece['pieceType'],
-                                                video: piece['video'],
-                                              ),
-                                        ),
-                                      ).then((_) => fetchPieces());
-                                    },
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          child:
-                                              (piece['photos'] as List?)
-                                                          ?.isNotEmpty ==
-                                                      true
-                                                  ? Image.network(
-                                                    piece['photos'][0],
-                                                    height: 40,
-                                                    width: 40,
-                                                    fit: BoxFit.cover,
-                                                  )
-                                                  : Container(
-                                                    height: 40,
-                                                    width: 40,
-                                                    color: Colors.grey[300],
-                                                    child: const Icon(
-                                                      Icons.image_not_supported,
-                                                    ),
+                        ),
+                      )
+                      : GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              childAspectRatio: 0.8,
+                            ),
+                        itemCount: filteredPieces.length,
+                        itemBuilder: (context, index) {
+                          final piece = filteredPieces[index];
+                          final pieceId = piece['_id'] ?? '';
+                          return AnimatedOpacity(
+                            opacity: _isVisible[index] ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 400),
+                            child: Stack(
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => MastervacPage(
+                                              id:
+                                                  (piece['_id'] ??
+                                                          piece['id'] ??
+                                                          piece['articleId'] ??
+                                                          piece['Id'] ??
+                                                          piece['article'])
+                                                      ?.toString(),
+                                              isAcheteur: !isVendeur,
+                                              title: piece['titre'] ?? '',
+                                              year: piece['annee'] ?? '',
+                                              description:
+                                                  piece['description'] ?? '',
+                                              company:
+                                                  piece['entreprise'] ?? '',
+                                              location:
+                                                  piece['localisation'] ?? '',
+                                              price:
+                                                  piece['prix']?.toString() ??
+                                                  '',
+                                              images:
+                                                  (piece['photos'] as List?)
+                                                      ?.map((e) => e.toString())
+                                                      .toList() ??
+                                                  [],
+                                              fuelType: piece['typeMoteur'],
+                                              model:
+                                                  piece['modele']?.toString(),
+                                              pieceType: piece['pieceType'],
+                                              video: piece['video'],
+                                            ),
+                                      ),
+                                    ).then((_) => fetchPieces());
+                                  },
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child:
+                                            (piece['photos'] as List?)
+                                                        ?.isNotEmpty ==
+                                                    true
+                                                ? Image.network(
+                                                  piece['photos'][0],
+                                                  height: 40,
+                                                  width: 40,
+                                                  fit: BoxFit.cover,
+                                                )
+                                                : Container(
+                                                  height: 40,
+                                                  width: 40,
+                                                  color: Colors.grey[300],
+                                                  child: const Icon(
+                                                    Icons.image_not_supported,
                                                   ),
+                                                ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        piece['titre'] ?? '',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 8,
                                         ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          piece['titre'] ?? '',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 8,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isVendeur)
+                                  Positioned(
+                                    top: 0,
+                                    right: 0,
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {
+                                        _deletePiece(pieceId, index);
+                                      },
                                     ),
                                   ),
-                                  if (isVendeur)
-                                    Positioned(
-                                      top: 0,
-                                      right: 0,
-                                      child: IconButton(
-                                        icon: const Icon(
-                                          Icons.delete,
-                                          color: Colors.red,
-                                          size: 20,
-                                        ),
-                                        onPressed: () {
-                                          _deletePiece(pieceId, index);
-                                        },
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-              ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+            ),
           ],
         ),
       ),

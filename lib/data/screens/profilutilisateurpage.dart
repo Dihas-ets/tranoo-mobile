@@ -42,11 +42,15 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
   Map<String, dynamic>? userData;
   bool loading = true;
   String? errorMsg;
+  double? _walletBalance;
+  String _walletCurrency = "XOF";
+  bool _walletLoading = true;
 
   @override
   void initState() {
     super.initState();
     fetchUser();
+    _loadWallet();
   }
 
   Future<void> fetchUser() async {
@@ -80,6 +84,41 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
         userData = null;
         errorMsg =
             "Impossible de charger le profil. Vérifiez votre connexion ou vos droits.";
+      });
+    }
+  }
+
+  Future<void> _loadWallet() async {
+    setState(() {
+      _walletLoading = true;
+    });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          _walletLoading = false;
+          _walletBalance = null;
+        });
+        return;
+      }
+      final idToken = await user.getIdToken();
+      final String baseUrl = getBaseUrl();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+      final res = await dio.get('/wallet/me');
+      setState(() {
+        _walletBalance = (res.data['balance'] ?? 0).toDouble();
+        _walletCurrency = (res.data['currency'] ?? 'XOF').toString();
+        selectedCurrencyValue = _walletCurrency;
+        _walletLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _walletLoading = false;
       });
     }
   }
@@ -297,13 +336,22 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
           _buildListTile(
             title: "Mon portefeuille",
             icon: Icons.account_balance_wallet,
-            trailing: Text(
-              "200000 $selectedCurrencyValue",
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-              ),
-            ),
+            trailing:
+                _walletLoading
+                    ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : Text(
+                      _walletBalance == null
+                          ? '--'
+                          : '${_walletCurrency} ${_walletBalance!.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
+                    ),
             onTap: () {
               Navigator.push(
                 context,

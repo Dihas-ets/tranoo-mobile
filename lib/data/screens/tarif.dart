@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
+import 'subscription_payment.dart';
 
 class Tarif extends StatefulWidget {
   const Tarif({super.key});
@@ -11,133 +12,30 @@ class Tarif extends StatefulWidget {
 }
 
 class _TarifState extends State<Tarif> {
-  // Données dynamiques
-  List<Map<String, dynamic>> carAds = [
-    {
-      'title': 'Toyota Corolla',
-      'description': '2018, 50,000 km, Blanc',
-      'company': 'Tranoo',
-      'price': '18,000,000 f',
-      'specs': {
-        'Cylindre': '4',
-        'Boîte À Vitesses': 'Automate',
-        'Carburant': 'Essence',
-        'Climatiseur': 'Oui',
-        'Distance': '500 km',
-        'Sièges': '5',
-        'Portes': '4',
-      },
-      'images': ['assets/images/Audi.png', 'assets/images/car.png'],
-      'proposed': false,
-      'proposedAmount': null,
-    },
-    {
-      'title': 'Honda Civic',
-      'description': '2020, 30,000 km, Noir',
-      'company': 'Tranoo',
-      'price': '20,000,000 f',
-      'specs': {
-        'Cylindre': '4',
-        'Boîte À Vitesses': 'Manuelle',
-        'Carburant': 'Diesel',
-        'Climatiseur': 'Oui',
-        'Distance': '600 km',
-        'Sièges': '5',
-        'Portes': '4',
-      },
-      'images': ['assets/images/care.png', 'assets/images/groupe2.png'],
-      'proposed': true,
-      'proposedAmount': '19,500,000',
-    },
-    {
-      'title': 'Ford Focus',
-      'description': '2019, 40,000 km, Bleu',
-      'company': 'Tranoo',
-      'price': '22,000,000 f',
-      'specs': {
-        'Cylindre': '4',
-        'Boîte À Vitesses': 'Automate',
-        'Carburant': 'Essence',
-        'Climatiseur': 'Oui',
-        'Distance': '550 km',
-        'Sièges': '5',
-        'Portes': '4',
-      },
-      'images': ['assets/images/groupe3.png', 'assets/images/groupe2.png'],
-      'proposed': false,
-      'proposedAmount': null,
-    },
-  ];
-
-  // Ajout pour les nouveaux filtres
-  int _selectedFilter = 0; // 0: Soumis, 1: Soumettre, 2: Validés, 3: Archivés
-  final List<String> _filters = ['Soumis', 'Soumettre', 'Validés', 'Archivés'];
-  List<Map<String, dynamic>> archives = [];
-  List<Map<String, dynamic>> valides = [];
   bool loading = false;
   String? errorMsg;
-
-  // Filtre actif : "Souscrire" ou "Soumis"
-  String activeFilter = 'Souscrire';
-
-  // Met à jour l'état d'une annonce après une proposition de tarif (et envoie au backend)
-  Future<void> updateProposalStatus(int index, String amount) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-      final idToken = await user.getIdToken();
-      final String baseUrl = getBaseUrl();
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: baseUrl,
-          headers: {'Authorization': 'Bearer $idToken'},
-        ),
-      );
-      final articleId = carAds[index]['id'];
-      if (articleId != null) {
-        await dio.post(
-          '/transit/upsert',
-          data: {
-            'articleId': articleId,
-            'montant': double.tryParse(amount) ?? amount,
-          },
-        );
-      }
-      setState(() {
-        carAds[index]['proposed'] = true;
-        carAds[index]['proposedAmount'] = amount;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de la soumission du tarif.'),
-          ),
-        );
-      }
-    }
-  }
+  final UserService _userService = UserService();
+  List<dynamic> _transitaires = [];
+  bool _hasSubscription = false;
+  DateTime? _activatedAt;
+  DateTime? _expiresAt;
 
   @override
   void initState() {
     super.initState();
-    _loadForTab(0);
+    _bootstrap();
   }
 
-  Future<void> _loadForTab(int tabIndex) async {
+  Future<void> _bootstrap() async {
     setState(() {
       loading = true;
       errorMsg = null;
     });
     try {
-      if (tabIndex == 0) {
-        carAds = await _fetchSoumis();
-      } else if (tabIndex == 1) {
-        carAds = await _fetchSoumettre();
-      } else if (tabIndex == 2) {
-        valides = await _fetchValides();
-      } else {
-        // Archivés laissé local pour le moment
+      if (_userService.isAcheteur || _userService.isChauffeur) {
+        await _loadTransitaires();
+      } else if (_userService.isTransitaire) {
+        await _loadSubscription();
       }
     } catch (e) {
       errorMsg = 'Impossible de charger les données';
@@ -150,829 +48,553 @@ class _TarifState extends State<Tarif> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchSoumis() async {
+  Future<void> _loadTransitaires() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return [];
-    final idToken = await user.getIdToken();
-    final String baseUrl = getBaseUrl();
+    final token = await user?.getIdToken();
     final dio = Dio(
       BaseOptions(
-        baseUrl: baseUrl,
-        headers: {'Authorization': 'Bearer $idToken'},
+        baseUrl: UserService().dio.options.baseUrl,
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
       ),
     );
-    final resp = await dio.get('/transit/soumis');
-    return _mapArticlesToCards(resp.data, proposed: false);
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchSoumettre() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return [];
-    final idToken = await user.getIdToken();
-    final String baseUrl = getBaseUrl();
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl,
-        headers: {'Authorization': 'Bearer $idToken'},
-      ),
+    final resp = await dio.get(
+      '/users',
+      queryParameters: {'role': 'transitaire'},
     );
-    final resp = await dio.get('/transit/soumettre');
-    return _mapArticlesToCards(resp.data, proposed: true);
+    _transitaires = resp.data is List ? resp.data : (resp.data['users'] ?? []);
   }
 
-  Future<List<Map<String, dynamic>>> _fetchValides() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return [];
-    final idToken = await user.getIdToken();
-    final String baseUrl = getBaseUrl();
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl,
-        headers: {'Authorization': 'Bearer $idToken'},
-      ),
-    );
-    final resp = await dio.get('/transit/valides');
-    return _mapArticlesToCards(resp.data, proposed: true);
-  }
-
-  List<Map<String, dynamic>> _mapArticlesToCards(
-    dynamic data, {
-    required bool proposed,
-  }) {
-    if (data is! List) return [];
-    return data.map<Map<String, dynamic>>((a) {
-      final photos =
-          (a['photos'] is List && a['photos'].isNotEmpty)
-              ? List<String>.from(
-                (a['photos'] as List).map((p) => p.toString()),
-              )
-              : <String>[];
-      final description = _buildDescriptionFromArticle(a);
-      final type = (a['type'] ?? '').toString();
-      final Map<String, dynamic> specs =
-          type == 'piece'
-              ? <String, dynamic>{
-                'Catégorie': a['categorie'] ?? '',
-                'Type moteur': a['typeMoteur'] ?? '',
-                'Lieu': a['lieu'] ?? '',
-                'Condition': a['condition'] ?? '',
-              }
-              : <String, dynamic>{
-                'Cylindre': a['cylindre'] ?? '',
-                'Boîte À Vitesses': a['boiteVitesse'] ?? '',
-                'Carburant': a['carburant'] ?? '',
-                'Climatiseur': a['climatiseur'] ?? '',
-                'Distance': a['distance'] ?? '',
-                'Sièges': a['sieges'] ?? '',
-                'Portes': a['portes'] ?? '',
-              };
-      return {
-        'id': a['_id'],
-        'title': a['titre'] ?? '',
-        'description': description,
-        'company':
-            a['entreprise'] ??
-            (a['vendeur'] != null ? (a['vendeur']['nom'] ?? '') : ''),
-        'price': a['prix'] != null ? '${a['prix']} f' : '',
-        'specs': specs,
-        'type': type,
-        'images': photos,
-        'proposed': proposed,
-        'proposedAmount': proposed ? (a['montant'] ?? null) : null,
-      };
-    }).toList();
-  }
-
-  String _buildDescriptionFromArticle(dynamic a) {
-    final parts = <String>[];
-    if (a['annee'] != null) parts.add('${a['annee']}');
-    if (a['marque'] != null) parts.add('${a['marque']}');
-    if (a['modele'] != null) parts.add('${a['modele']}');
-    if (a['lieu'] != null) parts.add('${a['lieu']}');
-    return parts.where((e) => e.toString().trim().isNotEmpty).join(', ');
-  }
-
-  // Helpers d'image pour la liste
-  Widget _buildImageThumb(
-    Map<String, dynamic> item, {
-    required double height,
-    required double width,
-  }) {
-    final List images = item['images'] ?? [];
-    if (images.isNotEmpty) {
-      final first = images.first.toString();
-      final isNetwork =
-          first.startsWith('http://') || first.startsWith('https://');
-      if (isNetwork) {
-        return Image.network(
-          first,
-          height: height,
-          width: width,
-          fit: BoxFit.cover,
-          errorBuilder:
-              (context, error, stackTrace) => _imageFallback(height, width),
-        );
-      } else {
-        return Image.asset(
-          first,
-          height: height,
-          width: width,
-          fit: BoxFit.cover,
-          errorBuilder:
-              (context, error, stackTrace) => _imageFallback(height, width),
-        );
-      }
+  Future<void> _loadSubscription() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: UserService().dio.options.baseUrl,
+          headers: {
+            if (token != null) 'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+      final resp = await dio.get('/subscription/me');
+      final data = resp.data ?? {};
+      _hasSubscription =
+          data['hasSubscription'] == true || (data['status'] == 'active');
+      final act = data['activatedAt'];
+      final exp = data['expiresAt'];
+      _activatedAt = act != null ? DateTime.tryParse(act.toString()) : null;
+      _expiresAt = exp != null ? DateTime.tryParse(exp.toString()) : null;
+    } catch (_) {
+      _hasSubscription = false;
+      _activatedAt = null;
+      _expiresAt = null;
     }
-    return _imageFallback(height, width);
-  }
-
-  Widget _imageFallback(double h, double w) {
-    return Container(
-      height: h,
-      width: w,
-      color: Colors.grey[300],
-      child: const Icon(Icons.directions_car, color: Colors.grey),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('Tarif'),
-        backgroundColor: const Color(0xFFF8BF13),
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: List.generate(
-                _filters.length,
-                (i) => Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 8,
-                  ),
-                  child: ChoiceChip(
-                    label: Text(
-                      _filters[i],
-                      style: TextStyle(
-                        color:
-                            _selectedFilter == i
-                                ? Colors.black
-                                : Colors.grey[700],
+      // appBar: AppBar(
+      //   automaticallyImplyLeading: false,
+      //   centerTitle: true,
+      //   title: Row(
+      //     mainAxisSize: MainAxisSize.min,
+      //     // children: const [
+      //     //   Icon(Icons.workspace_premium, color: Colors.black),
+      //     //   SizedBox(width: 8),
+      //     //   Text('Abonnement'),
+      //     // ],
+      //   ),
+      //   backgroundColor: const Color(0xFFF8BF13),
+      //   foregroundColor: Colors.black,
+      //   elevation: 0,
+      // ),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : (_userService.isAcheteur || _userService.isChauffeur)
+              ? _buildAcheteurView()
+              : _buildTransitaireView(),
+    );
+  }
+
+  Widget _buildAcheteurView() {
+    if (errorMsg != null) return Center(child: Text(errorMsg!));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFCC00), Colors.black],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            'Transitaires recommandés',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: _transitaires.length,
+            itemBuilder: (context, index) {
+              final u = _transitaires[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFFF8BF13),
+                    child: Text(
+                      ((u['entreprise'] ?? u['prenoms'] ?? 'T') as String)
+                          .substring(0, 1)
+                          .toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    selected: _selectedFilter == i,
-                    selectedColor: const Color(0xFFF8BF13),
-                    backgroundColor: Colors.grey[200],
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedFilter = i;
-                      });
-                      _loadForTab(i);
-                    },
                   ),
+                  title: Text((u['entreprise'] ?? '-') as String),
+                  subtitle: Text((u['email'] ?? '-') as String),
+                  trailing: const Icon(Icons.verified, color: Colors.green),
                 ),
-              ),
-            ),
+              );
+            },
           ),
-          Expanded(child: _buildFilteredList()),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildFilteredList() {
-    if (loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (errorMsg != null) {
-      return Center(child: Text(errorMsg!));
-    }
-    if (_selectedFilter == 0) {
-      // Soumis
-      final filteredAds = carAds.where((ad) => !ad['proposed']).toList();
-      return _buildCarList(filteredAds);
-    } else if (_selectedFilter == 1) {
-      // Soumettre: éléments non cliquables et affichage du montant proposé
-      final filteredAds = carAds.where((ad) => ad['proposed']).toList();
-      return _buildSoumettreList(filteredAds);
-    } else if (_selectedFilter == 2) {
-      // Validés
-      return _buildValidesList();
-    } else {
-      // Archivés
-      return _buildArchivesList();
-    }
-  }
-
-  Widget _buildCarList(List<Map<String, dynamic>> ads) {
-    return ListView.builder(
-      itemCount: ads.length,
-      itemBuilder: (context, index) {
-        final car = ads[index];
-        return GestureDetector(
-          onTap:
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => CarDetailsPage(
-                        car: car,
-                        onProposalSubmitted:
-                            (amount) => updateProposalStatus(
-                              carAds.indexOf(car),
-                              amount,
-                            ),
-                      ),
-                ),
+  Widget _buildTransitaireView() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFCC00), Colors.black],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-          child: Card(
-            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: _buildImageThumb(car, height: 80, width: 80),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          car['title'] ?? '',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          car['description'] ?? '',
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 4),
-                        if (car['proposed'] == true &&
-                            car['proposedAmount'] != null)
-                          Text(
-                            'Proposé : ${car['proposedAmount']} f',
-                            style: const TextStyle(
-                              color: Colors.blue,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        else
-                          Text(
-                            car['price'] ?? '',
-                            style: const TextStyle(
-                              color: Colors.amber,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Liste Soumettre: non cliquable + montant proposé visible
-  Widget _buildSoumettreList(List<Map<String, dynamic>> ads) {
-    return ListView.builder(
-      itemCount: ads.length,
-      itemBuilder: (context, index) {
-        final car = ads[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: _buildImageThumb(car, height: 80, width: 80),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        car['title'] ?? '',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        car['description'] ?? '',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Text(
-                  (car['proposedAmount'] ?? car['montant'] ?? '') != ''
-                      ? 'Proposé: ${(car['proposedAmount'] ?? car['montant']).toString()} f'
-                      : '',
-                  style: const TextStyle(
-                    color: Colors.blue,
+                const Text(
+                  'Abonnement Transitaire',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildValidesList() {
-    if (valides.isEmpty) {
-      return const Center(child: Text('Aucune proposition validée.'));
-    }
-    return ListView.builder(
-      itemCount: valides.length,
-      itemBuilder: (context, index) {
-        final item = valides[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          elevation: 2,
-          child: ListTile(
-            leading:
-                item['images'] != null && item['images'].isNotEmpty
-                    ? _buildImageThumb(item, height: 48, width: 48)
-                    : null,
-            title: Text(
-              item['title'] ?? '',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item['description'] ?? ''),
-                Row(
-                  children: [
-                    const Icon(Icons.verified, color: Colors.green, size: 18),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'Validé',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
+                const SizedBox(height: 8),
+                if (!_hasSubscription) ...[
+                  const Text(
+                    "Activez un abonnement mensuel pour être mis en avant auprès des acheteurs.",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "5 FCFA / mois",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SubscriptionPaymentScreen(),
+                          ),
+                        );
+                        
+                        // Si l'abonnement a été activé avec succès
+                        if (result == true) {
+                          await _loadSubscription(); // Recharger les données
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: const Color(0xFFFFCC00),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text('Souscrire maintenant - 5 FCFA'),
+                    ),
+                  ),
+                ] else ...[
+                  IntrinsicHeight(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Activé le: ${_activatedAt?.day}/${_activatedAt?.month}/${_activatedAt?.year}',
+                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                'Expire le: ${_expiresAt?.day}/${_expiresAt?.month}/${_expiresAt?.year}',
+                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          height: 36,
+                          child: ElevatedButton(
+                            onPressed: () {},
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: const Color(0xFFFFCC00),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text('Gérer', style: TextStyle(fontSize: 12)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+          ),
+          const SizedBox(height: 16),
+          _buildSubscriptionProgressCard(),
+          const SizedBox(height: 16),
+          IntrinsicHeight(
+            child: Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.cancel, color: Colors.red),
-                  tooltip: 'Je ne suis pas disponible',
-                  onPressed: () {
-                    setState(() {
-                      archives.add(item);
-                      valides.remove(item);
-                    });
-                  },
+                Expanded(
+                  child: _miniStatCard(
+                    'Visibilité',
+                    'Boostée',
+                    Icons.trending_up,
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.check_circle, color: Colors.amber),
-                  tooltip: 'J\'accepte',
-                  onPressed: () {
-                    setState(() {
-                      // Passe dans transit.dart (enTransit ou enConsumption selon le détail)
-                      // Ici, on simule juste le retrait de la liste
-                      valides.remove(item);
-                    });
-                  },
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _miniStatCard('Mises en avant', '—', Icons.star)
                 ),
               ],
             ),
-            isThreeLine: true,
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildArchivesList() {
-    if (archives.isEmpty) {
-      return const Center(child: Text('Aucune proposition archivée.'));
-    }
-    return ListView.builder(
-      itemCount: archives.length,
-      itemBuilder: (context, index) {
-        final item = archives[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          elevation: 2,
-          child: ListTile(
-            leading:
-                item['images'] != null && item['images'].isNotEmpty
-                    ? _buildImageThumb(item, height: 48, width: 48)
-                    : null,
-            title: Text(
-              item['title'] ?? '',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+          const SizedBox(height: 16),
+          _buildChartsSection(),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.add),
+              label: const Text('Nouvelle offre'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: const Color(0xFFF8BF13),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             ),
-            subtitle: Text(item['description'] ?? ''),
-            isThreeLine: true,
           ),
-        );
-      },
-    );
-  }
-}
-
-// Classe pour afficher les détails d'une voiture
-class CarDetailsPage extends StatefulWidget {
-  final Map<String, dynamic> car; // Détails de la voiture
-  final Function(String)
-  onProposalSubmitted; // Callback pour soumettre un tarif
-
-  const CarDetailsPage({
-    super.key,
-    required this.car,
-    required this.onProposalSubmitted,
-  });
-
-  @override
-  State<CarDetailsPage> createState() => _CarDetailsPageState();
-}
-
-class _CarDetailsPageState extends State<CarDetailsPage> {
-  final TextEditingController _tarifController = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: null,
-        // title: Text(widget.car['title']!),
-        // backgroundColor: Colors.amber,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          _buildImageSection(), // Affiche une image d'exemple
-          const SizedBox(height: 16),
-          _buildHeader(),
-          const SizedBox(height: 16),
-          _buildDescription(),
-          const SizedBox(height: 24),
-          _buildSpecifications(),
-          const SizedBox(height: 24),
-          // Section de proposition déplacée sous le prix, on la supprime ici
         ],
       ),
     );
   }
 
-  Widget _buildImageSection() {
-    final List images = widget.car['images'] ?? [];
-    final String? first = images.isNotEmpty ? images.first.toString() : null;
-    return Column(
-      children: [
-        SizedBox(
-          height: 200,
-          width: double.infinity,
-          child:
-              first == null
-                  ? Container(
-                    color: Colors.grey[300],
-                    child: const Center(child: Text('Image non disponible')),
-                  )
-                  : (first.startsWith('http://') ||
-                      first.startsWith('https://'))
-                  ? Image.network(
-                    first,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Text('Image non disponible'),
-                        ),
-                      );
-                    },
-                  )
-                  : Image.asset(
-                    first,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Text('Image non disponible'),
-                        ),
-                      );
-                    },
-                  ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          widget.car['description']?.toString() ?? '',
-          style: const TextStyle(fontSize: 14, color: Colors.grey),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSpecifications() {
-    final Map specsRaw =
-        (widget.car['specs'] is Map) ? (widget.car['specs'] as Map) : {};
-    // Utiliser des types dynamiques pour éviter les casts stricts
-    final Map<String, dynamic> specs = {
-      for (final entry in specsRaw.entries) entry.key.toString(): entry.value,
-    };
-    // Ne rien afficher si aucune spec utile
-    final hasValue = specs.values.any(
-      (v) => (v?.toString().trim().isNotEmpty ?? false),
-    );
-    if (!hasValue) {
-      return const SizedBox.shrink();
-    }
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: isSmallScreen ? 2 : 3,
-      childAspectRatio: isSmallScreen ? 2.0 : 2.5, // Réduit pour petits écrans
-      mainAxisSpacing:
-          isSmallScreen ? 8 : 16, // Réduit l'espacement pour petits écrans
-      crossAxisSpacing: isSmallScreen ? 8 : 16,
-      children:
-          specs.entries.map((entry) {
-            return Container(
-              padding: EdgeInsets.all(
-                isSmallScreen ? 8 : 12,
-              ), // Padding réduit pour petits écrans
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.key,
-                    style: TextStyle(
-                      fontSize:
-                          isSmallScreen ? 12 : 14, // Taille de police réduite
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    entry.value?.toString() ?? '',
-                    style: TextStyle(
-                      fontSize:
-                          isSmallScreen ? 11 : 12, // Taille de police réduite
-                      color: Colors.black54,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-    );
-  }
-
-  Widget _buildImageThumb(
-    Map<String, dynamic> item, {
-    required double height,
-    required double width,
-  }) {
-    final List images = item['images'] ?? [];
-    if (images.isNotEmpty) {
-      final first = images.first.toString();
-      final isNetwork =
-          first.startsWith('http://') || first.startsWith('https://');
-      if (isNetwork) {
-        return Image.network(
-          first,
-          height: height,
-          width: width,
-          fit: BoxFit.cover,
-          errorBuilder:
-              (context, error, stackTrace) => _imageFallback(height, width),
-        );
-      } else {
-        return Image.asset(
-          first,
-          height: height,
-          width: width,
-          fit: BoxFit.cover,
-          errorBuilder:
-              (context, error, stackTrace) => _imageFallback(height, width),
-        );
-      }
-    }
-    return _imageFallback(height, width);
-  }
-
-  Widget _imageFallback(double h, double w) {
+  Widget _miniStatCard(String title, String value, IconData icon) {
     return Container(
-      height: h,
-      width: w,
-      color: Colors.grey[300],
-      child: const Icon(Icons.directions_car, color: Colors.grey),
-    );
-  }
-
-  Widget _buildHeader() {
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.car['title']!,
-          style: TextStyle(
-            fontSize: screenWidth > 600 ? 24 : 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          widget.car['company']!,
-          style: TextStyle(
-            fontSize: screenWidth > 600 ? 20 : 18,
-            color: Colors.grey,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          widget.car['price']!,
-          style: TextStyle(
-            fontSize: screenWidth > 600 ? 22 : 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.amber,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _buildInlineProposal(),
-      ],
-    );
-  }
-
-  Widget _buildDescription() {
-    return Text(
-      widget.car['description']!,
-      style: const TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
-    );
-  }
-
-  Widget _buildProposalSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Proposez votre tarif pour le transit :',
-          style: TextStyle(fontSize: 16.0),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: _tarifController,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Entrez votre tarif',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment:
-              MainAxisAlignment.end, // Aligne le bouton sur la droite
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                final tarif = _tarifController.text;
-                if (tarif.isNotEmpty) {
-                  widget.onProposalSubmitted(tarif);
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Tarif proposé: $tarif f'),
-                      backgroundColor: Colors.amber,
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-              child: const Text('Soumettre'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // Section de soumission de tarif (inline sous le prix)
-  Widget _buildInlineProposal() {
-    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 30),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(12),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: TextField(
-              controller: _tarifController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(
-                  Icons.local_shipping,
-                  color: Colors.amber,
-                ),
-                hintText: 'Proposez votre tarif de transit',
-                filled: true,
-                fillColor: const Color(0xFFF9FAFB),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Colors.amber, width: 1.2),
-                ),
-              ),
-            ),
+          CircleAvatar(
+            backgroundColor: const Color(0xFFF8BF13),
+            child: Icon(icon, color: Colors.black, size: 20),
           ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () {
-              final tarif = _tarifController.text.trim();
-              if (tarif.isNotEmpty) {
-                widget.onProposalSubmitted(tarif);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Tarif proposé: $tarif f')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF8BF13),
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 0,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title, 
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  value, 
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-            child: const Text('Soumettre'),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildSubscriptionProgressCard() {
+    final now = DateTime.now();
+    final totalDays = 30;
+    int remaining = 0;
+    if (_expiresAt != null) {
+      remaining = _expiresAt!.difference(now).inDays.clamp(0, 365);
+    }
+    final progress = (_expiresAt != null)
+        ? (1 - (remaining / totalDays)).clamp(0.0, 1.0)
+        : 0.0;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Statut d\'abonnement', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(_hasSubscription ? 'Actif' : 'Inactif', style: TextStyle(color: _hasSubscription ? const Color(0xFF188100) : Colors.red)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 10,
+              backgroundColor: Colors.grey.shade200,
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF8BF13)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(_expiresAt != null ? 'Votre abonnement expire dans $remaining jours' : 'Aucun abonnement actif', style: const TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChartsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Performances', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Commandes livrées / mois', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              const _BarChart(values: [4, 8, 6, 10, 7, 12], labels: ['J', 'F', 'M', 'A', 'M', 'J']),
+              const SizedBox(height: 16),
+              const Text('Répartition des clients', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              const _PieChart(values: [40, 35, 25], colors: [Color(0xFFF8BF13), Colors.black, Colors.grey], legends: ['Acheteurs', 'Chauffeurs', 'Autres']),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BarChart extends StatelessWidget {
+  final List<int> values;
+  final List<String> labels;
+  const _BarChart({required this.values, required this.labels});
+
+  @override
+  Widget build(BuildContext context) {
+    final maxVal = (values.isNotEmpty ? values.reduce((a, b) => a > b ? a : b) : 1).toDouble();
+    return SizedBox(
+      height: 120,
+      width: double.infinity,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: List.generate(values.length, (i) {
+          final h = (values[i] / maxVal) * 70 + 10;
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Flexible(
+                    child: Container(
+                      height: h,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFCC00), Colors.black], 
+                          begin: Alignment.topCenter, 
+                          end: Alignment.bottomCenter
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Flexible(
+                    child: Text(
+                      labels[i], 
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _PieChart extends StatelessWidget {
+  final List<double> values;
+  final List<Color> colors;
+  final List<String> legends;
+  const _PieChart({required this.values, required this.colors, required this.legends});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = values.fold<double>(0, (p, e) => p + e);
+    double start = -90;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 140,
+          width: 140,
+          child: CustomPaint(
+            painter: _PiePainter(values: values, colors: colors, startAngle: start),
+            size: const Size(140, 140),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 6,
+          alignment: WrapAlignment.center,
+          children: List.generate(values.length, (i) {
+            final pct = total > 0 ? (values[i] / total * 100).toStringAsFixed(0) : '0';
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 10, 
+                  height: 10, 
+                  decoration: BoxDecoration(
+                    color: colors[i], 
+                    borderRadius: BorderRadius.circular(2)
+                  )
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${legends[i]} ($pct%)', 
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            );
+          }),
+        )
+      ],
+    );
+  }
+}
+
+class _PiePainter extends CustomPainter {
+  final List<double> values;
+  final List<Color> colors;
+  final double startAngle;
+  _PiePainter({required this.values, required this.colors, required this.startAngle});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = values.fold<double>(0, (p, e) => p + e);
+    double start = startAngle * 3.1415926535 / 180;
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = size.height / 2;
+    for (int i = 0; i < values.length; i++) {
+      final double sweep = total > 0 ? ((values[i] / total) * 2.0 * 3.1415926535) : 0.0;
+      paint.color = colors[i];
+      canvas.drawArc(rect.deflate(size.height / 4), start, sweep, false, paint);
+      start += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

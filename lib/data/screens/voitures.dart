@@ -22,11 +22,18 @@ class _VoituresPageState extends State<VoituresPage> {
   bool isLoading = true;
   String? error;
   List<bool> _isVisible = [];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = "";
 
   @override
   void initState() {
     super.initState();
     fetchVoitures();
+    _searchController.addListener(() {
+      setState(() {
+        _searchText = _searchController.text.toLowerCase();
+      });
+    });
   }
 
   Future<void> fetchVoitures() async {
@@ -40,10 +47,7 @@ class _VoituresPageState extends State<VoituresPage> {
       final userService = UserService();
       final role = userService.currentRole;
       final userId = user?.uid;
-      String url = getBaseUrl() + '/articles?type=voiture&statut=en_ligne';
-      if (role == UserRole.vendeur && userId != null) {
-        url += '&vendeur=$userId';
-      }
+      String url = getBaseUrl() + '/articles?type=voiture';
       final response = await http
           .get(
             Uri.parse(url),
@@ -101,9 +105,14 @@ class _VoituresPageState extends State<VoituresPage> {
     });
     await Future.delayed(const Duration(milliseconds: 400));
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
       final response = await http.delete(
         Uri.parse(getBaseUrl() + '/articles/$articleId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
       );
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -131,6 +140,18 @@ class _VoituresPageState extends State<VoituresPage> {
         userService.currentRole == UserRole.acheteur ||
         userService.currentRole == UserRole.transitaire;
 
+    final filteredVoitures =
+        voitures.where((v) {
+          final titre =
+              ((v['marque'] ?? '').toString() +
+                      ' ' +
+                      (v['modele']?.toString() ?? ''))
+                  .toLowerCase();
+          final alt = (v['titre'] ?? '').toString().toLowerCase();
+          if (_searchText.isEmpty) return true;
+          return titre.contains(_searchText) || alt.contains(_searchText);
+        }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Voitures en ligne'),
@@ -155,7 +176,7 @@ class _VoituresPageState extends State<VoituresPage> {
               ? const Center(child: CircularProgressIndicator())
               : error != null
               ? Center(child: Text(error!))
-              : voitures.isEmpty
+              : filteredVoitures.isEmpty
               ? Center(
                 child: Text(
                   isVendeur
@@ -167,120 +188,161 @@ class _VoituresPageState extends State<VoituresPage> {
                   ),
                 ),
               )
-              : GridView.builder(
+              : Padding(
                 padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 0.75,
-                ),
-                itemCount: voitures.length,
-                itemBuilder: (context, index) {
-                  final voiture = voitures[index];
-                  return AnimatedOpacity(
-                    opacity: _isVisible[index] ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 400),
-                    child: Stack(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => CarsInfo(
-                                      id:
-                                          (voiture['_id'] ??
-                                                  voiture['id'] ??
-                                                  voiture['articleId'] ??
-                                                  voiture['Id'] ??
-                                                  voiture['article'])
-                                              ?.toString(),
-                                      titre: voiture['titre'] ?? '',
-                                      description: voiture['description'] ?? '',
-                                      marque: voiture['marque'] ?? '',
-                                      modele:
-                                          voiture['modele']?.toString() ?? '',
-                                      annee: voiture['annee'] ?? '',
-                                      prix: voiture['prix']?.toString() ?? '',
-                                      condition: voiture['condition'],
-                                      boiteVitesse: voiture['boiteVitesse'],
-                                      carburant: voiture['carburant'],
-                                      climatiseur: voiture['climatiseur'],
-                                      distance: voiture['distance'],
-                                      sieges: voiture['sieges'],
-                                      portes: voiture['portes'],
-                                      cylindre: voiture['cylindre'],
-                                      images:
-                                          (voiture['photos'] as List?)
-                                              ?.map((e) => e.toString())
-                                              .toList() ??
-                                          [],
-                                      video: voiture['video'],
-                                      entreprise: voiture['entreprise'],
-                                    ),
-                              ),
-                            );
-                          },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child:
-                                    (voiture['photos'] as List?)?.isNotEmpty ==
-                                            true
-                                        ? Image.network(
-                                          voiture['photos'][0],
-                                          height: 140,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                        )
-                                        : Container(
-                                          height: 140,
-                                          width: double.infinity,
-                                          color: Colors.grey[300],
-                                          child: const Icon(
-                                            Icons.image_not_supported,
-                                          ),
-                                        ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                (voiture['marque'] ?? '') +
-                                    ' ' +
-                                    (voiture['modele']?.toString() ?? ''),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                voiture['prix']?.toString() ?? '',
-                                style: const TextStyle(color: Colors.grey),
-                              ),
-                            ],
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText:
+                              'Rechercher une voiture (marque, modèle, titre)...',
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: Colors.grey[200],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
                           ),
                         ),
-                        if (isVendeur)
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.delete,
-                                color: Colors.red,
-                                size: 24,
-                              ),
-                              onPressed: () {
-                                _deleteVoiture(voiture['_id'] ?? '', index);
-                              },
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
-                  );
-                },
+                    Expanded(
+                      child: GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              childAspectRatio: 0.75,
+                            ),
+                        itemCount: filteredVoitures.length,
+                        itemBuilder: (context, index) {
+                          final voiture = filteredVoitures[index];
+                          return AnimatedOpacity(
+                            opacity: _isVisible[index] ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 400),
+                            child: Stack(
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => CarsInfo(
+                                              id:
+                                                  (voiture['_id'] ??
+                                                          voiture['id'] ??
+                                                          voiture['articleId'] ??
+                                                          voiture['Id'] ??
+                                                          voiture['article'])
+                                                      ?.toString(),
+                                              titre: voiture['titre'] ?? '',
+                                              description:
+                                                  voiture['description'] ?? '',
+                                              marque: voiture['marque'] ?? '',
+                                              modele:
+                                                  voiture['modele']
+                                                      ?.toString() ??
+                                                  '',
+                                              annee: voiture['annee'] ?? '',
+                                              prix:
+                                                  voiture['prix']?.toString() ??
+                                                  '',
+                                              condition: voiture['condition'],
+                                              boiteVitesse:
+                                                  voiture['boiteVitesse'],
+                                              carburant: voiture['carburant'],
+                                              climatiseur:
+                                                  voiture['climatiseur'],
+                                              distance: voiture['distance'],
+                                              sieges: voiture['sieges'],
+                                              portes: voiture['portes'],
+                                              cylindre: voiture['cylindre'],
+                                              images:
+                                                  (voiture['photos'] as List?)
+                                                      ?.map((e) => e.toString())
+                                                      .toList() ??
+                                                  [],
+                                              video: voiture['video'],
+                                              entreprise: voiture['entreprise'],
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child:
+                                            (voiture['photos'] as List?)
+                                                        ?.isNotEmpty ==
+                                                    true
+                                                ? Image.network(
+                                                  voiture['photos'][0],
+                                                  height: 140,
+                                                  width: double.infinity,
+                                                  fit: BoxFit.cover,
+                                                )
+                                                : Container(
+                                                  height: 140,
+                                                  width: double.infinity,
+                                                  color: Colors.grey[300],
+                                                  child: const Icon(
+                                                    Icons.image_not_supported,
+                                                  ),
+                                                ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        (voiture['marque'] ?? '') +
+                                            ' ' +
+                                            (voiture['modele']?.toString() ??
+                                                ''),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        voiture['prix']?.toString() ?? '',
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isVendeur)
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                        size: 24,
+                                      ),
+                                      onPressed: () {
+                                        _deleteVoiture(
+                                          voiture['_id'] ?? '',
+                                          index,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
     );
   }

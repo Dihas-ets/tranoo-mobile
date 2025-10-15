@@ -84,11 +84,12 @@ class SuccesScreen extends StatelessWidget {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
-                              Navigator.push(
+                              Navigator.pushAndRemoveUntil(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => AvantHome(),
                                 ),
+                                (route) => false,
                               );
                             },
                             style: ElevatedButton.styleFrom(

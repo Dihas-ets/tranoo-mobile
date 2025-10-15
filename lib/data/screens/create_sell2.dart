@@ -676,7 +676,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
     bool isLargeScreen,
   ) {
     return Text(
-      text,
+      text + ' *',
       style: TextStyle(
         fontWeight: FontWeight.w500,
         fontSize:

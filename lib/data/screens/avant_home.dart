@@ -25,7 +25,7 @@ import 'package:tranoo/providers/counter_provider.dart';
 import 'connexion_page.dart';
 import 'chat.dart';
 import 'package:tranoo/data/screens/driver_certified.dart';
-import 'package:tranoo/data/screens/first_page.dart';
+import 'package:tranoo/data/screens/second_page.dart';
 
 class AvantHome extends StatefulWidget {
   const AvantHome({super.key});
@@ -44,26 +44,13 @@ class _AvantHomeState extends State<AvantHome> {
   @override
   void initState() {
     super.initState();
-    // La vérification de l'onboarding se fera dans le builder
-
-    // Charger les compteurs après un délai pour laisser l'interface se charger
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
         final counterProvider = Provider.of<CounterProvider>(
           context,
           listen: false,
         );
-        print('DEBUG: Chargement des compteurs...');
-        counterProvider
-            .loadCounters()
-            .then((_) {
-              print(
-                'DEBUG: Compteurs chargés - Messages: ${counterProvider.unreadMessagesCount}, Notifications: ${counterProvider.unreadNotificationsCount}',
-              );
-            })
-            .catchError((error) {
-              print('DEBUG: Erreur chargement compteurs: $error');
-            });
+        counterProvider.loadCounters();
       } catch (e) {
         print('DEBUG: Erreur accès CounterProvider: $e');
       }
@@ -77,25 +64,16 @@ class _AvantHomeState extends State<AvantHome> {
     final prefs = await SharedPreferences.getInstance();
     final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
 
-    print('DEBUG: hasSeenOnboarding = $hasSeenOnboarding');
-
-    // Si première installation → rediriger vers onboarding
     if (!hasSeenOnboarding) {
-      print(
-        'DEBUG: Première installation détectée, redirection vers FirstPage',
-      );
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const FirstPage()),
+          MaterialPageRoute(builder: (context) => const SecondPage()),
           (route) => false,
         );
       });
       return;
     }
-
-    // Si l'onboarding a été vu, on ne fait rien ici
-    // La vérification de l'utilisateur se fera dans le builder
   }
 
   Future<void> _updateLastLoginTime() async {
@@ -107,76 +85,54 @@ class _AvantHomeState extends State<AvantHome> {
     setState(() {
       _selectedIndex = index;
     });
-    if (role == 'acheteur') {
-      // ... logique existante ...
-    } else if (role == 'chauffeur') {
-      switch (index) {
-        case 3:
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const DriverCertifiedPage(),
-            ),
-          );
-          break;
-      }
-    } else if (role == 'transitaire') {
-      if (index == 3) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ChatListPage()),
-        );
-      }
-    } else if (role == 'vendeur') {
-      switch (index) {
-        case 4:
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ChatListPage()),
-          );
-          break;
-      }
+    if (role == 'chauffeur' && index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const DriverCertifiedPage()),
+      );
+    } else if (role == 'transitaire' && index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ChatListPage()),
+      );
+    } else if (role == 'vendeur' && index == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ChatListPage()),
+      );
     }
   }
 
-  // Pages pour les acheteurs
   final List<Widget> _pagesAcheteur = [
-    Marque(), // Accueil
-    VoituresPage(), // Voitures
-    Piece(), // Pièces
-    Profil3(), // Profil
+    Marque(),
+    VoituresPage(),
+    Piece(),
+    Profil3(),
   ];
 
-  // Pages pour les chauffeurs (identique acheteur sauf dernier onglet)
   final List<Widget> _pagesChauffeur = [
-    Marque(), // Accueil
-    VoituresPage(), // Voitures
-    Piece(), // Pièces
-    DriverCertifiedPage(), // Chauffeur. Certif
+    Marque(),
+    VoituresPage(),
+    Piece(),
+    DriverCertifiedPage(),
   ];
 
-  // Pages normales (par exemple pour transitaires)
   final List<Widget> _pagesTransitaire = [
     Marque(),
     Tarif(),
     Transit(),
     ChatListPage(),
   ];
+
   final List<Widget> _pagesVendeur = [Marque(), Une(), Vendre(), Piece()];
 
-  double responsiveSize(
-    double screenWidth,
-    double smallSize,
-    double largeSize,
-  ) {
+  double responsiveSize(double screenWidth, double smallSize, double largeSize) {
     return screenWidth < 600 ? smallSize : largeSize;
   }
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(
-      source: ImageSource.gallery,
-    );
+    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -220,163 +176,122 @@ class _AvantHomeState extends State<AvantHome> {
     final spacing = screenHeight * (isPortrait ? 0.01 : 0.02);
     final fontSize = responsiveSize(screenWidth, 14, 18);
 
-    return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => CounterProvider())],
-      child: Consumer<myauth.AuthProvider>(
-        builder: (context, auth, _) {
-          final user = auth.user;
-          final loading = auth.loading;
-          final role = user != null ? user['role'] as String? : null;
+    return Consumer<myauth.AuthProvider>(
+      builder: (context, auth, _) {
+        final user = auth.user;
+        final loading = auth.loading;
+        final role = user != null ? user['role'] as String? : null;
 
-          // Vérifier d'abord si c'est la première installation
-          if (!loading && !_didCheckOnboarding) {
-            _checkOnboardingAndInactivity();
-          }
+        if (!loading && !_didCheckOnboarding) {
+          _checkOnboardingAndInactivity();
+        }
 
-          // Si pas connecté et pas en chargement ET que l'onboarding a été vu: rediriger vers la page de connexion
-          if (!loading &&
-              user == null &&
-              !_didRedirectToLogin &&
-              _didCheckOnboarding) {
-            _didRedirectToLogin = true;
-            print(
-              'DEBUG: Utilisateur non connecté, redirection vers ConnexionPage',
+        if (!loading && user == null && !_didRedirectToLogin && _didCheckOnboarding) {
+          _didRedirectToLogin = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const ConnexionPage()),
+              (route) => false,
             );
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const ConnexionPage()),
-                (route) => false,
-              );
+          });
+        }
+
+        if (user != null) {
+          _updateLastLoginTime();
+        }
+
+        if (role == 'vendeur' && _selectedIndex > 3) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() {
+              _selectedIndex = 3;
             });
-          }
+          });
+        }
 
-          // Si utilisateur connecté, mettre à jour le timestamp de dernière connexion
-          if (user != null) {
-            _updateLastLoginTime();
-          }
-
-          // Correction RangeError : si l'utilisateur est vendeur et l'index est hors borne, on le remet sur Pièces
-          if (role == 'vendeur' && _selectedIndex > 3) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              setState(() {
-                _selectedIndex = 3;
-              });
-            });
-          }
-
-          return Scaffold(
-            key: _scaffoldKey,
-            appBar: AppBar(
-              backgroundColor: const Color(0xFFF9FAFB),
-              elevation: 0,
-              toolbarHeight: appBarHeight,
-              title: Center(
-                child: Image.asset(
-                  "assets/images/logo_connexion.png",
-                  height: logoHeight,
-                ),
-              ),
-              actions: [
-                Consumer<CounterProvider>(
-                  builder: (context, counter, child) {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Bouton de test pour recharger les compteurs
-                        IconButton(
-                          icon: const Icon(Icons.refresh, color: Colors.grey),
-                          onPressed: () {
-                            print(
-                              'DEBUG: Rechargement manuel des compteurs...',
-                            );
-                            counter.loadCounters().then((_) {
-                              print(
-                                'DEBUG: Compteurs rechargés - Messages: ${counter.unreadMessagesCount}, Notifications: ${counter.unreadNotificationsCount}',
-                              );
-                            });
-                          },
-                        ),
-                        // Badge notifications
-                        IconButton(
-                          icon: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Icon(
-                                Icons.notifications_none_outlined,
-                                color: Colors.black,
-                                size: iconSize,
-                              ),
-                              if (counter.unreadNotificationsCount > 0)
-                                Positioned(
-                                  right: 4,
-                                  top: 4,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    constraints: const BoxConstraints(
-                                      minWidth: 16,
-                                      minHeight: 16,
-                                    ),
-                                    child: Text(
-                                      counter.unreadNotificationsCount > 99
-                                          ? '99+'
-                                          : counter.unreadNotificationsCount
-                                              .toString(),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const Notifications(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-              leading: IconButton(
-                icon: Icon(Icons.menu, color: Colors.black, size: iconSize),
-                onPressed: () {
-                  _scaffoldKey.currentState?.openDrawer();
-                },
+        return Scaffold(
+          key: _scaffoldKey,
+          appBar: AppBar(
+            backgroundColor: const Color(0xFFF9FAFB),
+            elevation: 0,
+            toolbarHeight: appBarHeight,
+            title: Center(
+              child: Image.asset(
+                "assets/images/logo_connexion.png",
+                height: logoHeight + 6,
               ),
             ),
-            body:
-                loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : getCurrentPage(role),
-            drawer: Drawer(
-              child:
-                  loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : user == null
-                      ? Center(child: Text('Non connecté ou erreur réseau'))
-                      : ListView(
+            actions: [
+              Consumer<CounterProvider>(
+                builder: (context, counter, child) {
+                  return IconButton(
+                    icon: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(
+                          Icons.notifications_none_outlined,
+                          color: Colors.black,
+                          size: iconSize,
+                        ),
+                        if (counter.unreadNotificationsCount > 0)
+                          Positioned(
+                            right: 4,
+                            top: 4,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                counter.unreadNotificationsCount > 99
+                                    ? '99+'
+                                    : counter.unreadNotificationsCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const Notifications()),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+            leading: IconButton(
+              icon: Icon(Icons.menu, color: Colors.black, size: iconSize),
+              onPressed: () {
+                _scaffoldKey.currentState?.openDrawer();
+              },
+            ),
+          ),
+          body: loading ? const Center(child: CircularProgressIndicator()) : getCurrentPage(role),
+          drawer: Drawer(
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : user == null
+                    ? const Center(child: Text('Non connecté'))
+                    : ListView(
                         padding: EdgeInsets.zero,
                         children: [
                           SizedBox(
                             height: drawerHeaderHeight,
                             child: DrawerHeader(
-                              decoration: const BoxDecoration(
-                                color: Color(0XffF8BF13),
-                              ),
+                              decoration: const BoxDecoration(color: Color(0XffF8BF13)),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -385,37 +300,36 @@ class _AvantHomeState extends State<AvantHome> {
                                     child: CircleAvatar(
                                       radius: avatarRadius,
                                       backgroundColor: Colors.grey,
-                                      backgroundImage:
-                                          _image == null
-                                              ? const AssetImage(
-                                                "assets/images/jenifer.jpg",
-                                              )
-                                              : FileImage(_image!)
-                                                  as ImageProvider,
+                                      backgroundImage: _image == null
+                                          ? const AssetImage("assets/images/jenifer.jpg")
+                                          : FileImage(_image!) as ImageProvider,
                                     ),
                                   ),
                                   SizedBox(height: spacing),
-                                  Flexible(
-                                    child: Text(
-                                      user['nom'] ?? "Utilisateur",
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: fontSize,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    user['nom'] ?? "Utilisateur",
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  Flexible(
-                                    child: Text(
-                                      user['email'] ?? "",
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: fontSize * 0.8,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    user['email'] ?? "",
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: fontSize * 0.8,
                                     ),
                                   ),
+                                  if (user['role'] != null)
+                                    Text(
+                                      (user['role'] as String).toUpperCase(),
+                                      style: TextStyle(
+                                        color: const Color(0xFF0A1F44),
+                                        fontSize: fontSize * 0.75,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -423,362 +337,69 @@ class _AvantHomeState extends State<AvantHome> {
                           _buildDrawerButton(
                             context,
                             text: 'Accueil',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const AvantHome(),
-                                ),
-                              );
-                            },
-                            icon: Icon(
-                              Icons.home,
-                              color: Colors.black,
-                              size: iconSize,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const AvantHome()),
                             ),
+                            icon: Icon(Icons.home, color: Colors.black, size: iconSize),
                           ),
                           _buildDrawerButton(
                             context,
                             text: 'Portefeuille',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const WalletScreen(),
-                                ),
-                              );
-                            },
-                            icon: Icon(
-                              Icons.account_balance_wallet,
-                              color: Colors.black,
-                              size: iconSize,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const WalletScreen()),
                             ),
-                          ),
-                          _buildDrawerButton(
-                            context,
-                            text: 'Langues',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => const LanguesEntreprise(),
-                                ),
-                              );
-                            },
-                            icon: Icon(
-                              Icons.language,
-                              color: Colors.black,
-                              size: iconSize,
-                            ),
-                          ),
-                          _buildDrawerButton(
-                            context,
-                            text: 'Notifications',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const Notifications(),
-                                ),
-                              );
-                            },
-                            icon: Icon(
-                              Icons.notifications,
-                              color: Colors.black,
-                              size: iconSize,
-                            ),
-                          ),
-                          _buildDrawerButton(
-                            context,
-                            text: 'Confidentialité',
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) =>
-                                          const ConditionUtilisations(),
-                                ),
-                              );
-                            },
-                            icon: Icon(
-                              Icons.lock,
-                              color: Colors.black,
-                              size: iconSize,
-                            ),
-                          ),
-                          _buildDrawerButton(
-                            context,
-                            text: 'Profil',
-                            onTap: () {
-                              Widget destination;
-                              final role = user['role'];
-                              if (role == 'acheteur') {
-                                destination = const Profil3();
-                              } else if (role == 'transitaire') {
-                                destination = const ProfilUtilisateur2();
-                              } else if (role == 'vendeur') {
-                                destination = const ProfilUtilisateurPage();
-                              } else {
-                                destination = const Profil3();
-                              }
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => destination,
-                                ),
-                              );
-                            },
-                            icon: Icon(
-                              Icons.person,
-                              color: Colors.black,
-                              size: iconSize,
-                            ),
+                            icon: Icon(Icons.account_balance_wallet, color: Colors.black, size: iconSize),
                           ),
                           _buildDrawerButton(
                             context,
                             text: 'Déconnexion',
                             onTap: () async {
-                              await Provider.of<myauth.AuthProvider>(
-                                context,
-                                listen: false,
-                              ).logout();
+                              await Provider.of<myauth.AuthProvider>(context, listen: false).logout();
                               Navigator.pushAndRemoveUntil(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ConnexionPage(),
-                                ),
+                                MaterialPageRoute(builder: (context) => const ConnexionPage()),
                                 (route) => false,
                               );
                             },
-                            icon: Icon(
-                              Icons.logout,
-                              color: Colors.black,
-                              size: iconSize,
-                            ),
+                            icon: Icon(Icons.logout, color: Colors.black, size: iconSize),
                           ),
                         ],
                       ),
-            ),
-            bottomNavigationBar:
-                loading
-                    ? null
-                    : BottomNavigationBar(
-                      type: BottomNavigationBarType.fixed,
-                      backgroundColor: const Color(0xFFF9FAFB),
-                      selectedItemColor: const Color(0xFFF8BF13),
-                      unselectedItemColor: Colors.black,
-                      currentIndex: _selectedIndex,
-                      onTap: (i) => _onItemTapped(i, role),
-                      items:
-                          role == 'acheteur'
-                              ? [
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.home, size: iconSize),
-                                  label: 'Accueil',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(
-                                    Icons.directions_car,
-                                    size: iconSize,
-                                  ),
-                                  label: 'Voitures',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.build, size: iconSize),
-                                  label: 'Pièces',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.person, size: iconSize),
-                                  label: 'Profil',
-                                ),
-                              ]
-                              : role == 'chauffeur'
-                              ? [
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.home, size: iconSize),
-                                  label: 'Accueil',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(
-                                    Icons.directions_car,
-                                    size: iconSize,
-                                  ),
-                                  label: 'Voitures',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.build, size: iconSize),
-                                  label: 'Pièces',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(
-                                    Icons.verified_user,
-                                    size: iconSize,
-                                  ),
-                                  label: 'Chauffeur. Certif',
-                                ),
-                              ]
-                              : role == 'transitaire'
-                              ? [
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.home, size: iconSize),
-                                  label: 'Accueil',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(
-                                    Icons.attach_money,
-                                    size: iconSize,
-                                  ),
-                                  label: 'Tarif',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(
-                                    Icons.local_shipping,
-                                    size: iconSize,
-                                  ),
-                                  label: 'Transit',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Consumer<CounterProvider>(
-                                    builder: (context, counter, child) {
-                                      return Stack(
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          Icon(Icons.forum, size: iconSize),
-                                          if (counter.unreadMessagesCount > 0)
-                                            Positioned(
-                                              right: -2,
-                                              top: -2,
-                                              child: Container(
-                                                padding: const EdgeInsets.all(
-                                                  2,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.red,
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                ),
-                                                constraints:
-                                                    const BoxConstraints(
-                                                      minWidth: 16,
-                                                      minHeight: 16,
-                                                    ),
-                                                child: Text(
-                                                  counter.unreadMessagesCount >
-                                                          99
-                                                      ? '99+'
-                                                      : counter
-                                                          .unreadMessagesCount
-                                                          .toString(),
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                  label: 'Discussion',
-                                ),
-                              ]
-                              : role == 'vendeur'
-                              ? [
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.home, size: iconSize),
-                                  label: 'Accueil',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.campaign, size: iconSize),
-                                  label: 'Publicité',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.sell, size: iconSize),
-                                  label: 'Vendre',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.build, size: iconSize),
-                                  label: 'Pièces',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Consumer<CounterProvider>(
-                                    builder: (context, counter, child) {
-                                      return Stack(
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          Icon(Icons.forum, size: iconSize),
-                                          if (counter.unreadMessagesCount > 0)
-                                            Positioned(
-                                              right: -2,
-                                              top: -2,
-                                              child: Container(
-                                                padding: const EdgeInsets.all(
-                                                  2,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.red,
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                ),
-                                                constraints:
-                                                    const BoxConstraints(
-                                                      minWidth: 16,
-                                                      minHeight: 16,
-                                                    ),
-                                                child: Text(
-                                                  counter.unreadMessagesCount >
-                                                          99
-                                                      ? '99+'
-                                                      : counter
-                                                          .unreadMessagesCount
-                                                          .toString(),
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                  label: 'Discussion',
-                                ),
-                              ]
-                              : [
-                                // Cas par défaut: afficher les items acheteur
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.home, size: iconSize),
-                                  label: 'Accueil',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(
-                                    Icons.directions_car,
-                                    size: iconSize,
-                                  ),
-                                  label: 'Voitures',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.build, size: iconSize),
-                                  label: 'Pièces',
-                                ),
-                                BottomNavigationBarItem(
-                                  icon: Icon(Icons.person, size: iconSize),
-                                  label: 'Profil',
-                                ),
-                              ],
-                    ),
-          );
-        },
-      ),
+          ),
+          bottomNavigationBar: loading
+              ? null
+              : BottomNavigationBar(
+                  type: BottomNavigationBarType.fixed,
+                  backgroundColor: const Color(0xFFF9FAFB),
+                  selectedItemColor: const Color(0xFFF8BF13),
+                  unselectedItemColor: Colors.black,
+                  currentIndex: _selectedIndex,
+                  onTap: (i) => _onItemTapped(i, role),
+                  items: role == 'acheteur'
+                      ? [
+                          BottomNavigationBarItem(icon: Icon(Icons.home, size: iconSize), label: 'Accueil'),
+                          BottomNavigationBarItem(icon: Icon(Icons.directions_car, size: iconSize), label: 'Voitures'),
+                          BottomNavigationBarItem(icon: Icon(Icons.build, size: iconSize), label: 'Pièces'),
+                          BottomNavigationBarItem(icon: Icon(Icons.person, size: iconSize), label: 'Profil'),
+                        ]
+                      : role == 'vendeur'
+                          ? [
+                              BottomNavigationBarItem(icon: Icon(Icons.home, size: iconSize), label: 'Accueil'),
+                              BottomNavigationBarItem(icon: Icon(Icons.campaign, size: iconSize), label: 'Publicité'),
+                              BottomNavigationBarItem(icon: Icon(Icons.sell, size: iconSize), label: 'Vendre'),
+                              BottomNavigationBarItem(icon: Icon(Icons.build, size: iconSize), label: 'Pièces'),
+                            ]
+                          : [
+                              BottomNavigationBarItem(icon: Icon(Icons.home, size: iconSize), label: 'Accueil'),
+                              BottomNavigationBarItem(icon: Icon(Icons.directions_car, size: iconSize), label: 'Voitures'),
+                              BottomNavigationBarItem(icon: Icon(Icons.build, size: iconSize), label: 'Pièces'),
+                              BottomNavigationBarItem(icon: Icon(Icons.person, size: iconSize), label: 'Profil'),
+                            ],
+                ),
+        );
+      },
     );
   }
 

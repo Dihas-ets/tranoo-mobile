@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+import 'package:tranoo/services/user_service.dart';
 
 import 'RetraitScreen.dart'; // Assure-toi que ce fichier existe bien
 
@@ -11,18 +15,13 @@ class WalletScreen extends StatefulWidget {
 }
 
 class WalletScreenState extends State<WalletScreen> {
-  final List<bool> _isStarSelectedList = [false, false, false, false];
-  final List<String> _transactionDates = ['', '', '', ''];
+  double? _balance;
+  String _currency = 'XOF';
+  List<Map<String, dynamic>> _transactions = [];
+  bool _loading = true;
+  String? _error;
 
-  // Fonction pour enregistrer la date d'un retrait
-  void _onRetrait(int index) {
-    setState(() {
-      _isStarSelectedList[index] = true;
-      _transactionDates[index] = DateFormat(
-        'dd/MM/yyyy HH:mm',
-      ).format(DateTime.now());
-    });
-  }
+  // (supprimé) ancien enregistrement local d'un retrait
 
   @override
   Widget build(BuildContext context) {
@@ -56,11 +55,21 @@ class WalletScreenState extends State<WalletScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 5),
-            const Text(
-              "8.250.000 f",
-              style: TextStyle(fontSize: 35, color: Colors.black),
-              textAlign: TextAlign.center,
-            ),
+            _loading
+                ? const SizedBox(
+                  height: 40,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+                : Text(
+                  _balance == null
+                      ? '--'
+                      : NumberFormat.currency(
+                        locale: 'fr_FR',
+                        symbol: '$_currency ',
+                      ).format(_balance),
+                  style: const TextStyle(fontSize: 35, color: Colors.black),
+                  textAlign: TextAlign.center,
+                ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -119,7 +128,7 @@ class WalletScreenState extends State<WalletScreen> {
                     ),
                     Expanded(
                       child: ListView.builder(
-                        itemCount: 4,
+                        itemCount: _transactions.length,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 8,
@@ -167,14 +176,15 @@ class WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _transactionItem(int index) {
+    final tx = _transactions[index];
+    final dateStr =
+        tx['date'] != null
+            ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(tx['date']))
+            : '';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 15),
       child: GestureDetector(
-        onTap: () {
-          // Appelle _onRetrait pour enregistrer la date à chaque clic
-          _onRetrait(index);
-          _showRetraitPopup(index); // Afficher la pop-up avec la date
-        },
+        onTap: () {},
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -186,8 +196,8 @@ class WalletScreenState extends State<WalletScreen> {
                 borderRadius: BorderRadius.circular(5),
               ),
               alignment: Alignment.center,
-              child: const Text(
-                "R",
+              child: Text(
+                (tx['type'] == 'in' ? 'E' : 'R'),
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -200,60 +210,75 @@ class WalletScreenState extends State<WalletScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Retrait effectué",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  Text(
+                    tx['label'] ?? (tx['type'] == 'in' ? 'Entrée' : 'Retrait'),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  const Text(
-                    "Vous avez réussi votre paiement.",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Text(
+                    NumberFormat.currency(
+                      locale: 'fr_FR',
+                      symbol: '${tx['currency'] ?? _currency} ',
+                    ).format(tx['amount'] ?? 0),
                   ),
-                  if (_transactionDates[index].isNotEmpty)
+                  if (dateStr.isNotEmpty)
                     Text(
-                      _transactionDates[index],
+                      dateStr,
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                 ],
               ),
             ),
             const SizedBox(width: 10),
-            Icon(
-              Icons.star,
-              color: _isStarSelectedList[index] ? Colors.grey : Colors.orange,
-            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
           ],
         ),
       ),
     );
   }
 
-  // Fonction pour afficher une pop-up avec les détails du retrait
-  void _showRetraitPopup(int index) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Détails du retrait"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Votre retrait a été effectué avec succès."),
-              const SizedBox(height: 10),
-              Text(
-                "Date : ${_transactionDates[index]}",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed:
-                    () => Navigator.of(context).pop(), // Fermer la pop-up
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+  // (supprimé) ancienne pop-up locale
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWallet();
+  }
+
+  Future<void> _loadWallet() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      if (idToken == null) throw Exception('Token manquant');
+      final baseUrl = getBaseUrl().replaceAll('/api', '');
+      final walletRes = await http.get(
+        Uri.parse('$baseUrl/api/wallet/me'),
+        headers: {'Authorization': 'Bearer $idToken'},
+      );
+      final txRes = await http.get(
+        Uri.parse('$baseUrl/api/wallet/me/transactions'),
+        headers: {'Authorization': 'Bearer $idToken'},
+      );
+      if (walletRes.statusCode == 200) {
+        final data = jsonDecode(walletRes.body);
+        _balance = (data['balance'] ?? 0).toDouble();
+        _currency = data['currency'] ?? 'XOF';
+      }
+      if (txRes.statusCode == 200) {
+        final data = jsonDecode(txRes.body);
+        final List list = data['transactions'] ?? [];
+        _transactions = list.cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      if (mounted)
+        setState(() {
+          _loading = false;
+        });
+    }
   }
 }

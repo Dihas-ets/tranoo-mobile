@@ -27,18 +27,11 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
-<<<<<<< HEAD
-.flutter-plugins
-=======
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
-<<<<<<< HEAD
-=======
 /coverage/
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
 
 # Symbolication related
 app.*.symbols
@@ -50,7 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-<<<<<<< HEAD
-=======
 
->>>>>>> 9a14c5c228b12a01b85c3371f5bdeaa34389f274
+*.jks
+*.keystore
+key.properties
+
+# Environment variables
+.env

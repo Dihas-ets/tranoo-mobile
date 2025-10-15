@@ -6,17 +6,20 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/services/blocked_user_service.dart';
 
 // import 'package:flutter/services.dart';
-import 'data/screens/first_page.dart';
 import 'data/screens/marque.dart';
+import 'data/screens/tarif.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart' as myauth;
+import 'providers/counter_provider.dart';
 
 // Gestionnaire pour les notifications en arrière-plan
 @pragma('vm:entry-point')
@@ -160,11 +163,16 @@ class NotificationService {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Charger les variables d'environnement
+  await dotenv.load(fileName: ".env");
   // Initialiser le service de notifications
   await NotificationService().initialize();
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => myauth.AuthProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => myauth.AuthProvider()),
+        ChangeNotifierProvider(create: (_) => CounterProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -180,6 +188,10 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       locale: DevicePreview.locale(context),
       builder: (context, child) {
+        // Définir le contexte pour BlockedUserService
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          BlockedUserService.setContext(context);
+        });
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(),
           child: DevicePreview.appBuilder(context, child),
@@ -189,14 +201,345 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const AvantHome(),
+      home: const AppInitializer(),
       routes: {
         '/marque': (context) => const Marque(),
-        '/first': (context) => const FirstPage(),
+        '/subscription-success': (context) => _buildSubscriptionSuccessPage(),
+        '/subscription-error': (context) => _buildSubscriptionErrorPage(),
+        '/verification-success': (context) => _buildVerificationSuccessPage(),
+        '/verification-error': (context) => _buildVerificationErrorPage(),
+        '/tarif': (context) => const Tarif(),
       },
     );
   }
 }
+
+// Gestion du succès de paiement d'abonnement
+Widget _buildSubscriptionSuccessPage() {
+  return SubscriptionSuccessPage();
+}
+
+// Gestion de l'échec de paiement d'abonnement
+Widget _buildSubscriptionErrorPage() {
+  return SubscriptionErrorPage();
+}
+
+// Gestion du succès de paiement de vérification
+Widget _buildVerificationSuccessPage() {
+  return VerificationSuccessPage();
+}
+
+// Gestion de l'échec de paiement de vérification
+Widget _buildVerificationErrorPage() {
+  return VerificationErrorPage();
+}
+
+class SubscriptionSuccessPage extends StatefulWidget {
+  @override
+  _SubscriptionSuccessPageState createState() => _SubscriptionSuccessPageState();
+}
+
+class _SubscriptionSuccessPageState extends State<SubscriptionSuccessPage> {
+  @override
+  void initState() {
+    super.initState();
+    _handleSubscriptionSuccess();
+  }
+
+  Future<void> _handleSubscriptionSuccess() async {
+    try {
+      final user = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final token = await user.getIdToken();
+      
+      // 1. Enregistrer le paiement
+      final paymentResponse = await http.post(
+        Uri.parse('${getBaseUrl()}/payments/feexpay/flutter/record'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'transKey': 'SUBSCRIPTION_${DateTime.now().millisecondsSinceEpoch}',
+          'amount': 5,
+          'description': 'Abonnement Premium Transitaire - 1 mois',
+          'type': 'subscription',
+          'status': 'success'
+        }),
+      );
+      print('Paiement enregistré: ${paymentResponse.statusCode} - ${paymentResponse.body}');
+      
+      // 2. Activer l'abonnement
+      final response = await http.post(
+        Uri.parse('${getBaseUrl()}/subscription/subscribe'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'plan': 'monthly'}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('Abonnement activé avec succès');
+      }
+    } catch (e) {
+      print('Erreur activation abonnement: $e');
+    }
+
+    // Redirection après 2 secondes
+    await Future.delayed(Duration(seconds: 2));
+    if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/tarif',
+        (route) => false,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: Color(0xFFFFCC00)),
+            SizedBox(height: 16),
+            Text('Activation de votre abonnement...'),
+            SizedBox(height: 8),
+            Text(
+              'Redirection automatique vers vos tarifs',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SubscriptionErrorPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error, color: Colors.red, size: 64),
+            SizedBox(height: 16),
+            Text(
+              'Paiement échoué',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil(
+                '/tarif',
+                (route) => false,
+              ),
+              child: Text('Retourner aux tarifs'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class VerificationSuccessPage extends StatefulWidget {
+  @override
+  _VerificationSuccessPageState createState() => _VerificationSuccessPageState();
+}
+
+class _VerificationSuccessPageState extends State<VerificationSuccessPage> {
+  bool _showSuccess = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    _handleVerificationSuccess();
+  }
+
+  Future<void> _handleVerificationSuccess() async {
+    try {
+      final user = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final token = await user.getIdToken();
+      
+      // 1. Enregistrer le paiement
+      final paymentResponse = await http.post(
+        Uri.parse('${getBaseUrl()}/payments/feexpay/flutter/record'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'transKey': 'VERIFICATION_${DateTime.now().millisecondsSinceEpoch}',
+          'amount': 5,
+          'description': 'Frais de vérification de documents',
+          'type': 'verification',
+          'status': 'success'
+        }),
+      );
+      print('Paiement enregistré: ${paymentResponse.statusCode} - ${paymentResponse.body}');
+      
+      // 2. Créer la demande de vérification
+      final response = await http.post(
+        Uri.parse('${getBaseUrl()}/verification/request'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'type': 'document_verification',
+          'amount': 5,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('Demande de vérification créée avec succès');
+        setState(() {
+          _showSuccess = true;
+        });
+        
+        // Attendre 2 secondes pour afficher le succès
+        await Future.delayed(Duration(seconds: 2));
+        
+        // Afficher le toast de succès
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vérification demandée avec succès !'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Erreur création demande: $e');
+    }
+
+    // Redirection après 5 secondes pour laisser voir le message et le toast
+    await Future.delayed(Duration(seconds: 5));
+    if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/',
+        (route) => false,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (!_showSuccess) ...[
+              CircularProgressIndicator(color: Color(0xFF00A86B)),
+              SizedBox(height: 16),
+              Text('Traitement de votre demande...'),
+            ] else ...[
+              Icon(Icons.check_circle, color: Colors.green, size: 64),
+              SizedBox(height: 16),
+              Text(
+                'Vérification demandée !',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+            SizedBox(height: 8),
+            Text(
+              'Redirection automatique vers l\'accueil',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class VerificationErrorPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error, color: Colors.red, size: 64),
+            SizedBox(height: 16),
+            Text(
+              'Paiement échoué',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil(
+                '/',
+                (route) => false,
+              ),
+              child: Text('Retourner à l\'accueil'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AppInitializer extends StatefulWidget {
+  const AppInitializer({super.key});
+
+  @override
+  State<AppInitializer> createState() => _AppInitializerState();
+}
+
+class _AppInitializerState extends State<AppInitializer> {
+  @override
+  void initState() {
+    super.initState();
+    _checkUserStatus();
+  }
+
+  Future<void> _checkUserStatus() async {
+    // Attendre un peu pour que le contexte soit disponible
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Définir le contexte pour BlockedUserService
+    BlockedUserService.setContext(context);
+    
+    // Vérifier le statut de blocage
+    final userService = UserService();
+    final isBlocked = await userService.checkUserBlockedStatus();
+    
+    if (isBlocked) {
+      // L'utilisateur est bloqué, le dialogue sera affiché automatiquement
+      return;
+    }
+    
+    // Naviguer vers l'écran principal
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const AvantHome()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+
 
 /*void main() {
   runApp(const MyApp());

@@ -38,20 +38,65 @@ Future<String?> uploadImageToCloudinary(dynamic image) async {
 }
 
 Future<String?> uploadVideoToCloudinary(File videoFile) async {
-  // Remplace par ta logique d'upload vidéo (ex: via HTTP POST vers ton backend ou Cloudinary direct)
-  // Ici, exemple simplifié pour Cloudinary direct (si tu utilises le même preset que pour les images)
+  final cloudName = 'dy0raj5bh';
+  final uploadPreset = 'unsigned_preset';
   final url = Uri.parse(
-    'https://api.cloudinary.com/v1_1/<cloud_name>/video/upload',
+    'https://api.cloudinary.com/v1_1/$cloudName/video/upload',
   );
-  final request =
-      http.MultipartRequest('POST', url)
-        ..fields['upload_preset'] = '<upload_preset>'
-        ..files.add(await http.MultipartFile.fromPath('file', videoFile.path));
+  
+  _logger.info('[DEBUG] Upload vidéo vers Cloudinary: ${videoFile.path}');
+  
+  final request = http.MultipartRequest('POST', url)
+    ..fields['upload_preset'] = uploadPreset
+    ..fields['format'] = 'mp4'
+    ..fields['video_codec'] = 'h264'
+    ..fields['quality'] = 'auto:low'
+    ..fields['bit_rate'] = '1000k'
+    ..files.add(await http.MultipartFile.fromPath('file', videoFile.path));
+    
   final response = await request.send();
+  _logger.info('[DEBUG] Réponse Cloudinary vidéo: ${response.statusCode}');
+  
   if (response.statusCode == 200) {
     final respStr = await response.stream.bytesToString();
     final data = jsonDecode(respStr);
-    return data['secure_url'] as String?;
+    final videoUrl = data['secure_url'] as String?;
+    _logger.info('[DEBUG] URL vidéo Cloudinary: $videoUrl');
+    return videoUrl;
+  } else {
+    _logger.warning('Erreur upload vidéo Cloudinary: ${response.statusCode}');
+    return null;
   }
-  return null;
+}
+
+Future<String?> uploadVideoToCloudinaryWeb(Uint8List bytes) async {
+  final cloudName = 'dy0raj5bh';
+  final uploadPreset = 'unsigned_preset';
+  final url = Uri.parse(
+    'https://api.cloudinary.com/v1_1/$cloudName/video/upload',
+  );
+  
+  _logger.info('[DEBUG] Upload vidéo Web vers Cloudinary');
+  
+  final request = http.MultipartRequest('POST', url)
+    ..fields['upload_preset'] = uploadPreset
+    ..fields['format'] = 'mp4'
+    ..fields['video_codec'] = 'h264'
+    ..fields['quality'] = 'auto:low'
+    ..fields['bit_rate'] = '1000k'
+    ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: 'upload.mp4'));
+    
+  final response = await request.send();
+  _logger.info('[DEBUG] Réponse Cloudinary vidéo Web: ${response.statusCode}');
+  
+  if (response.statusCode == 200) {
+    final respStr = await response.stream.bytesToString();
+    final data = jsonDecode(respStr);
+    final videoUrl = data['secure_url'] as String?;
+    _logger.info('[DEBUG] URL vidéo Web Cloudinary: $videoUrl');
+    return videoUrl;
+  } else {
+    _logger.warning('Erreur upload vidéo Web Cloudinary: ${response.statusCode}');
+    return null;
+  }
 }

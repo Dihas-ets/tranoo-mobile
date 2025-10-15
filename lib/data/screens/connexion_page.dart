@@ -250,6 +250,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:tranoo/providers/auth_provider.dart' as myauth;
 
 import 'inscription_page.dart';
 
@@ -268,6 +270,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   final _logger = Logger('ConnexionPage');
+  bool _obscurePasswordLogin = true;
 
   Future<String?> fetchUserRole() async {
     // Récupère le token Firebase de l'utilisateur connecté
@@ -381,7 +384,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                 },
                 child: TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePasswordLogin,
                   decoration: InputDecoration(
                     labelText: 'Mot de passe',
                     labelStyle: TextStyle(
@@ -394,6 +397,18 @@ class _ConnexionPageState extends State<ConnexionPage> {
                       size: screenWidth * (isPortrait ? 0.06 : 0.04),
                     ),
                     hintText: "••••••••",
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePasswordLogin
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePasswordLogin = !_obscurePasswordLogin;
+                        });
+                      },
+                    ),
                     filled: true,
                     fillColor: Colors.white,
                     contentPadding: EdgeInsets.symmetric(
@@ -471,21 +486,27 @@ class _ConnexionPageState extends State<ConnexionPage> {
                               _logger.info(
                                 'Connexion Firebase réussie pour: ${_emailController.text.trim()}',
                               );
-                              final role = await fetchUserRole();
-                              userService.setRole(_getUserRoleFromString(role));
-                              // Redirection selon le rôle
-                              if (userService.currentRole == UserRole.vendeur) {
-                                // Navigator.pushReplacement(...)
-                              } else if (userService.currentRole ==
-                                  UserRole.acheteur) {
-                                // Navigator.pushReplacement(...)
-                              } else if (userService.currentRole ==
-                                  UserRole.transitaire) {
-                                // Navigator.pushReplacement(...)
-                              } else if (userService.currentRole ==
-                                  UserRole.chauffeur) {
-                                // Navigator.pushReplacement(...)
+
+                              // Charger l'utilisateur et le rôle via AuthProvider puis naviguer
+                              final auth = context.read<myauth.AuthProvider>();
+                              await auth.reloadUser();
+
+                              // Attendre brièvement que l'état soit bien propagé
+                              final startWait = DateTime.now();
+                              while (auth.user == null &&
+                                  DateTime.now().difference(startWait) <
+                                      const Duration(seconds: 5)) {
+                                await Future.delayed(
+                                  const Duration(milliseconds: 100),
+                                );
                               }
+
+                              if (auth.user == null) {
+                                throw Exception(
+                                  "La session n'a pas pu être initialisée. Réessayez.",
+                                );
+                              }
+
                               // Mettre à jour le timestamp de dernière connexion
                               final prefs =
                                   await SharedPreferences.getInstance();
@@ -496,14 +517,18 @@ class _ConnexionPageState extends State<ConnexionPage> {
 
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Connexion réussie !')),
+                                const SnackBar(
+                                  content: Text('Connexion réussie !'),
+                                ),
                               );
+
                               if (!mounted) return;
-                              Navigator.pushReplacement(
+                              Navigator.pushAndRemoveUntil(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => const AvantHome(),
                                 ),
+                                (route) => false,
                               );
                             } catch (e) {
                               _logger.warning(
