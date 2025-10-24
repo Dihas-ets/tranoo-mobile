@@ -8,6 +8,9 @@ import 'package:tranoo/data/screens/conditionutilisations.dart';
 import 'package:tranoo/data/screens/marque.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/piece.dart';
+import 'package:tranoo/data/screens/cart_page.dart';
+import 'package:tranoo/services/cart_service.dart';
+import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/data/screens/profil3.dart';
 import 'package:tranoo/data/screens/profil_utilisateur2.dart';
 import 'package:tranoo/data/screens/profilutilisateurpage.dart';
@@ -126,13 +129,19 @@ class _AvantHomeState extends State<AvantHome> {
 
   final List<Widget> _pagesVendeur = [Marque(), Une(), Vendre(), Piece()];
 
-  double responsiveSize(double screenWidth, double smallSize, double largeSize) {
+  double responsiveSize(
+    double screenWidth,
+    double smallSize,
+    double largeSize,
+  ) {
     return screenWidth < 600 ? smallSize : largeSize;
   }
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -186,7 +195,10 @@ class _AvantHomeState extends State<AvantHome> {
           _checkOnboardingAndInactivity();
         }
 
-        if (!loading && user == null && !_didRedirectToLogin && _didCheckOnboarding) {
+        if (!loading &&
+            user == null &&
+            !_didRedirectToLogin &&
+            _didCheckOnboarding) {
           _didRedirectToLogin = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Navigator.pushAndRemoveUntil(
@@ -222,6 +234,59 @@ class _AvantHomeState extends State<AvantHome> {
               ),
             ),
             actions: [
+              // Icône de panier (seulement pour les non-vendeurs)
+              if (role != 'vendeur')
+                Consumer<CartService>(
+                  builder: (context, cart, child) {
+                    return IconButton(
+                      icon: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Icon(
+                            Icons.shopping_cart_outlined,
+                            color: Colors.black,
+                            size: iconSize,
+                          ),
+                          if (cart.totalQuantity > 0)
+                            Positioned(
+                              right: 4,
+                              top: 4,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  cart.totalQuantity > 99
+                                      ? '99+'
+                                      : cart.totalQuantity.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CartPage(),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               Consumer<CounterProvider>(
                 builder: (context, counter, child) {
                   return IconButton(
@@ -250,7 +315,8 @@ class _AvantHomeState extends State<AvantHome> {
                               child: Text(
                                 counter.unreadNotificationsCount > 99
                                     ? '99+'
-                                    : counter.unreadNotificationsCount.toString(),
+                                    : counter.unreadNotificationsCount
+                                        .toString(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -265,7 +331,9 @@ class _AvantHomeState extends State<AvantHome> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const Notifications()),
+                        MaterialPageRoute(
+                          builder: (context) => const Notifications(),
+                        ),
                       );
                     },
                   );
@@ -279,125 +347,212 @@ class _AvantHomeState extends State<AvantHome> {
               },
             ),
           ),
-          body: loading ? const Center(child: CircularProgressIndicator()) : getCurrentPage(role),
+          body:
+              loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : getCurrentPage(role),
           drawer: Drawer(
-            child: loading
-                ? const Center(child: CircularProgressIndicator())
-                : user == null
+            child:
+                loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : user == null
                     ? const Center(child: Text('Non connecté'))
-                    : ListView(
-                        padding: EdgeInsets.zero,
-                        children: [
-                          SizedBox(
-                            height: drawerHeaderHeight,
-                            child: DrawerHeader(
-                              decoration: const BoxDecoration(color: Color(0XffF8BF13)),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  GestureDetector(
-                                    onTap: _pickImage,
-                                    child: CircleAvatar(
-                                      radius: avatarRadius,
-                                      backgroundColor: Colors.grey,
-                                      backgroundImage: _image == null
-                                          ? const AssetImage("assets/images/jenifer.jpg")
+                    : Column(
+                      children: [
+                        // Header fixe
+                        Container(
+                          width: double.infinity,
+                          height: drawerHeaderHeight + 20,
+                          padding: EdgeInsets.zero,
+                          margin: EdgeInsets.zero,
+                          decoration: const BoxDecoration(
+                            color: Color(0XffF8BF13),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              GestureDetector(
+                                onTap: _pickImage,
+                                child: CircleAvatar(
+                                  radius: avatarRadius,
+                                  backgroundColor: Colors.grey,
+                                  backgroundImage:
+                                      _image == null
+                                          ? const AssetImage(
+                                            "assets/images/jenifer.jpg",
+                                          )
                                           : FileImage(_image!) as ImageProvider,
-                                    ),
+                                ),
+                              ),
+                              SizedBox(height: spacing),
+                              Text(
+                                user['nom'] ?? "Utilisateur",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: fontSize,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                user['email'] ?? "",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: fontSize * 0.8,
+                                ),
+                              ),
+                              if (user['role'] != null)
+                                Text(
+                                  (user['role'] as String).toUpperCase(),
+                                  style: TextStyle(
+                                    color: const Color(0xFF0A1F44),
+                                    fontSize: fontSize * 0.75,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                  SizedBox(height: spacing),
-                                  Text(
-                                    user['nom'] ?? "Utilisateur",
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: fontSize,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    user['email'] ?? "",
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: fontSize * 0.8,
-                                    ),
-                                  ),
-                                  if (user['role'] != null)
-                                    Text(
-                                      (user['role'] as String).toUpperCase(),
-                                      style: TextStyle(
-                                        color: const Color(0xFF0A1F44),
-                                        fontSize: fontSize * 0.75,
-                                        fontWeight: FontWeight.w700,
+                                ),
+                            ],
+                          ),
+                        ),
+                        // Liste scrollable
+                        Expanded(
+                          child: ListView(
+                            padding: EdgeInsets.zero,
+                            children: [
+                              _buildDrawerButton(
+                                context,
+                                text: 'Accueil',
+                                onTap:
+                                    () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const AvantHome(),
                                       ),
                                     ),
-                                ],
+                                icon: Icon(
+                                  Icons.home,
+                                  color: Colors.black,
+                                  size: iconSize,
+                                ),
                               ),
-                            ),
-                          ),
-                          _buildDrawerButton(
-                            context,
-                            text: 'Accueil',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const AvantHome()),
-                            ),
-                            icon: Icon(Icons.home, color: Colors.black, size: iconSize),
-                          ),
-                          _buildDrawerButton(
-                            context,
-                            text: 'Portefeuille',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const WalletScreen()),
-                            ),
-                            icon: Icon(Icons.account_balance_wallet, color: Colors.black, size: iconSize),
-                          ),
-                          _buildDrawerButton(
-                            context,
-                            text: 'Déconnexion',
-                            onTap: () async {
-                              await Provider.of<myauth.AuthProvider>(context, listen: false).logout();
-                              Navigator.pushAndRemoveUntil(
+                              _buildDrawerButton(
                                 context,
-                                MaterialPageRoute(builder: (context) => const ConnexionPage()),
-                                (route) => false,
-                              );
-                            },
-                            icon: Icon(Icons.logout, color: Colors.black, size: iconSize),
-                          ),
-                        ],
-                      ),
-          ),
-          bottomNavigationBar: loading
-              ? null
-              : BottomNavigationBar(
-                  type: BottomNavigationBarType.fixed,
-                  backgroundColor: const Color(0xFFF9FAFB),
-                  selectedItemColor: const Color(0xFFF8BF13),
-                  unselectedItemColor: Colors.black,
-                  currentIndex: _selectedIndex,
-                  onTap: (i) => _onItemTapped(i, role),
-                  items: role == 'acheteur'
-                      ? [
-                          BottomNavigationBarItem(icon: Icon(Icons.home, size: iconSize), label: 'Accueil'),
-                          BottomNavigationBarItem(icon: Icon(Icons.directions_car, size: iconSize), label: 'Voitures'),
-                          BottomNavigationBarItem(icon: Icon(Icons.build, size: iconSize), label: 'Pièces'),
-                          BottomNavigationBarItem(icon: Icon(Icons.person, size: iconSize), label: 'Profil'),
-                        ]
-                      : role == 'vendeur'
-                          ? [
-                              BottomNavigationBarItem(icon: Icon(Icons.home, size: iconSize), label: 'Accueil'),
-                              BottomNavigationBarItem(icon: Icon(Icons.campaign, size: iconSize), label: 'Publicité'),
-                              BottomNavigationBarItem(icon: Icon(Icons.sell, size: iconSize), label: 'Vendre'),
-                              BottomNavigationBarItem(icon: Icon(Icons.build, size: iconSize), label: 'Pièces'),
-                            ]
-                          : [
-                              BottomNavigationBarItem(icon: Icon(Icons.home, size: iconSize), label: 'Accueil'),
-                              BottomNavigationBarItem(icon: Icon(Icons.directions_car, size: iconSize), label: 'Voitures'),
-                              BottomNavigationBarItem(icon: Icon(Icons.build, size: iconSize), label: 'Pièces'),
-                              BottomNavigationBarItem(icon: Icon(Icons.person, size: iconSize), label: 'Profil'),
+                                text: 'Portefeuille',
+                                onTap:
+                                    () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => const WalletScreen(),
+                                      ),
+                                    ),
+                                icon: Icon(
+                                  Icons.account_balance_wallet,
+                                  color: Colors.black,
+                                  size: iconSize,
+                                ),
+                              ),
+                              _buildDrawerButton(
+                                context,
+                                text: 'Déconnexion',
+                                onTap: () async {
+                                  await Provider.of<myauth.AuthProvider>(
+                                    context,
+                                    listen: false,
+                                  ).logout();
+                                  Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => const ConnexionPage(),
+                                    ),
+                                    (route) => false,
+                                  );
+                                },
+                                icon: Icon(
+                                  Icons.logout,
+                                  color: Colors.black,
+                                  size: iconSize,
+                                ),
+                              ),
                             ],
-                ),
+                          ),
+                        ),
+                      ],
+                    ),
+          ),
+          bottomNavigationBar:
+              loading
+                  ? null
+                  : BottomNavigationBar(
+                    type: BottomNavigationBarType.fixed,
+                    backgroundColor: const Color(0xFFF9FAFB),
+                    selectedItemColor: const Color(0xFFF8BF13),
+                    unselectedItemColor: Colors.black,
+                    currentIndex: _selectedIndex,
+                    onTap: (i) => _onItemTapped(i, role),
+                    items:
+                        role == 'acheteur'
+                            ? [
+                              BottomNavigationBarItem(
+                                icon: Icon(Icons.home, size: iconSize),
+                                label: 'Accueil',
+                              ),
+                              BottomNavigationBarItem(
+                                icon: Icon(
+                                  Icons.directions_car,
+                                  size: iconSize,
+                                ),
+                                label: 'Voitures',
+                              ),
+                              BottomNavigationBarItem(
+                                icon: Icon(Icons.build, size: iconSize),
+                                label: 'Pièces',
+                              ),
+                              BottomNavigationBarItem(
+                                icon: Icon(Icons.person, size: iconSize),
+                                label: 'Profil',
+                              ),
+                            ]
+                            : role == 'vendeur'
+                            ? [
+                              BottomNavigationBarItem(
+                                icon: Icon(Icons.home, size: iconSize),
+                                label: 'Accueil',
+                              ),
+                              BottomNavigationBarItem(
+                                icon: Icon(Icons.campaign, size: iconSize),
+                                label: 'Publicité',
+                              ),
+                              BottomNavigationBarItem(
+                                icon: Icon(Icons.sell, size: iconSize),
+                                label: 'Vendre',
+                              ),
+                              BottomNavigationBarItem(
+                                icon: Icon(Icons.build, size: iconSize),
+                                label: 'Pièces',
+                              ),
+                            ]
+                            : [
+                              BottomNavigationBarItem(
+                                icon: Icon(Icons.home, size: iconSize),
+                                label: 'Accueil',
+                              ),
+                              BottomNavigationBarItem(
+                                icon: Icon(
+                                  Icons.directions_car,
+                                  size: iconSize,
+                                ),
+                                label: 'Voitures',
+                              ),
+                              BottomNavigationBarItem(
+                                icon: Icon(Icons.build, size: iconSize),
+                                label: 'Pièces',
+                              ),
+                              BottomNavigationBarItem(
+                                icon: Icon(Icons.person, size: iconSize),
+                                label: 'Profil',
+                              ),
+                            ],
+                  ),
         );
       },
     );

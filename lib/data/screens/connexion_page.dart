@@ -439,7 +439,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
               // Lien "Mot de passe oublié"
               TextButton(
                 onPressed: () {
-                  // Ajoute ici la logique pour réinitialiser le mot de passe
+                  Navigator.pushNamed(context, '/auth/forgot-password');
                 },
                 child: Text(
                   "Mot de passe oublié ?",

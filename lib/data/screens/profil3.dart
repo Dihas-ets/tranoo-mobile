@@ -9,6 +9,7 @@ import 'package:tranoo/data/screens/mesavis.dart';
 import 'package:tranoo/data/screens/mesfactures.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile.dart';
+import 'package:tranoo/data/screens/parrainage_page.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 
@@ -245,7 +246,6 @@ class Profil3State extends State<Profil3> {
           //     );
           //   },
           // ),
-
           _buildListTile(
             title: "Mon portefeuille",
             icon: Icons.account_balance_wallet,
@@ -260,6 +260,17 @@ class Profil3State extends State<Profil3> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const WalletScreen()),
+              );
+            },
+          ),
+          _buildListTile(
+            title: "Parrainage",
+            subtitle: "Gagnez en parrainant vos amis",
+            icon: Icons.people,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ParrainagePage()),
               );
             },
           ),

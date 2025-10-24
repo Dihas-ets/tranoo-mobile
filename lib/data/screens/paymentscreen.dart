@@ -8,6 +8,8 @@ import 'package:feexpay_flutter/feexpay_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
 import 'package:tranoo/data/screens/succes6.dart';
+import 'package:tranoo/data/screens/payment_success.dart';
+import 'package:tranoo/data/screens/payment_error.dart';
 
 final fpToken = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
 final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
@@ -26,18 +28,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final String transKey = randomAlphaNumeric(15);
   Map<String, dynamic>? pubData;
   String? _selectedPaymentMethod;
-  
+
   @override
   void initState() {
     super.initState();
     _loadPubData();
   }
-  
+
   Future<void> _loadPubData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      
+
       final response = await http.get(
         Uri.parse('${getBaseUrl()}/publicites/${widget.pubId}'),
         headers: {
@@ -45,7 +47,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           if (idToken != null) 'Authorization': 'Bearer $idToken',
         },
       );
-      
+
       if (response.statusCode == 200) {
         setState(() {
           pubData = jsonDecode(response.body);
@@ -55,7 +57,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       log('Erreur chargement pub: $e');
     }
   }
-  
+
   Widget _buildPaymentMethodSelector() {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -68,10 +70,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               const SizedBox(width: 12),
               const Text(
                 'Moyen de paiement',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -131,184 +130,190 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
         ),
       ),
-      body: pubData == null
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // En-tête avec icône publicité
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Colors.amber, Colors.orange],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              children: [
-                                const Icon(
-                                  Icons.campaign,
-                                  size: 60,
-                                  color: Colors.white,
+      body:
+          pubData == null
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // En-tête avec icône publicité
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Colors.amber, Colors.orange],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  pubData!['typePub'] ?? 'Publicité',
-                                  style: const TextStyle(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                children: [
+                                  const Icon(
+                                    Icons.campaign,
+                                    size: 60,
                                     color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  pubData!['description'] ?? 'Publicité pour votre article',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 14,
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    pubData!['typePub'] ?? 'Publicité',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Détails de la publicité
-                          const Text(
-                            'Détails de votre publicité',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          
-                          _buildDetailItem(
-                            Icons.star,
-                            'Type',
-                            pubData!['typePub'] ?? 'N/A',
-                          ),
-                          _buildDetailItem(
-                            Icons.schedule,
-                            'Durée',
-                            pubData!['duree'] ?? 'N/A',
-                          ),
-                          
-                          const SizedBox(height: 24),
-
-                          // Prix
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8F9FA),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.amber, width: 2),
-                            ),
-                            child: Column(
-                              children: [
-                                const Text(
-                                  'Montant à payer',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    pubData!['description'] ??
+                                        'Publicité pour votre article',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  '${pubData!['prix'] ?? 0} FCFA',
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.amber,
-                                  ),
-                                ),
-                                const Text(
-                                  'pour la durée sélectionnée',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 16),
-                          
-                          // Note
-                          const Text(
-                            'Après paiement, votre publicité sera soumise à validation admin avant publication.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  // Bouton de paiement
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(top: 16),
-                    child: ElevatedButton(
-                      onPressed: isLoading ? null : _processPayment,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: isLoading
-                          ? const CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            )
-                          : Text(
-                              'Payer ${pubData!['prix'] ?? 0} FCFA',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
+                                ],
                               ),
                             ),
+                            const SizedBox(height: 24),
+
+                            // Détails de la publicité
+                            const Text(
+                              'Détails de votre publicité',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            _buildDetailItem(
+                              Icons.star,
+                              'Type',
+                              pubData!['typePub'] ?? 'N/A',
+                            ),
+                            _buildDetailItem(
+                              Icons.schedule,
+                              'Durée',
+                              pubData!['duree'] ?? 'N/A',
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Prix
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8F9FA),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.amber,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  const Text(
+                                    'Montant à payer',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '${pubData!['prix'] ?? 0} FCFA',
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.amber,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'pour la durée sélectionnée',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Note
+                            const Text(
+                              'Après paiement, votre publicité sera soumise à validation admin avant publication.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  
-                  if (errorMessage != null)
+
+                    // Bouton de paiement
                     Container(
-                      margin: const EdgeInsets.only(top: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red[50],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red[200]!),
-                      ),
-                      child: Text(
-                        errorMessage!,
-                        style: const TextStyle(color: Colors.red),
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 16),
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : _processPayment,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                        ),
+                        child:
+                            isLoading
+                                ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                )
+                                : Text(
+                                  'Payer ${pubData!['prix'] ?? 0} FCFA',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
                       ),
                     ),
-                ],
+
+                    if (errorMessage != null)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red[200]!),
+                        ),
+                        child: Text(
+                          errorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
     );
   }
 
@@ -323,11 +328,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               color: Colors.amber.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              color: Colors.amber,
-              size: 20,
-            ),
+            child: Icon(icon, color: Colors.amber, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -343,10 +344,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
                 Text(
                   value,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ],
             ),
@@ -373,40 +371,56 @@ class _PaymentScreenState extends State<PaymentScreen> {
       }
 
       final amount = pubData!['prix']?.toString() ?? '0';
-      
+
       // Navigation vers FeexPay avec le package officiel
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ChoicePage(
-            token: fpToken,
-            id: idUser,
-            amount: amount,
-            redirecturl: '/payment-success',
-            errorredirecturl: '/payment-error', 
-            trans_key: transKey,
-          ),
+          builder:
+              (context) => ChoicePage(
+                token: fpToken,
+                id: idUser,
+                amount: amount,
+                redirecturl: '/payment-success',
+                errorredirecturl: '/payment-error',
+                trans_key: transKey,
+              ),
         ),
       );
 
       // Le résultat sera géré par les routes de redirection
       if (result != null) {
         // Mettre à jour le statut en arrière-plan
-        _updatePubStatus();
-        
-        // Naviguer immédiatement vers la page de succès
+        await _updatePubStatus();
+
+        // Naviguer vers la page de succès
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const SuccesScreen6()),
+            MaterialPageRoute(builder: (context) => const PaymentSuccessPage()),
+            (route) => false,
+          );
+        }
+      } else {
+        // Paiement échoué ou annulé
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const PaymentErrorPage()),
             (route) => false,
           );
         }
       }
     } catch (e) {
-      setState(() {
-        errorMessage = 'Erreur: $e';
-      });
+      log('Erreur paiement: $e');
+      // En cas d'erreur, rediriger vers la page d'erreur
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const PaymentErrorPage()),
+          (route) => false,
+        );
+      }
     } finally {
       setState(() {
         isLoading = false;
@@ -418,7 +432,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      
+
       final response = await http.patch(
         Uri.parse('${getBaseUrl()}/publicites/${widget.pubId}/statut'),
         headers: {
@@ -427,9 +441,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
         },
         body: jsonEncode({'statut': 'payee'}),
       );
-      
+
       if (response.statusCode != 200) {
-        log('Erreur mise à jour statut: ${response.statusCode} - ${response.body}');
+        log(
+          'Erreur mise à jour statut: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       log('Erreur mise à jour statut: $e');

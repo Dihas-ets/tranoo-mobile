@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 // import 'payement.dart'; // Plus utilisé
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
+import 'package:tranoo/services/cart_service.dart';
+import 'cart_page.dart';
 import 'package:tranoo/utils/role_redirect.dart';
 // import 'package:tranoo/data/screens/paymentscreen.dart';
 import 'package:http/http.dart' as http;
@@ -13,7 +15,7 @@ import 'package:tranoo/data/screens/succes6.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:developer';
 import 'une.dart'; // Import pour la page de demande de pub
-import 'verification_payment.dart';
+// import 'verification_payment.dart';
 
 class MastervacPage extends StatefulWidget {
   final String? id;
@@ -64,32 +66,7 @@ class _MastervacPageState extends State<MastervacPage> {
   bool isGarantieIncluse = false;
   bool isLivraisonRapide = false;
   TextEditingController detailsController = TextEditingController();
-  // Champs de livraison/lieu déplacés depuis payement.dart
-  bool isEnConsommationChecked = false;
-  bool isEnTransitChecked = false;
-  String? selectedCountry;
-  final List<String> africanCountries = [
-    'Bénin',
-    'Burkina Faso',
-    'Côte d\'Ivoire',
-    'Mali',
-    'Niger',
-    'Sénégal',
-    'Togo',
-    'Cameroun',
-    'Gabon',
-    'Guinée',
-    'Congo',
-    'RDC',
-    'Maroc',
-    'Algérie',
-    'Tunisie',
-    'Afrique du Sud',
-    'Nigeria',
-    'Ghana',
-    'Kenya',
-    'Éthiopie',
-  ];
+  // Champs de livraison/lieu supprimés - gérés dans OrderSummaryPage
   late ConfettiController _confettiController;
   bool _isOnline = false;
 
@@ -163,6 +140,53 @@ class _MastervacPageState extends State<MastervacPage> {
         IconButton(
           icon: const Icon(Icons.share, color: Colors.black),
           onPressed: () {},
+        ),
+        // Icône Panier avec compteur
+        AnimatedBuilder(
+          animation: CartService(),
+          builder: (context, _) {
+            final qty = CartService().totalQuantity;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.shopping_cart_outlined,
+                    color: Colors.black,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CartPage()),
+                    );
+                  },
+                ),
+                if (qty > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.amber,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        qty.toString(),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -438,85 +462,7 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Widget _buildCheckboxes() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Mode de livraison (horizontal)
-        Row(
-          children: [
-            _buildCheckboxContainer(
-              'En Consommation',
-              isEnConsommationChecked,
-              (val) {
-                setState(() {
-                  isEnConsommationChecked = val;
-                  if (val) isEnTransitChecked = false;
-                });
-              },
-            ),
-            const SizedBox(width: 16),
-            _buildCheckboxContainer('En Transit', isEnTransitChecked, (val) {
-              setState(() {
-                isEnTransitChecked = val;
-                if (val) isEnConsommationChecked = false;
-              });
-            }),
-          ],
-        ),
-        const SizedBox(height: 12),
-        // Lieu
-        const Text('Lieu', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF2F2F2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: selectedCountry,
-              hint: const Text(
-                'Choisissez un pays',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              isExpanded: true,
-              items:
-                  africanCountries
-                      .map(
-                        (c) =>
-                            DropdownMenuItem<String>(value: c, child: Text(c)),
-                      )
-                      .toList(),
-              onChanged: (value) => setState(() => selectedCountry = value),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        // Détails supplémentaires
-        const Text(
-          'Détails supplémentaires',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: detailsController,
-          decoration: InputDecoration(
-            hintText: 'Entrez vos détails concernant la destination ici...',
-            filled: true,
-            fillColor: const Color(0xFFF2F2F2),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-          ),
-          maxLines: 3,
-        ),
-      ],
-    );
+    return const SizedBox.shrink(); // Supprimé - géré dans OrderSummaryPage
   }
 
   Widget _buildCheckboxContainer(
@@ -560,163 +506,55 @@ class _MastervacPageState extends State<MastervacPage> {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          onPressed: () {
-            // Validation des champs obligatoires
-            if (!isEnConsommationChecked && !isEnTransitChecked) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Veuillez choisir un mode de livraison (En Consommation ou En Transit).',
-                  ),
+          onPressed: () async {
+            // Ajout au panier (sans validation des champs de livraison)
+            final firstImage = widget.images.whereType<String>().firstWhere(
+              (e) => e.startsWith('http'),
+              orElse: () => '',
+            );
+            await CartService().addOrIncrement(
+              CartItem(
+                articleId: (widget.id ?? '').toString(),
+                title: widget.title,
+                imageUrl: firstImage.isEmpty ? null : firstImage,
+                priceLabel: widget.price,
+                pieceType: widget.pieceType,
+                model: widget.model,
+                fuelType: widget.fuelType,
+                quantity: 1,
+              ),
+            );
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white),
+                    const SizedBox(width: 8),
+                    const Text('Article ajouté au panier'),
+                  ],
                 ),
-              );
-              return;
-            }
-            if (selectedCountry == null || selectedCountry!.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Veuillez sélectionner un lieu.')),
-              );
-              return;
-            }
-            // Créer l'objet article à partir des propriétés du widget
-            final article = {
-              '_id': widget.id, // nécessite un ID réel pour charger les tarifs
-              'titre': widget.title,
-              'annee': widget.year,
-              'description': widget.description,
-              'entreprise': widget.company,
-              'localisation': widget.location,
-              'prix': widget.price,
-              'typeMoteur': widget.fuelType,
-              'modele': widget.model,
-              'pieceType': widget.pieceType,
-              'photos': widget.images.whereType<String>().toList(),
-              'video': widget.video,
-              'type': 'piece',
-              // Pré-sélections
-              'modeLivraison': isEnTransitChecked ? 'transit' : 'consommation',
-              'paysDestination': selectedCountry,
-              'detailsSupplementaires': detailsController.text.trim(),
-            };
-
-            showDialog(
-              context: context,
-              builder: (ctx) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  contentPadding: const EdgeInsets.all(20),
-                  content: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF00D67D).withOpacity(0.08),
-                          const Color(0xFFFFCC00).withOpacity(0.12),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(
-                          'assets/images/smiley.png',
-                          height: 80,
-                          width: 80,
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Contrôle en cours',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 14,
-                              height: 1.5,
-                            ),
-                            children: const [
-                              TextSpan(
-                                text:
-                                    'Les vérifications seront effectuées et vous seront envoyées sous ',
-                              ),
-                              TextSpan(
-                                text: '10 jours',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFFFA000),
-                                ),
-                              ),
-                              TextSpan(
-                                text: '. Pour démarrer, veuillez payer les ',
-                              ),
-                              TextSpan(
-                                text: 'frais de vérification',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF00A86B),
-                                ),
-                              ),
-                              TextSpan(text: '.'),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          '20.000 FCFA',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF00A86B),
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) =>
-                                          const VerificationPaymentScreen(),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFFCC00),
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text(
-                              'Payer les frais de vérification',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+                action: SnackBarAction(
+                  label: 'Voir le panier',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CartPage()),
+                    );
+                  },
+                ),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
             );
           },
           child: const Text(
-            'Acheter la pièce',
+            'Ajouter au panier',
             style: TextStyle(
               color: Colors.black,
               fontWeight: FontWeight.bold,
@@ -738,142 +576,55 @@ class _MastervacPageState extends State<MastervacPage> {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          onPressed: () {
-            if (!isEnConsommationChecked && !isEnTransitChecked) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Veuillez choisir un mode de livraison (En Consommation ou En Transit).',
-                  ),
+          onPressed: () async {
+            // Ajout au panier (sans validation des champs de livraison)
+            final firstImage = widget.images.whereType<String>().firstWhere(
+              (e) => e.startsWith('http'),
+              orElse: () => '',
+            );
+            await CartService().addOrIncrement(
+              CartItem(
+                articleId: (widget.id ?? '').toString(),
+                title: widget.title,
+                imageUrl: firstImage.isEmpty ? null : firstImage,
+                priceLabel: widget.price,
+                pieceType: widget.pieceType,
+                model: widget.model,
+                fuelType: widget.fuelType,
+                quantity: 1,
+              ),
+            );
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white),
+                    const SizedBox(width: 8),
+                    const Text('Article ajouté au panier'),
+                  ],
                 ),
-              );
-              return;
-            }
-            if (selectedCountry == null || selectedCountry!.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Veuillez sélectionner un lieu.')),
-              );
-              return;
-            }
-            // Créer l'objet article à partir des propriétés du widget
-            final article = {
-              '_id': widget.id, // nécessite un ID réel pour charger les tarifs
-              'titre': widget.title,
-              'annee': widget.year,
-              'description': widget.description,
-              'entreprise': widget.company,
-              'localisation': widget.location,
-              'prix': widget.price,
-              'typeMoteur': widget.fuelType,
-              'modele': widget.model,
-              'pieceType': widget.pieceType,
-              'photos': widget.images.whereType<String>().toList(),
-              'video': widget.video,
-              'type': 'piece',
-            };
-
-            showDialog(
-              context: context,
-              builder: (ctx) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  contentPadding: const EdgeInsets.all(20),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        'assets/images/smiley.png',
-                        height: 80,
-                        width: 80,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Contrôle en cours',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: const TextSpan(
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                            height: 1.5,
-                          ),
-                          children: [
-                            TextSpan(
-                              text:
-                                  'Les vérifications seront effectuées et vous seront envoyées sous ',
-                            ),
-                            TextSpan(
-                              text: '10 jours',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFFFA000),
-                              ),
-                            ),
-                            TextSpan(
-                              text: '. Pour démarrer, veuillez payer les ',
-                            ),
-                            TextSpan(
-                              text: 'frais de vérification',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF00A86B),
-                              ),
-                            ),
-                            TextSpan(text: '.'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        '20.000 FCFA',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF00A86B),
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        const VerificationPaymentScreen(),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFCC00),
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text('Payer les frais de vérification'),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+                action: SnackBarAction(
+                  label: 'Voir le panier',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CartPage()),
+                    );
+                  },
+                ),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
             );
           },
           child: const Text(
-            'Acheter la pièce',
+            'Ajouter au panier',
             style: TextStyle(
               color: Colors.black,
               fontWeight: FontWeight.bold,
@@ -993,6 +744,7 @@ class _MastervacPageState extends State<MastervacPage> {
                         (context) => Une(
                           articleId: null,
                           articleType: 'piece',
+                          isStandalone: false,
                           articleTitle: widget.title,
                           articleYear: widget.year,
                           articleLocation: widget.location,

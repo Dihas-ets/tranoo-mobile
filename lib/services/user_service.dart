@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import '../utils/role_redirect.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'blocked_user_service.dart';
+import 'push_otp_service.dart';
 
 String getBaseUrl() {
   // Appareil physique Android/iOS connecté au même Wi‑Fi que le PC
   // Utilise l'IP LAN de ton PC (ipconfig -> Carte Wi‑Fi IPv4)
-  return 'http://192.168.1.80:5000/api';
+  return 'http://192.168.1.69:5000/api';
   // return 'https://api.tranoo.store/api'; // URL déployée pour mobile
 }
 
@@ -30,7 +29,7 @@ class UserService extends ChangeNotifier {
         headers: {'Content-Type': 'application/json'},
       ),
     );
-    
+
     _dio.interceptors.add(
       InterceptorsWrapper(
         onError: (error, handler) async {
@@ -70,6 +69,8 @@ class UserService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Ancien système WhatsApp OTP supprimé - Remplacé par Push Notifications
+
   void clearRole() {
     _currentRole = null;
     notifyListeners();
@@ -88,6 +89,7 @@ class UserService extends ChangeNotifier {
     String? registreCommerce,
     String? numeroIFU,
     String? entrepriseProvenance,
+    String? referralCode,
   }) async {
     UserCredential? credential;
     try {
@@ -107,13 +109,15 @@ class UserService extends ChangeNotifier {
         'role': role.toLowerCase(),
         'fcmToken': fcmToken,
       };
-      
+
       // Ajouter les champs spécifiques selon le rôle
       if (entreprise != null) data['entreprise'] = entreprise;
       if (registreCommerce != null) data['registreCommerce'] = registreCommerce;
       if (numeroIFU != null) data['numeroIFU'] = numeroIFU;
-      if (entrepriseProvenance != null) data['entrepriseProvenance'] = entrepriseProvenance;
-      
+      if (entrepriseProvenance != null)
+        data['entrepriseProvenance'] = entrepriseProvenance;
+      if (referralCode != null) data['referralCode'] = referralCode;
+
       final response = await _dio.post(
         '/auth/register',
         data: data,
@@ -140,6 +144,18 @@ class UserService extends ChangeNotifier {
       email: email,
       password: password,
     );
+
+    // Envoyer le token FCM au backend après connexion
+    try {
+      final fcmToken = await PushOTPService.getFCMToken();
+      if (fcmToken != null) {
+        await PushOTPService.sendFCMTokenToBackend(fcmToken);
+      }
+    } catch (e) {
+      print('Erreur envoi FCM token: $e');
+      // Ne pas faire échouer la connexion pour une erreur de FCM
+    }
+
     return credential;
   }
 
@@ -148,14 +164,14 @@ class UserService extends ChangeNotifier {
     try {
       // Déconnexion Firebase
       await FirebaseAuth.instance.signOut();
-      
+
       // Nettoyage SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-      
+
       // Nettoyage du rôle
       clearRole();
-      
+
       // Affichage du dialogue de blocage
       BlockedUserService.showBlockedDialog(message);
     } catch (e) {
@@ -168,13 +184,13 @@ class UserService extends ChangeNotifier {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
-      
+
       final idToken = await user.getIdToken();
-      final response = await _dio.get(
+      await _dio.get(
         '/users/me',
         options: Options(headers: {'Authorization': 'Bearer $idToken'}),
       );
-      
+
       return false; // Si pas d'erreur, utilisateur non bloqué
     } catch (e) {
       if (e is DioException && e.response?.statusCode == 403) {

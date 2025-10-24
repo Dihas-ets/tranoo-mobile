@@ -15,7 +15,8 @@ class NotificationService {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        return await user.getIdToken();
+        // Attendre que le token soit prêt avec un timeout
+        return await user.getIdToken(true); // Force refresh
       }
       return null;
     } catch (e) {
@@ -69,7 +70,10 @@ class NotificationService {
   Future<int> getUnreadCount() async {
     try {
       final token = await _getAuthToken();
-      if (token == null) throw Exception('Token d\'authentification manquant');
+      if (token == null) {
+        print('Token d\'authentification manquant - utilisateur non connecté');
+        return 0;
+      }
 
       final response = await http.get(
         Uri.parse('$_baseUrl/notifications/unread-count'),
@@ -79,6 +83,9 @@ class NotificationService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['unreadCount'] ?? 0;
+      } else if (response.statusCode == 401) {
+        print('Token expiré ou invalide - reconnexion nécessaire');
+        return 0;
       } else {
         print(
           'Erreur lors de la récupération du nombre de notifications: ${response.statusCode}',
@@ -150,5 +157,5 @@ String getBaseUrl() {
   // Retourner l'URL de base de votre API
   // return 'http://10.0.2.2:5000/api'; // Pour l'émulateur Android
   // return 'http://localhost:5000/api'; // Pour le web
-  return 'https://api.tranoo.store/api'; // Pour un appareil physique
+  return 'http://192.168.1.69:5000/api'; // Pour un appareil physique
 }

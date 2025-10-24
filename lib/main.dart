@@ -10,9 +10,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/blocked_user_service.dart';
+import 'package:tranoo/services/push_otp_service.dart';
 
 // import 'package:flutter/services.dart';
 import 'data/screens/marque.dart';
@@ -20,6 +22,10 @@ import 'data/screens/tarif.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart' as myauth;
 import 'providers/counter_provider.dart';
+import 'services/cart_service.dart';
+import 'package:tranoo/data/screens/reset/forgot_password_page.dart';
+import 'package:tranoo/data/screens/reset/verify_code_page.dart';
+import 'package:tranoo/data/screens/reset/create_new_password_page.dart';
 
 // Gestionnaire pour les notifications en arrière-plan
 @pragma('vm:entry-point')
@@ -167,11 +173,15 @@ void main() async {
   await dotenv.load(fileName: ".env");
   // Initialiser le service de notifications
   await NotificationService().initialize();
+
+  // Initialiser le service OTP Push
+  await PushOTPService.initialize();
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => myauth.AuthProvider()),
         ChangeNotifierProvider(create: (_) => CounterProvider()),
+        ChangeNotifierProvider(create: (_) => CartService()),
       ],
       child: const MyApp(),
     ),
@@ -209,6 +219,17 @@ class MyApp extends StatelessWidget {
         '/verification-success': (context) => _buildVerificationSuccessPage(),
         '/verification-error': (context) => _buildVerificationErrorPage(),
         '/tarif': (context) => const Tarif(),
+        '/auth/forgot-password': (context) => const ForgotPasswordPage(),
+        '/auth/verify-reset': (context) => const VerifyResetCodePage(),
+        '/auth/create-password': (context) {
+          final args =
+              ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
+          return CreateNewPasswordPage(
+            telephone: args?['telephone'] ?? '',
+            otpCode: args?['otpCode'] ?? '',
+          );
+        },
       },
     );
   }
@@ -236,7 +257,8 @@ Widget _buildVerificationErrorPage() {
 
 class SubscriptionSuccessPage extends StatefulWidget {
   @override
-  _SubscriptionSuccessPageState createState() => _SubscriptionSuccessPageState();
+  _SubscriptionSuccessPageState createState() =>
+      _SubscriptionSuccessPageState();
 }
 
 class _SubscriptionSuccessPageState extends State<SubscriptionSuccessPage> {
@@ -252,7 +274,7 @@ class _SubscriptionSuccessPageState extends State<SubscriptionSuccessPage> {
       if (user == null) return;
 
       final token = await user.getIdToken();
-      
+
       // 1. Enregistrer le paiement
       final paymentResponse = await http.post(
         Uri.parse('${getBaseUrl()}/payments/feexpay/flutter/record'),
@@ -265,11 +287,13 @@ class _SubscriptionSuccessPageState extends State<SubscriptionSuccessPage> {
           'amount': 5,
           'description': 'Abonnement Premium Transitaire - 1 mois',
           'type': 'subscription',
-          'status': 'success'
+          'status': 'success',
         }),
       );
-      print('Paiement enregistré: ${paymentResponse.statusCode} - ${paymentResponse.body}');
-      
+      print(
+        'Paiement enregistré: ${paymentResponse.statusCode} - ${paymentResponse.body}',
+      );
+
       // 2. Activer l'abonnement
       final response = await http.post(
         Uri.parse('${getBaseUrl()}/subscription/subscribe'),
@@ -290,10 +314,7 @@ class _SubscriptionSuccessPageState extends State<SubscriptionSuccessPage> {
     // Redirection après 2 secondes
     await Future.delayed(Duration(seconds: 2));
     if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/tarif',
-        (route) => false,
-      );
+      Navigator.of(context).pushNamedAndRemoveUntil('/tarif', (route) => false);
     }
   }
 
@@ -335,10 +356,10 @@ class SubscriptionErrorPage extends StatelessWidget {
             ),
             SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil(
-                '/tarif',
-                (route) => false,
-              ),
+              onPressed:
+                  () => Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/tarif', (route) => false),
               child: Text('Retourner aux tarifs'),
             ),
           ],
@@ -350,12 +371,13 @@ class SubscriptionErrorPage extends StatelessWidget {
 
 class VerificationSuccessPage extends StatefulWidget {
   @override
-  _VerificationSuccessPageState createState() => _VerificationSuccessPageState();
+  _VerificationSuccessPageState createState() =>
+      _VerificationSuccessPageState();
 }
 
 class _VerificationSuccessPageState extends State<VerificationSuccessPage> {
   bool _showSuccess = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -368,7 +390,7 @@ class _VerificationSuccessPageState extends State<VerificationSuccessPage> {
       if (user == null) return;
 
       final token = await user.getIdToken();
-      
+
       // 1. Enregistrer le paiement
       final paymentResponse = await http.post(
         Uri.parse('${getBaseUrl()}/payments/feexpay/flutter/record'),
@@ -381,11 +403,13 @@ class _VerificationSuccessPageState extends State<VerificationSuccessPage> {
           'amount': 5,
           'description': 'Frais de vérification de documents',
           'type': 'verification',
-          'status': 'success'
+          'status': 'success',
         }),
       );
-      print('Paiement enregistré: ${paymentResponse.statusCode} - ${paymentResponse.body}');
-      
+      print(
+        'Paiement enregistré: ${paymentResponse.statusCode} - ${paymentResponse.body}',
+      );
+
       // 2. Créer la demande de vérification
       final response = await http.post(
         Uri.parse('${getBaseUrl()}/verification/request'),
@@ -393,10 +417,7 @@ class _VerificationSuccessPageState extends State<VerificationSuccessPage> {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({
-          'type': 'document_verification',
-          'amount': 5,
-        }),
+        body: jsonEncode({'type': 'document_verification', 'amount': 5}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -404,10 +425,10 @@ class _VerificationSuccessPageState extends State<VerificationSuccessPage> {
         setState(() {
           _showSuccess = true;
         });
-        
+
         // Attendre 2 secondes pour afficher le succès
         await Future.delayed(Duration(seconds: 2));
-        
+
         // Afficher le toast de succès
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -424,10 +445,7 @@ class _VerificationSuccessPageState extends State<VerificationSuccessPage> {
     // Redirection après 5 secondes pour laisser voir le message et le toast
     await Future.delayed(Duration(seconds: 5));
     if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/',
-        (route) => false,
-      );
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     }
   }
 
@@ -478,10 +496,10 @@ class VerificationErrorPage extends StatelessWidget {
             ),
             SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil(
-                '/',
-                (route) => false,
-              ),
+              onPressed:
+                  () => Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/', (route) => false),
               child: Text('Retourner à l\'accueil'),
             ),
           ],
@@ -508,19 +526,22 @@ class _AppInitializerState extends State<AppInitializer> {
   Future<void> _checkUserStatus() async {
     // Attendre un peu pour que le contexte soit disponible
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     // Définir le contexte pour BlockedUserService
     BlockedUserService.setContext(context);
-    
+
     // Vérifier le statut de blocage
     final userService = UserService();
     final isBlocked = await userService.checkUserBlockedStatus();
-    
+
     if (isBlocked) {
       // L'utilisateur est bloqué, le dialogue sera affiché automatiquement
       return;
     }
-    
+
+    // Détecter le code de parrainage depuis l'URL
+    await _handleReferralCode();
+
     // Naviguer vers l'écran principal
     if (mounted) {
       Navigator.of(context).pushReplacement(
@@ -529,17 +550,140 @@ class _AppInitializerState extends State<AppInitializer> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
+  Future<void> _handleReferralCode() async {
+    try {
+      // Vérifier s'il y a un code de parrainage en attente
+      final prefs = await SharedPreferences.getInstance();
+      final pendingReferral = prefs.getString('pending_referral');
+
+      if (pendingReferral != null && pendingReferral.isNotEmpty) {
+        print('Code de parrainage en attente: $pendingReferral');
+
+        // Afficher une notification HTML standard
+        if (mounted) {
+          _showReferralNotification(pendingReferral);
+        }
+      }
+    } catch (e) {
+      print('Erreur lors de la détection du parrainage: $e');
+    }
+  }
+
+  void _showReferralNotification(String referralCode) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.card_giftcard, color: Colors.amber[700], size: 28),
+              SizedBox(width: 10),
+              Text(
+                'Code de Parrainage Détecté',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ],
+          ),
+          content: Container(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.amber[50],
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.amber[200]!),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.celebration,
+                        color: Colors.amber[700],
+                        size: 40,
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'Félicitations !',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber[800],
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Vous avez été invité par un ami avec le code:',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                      ),
+                      SizedBox(height: 10),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 15,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.amber[700],
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          referralCode,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 15),
+                Text(
+                  'Ce code sera automatiquement appliqué lors de votre inscription.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Compris',
+                style: TextStyle(
+                  color: Colors.amber[700],
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  }
 }
-
-
 
 /*void main() {
   runApp(const MyApp());

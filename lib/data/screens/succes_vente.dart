@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
+import 'package:tranoo/data/screens/avant_home.dart';
 
 class SuccesVenteScreen extends StatefulWidget {
   const SuccesVenteScreen({super.key});
@@ -24,13 +25,9 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    );
 
     // Démarrer les animations
     _animationController.forward();
@@ -117,9 +114,7 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                               height: 1.5,
                             ),
                             children: [
-                              TextSpan(
-                                text: 'Votre article a été envoyé aux ',
-                              ),
+                              TextSpan(text: 'Votre article a été envoyé aux '),
                               TextSpan(
                                 text: 'administrateurs',
                                 style: TextStyle(
@@ -128,7 +123,8 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                                 ),
                               ),
                               TextSpan(
-                                text: ' pour validation.\n\nDès que votre publication sera ',
+                                text:
+                                    ' pour validation.\n\nDès que votre publication sera ',
                               ),
                               TextSpan(
                                 text: 'approuvée',
@@ -138,7 +134,8 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                                 ),
                               ),
                               TextSpan(
-                                text: ', elle sera automatiquement mise en ligne sur l\'application.',
+                                text:
+                                    ', elle sera automatiquement mise en ligne sur l\'application.',
                               ),
                             ],
                           ),
@@ -179,8 +176,10 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                          '/marque',
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const AvantHome(),
+                          ),
                           (route) => false,
                         );
                       },

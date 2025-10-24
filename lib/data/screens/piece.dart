@@ -139,22 +139,22 @@ class _PieceState extends State<Piece> {
       appBar: AppBar(
         title: const Text('Pièces détachées'),
         backgroundColor: Colors.amber,
-        actions:
-            isVendeur
-                ? [
-                  IconButton(
-                    icon: const Icon(Icons.add_circle, color: Colors.white),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CreateSellPage2(),
-                        ),
-                      ).then((_) => fetchPieces());
-                    },
+        actions: [
+          // Bouton Ajouter pour les vendeurs
+          if (isVendeur)
+            IconButton(
+              icon: const Icon(Icons.add_circle, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreateSellPage2(),
                   ),
-                ]
-                : null,
+                ).then((_) => fetchPieces());
+              },
+              tooltip: 'Ajouter une pièce',
+            ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

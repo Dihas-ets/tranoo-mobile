@@ -269,7 +269,6 @@ class _CarsinfoState extends State<CarsInfo> {
         icon: const Icon(Icons.arrow_back, color: Colors.black),
         onPressed: () => Navigator.pop(context),
       ),
-
     );
   }
 
@@ -409,7 +408,9 @@ class _CarsinfoState extends State<CarsInfo> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => Movie(videoUrl: widget.video, article: article),
+                    builder:
+                        (context) =>
+                            Movie(videoUrl: widget.video, article: article),
                   ),
                 );
               } else {
@@ -420,10 +421,16 @@ class _CarsinfoState extends State<CarsInfo> {
             },
             child: CircleAvatar(
               radius: 18,
-              backgroundColor: widget.video != null && widget.video!.isNotEmpty ? Colors.white : Colors.grey[300],
+              backgroundColor:
+                  widget.video != null && widget.video!.isNotEmpty
+                      ? Colors.white
+                      : Colors.grey[300],
               child: Icon(
                 Icons.play_circle_fill,
-                color: widget.video != null && widget.video!.isNotEmpty ? Colors.red : Colors.grey,
+                color:
+                    widget.video != null && widget.video!.isNotEmpty
+                        ? Colors.red
+                        : Colors.grey,
                 size: 24,
               ),
             ),
@@ -751,7 +758,12 @@ class _CarsinfoState extends State<CarsInfo> {
   }
 
   // Carte spéciale pour la couleur avec carré de couleur
-  Widget _buildSpecCardWithColor(String title, String value, IconData icon, String? couleur) {
+  Widget _buildSpecCardWithColor(
+    String title,
+    String value,
+    IconData icon,
+    String? couleur,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -782,7 +794,10 @@ class _CarsinfoState extends State<CarsInfo> {
                   decoration: BoxDecoration(
                     color: _couleurs[couleur],
                     border: Border.all(
-                      color: _couleurs[couleur] == Colors.white ? Colors.grey : Colors.transparent,
+                      color:
+                          _couleurs[couleur] == Colors.white
+                              ? Colors.grey
+                              : Colors.transparent,
                       width: 1,
                     ),
                     borderRadius: BorderRadius.circular(3),
@@ -1360,6 +1375,7 @@ class _CarsinfoState extends State<CarsInfo> {
                           articleId:
                               widget.id, // Utiliser l'ID réel de l'article
                           articleType: 'voiture',
+                          isStandalone: false,
                           articleTitle: widget.titre,
                           articleYear: widget.annee,
                           articleLocation: widget.lieu,
@@ -1407,5 +1423,3 @@ class _CarsinfoState extends State<CarsInfo> {
     }
   }
 }
-
-

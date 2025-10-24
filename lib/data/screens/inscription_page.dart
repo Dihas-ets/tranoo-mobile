@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:logging/logging.dart';
 
@@ -21,9 +22,11 @@ class _InscriptionPageState extends State<InscriptionPage> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   final TextEditingController _maisonController = TextEditingController();
-  final TextEditingController _registreCommerceController = TextEditingController();
+  final TextEditingController _registreCommerceController =
+      TextEditingController();
   final TextEditingController _numeroIFUController = TextEditingController();
-  final TextEditingController _entrepriseProvenanceController = TextEditingController();
+  final TextEditingController _entrepriseProvenanceController =
+      TextEditingController();
   final UserService _userService = UserService();
   final _logger = Logger('InscriptionPage');
 
@@ -276,30 +279,33 @@ class _InscriptionPageState extends State<InscriptionPage> {
                       child: DropdownButton<String>(
                         value: selectedCountry,
                         isDense: true,
-                        items: countries.map((country) {
-                          return DropdownMenuItem<String>(
-                            value: country['name'] as String,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  country['flag'] as String,
-                                  style: const TextStyle(fontSize: 16),
+                        items:
+                            countries.map((country) {
+                              return DropdownMenuItem<String>(
+                                value: country['name'] as String,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      country['flag'] as String,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      country['code'] as String,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  country['code'] as String,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
+                              );
+                            }).toList(),
                         onChanged: (value) {
-                          final country = countries.firstWhere((c) => c['name'] == value);
+                          final country = countries.firstWhere(
+                            (c) => c['name'] == value,
+                          );
                           setState(() {
                             selectedCountry = value;
                             selectedCountryCode = country['code'] as String?;
@@ -336,7 +342,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   setState(() {});
                 },
                 child: TextField(
-                controller: _passwordController,
+                  controller: _passwordController,
                   onChanged: _updatePasswordStrength,
                   obscureText: _obscurePasswordReg,
                   decoration: InputDecoration(
@@ -405,7 +411,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                       ),
                     ),
                   ],
-              ),
+                ),
               SizedBox(height: screenHeight * 0.02),
               // Confirmation avec icône oeil
               Focus(
@@ -413,7 +419,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   setState(() {});
                 },
                 child: TextField(
-                controller: _confirmPasswordController,
+                  controller: _confirmPasswordController,
                   obscureText: _obscureConfirmReg,
                   decoration: InputDecoration(
                     labelText: 'Confirmer le mot de passe',
@@ -617,9 +623,10 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               );
                               return;
                             }
-                            
+
                             // Vérification des champs spécifiques aux transitaires
-                            if (selectedRole == 'Transitaire' && _entrepriseController.text.trim().isEmpty) {
+                            if (selectedRole == 'Transitaire' &&
+                                _entrepriseController.text.trim().isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
@@ -629,12 +636,16 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               );
                               return;
                             }
-                            
+
                             // Vérification des champs spécifiques aux vendeurs
                             if (selectedRole == 'Vendeur') {
-                              if (_registreCommerceController.text.trim().isEmpty ||
+                              if (_registreCommerceController.text
+                                      .trim()
+                                      .isEmpty ||
                                   _numeroIFUController.text.trim().isEmpty ||
-                                  _entrepriseProvenanceController.text.trim().isEmpty) {
+                                  _entrepriseProvenanceController.text
+                                      .trim()
+                                      .isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -682,7 +693,9 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             }
                             // Validation du numéro de téléphone (nombre de chiffres dynamique)
                             final phone = _telephoneController.text.trim();
-                            final phoneRegex = RegExp('^\\d{$selectedDigits}\$');
+                            final phoneRegex = RegExp(
+                              '^\\d{$selectedDigits}\$',
+                            );
                             if (!phoneRegex.hasMatch(phone)) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -699,6 +712,13 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             try {
                               final fullPhone =
                                   (selectedCountryCode ?? '+229') + phone;
+                              // Récupérer le code de parrainage en attente
+                              final prefs =
+                                  await SharedPreferences.getInstance();
+                              final pendingReferral = prefs.getString(
+                                'pending_referral',
+                              );
+
                               final response = await _userService.registerUser(
                                 email: email,
                                 password: _passwordController.text.trim(),
@@ -706,12 +726,32 @@ class _InscriptionPageState extends State<InscriptionPage> {
                                 prenoms: _prenomController.text.trim(),
                                 telephone: fullPhone,
                                 role: selectedRole!.toLowerCase(),
-                                entreprise: selectedRole == 'Transitaire' ? _entrepriseController.text.trim() : null,
-                                registreCommerce: selectedRole == 'Vendeur' ? _registreCommerceController.text.trim() : null,
-                                numeroIFU: selectedRole == 'Vendeur' ? _numeroIFUController.text.trim() : null,
-                                entrepriseProvenance: selectedRole == 'Vendeur' ? _entrepriseProvenanceController.text.trim() : null,
+                                entreprise:
+                                    selectedRole == 'Transitaire'
+                                        ? _entrepriseController.text.trim()
+                                        : null,
+                                registreCommerce:
+                                    selectedRole == 'Vendeur'
+                                        ? _registreCommerceController.text
+                                            .trim()
+                                        : null,
+                                numeroIFU:
+                                    selectedRole == 'Vendeur'
+                                        ? _numeroIFUController.text.trim()
+                                        : null,
+                                entrepriseProvenance:
+                                    selectedRole == 'Vendeur'
+                                        ? _entrepriseProvenanceController.text
+                                            .trim()
+                                        : null,
+                                referralCode: pendingReferral,
                                 // fcmToken: ... (à ajouter si dispo)
                               );
+
+                              // Supprimer le code de parrainage après utilisation
+                              if (pendingReferral != null) {
+                                await prefs.remove('pending_referral');
+                              }
                               _logger.info('Réponse inscription: $response');
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(

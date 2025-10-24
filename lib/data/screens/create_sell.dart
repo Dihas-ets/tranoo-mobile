@@ -4,6 +4,7 @@ import 'dart:convert'; // Added for jsonDecode
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb; // Added for kIsWeb
+import 'package:flutter/services.dart'; // Added for input formatters
 import 'package:image_picker/image_picker.dart';
 import '../../utils/cloudinary_upload.dart';
 import 'package:http/http.dart' as http; // Ajouté pour l'upload web
@@ -47,9 +48,15 @@ class _CreateSellPageState extends State<CreateSellPage> {
 
   // Ajout pour plusieurs images et vidéo
   List<File?> _uploadedImages = List.filled(11, null); // mobile - 11 images max
-  List<Uint8List?> _uploadedImagesWeb = List.filled(11, null); // web - 11 images max
+  List<Uint8List?> _uploadedImagesWeb = List.filled(
+    11,
+    null,
+  ); // web - 11 images max
   List<String?> _cloudinaryImageUrls = List.filled(11, null);
-  List<bool> _isUploadingImage = List.filled(11, false); // Ajouté pour le chargement
+  List<bool> _isUploadingImage = List.filled(
+    11,
+    false,
+  ); // Ajouté pour le chargement
   File? _uploadedVideo;
   String? _cloudinaryVideoUrl;
   bool _isUploadingVideo = false; // Ajouté pour le chargement vidéo
@@ -87,7 +94,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
     4,
     5,
   ]; // Liste d'options pour le nombre de portes
-  
+
   // Liste complète des couleurs avec leurs codes
   final Map<String, Color> _couleurs = {
     'Blanc': Colors.white,
@@ -146,51 +153,81 @@ class _CreateSellPageState extends State<CreateSellPage> {
 
   // Supprimer la déclaration, l'utilisation et l'affichage du champ 'lieu' (dropdown, TextField, variables _selectedLieu, _customLieu, _lieux, etc.)
 
-  Future<void> _pickImage(int index) async {
+  Future<void> _pickImage(int startIndex) async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
+    // Multi-sélection sur mobile et web
+    final List<XFile> images = await picker.pickMultiImage();
+    if (images.isEmpty) return;
+    int gridIndex = startIndex;
+    for (final img in images) {
+      if (gridIndex >= _uploadedImages.length) break;
       if (kIsWeb) {
-        final bytes = await image.readAsBytes();
+        final bytes = await img.readAsBytes();
         setState(() {
-          _uploadedImagesWeb[index] = bytes;
-          _isUploadingImage[index] = true;
+          _uploadedImagesWeb[gridIndex] = bytes;
+          _isUploadingImage[gridIndex] = true;
         });
         final url = await uploadImageToCloudinaryWeb(bytes);
         if (url != null) {
           setState(() {
-            _cloudinaryImageUrls[index] = url;
+            _cloudinaryImageUrls[gridIndex] = url;
           });
         }
         setState(() {
-          _isUploadingImage[index] = false;
+          _isUploadingImage[gridIndex] = false;
         });
       } else {
         setState(() {
-          _uploadedImages[index] = File(image.path);
-          _isUploadingImage[index] = true;
+          _uploadedImages[gridIndex] = File(img.path);
+          _isUploadingImage[gridIndex] = true;
         });
-        final url = await uploadImageToCloudinary(_uploadedImages[index]!);
+        final url = await uploadImageToCloudinary(_uploadedImages[gridIndex]!);
         if (url != null) {
           setState(() {
-            _cloudinaryImageUrls[index] = url;
+            _cloudinaryImageUrls[gridIndex] = url;
           });
         }
         setState(() {
-          _isUploadingImage[index] = false;
+          _isUploadingImage[gridIndex] = false;
         });
       }
+      gridIndex++;
     }
   }
 
+  void _removeImage(int index) {
+    setState(() {
+      _uploadedImages[index] = null;
+      _cloudinaryImageUrls[index] = null;
+      _isUploadingImage[index] = false;
+    });
+  }
+
+  void _removeVideo() {
+    setState(() {
+      _uploadedVideo = null;
+      _cloudinaryVideoUrl = null;
+      _isUploadingVideo = false;
+    });
+  }
+
   Future<void> _pickVideo() async {
+    print('[CreateSell] Début de la sélection vidéo');
     final ImagePicker picker = ImagePicker();
     final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
+
     if (video != null) {
+      print('[CreateSell] Vidéo sélectionnée: ${video.path}');
+
       // Vérification de la taille (20 Mo max)
       final int maxSizeBytes = 20 * 1024 * 1024; // 20 Mo
       final int videoSize = await video.length();
+      print('[CreateSell] Taille de la vidéo: ${videoSize / (1024 * 1024)} Mo');
+
       if (videoSize > maxSizeBytes) {
+        print(
+          '[CreateSell] Vidéo trop lourde: ${videoSize / (1024 * 1024)} Mo > 20 Mo',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -201,27 +238,71 @@ class _CreateSellPageState extends State<CreateSellPage> {
         );
         return;
       }
+
       setState(() {
         _uploadedVideo = File(video.path);
         _isUploadingVideo = true;
       });
-      
-      String? url;
-      if (kIsWeb) {
-        final bytes = await video.readAsBytes();
-        url = await uploadVideoToCloudinaryWeb(bytes);
-      } else {
-        url = await uploadVideoToCloudinary(_uploadedVideo!);
-      }
-      
-      if (url != null) {
+      print('[CreateSell] État mis à jour: _isUploadingVideo = true');
+
+      try {
+        String? url;
+        print('[CreateSell] Plateforme: ${kIsWeb ? "Web" : "Mobile"}');
+
+        if (kIsWeb) {
+          print('[CreateSell] Lecture des bytes pour Web...');
+          final bytes = await video.readAsBytes();
+          print('[CreateSell] Bytes lus: ${bytes.length} bytes');
+          print('[CreateSell] Appel uploadVideoToCloudinaryWeb...');
+          url = await uploadVideoToCloudinaryWeb(bytes);
+        } else {
+          print('[CreateSell] Appel uploadVideoToCloudinary pour mobile...');
+          print('[CreateSell] Fichier: ${_uploadedVideo!.path}');
+          url = await uploadVideoToCloudinary(_uploadedVideo!);
+        }
+
+        print('[CreateSell] URL retournée: $url');
+
+        if (url != null) {
+          setState(() {
+            _cloudinaryVideoUrl = url;
+          });
+          print('[CreateSell] Vidéo uploadée avec succès! URL: $url');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Vidéo uploadée avec succès !'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          print('[CreateSell] ERREUR: URL null retournée par Cloudinary');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Erreur lors de l\'upload de la vidéo. Veuillez réessayer.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e, stackTrace) {
+        print('[CreateSell] EXCEPTION lors de l\'upload: $e');
+        print('[CreateSell] Stack trace: $stackTrace');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur détaillée: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      } finally {
         setState(() {
-          _cloudinaryVideoUrl = url;
+          _isUploadingVideo = false;
         });
+        print('[CreateSell] État final: _isUploadingVideo = false');
       }
-      setState(() {
-        _isUploadingVideo = false;
-      });
+    } else {
+      print('[CreateSell] Aucune vidéo sélectionnée');
     }
   }
 
@@ -245,7 +326,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
     // Debug logs
     print('[CreateSell] _cloudinaryVideoUrl: $_cloudinaryVideoUrl');
     print('[CreateSell] _uploadedVideo: $_uploadedVideo');
-    
+
     // Vérifie qu'au moins 3 images (min) et jusqu'à 11 (max)
     final imagesCount = _cloudinaryImageUrls.whereType<String>().length;
     if (imagesCount < 3) {
@@ -397,8 +478,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               const SizedBox(height: 8),
                               TextField(
                                 controller: _yearController,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(4),
+                                ],
                                 decoration: InputDecoration(
-                                  hintText: 'Entrer l\'année',
+                                  hintText: 'Entrer l\'année (ex: 2020)',
                                   filled: true,
                                   fillColor: const Color(0xFFF2F2F2),
                                   border: OutlineInputBorder(
@@ -518,8 +604,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                         const SizedBox(height: 8),
                         TextField(
                           controller: _cylindreController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(4),
+                          ],
                           decoration: InputDecoration(
-                            hintText: 'Entrer le cylindre',
+                            hintText: 'Entrer le cylindre (ex: 1600)',
                             filled: true,
                             fillColor: const Color(0xFFF2F2F2),
                             border: OutlineInputBorder(
@@ -550,17 +641,22 @@ class _CreateSellPageState extends State<CreateSellPage> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: GridView.builder(
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 6,
-                              crossAxisSpacing: 8,
-                              mainAxisSpacing: 8,
-                            ),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 6,
+                                  crossAxisSpacing: 8,
+                                  mainAxisSpacing: 8,
+                                ),
                             itemCount: _couleurs.length,
                             itemBuilder: (context, index) {
-                              final couleurNom = _couleurs.keys.elementAt(index);
-                              final couleurValeur = _couleurs.values.elementAt(index);
+                              final couleurNom = _couleurs.keys.elementAt(
+                                index,
+                              );
+                              final couleurValeur = _couleurs.values.elementAt(
+                                index,
+                              );
                               final isSelected = _selectedCouleur == couleurNom;
-                              
+
                               return GestureDetector(
                                 onTap: () {
                                   setState(() {
@@ -572,28 +668,37 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                     shape: BoxShape.circle,
                                     color: couleurValeur,
                                     border: Border.all(
-                                      color: isSelected ? Colors.amber : Colors.grey,
+                                      color:
+                                          isSelected
+                                              ? Colors.amber
+                                              : Colors.grey,
                                       width: isSelected ? 3 : 1,
                                     ),
-                                    boxShadow: isSelected ? [
-                                      BoxShadow(
-                                        color: Colors.amber.withOpacity(0.5),
-                                        blurRadius: 4,
-                                        spreadRadius: 1,
-                                      ),
-                                    ] : null,
+                                    boxShadow:
+                                        isSelected
+                                            ? [
+                                              BoxShadow(
+                                                color: Colors.amber.withOpacity(
+                                                  0.5,
+                                                ),
+                                                blurRadius: 4,
+                                                spreadRadius: 1,
+                                              ),
+                                            ]
+                                            : null,
                                   ),
-                                  child: couleurValeur == Colors.white
-                                      ? Container(
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: Colors.grey.shade300,
-                                              width: 1,
+                                  child:
+                                      couleurValeur == Colors.white
+                                          ? Container(
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: Colors.grey.shade300,
+                                                width: 1,
+                                              ),
                                             ),
-                                          ),
-                                        )
-                                      : null,
+                                          )
+                                          : null,
                                 ),
                               );
                             },
@@ -767,8 +872,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               const SizedBox(height: 8),
                               TextField(
                                 controller: _distanceController,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(7),
+                                ],
                                 decoration: InputDecoration(
-                                  hintText: 'Entrer la distance',
+                                  hintText: 'Entrer la distance (km)',
                                   filled: true,
                                   fillColor: const Color(0xFFF2F2F2),
                                   border: OutlineInputBorder(
@@ -793,8 +903,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               const SizedBox(height: 8),
                               TextField(
                                 controller: _siegesController,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(2),
+                                ],
                                 decoration: InputDecoration(
-                                  hintText: 'Entrer le siège',
+                                  hintText: 'Entrer le nombre de sièges',
                                   filled: true,
                                   fillColor: const Color(0xFFF2F2F2),
                                   border: OutlineInputBorder(
@@ -890,12 +1005,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 1.2,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                            childAspectRatio: 1.2,
+                          ),
                       itemCount: 11,
                       itemBuilder: (context, index) {
                         return GestureDetector(
@@ -919,7 +1035,8 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                       height: double.infinity,
                                     ),
                                   )
-                                else if (!kIsWeb && _uploadedImages[index] != null)
+                                else if (!kIsWeb &&
+                                    _uploadedImages[index] != null)
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
                                     child: Image.file(
@@ -955,12 +1072,34 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                     ),
                                   ),
                                 if (_cloudinaryImageUrls[index] != null)
-                                  const Positioned(
+                                  Positioned(
                                     right: 4,
                                     top: 4,
-                                    child: Icon(
-                                      Icons.check_circle,
-                                      color: Colors.green,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.green,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        GestureDetector(
+                                          onTap: () => _removeImage(index),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(2),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                               ],
@@ -974,19 +1113,56 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     _buildLabel('Vidéo (optionnelle, max 20 Mo)'),
                     const SizedBox(height: 8),
                     GestureDetector(
-                      onTap: _pickVideo,
+                      onTap: _cloudinaryVideoUrl == null ? _pickVideo : null,
                       child: Container(
                         height: 100,
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue),
+                          border: Border.all(
+                            color:
+                                _cloudinaryVideoUrl == null
+                                    ? Colors.blue
+                                    : Colors.green,
+                            width: 2,
+                          ),
                         ),
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            if (_uploadedVideo != null || _cloudinaryVideoUrl != null)
+                            if (_cloudinaryVideoUrl != null)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  color: Colors.black87,
+                                  child: const Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.play_circle_fill,
+                                          color: Colors.white,
+                                          size: 40,
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          'Vidéo uploadée',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else if (_uploadedVideo != null)
                               Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -996,24 +1172,14 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                     size: 40,
                                   ),
                                   const SizedBox(height: 8),
-                                  Text(
-                                    _cloudinaryVideoUrl != null 
-                                        ? 'Vidéo uploadée \u2713'
-                                        : 'Vidéo sélectionnée',
-                                    style: const TextStyle(
+                                  const Text(
+                                    'Vidéo sélectionnée',
+                                    style: TextStyle(
                                       color: Colors.blue,
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  if (_cloudinaryVideoUrl != null)
-                                    Text(
-                                      'URL: ${_cloudinaryVideoUrl!.substring(0, 30)}...',
-                                      style: const TextStyle(
-                                        color: Colors.green,
-                                        fontSize: 10,
-                                      ),
-                                    ),
                                 ],
                               )
                             else
@@ -1038,17 +1204,42 @@ class _CreateSellPageState extends State<CreateSellPage> {
                             if (_isUploadingVideo)
                               const Positioned.fill(
                                 child: Center(
-                                  child: CircularProgressIndicator(),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        color: Colors.white,
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Upload en cours...',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             if (_cloudinaryVideoUrl != null)
-                              const Positioned(
+                              Positioned(
                                 right: 8,
                                 top: 8,
-                                child: Icon(
-                                  Icons.check_circle,
-                                  color: Colors.green,
-                                  size: 24,
+                                child: GestureDetector(
+                                  onTap: _removeVideo,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
                                 ),
                               ),
                           ],
@@ -1226,11 +1417,12 @@ Future<String?> uploadVideoToCloudinaryWeb(Uint8List bytes) async {
     'https://api.cloudinary.com/v1_1/$cloudName/video/upload',
   );
 
-  final request = http.MultipartRequest('POST', url)
-    ..fields['upload_preset'] = uploadPreset
-    ..files.add(
-      http.MultipartFile.fromBytes('file', bytes, filename: 'upload.mp4'),
-    );
+  final request =
+      http.MultipartRequest('POST', url)
+        ..fields['upload_preset'] = uploadPreset
+        ..files.add(
+          http.MultipartFile.fromBytes('file', bytes, filename: 'upload.mp4'),
+        );
 
   final response = await request.send();
   if (response.statusCode == 200) {
