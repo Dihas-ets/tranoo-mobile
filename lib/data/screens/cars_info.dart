@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:http/http.dart' as http;
 import 'movie.dart';
-import 'payement.dart'; // Importer la page pour le paiement
 import 'package:tranoo/services/user_service.dart'; // Importer UserService pour gérer les rôles
 import 'package:tranoo/utils/role_redirect.dart'; // Importer RoleRedirect pour la redirection basée sur le rôle
 import 'package:tranoo/data/screens/succes_vente.dart'; // Importer SuccesVenteScreen
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -186,12 +184,11 @@ class _CarsinfoState extends State<CarsInfo> {
                       child: Image.network(
                         widget.images[index],
                         fit: BoxFit.contain,
-                        errorBuilder:
-                            (c, e, s) => const Icon(
-                              Icons.image_not_supported,
-                              color: Colors.white,
-                              size: 80,
-                            ),
+                        errorBuilder: (c, e, s) => const Icon(
+                          Icons.image_not_supported,
+                          color: Colors.white,
+                          size: 80,
+                        ),
                       ),
                     ),
                   );
@@ -233,7 +230,7 @@ class _CarsinfoState extends State<CarsInfo> {
     final userService = UserService(); // Instance du service utilisateur
     final isAcheteurOuChauffeur =
         userService.currentRole == UserRole.acheteur ||
-        userService.currentRole == UserRole.chauffeur;
+            userService.currentRole == UserRole.chauffeur;
 
     // Récupération des dimensions de l'écran pour la responsivité
     final mediaQuery = MediaQuery.of(context);
@@ -295,8 +292,7 @@ class _CarsinfoState extends State<CarsInfo> {
             itemCount: widget.images.isNotEmpty ? widget.images.length : 1,
             onPageChanged: (i) => setState(() => _currentImageIndex = i),
             itemBuilder: (context, index) {
-              final hasImage =
-                  widget.images.isNotEmpty &&
+              final hasImage = widget.images.isNotEmpty &&
                   index < widget.images.length &&
                   widget.images[index].isNotEmpty;
               if (!hasImage) {
@@ -316,13 +312,12 @@ class _CarsinfoState extends State<CarsInfo> {
                     child: Image.network(
                       widget.images[index],
                       fit: BoxFit.cover,
-                      errorBuilder:
-                          (context, error, stackTrace) => Container(
-                            color: Colors.grey[300],
-                            child: const Center(
-                              child: Text('Image non disponible'),
-                            ),
-                          ),
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Text('Image non disponible'),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -337,11 +332,10 @@ class _CarsinfoState extends State<CarsInfo> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color:
-                  ((widget.condition ?? '').toLowerCase() == 'nouveau' ||
-                          (widget.condition ?? '').toLowerCase() == 'neuf')
-                      ? Colors.purple
-                      : const Color(0xFFF8BF13),
+              color: ((widget.condition ?? '').toLowerCase() == 'nouveau' ||
+                      (widget.condition ?? '').toLowerCase() == 'neuf')
+                  ? Colors.purple
+                  : const Color(0xFFF8BF13),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -408,9 +402,8 @@ class _CarsinfoState extends State<CarsInfo> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (context) =>
-                            Movie(videoUrl: widget.video, article: article),
+                    builder: (context) =>
+                        Movie(videoUrl: widget.video, article: article),
                   ),
                 );
               } else {
@@ -421,16 +414,14 @@ class _CarsinfoState extends State<CarsInfo> {
             },
             child: CircleAvatar(
               radius: 18,
-              backgroundColor:
-                  widget.video != null && widget.video!.isNotEmpty
-                      ? Colors.white
-                      : Colors.grey[300],
+              backgroundColor: widget.video != null && widget.video!.isNotEmpty
+                  ? Colors.white
+                  : Colors.grey[300],
               child: Icon(
                 Icons.play_circle_fill,
-                color:
-                    widget.video != null && widget.video!.isNotEmpty
-                        ? Colors.red
-                        : Colors.grey,
+                color: widget.video != null && widget.video!.isNotEmpty
+                    ? Colors.red
+                    : Colors.grey,
                 size: 24,
               ),
             ),
@@ -469,24 +460,23 @@ class _CarsinfoState extends State<CarsInfo> {
       final uri = Uri.parse(
         '${UserService().dio.options.baseUrl}/users/me/favoris',
       );
-      final response =
-          await (isFav
-              ? http.delete(
-                uri,
-                headers: {
-                  'Authorization': 'Bearer $idToken',
-                  'Content-Type': 'application/json',
-                },
-                body: jsonEncode({'articleId': articleId}),
-              )
-              : http.post(
-                uri,
-                headers: {
-                  'Authorization': 'Bearer $idToken',
-                  'Content-Type': 'application/json',
-                },
-                body: jsonEncode({'articleId': articleId}),
-              ));
+      final response = await (isFav
+          ? http.delete(
+              uri,
+              headers: {
+                'Authorization': 'Bearer $idToken',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode({'articleId': articleId}),
+            )
+          : http.post(
+              uri,
+              headers: {
+                'Authorization': 'Bearer $idToken',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode({'articleId': articleId}),
+            ));
       if (response.statusCode == 200) {
         setState(() {
           if (isFav) {
@@ -571,7 +561,7 @@ class _CarsinfoState extends State<CarsInfo> {
         const SizedBox(height: 8),
         Text(
           (widget.prix != null && widget.prix!.isNotEmpty)
-              ? widget.prix!
+              ? '${widget.prix!} FCFA'
               : 'Non renseigné',
           style: TextStyle(
             fontSize: screenWidth * 0.05,
@@ -794,10 +784,9 @@ class _CarsinfoState extends State<CarsInfo> {
                   decoration: BoxDecoration(
                     color: _couleurs[couleur],
                     border: Border.all(
-                      color:
-                          _couleurs[couleur] == Colors.white
-                              ? Colors.grey
-                              : Colors.transparent,
+                      color: _couleurs[couleur] == Colors.white
+                          ? Colors.grey
+                          : Colors.transparent,
                       width: 1,
                     ),
                     borderRadius: BorderRadius.circular(3),
@@ -869,13 +858,11 @@ class _CarsinfoState extends State<CarsInfo> {
                 style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
               isExpanded: true,
-              items:
-                  africanCountries
-                      .map(
-                        (c) =>
-                            DropdownMenuItem<String>(value: c, child: Text(c)),
-                      )
-                      .toList(),
+              items: africanCountries
+                  .map(
+                    (c) => DropdownMenuItem<String>(value: c, child: Text(c)),
+                  )
+                  .toList(),
               onChanged: (value) => setState(() => _selectedCountry = value),
             ),
           ),
@@ -1038,7 +1025,7 @@ class _CarsinfoState extends State<CarsInfo> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        '20.000 FCFA',
+                        '10.000 FCFA',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF00A86B),
@@ -1054,9 +1041,9 @@ class _CarsinfoState extends State<CarsInfo> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        const VerificationPaymentScreen(),
+                                builder: (context) => VerificationPaymentScreen(
+                                  articleId: widget.id.toString(),
+                                ),
                               ),
                             );
                           },
@@ -1208,7 +1195,7 @@ class _CarsinfoState extends State<CarsInfo> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        '20.000 FCFA',
+                        '10.000 FCFA',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF00A86B),
@@ -1224,9 +1211,9 @@ class _CarsinfoState extends State<CarsInfo> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        const VerificationPaymentScreen(),
+                                builder: (context) => VerificationPaymentScreen(
+                                  articleId: widget.id.toString(),
+                                ),
                               ),
                             );
                           },
@@ -1272,79 +1259,77 @@ class _CarsinfoState extends State<CarsInfo> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed:
-                  _isOnline
-                      ? null
-                      : () async {
-                        // Vendeur : enregistre l'article dans la BDD puis redirige vers la page de succès
-                        final articleData = {
-                          'type': 'voiture',
-                          'titre': widget.titre,
-                          'description': widget.description,
-                          'marque': widget.marque,
-                          'modele': widget.modele,
-                          'annee': widget.annee,
-                          'prix': widget.prix,
-                          'condition': widget.condition,
-                          'boiteVitesse': widget.boiteVitesse,
-                          'carburant': widget.carburant,
-                          'climatiseur': widget.climatiseur,
-                          'distance': widget.distance,
-                          'sieges': widget.sieges,
-                          'portes': widget.portes,
-                          'cylindre': widget.cylindre,
-                          'couleur': widget.couleur,
-                          'dedouanement': widget.dedouanement,
-                          'photos': widget.images,
-                          'video': widget.video,
-                          'entreprise': widget.entreprise,
-                        };
-                        log('[DEBUG] Données envoyées à l\'API :');
-                        log(articleData.toString());
-                        try {
-                          final user = FirebaseAuth.instance.currentUser;
-                          final token = await user?.getIdToken();
-                          final response = await http.post(
-                            Uri.parse(
-                              '${UserService().dio.options.baseUrl}/articles/',
+              onPressed: _isOnline
+                  ? null
+                  : () async {
+                      // Vendeur : enregistre l'article dans la BDD puis redirige vers la page de succès
+                      final articleData = {
+                        'type': 'voiture',
+                        'titre': widget.titre,
+                        'description': widget.description,
+                        'marque': widget.marque,
+                        'modele': widget.modele,
+                        'annee': widget.annee,
+                        'prix': widget.prix,
+                        'condition': widget.condition,
+                        'boiteVitesse': widget.boiteVitesse,
+                        'carburant': widget.carburant,
+                        'climatiseur': widget.climatiseur,
+                        'distance': widget.distance,
+                        'sieges': widget.sieges,
+                        'portes': widget.portes,
+                        'cylindre': widget.cylindre,
+                        'couleur': widget.couleur,
+                        'dedouanement': widget.dedouanement,
+                        'photos': widget.images,
+                        'video': widget.video,
+                        'entreprise': widget.entreprise,
+                      };
+                      log('[DEBUG] Données envoyées à l\'API :');
+                      log(articleData.toString());
+                      try {
+                        final user = FirebaseAuth.instance.currentUser;
+                        final token = await user?.getIdToken();
+                        final response = await http.post(
+                          Uri.parse(
+                            '${UserService().dio.options.baseUrl}/articles/',
+                          ),
+                          headers: {
+                            'Content-Type': 'application/json',
+                            if (token != null) 'Authorization': 'Bearer $token',
+                          },
+                          body: jsonEncode(articleData),
+                        );
+                        log(
+                          '[DEBUG] Status code réponse API : ${response.statusCode}',
+                        );
+                        log('[DEBUG] Body réponse API : ${response.body}');
+                        if (response.statusCode == 201 ||
+                            response.statusCode == 200) {
+                          _confettiController.play();
+                          await Future.delayed(const Duration(seconds: 2));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SuccesVenteScreen(),
                             ),
-                            headers: {
-                              'Content-Type': 'application/json',
-                              if (token != null)
-                                'Authorization': 'Bearer $token',
-                            },
-                            body: jsonEncode(articleData),
                           );
-                          log(
-                            '[DEBUG] Status code réponse API : ${response.statusCode}',
-                          );
-                          log('[DEBUG] Body réponse API : ${response.body}');
-                          if (response.statusCode == 201 ||
-                              response.statusCode == 200) {
-                            _confettiController.play();
-                            await Future.delayed(const Duration(seconds: 2));
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SuccesVenteScreen(),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Erreur lors de l\'enregistrement en BDD',
-                                ),
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          log('[DEBUG] Exception lors de l\'appel API : $e');
+                        } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Erreur réseau ou serveur')),
+                            SnackBar(
+                              content: Text(
+                                'Erreur lors de l\'enregistrement en BDD',
+                              ),
+                            ),
                           );
                         }
-                      },
+                      } catch (e) {
+                        log('[DEBUG] Exception lors de l\'appel API : $e');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Erreur réseau ou serveur')),
+                        );
+                      }
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isOnline ? Colors.grey[300] : Colors.amber,
                 foregroundColor: _isOnline ? Colors.grey[600] : Colors.black,
@@ -1370,24 +1355,22 @@ class _CarsinfoState extends State<CarsInfo> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (context) => Une(
-                          articleId:
-                              widget.id, // Utiliser l'ID réel de l'article
-                          articleType: 'voiture',
-                          isStandalone: false,
-                          articleTitle: widget.titre,
-                          articleYear: widget.annee,
-                          articleLocation: widget.lieu,
-                          articlePrice: widget.prix,
-                          articleDescription: widget.description,
-                          articleCompany: widget.entreprise,
-                          articleModel: widget.modele,
-                          articleFuelType: widget.carburant,
-                          articlePieceType: widget.condition,
-                          articleImages: widget.images,
-                          articleVideo: widget.video,
-                        ),
+                    builder: (context) => Une(
+                      articleId: widget.id, // Utiliser l'ID réel de l'article
+                      articleType: 'voiture',
+                      isStandalone: false,
+                      articleTitle: widget.titre,
+                      articleYear: widget.annee,
+                      articleLocation: widget.lieu,
+                      articlePrice: widget.prix,
+                      articleDescription: widget.description,
+                      articleCompany: widget.entreprise,
+                      articleModel: widget.modele,
+                      articleFuelType: widget.carburant,
+                      articlePieceType: widget.condition,
+                      articleImages: widget.images,
+                      articleVideo: widget.video,
+                    ),
                   ),
                 );
               },

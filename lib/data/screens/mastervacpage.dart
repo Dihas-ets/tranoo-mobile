@@ -367,7 +367,7 @@ class _MastervacPageState extends State<MastervacPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          widget.price.isNotEmpty ? widget.price : 'Non renseigné',
+          widget.price.isNotEmpty ? '${widget.price} FCFA' : 'Non renseigné',
           style: TextStyle(
             fontSize: 20,
             color: Colors.grey[800],

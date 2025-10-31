@@ -69,62 +69,65 @@ class _PayementScreenState extends State<PayementScreen>
       duration: const Duration(seconds: 2),
     );
 
-    // Charger les propositions de transit pour cet article
-    _loadTransitPropositions();
+    // Charger la liste des transitaires depuis l'API
+    _loadTransitaires();
   }
 
-  Future<void> _loadTransitPropositions() async {
+  Future<void> _loadTransitaires() async {
     setState(() {
       isLoadingPropositions = true;
     });
-
     try {
-      print('[PayementScreen] Article reçu: ${widget.article}');
-      final dynamic rawId = widget.article['_id'] ?? widget.article['id'];
-      final String? articleId = rawId?.toString();
-      print('[PayementScreen] ID de l\'article (fallback _id|id): $articleId');
-
-      // Vérifier si l'article a un ID valide
-      if (articleId == null || articleId.isEmpty) {
-        print('[PayementScreen] Article sans ID valide.');
-        setState(() {
-          transitPropositions = [];
-          isLoadingPropositions = false;
-        });
-        return;
-      }
-
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
-
       final token = await user.getIdToken();
       final dio = Dio();
-      dio.options.headers['Authorization'] = 'Bearer $token';
       dio.options.baseUrl = getBaseUrl();
+      dio.options.headers['Authorization'] = 'Bearer $token';
+      // Endpoint backend pour tous les transitaires avec statut d'abonnement
+      final Response res = await dio.get('/users/transitaires/all');
+      if (res.statusCode == 200) {
+        final data = res.data;
+        // Accepte soit un tableau direct, soit un objet { users: [...] }
+        List<Map<String, dynamic>> items = data is List
+            ? List<Map<String, dynamic>>.from(data)
+            : (data is Map && data['users'] is List
+                ? List<Map<String, dynamic>>.from(data['users'])
+                : <Map<String, dynamic>>[]);
 
-      final url = '/transit/propositions/$articleId';
-      print('[PayementScreen] Appel API: $url');
+        // Fallback: si vide, tenter /users?role=transitaire
+        if (items.isEmpty) {
+          final Response res2 = await dio.get('/users', queryParameters: {
+            'role': 'transitaire',
+            'page': 1,
+            'limit': 50,
+          });
+          if (res2.statusCode == 200) {
+            final d2 = res2.data;
+            items = d2 is Map && d2['users'] is List
+                ? List<Map<String, dynamic>>.from(d2['users'])
+                : (d2 is List
+                    ? List<Map<String, dynamic>>.from(d2)
+                    : <Map<String, dynamic>>[]);
+          } else {
+            print(
+                '[PayementScreen] /users?role=transitaire HTTP ${res2.statusCode}: ${res2.data}');
+          }
+        }
 
-      // Récupérer toutes les propositions pour cet article
-      final response = await dio.get(url);
-
-      print('[PayementScreen] Réponse API: ${response.statusCode}');
-      print('[PayementScreen] Données reçues: ${response.data}');
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        final List<Map<String, dynamic>> items =
-            data is List ? List<Map<String, dynamic>>.from(data) : [];
+        print('[PayementScreen] transitaires chargés: ${items.length}');
         setState(() {
           transitPropositions = items;
         });
+      } else {
         print(
-          '[PayementScreen] Propositions chargées: ${transitPropositions.length}',
-        );
+            '[PayementScreen] /transitaires/all HTTP ${res.statusCode}: ${res.data}');
       }
     } catch (e) {
-      print('[PayementScreen] Erreur lors du chargement des propositions: $e');
-      // Gérer l'erreur silencieusement
+      print('[PayementScreen] Erreur chargement transitaires: $e');
+      setState(() {
+        transitPropositions = [];
+      });
     } finally {
       setState(() {
         isLoadingPropositions = false;
@@ -133,16 +136,48 @@ class _PayementScreenState extends State<PayementScreen>
   }
 
   Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    // Permettre de choisir entre Appareil photo et Galerie
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Prendre une photo'),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              const Divider(height: 0),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choisir depuis la galerie'),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
 
-    if (image != null) {
-      setState(() {
-        uploadedImage = File(image.path);
-        uploadedFileName = image.name;
-        hasUploadedFile = true;
-      });
-    }
+    if (source == null) return;
+
+    final ImagePicker picker = ImagePicker();
+    final XFile? image =
+        await picker.pickImage(source: source, imageQuality: 85);
+
+    if (image == null) return;
+
+    setState(() {
+      uploadedImage = File(image.path);
+      uploadedFileName = image.name;
+      hasUploadedFile = true;
+    });
   }
 
   @override
@@ -189,8 +224,8 @@ class _PayementScreenState extends State<PayementScreen>
                       value: selectedPiece,
                       hint: 'Copie de la Carte d\'identité',
                       items: pieces,
-                      onChanged:
-                          (value) => setState(() => selectedPiece = value),
+                      onChanged: (value) =>
+                          setState(() => selectedPiece = value),
                     ),
                     const SizedBox(height: 24),
 
@@ -399,10 +434,9 @@ class _PayementScreenState extends State<PayementScreen>
             style: const TextStyle(color: Colors.grey, fontSize: 14),
           ),
           isExpanded: true,
-          items:
-              items.map((String item) {
-                return DropdownMenuItem<String>(value: item, child: Text(item));
-              }).toList(),
+          items: items.map((String item) {
+            return DropdownMenuItem<String>(value: item, child: Text(item));
+          }).toList(),
           onChanged: onChanged,
         ),
       ),
@@ -423,7 +457,10 @@ class _PayementScreenState extends State<PayementScreen>
           Expanded(
             child: Text(
               selectedTransitaireObj != null
-                  ? selectedTransitaireObj!['nom'] ?? 'Prestataire sélectionné'
+                  ? (selectedTransitaireObj!['prenoms'] != null
+                      ? '${selectedTransitaireObj!['prenoms']} ${selectedTransitaireObj!['nom'] ?? ''}'
+                      : (selectedTransitaireObj!['nom'] ??
+                          'Prestataire sélectionné'))
                   : 'Choisissez un prestataire de transit',
               style: TextStyle(
                 color:
@@ -461,10 +498,72 @@ class _PayementScreenState extends State<PayementScreen>
       dio.options.baseUrl = getBaseUrl();
       dio.options.headers['Authorization'] = 'Bearer $token';
 
-      final dynamic rawId = widget.article['_id'] ?? widget.article['id'];
-      final String? articleId = rawId?.toString();
+      String? _resolveArticleId(Map<String, dynamic> a) {
+        final candidates = [
+          a['_id'],
+          a['id'],
+          a['articleId'],
+          (a['article'] is Map
+              ? ((a['article'] as Map)['_id'] ?? (a['article'] as Map)['id'])
+              : null),
+          // Notifications/messages courants
+          (a['message'] is Map
+              ? (((a['message'] as Map)['article'] is Map)
+                  ? (((a['message'] as Map)['article'] as Map)['_id'] ??
+                      ((a['message'] as Map)['article'] as Map)['id'])
+                  : (a['message'] as Map)['articleId'])
+              : null),
+          (a['data'] is Map
+              ? (((a['data'] as Map)['article'] is Map)
+                  ? (((a['data'] as Map)['article'] as Map)['_id'] ??
+                      ((a['data'] as Map)['article'] as Map)['id'])
+                  : (a['data'] as Map)['articleId'])
+              : null),
+          (a['payload'] is Map
+              ? ((a['payload'] as Map)['articleId'] ??
+                  ((a['payload'] as Map)['article'] is Map
+                      ? (((a['payload'] as Map)['article'] as Map)['_id'] ??
+                          ((a['payload'] as Map)['article'] as Map)['id'])
+                      : null))
+              : null),
+        ];
+        for (final c in candidates) {
+          if (c != null && c.toString().trim().isNotEmpty) {
+            return c.toString();
+          }
+        }
+        return null;
+      }
+
+      final String? articleId = _resolveArticleId(widget.article);
       if (articleId == null || articleId.isEmpty) {
         throw Exception('Article sans ID valide');
+      }
+
+      // Vérifier que l'article existe côté serveur avant de créer l'achat
+      try {
+        final verifyUrl = '/articles/$articleId';
+        print('[PayementScreen] Vérification article id=$articleId -> GET ' +
+            verifyUrl);
+        final verify = await dio.get(verifyUrl);
+        if (verify.statusCode != 200) {
+          throw Exception('Article introuvable (id=$articleId)');
+        }
+        final verifiedTitle = (verify.data is Map)
+            ? ((verify.data)['titre'] ??
+                (verify.data)['title'] ??
+                (verify.data)['nom'])
+            : null;
+        if (verifiedTitle != null) {
+          print(
+              '[PayementScreen] Article confirmé: ' + verifiedTitle.toString());
+        }
+      } on DioException catch (verr) {
+        final msg = verr.response?.data is Map
+            ? ((verr.response?.data)['message']?.toString() ??
+                'Article introuvable')
+            : 'Article introuvable';
+        throw Exception(msg);
       }
 
       // Upload optionnel de l'image vers Cloudinary si présente
@@ -477,7 +576,7 @@ class _PayementScreenState extends State<PayementScreen>
       }
 
       final bool dedouanementFait = widget.article['dedouanement'] == true;
-      
+
       final payload = {
         'articleId': articleId,
         if (!dedouanementFait) 'propositionTransitId': selectedTransitaire,
@@ -498,40 +597,49 @@ class _PayementScreenState extends State<PayementScreen>
         'fichierUrl': uploadedUrl,
       };
 
-      final response = await dio.post('/achats', data: payload);
+      print('[PayementScreen] POST /achat payload=' + payload.toString());
+      final response = await dio.post('/achat', data: payload);
       if (response.statusCode == 201 || response.statusCode == 200) {
         // Aller à la finalisation avec données dynamiques
-        final String imageUrl =
-            (widget.article['photos'] is List &&
-                    (widget.article['photos'] as List).isNotEmpty)
-                ? (widget.article['photos'][0].toString())
-                : '';
+        final String imageUrl = (widget.article['photos'] is List &&
+                (widget.article['photos'] as List).isNotEmpty)
+            ? (widget.article['photos'][0].toString())
+            : '';
         final String titre = (widget.article['titre'] ?? '').toString();
         final String prixStr =
             (widget.article['prix'] ?? widget.article['price'] ?? '0')
                 .toString();
-        final int? tarifTransitaire =
-            selectedTransitaireObj?['montant'] is num
-                ? (selectedTransitaireObj!['montant'] as num).toInt()
-                : null;
+        final int? tarifTransitaire = selectedTransitaireObj?['montant'] is num
+            ? (selectedTransitaireObj!['montant'] as num).toInt()
+            : null;
 
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => FinalisationAchatScreen(
-                  articleImage: imageUrl,
-                  articleTitle: titre,
-                  articlePrice: prixStr,
-                  tarifChoisit: tarifTransitaire?.toString(),
-                ),
+            builder: (context) => FinalisationAchatScreen(
+              articleImage: imageUrl,
+              articleTitle: titre,
+              articlePrice: prixStr,
+              tarifChoisit: tarifTransitaire?.toString(),
+            ),
           ),
         );
+      } else {
+        print(
+            '[PayementScreen] Erreur HTTP /achat: ${response.statusCode} ${response.data}');
       }
     } catch (e) {
+      print('[PayementScreen] Exception _submitAchat: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur: ${e.toString()}'),
+          content: Text(
+            e is DioException && e.response?.statusCode == 404
+                ? (e.response?.data is Map &&
+                        (e.response?.data)['message'] != null
+                    ? (e.response?.data)['message']
+                    : 'Article introuvable. Vérifiez l\'élément sélectionné.')
+                : 'Erreur: ${e.toString()}',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -546,15 +654,38 @@ class _PayementScreenState extends State<PayementScreen>
         onPressed: () {
           final bool dedouanementFait = widget.article['dedouanement'] == true;
           final bool transitaireRequis = !dedouanementFait;
-          
-          bool validationOk = isCarburantChecked &&
-              isChauffeurChecked &&
-              isFraisDeRouteChecked;
-          
+
+          bool validationOk =
+              isCarburantChecked && isChauffeurChecked && isFraisDeRouteChecked;
+
           if (transitaireRequis) {
-            validationOk = validationOk && isTransitaireChecked && selectedTransitaire != null;
+            validationOk = validationOk &&
+                isTransitaireChecked &&
+                selectedTransitaire != null;
           }
-          
+
+          if (!hasUploadedFile || uploadedImage == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Veuillez ajouter une image (obligatoire).'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+
+          if ((selectedPiece == null || selectedPiece!.trim().isEmpty) ||
+              (numeroController.text.trim().isEmpty)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                    Text('Veuillez renseigner le type et le numéro de pièce.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+
           if (validationOk) {
             _submitAchat(context);
           } else {
@@ -587,17 +718,16 @@ class _PayementScreenState extends State<PayementScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => TransitaireBottomSheet(
-            transitPropositions: transitPropositions,
-            onTransitaireSelected: (transitaire) {
-              setState(() {
-                selectedTransitaire = transitaire['_id'] ?? transitaire['id'];
-                selectedTransitaireObj = transitaire;
-              });
-              Navigator.pop(context);
-            },
-          ),
+      builder: (context) => TransitaireBottomSheet(
+        transitPropositions: transitPropositions,
+        onTransitaireSelected: (transitaire) {
+          setState(() {
+            selectedTransitaire = transitaire['_id'] ?? transitaire['id'];
+            selectedTransitaireObj = transitaire;
+          });
+          Navigator.pop(context);
+        },
+      ),
     );
   }
 }
@@ -605,90 +735,29 @@ class _PayementScreenState extends State<PayementScreen>
 class TransitaireBottomSheet extends StatefulWidget {
   final List<Map<String, dynamic>> transitPropositions;
   final Function(Map<String, dynamic>) onTransitaireSelected;
-
-  const TransitaireBottomSheet({
-    super.key,
-    required this.transitPropositions,
-    required this.onTransitaireSelected,
-  });
-
+  const TransitaireBottomSheet(
+      {super.key,
+      required this.transitPropositions,
+      required this.onTransitaireSelected});
   @override
   State<TransitaireBottomSheet> createState() => _TransitaireBottomSheetState();
 }
 
 class _TransitaireBottomSheetState extends State<TransitaireBottomSheet> {
-  List<Map<String, dynamic>> transitaires = [];
-  bool isLoading = true;
-
+  late List<Map<String, dynamic>> transitaires;
+  bool isLoading = false;
   @override
   void initState() {
     super.initState();
-    _loadTransitaires();
-  }
-
-  Future<void> _loadTransitaires() async {
-    // Données statiques pour test
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    final List<Map<String, dynamic>> staticData = [
-      {
-        '_id': '1',
-        'title': 'Express Transit Pro',
-        'description': 'Service premium certifié ⭐ - Livraison rapide et sécurisée',
-        'time': '6h30',
-        'price': '25 000 F',
-        'capacity': 4,
-        'hasSubscription': true,
-      },
-      {
-        '_id': '2', 
-        'title': 'Rapid Logistics',
-        'description': 'Service premium certifié ⭐ - Transport de qualité supérieure',
-        'time': '7h15',
-        'price': '28 500 F',
-        'capacity': 6,
-        'hasSubscription': true,
-      },
-      {
-        '_id': '3',
-        'title': 'Standard Transport',
-        'description': 'Service standard de qualité - Tarif économique',
-        'time': '8h45',
-        'price': '18 000 F',
-        'capacity': 4,
-        'hasSubscription': false,
-      },
-      {
-        '_id': '4',
-        'title': 'City Cargo',
-        'description': 'Service standard de qualité - Transport urbain',
-        'time': '9h20',
-        'price': '22 000 F',
-        'capacity': 4,
-        'hasSubscription': false,
-      },
-      {
-        '_id': '5',
-        'title': 'Quick Delivery',
-        'description': 'Service standard de qualité - Livraison dans la journée',
-        'time': '10h00',
-        'price': '20 500 F',
-        'capacity': 4,
-        'hasSubscription': false,
-      },
-    ];
-    
-    setState(() {
-      transitaires = staticData;
-      isLoading = false;
-    });
+    transitaires = widget.transitPropositions;
   }
 
   @override
   Widget build(BuildContext context) {
-    final premiumTransitaires = transitaires.where((t) => t['hasSubscription'] == true).toList();
-    final standardTransitaires = transitaires.where((t) => t['hasSubscription'] != true).toList();
-    
+    final premiumTransitaires =
+        transitaires.where((t) => t['hasSubscription'] == true).toList();
+    final standardTransitaires =
+        transitaires.where((t) => t['hasSubscription'] != true).toList();
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: const BoxDecoration(
@@ -698,7 +767,6 @@ class _TransitaireBottomSheetState extends State<TransitaireBottomSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // En-tête noir
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -718,15 +786,11 @@ class _TransitaireBottomSheetState extends State<TransitaireBottomSheet> {
           Expanded(
             child: isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFFF8BF13),
-                    ),
-                  )
+                    child: CircularProgressIndicator(color: Color(0xFFF8BF13)))
                 : SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Section Premium
                         if (premiumTransitaires.isNotEmpty) ...[
                           Container(
                             width: double.infinity,
@@ -740,11 +804,10 @@ class _TransitaireBottomSheetState extends State<TransitaireBottomSheet> {
                               ),
                             ),
                           ),
-                          ...premiumTransitaires.map((transitaire) => _buildTransitaireCard(transitaire)),
+                          ...premiumTransitaires
+                              .map((t) => _buildTransitaireCard(t, true)),
                           const SizedBox(height: 24),
                         ],
-                        
-                        // Section Standard
                         if (standardTransitaires.isNotEmpty) ...[
                           Container(
                             width: double.infinity,
@@ -759,7 +822,8 @@ class _TransitaireBottomSheetState extends State<TransitaireBottomSheet> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          ...standardTransitaires.map((transitaire) => _buildTransitaireCard(transitaire)),
+                          ...standardTransitaires
+                              .map((t) => _buildTransitaireCard(t, false)),
                         ],
                       ],
                     ),
@@ -769,35 +833,33 @@ class _TransitaireBottomSheetState extends State<TransitaireBottomSheet> {
       ),
     );
   }
-  
-  Widget _buildTransitaireCard(Map<String, dynamic> transitaire) {
-    final hasSubscription = transitaire['hasSubscription'] ?? false;
-    
+
+  Widget _buildTransitaireCard(Map<String, dynamic> t, bool premium) {
+    final title = (t['entreprise'] ?? t['nom'] ?? 'Transitaire').toString();
+    final capacity = t['capacity'] ?? '';
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: hasSubscription 
+        border: premium
             ? Border.all(color: const Color(0xFFF8BF13), width: 2)
             : Border.all(color: Colors.grey[300]!, width: 1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
-        onTap: () => widget.onTransitaireSelected(transitaire),
+        onTap: () => widget.onTransitaireSelected(t),
         leading: Container(
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: hasSubscription 
+            color: premium
                 ? const Color(0xFFF8BF13).withOpacity(0.2)
                 : Colors.grey[200],
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             Icons.local_shipping,
-            color: hasSubscription 
-                ? const Color(0xFFF8BF13)
-                : Colors.grey[600],
+            color: premium ? const Color(0xFFF8BF13) : Colors.grey[600],
             size: 24,
           ),
         ),
@@ -805,37 +867,29 @@ class _TransitaireBottomSheetState extends State<TransitaireBottomSheet> {
           children: [
             Flexible(
               child: Text(
-                "${transitaire['title']} 🚘 ${transitaire['capacity']}",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                capacity != '' ? "$title 🚘 $capacity" : title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (hasSubscription) ...[
+            if (premium) ...[
               const SizedBox(width: 4),
-              const Icon(
-                Icons.workspace_premium,
-                size: 16,
-                color: Color(0xFFF8BF13),
-              ),
+              const Icon(Icons.workspace_premium,
+                  size: 16, color: Color(0xFFF8BF13)),
             ],
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: hasSubscription 
-                    ? const Color(0xFFF8BF13)
-                    : Colors.green,
+                color: premium ? const Color(0xFFF8BF13) : Colors.green,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                hasSubscription ? 'PREMIUM' : 'DISPONIBLE',
+                premium ? 'PREMIUM' : 'DISPONIBLE',
                 style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
               ),
             ),
           ],
@@ -843,18 +897,13 @@ class _TransitaireBottomSheetState extends State<TransitaireBottomSheet> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(transitaire['time']),
-            Text(
-              transitaire['description'],
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+            if (t['email'] != null) Text(t['email']),
+            if (t['telephone'] != null) Text(t['telephone']),
           ],
         ),
       ),
     );
   }
-
 }
 
 final List<Map<String, String>> _demoTransitItems = [

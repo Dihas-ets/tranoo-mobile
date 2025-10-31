@@ -13,7 +13,8 @@ class SubscriptionPaymentScreen extends StatefulWidget {
   const SubscriptionPaymentScreen({super.key});
 
   @override
-  State<SubscriptionPaymentScreen> createState() => _SubscriptionPaymentScreenState();
+  State<SubscriptionPaymentScreen> createState() =>
+      _SubscriptionPaymentScreenState();
 }
 
 class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
@@ -102,7 +103,7 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     _buildAdvantageItem(
                       Icons.star,
                       'Mise en avant prioritaire',
@@ -123,7 +124,7 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                       'Support prioritaire',
                       'Assistance dédiée 24h/7j',
                     ),
-                    
+
                     const SizedBox(height: 24),
 
                     // Prix
@@ -133,7 +134,8 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8F9FA),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFFFCC00), width: 2),
+                        border: Border.all(
+                            color: const Color(0xFFFFCC00), width: 2),
                       ),
                       child: Column(
                         children: [
@@ -146,7 +148,7 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            '5 FCFA',
+                            '5 000 FCFA',
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
@@ -163,9 +165,9 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Note
                     const Text(
                       'Votre abonnement sera automatiquement renouvelé chaque mois. Vous pouvez l\'annuler à tout moment.',
@@ -179,7 +181,7 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                 ),
               ),
             ),
-            
+
             // Bouton de paiement
             Container(
               width: double.infinity,
@@ -201,7 +203,7 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                         strokeWidth: 2,
                       )
                     : const Text(
-                        'Souscrire maintenant - 5 FCFA',
+                        'Souscrire maintenant - 5 000 FCFA',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
@@ -209,7 +211,7 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                       ),
               ),
             ),
-            
+
             if (errorMessage != null)
               Container(
                 margin: const EdgeInsets.only(top: 8),
@@ -297,9 +299,9 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
           builder: (context) => ChoicePage(
             token: fpToken,
             id: idUser,
-            amount: '5',
+            amount: '5000',
             redirecturl: '/subscription-success',
-            errorredirecturl: '/subscription-error', 
+            errorredirecturl: '/subscription-error',
             trans_key: transKey,
           ),
         ),

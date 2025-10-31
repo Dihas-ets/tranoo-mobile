@@ -239,5 +239,5 @@ class PushOTPService {
 
 String getPushOtpBaseUrl() {
   // URL de base pour les endpoints push OTP (sans /api)
-  return 'http://192.168.1.69:5000';
+  return 'http://192.168.1.87:5000';
 }

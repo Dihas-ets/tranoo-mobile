@@ -1001,9 +1001,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          // Prix en gras
+                          // Prix en gras avec devise
                           Text(
-                            voiture.prix,
+                            '${voiture.prix} FCFA',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -1606,7 +1606,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          voiture.prix,
+                                          '${voiture.prix} FCFA',
                                           style: const TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,

@@ -9,7 +9,7 @@ import 'push_otp_service.dart';
 String getBaseUrl() {
   // Appareil physique Android/iOS connecté au même Wi‑Fi que le PC
   // Utilise l'IP LAN de ton PC (ipconfig -> Carte Wi‑Fi IPv4)
-  return 'http://192.168.1.69:5000/api';
+  return 'http://192.168.1.87:5000/api';
   // return 'https://api.tranoo.store/api'; // URL déployée pour mobile
 }
 

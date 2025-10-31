@@ -1,14 +1,61 @@
+//plugins {
+//    id("com.android.application")
+//    id("kotlin-android")
+//    id("dev.flutter.flutter-gradle-plugin")
+//}
+//
+//android {
+//    namespace = "tech.dihas.tranoo"
+//    compileSdk = 33
+//    ndkVersion = "25.2.9519653"
+//
+//    compileOptions {
+//        sourceCompatibility = JavaVersion.VERSION_11
+//        targetCompatibility = JavaVersion.VERSION_11
+//    }
+//
+//    kotlinOptions {
+//        jvmTarget = JavaVersion.VERSION_11.toString()
+//    }
+//
+//    defaultConfig {
+//        applicationId = "tech.dihas.tranoo"
+//        minSdk = 21
+//        targetSdk = 33
+//        versionCode = 2
+//        versionName = "1.0.1"
+//    }
+//
+//    buildTypes {
+//        release {
+//            isMinifyEnabled = false
+//            signingConfig = signingConfigs.getByName("debug")
+//        }
+//    }
+//}
+//
+//flutter {
+//    source = "../.."
+//}
+
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
-    namespace = "tech.dihas.tranoo"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    namespace = "tech.dihas.tranoo" // ton identifiant unique
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "tech.dihas.tranoo"
+        minSdk = 21
+        targetSdk = 34
+        versionCode = 2 // incrémente si c’est une mise à jour
+        versionName = "1.1.0" // incrémente si c’est une mise à jour
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -19,22 +66,12 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
-    defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "tech.dihas.tranoo"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
-    }
-
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // ⚠️ Met ici ton keystore pour Google Play
+            signingConfig = signingConfigs.getByName("debug") // temporaire, mais pour Play Store il faut release
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

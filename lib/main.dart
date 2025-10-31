@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_html/flutter_html.dart' as flutter_html;
 import 'package:tranoo/data/screens/avant_home.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/blocked_user_service.dart';
@@ -222,9 +223,8 @@ class MyApp extends StatelessWidget {
         '/auth/forgot-password': (context) => const ForgotPasswordPage(),
         '/auth/verify-reset': (context) => const VerifyResetCodePage(),
         '/auth/create-password': (context) {
-          final args =
-              ModalRoute.of(context)?.settings.arguments
-                  as Map<String, dynamic>?;
+          final args = ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>?;
           return CreateNewPasswordPage(
             telephone: args?['telephone'] ?? '',
             otpCode: args?['otpCode'] ?? '',
@@ -356,10 +356,9 @@ class SubscriptionErrorPage extends StatelessWidget {
             ),
             SizedBox(height: 16),
             ElevatedButton(
-              onPressed:
-                  () => Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil('/tarif', (route) => false),
+              onPressed: () => Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/tarif', (route) => false),
               child: Text('Retourner aux tarifs'),
             ),
           ],
@@ -376,133 +375,103 @@ class VerificationSuccessPage extends StatefulWidget {
 }
 
 class _VerificationSuccessPageState extends State<VerificationSuccessPage> {
-  bool _showSuccess = false;
+  String? htmlContent;
 
   @override
   void initState() {
     super.initState();
-    _handleVerificationSuccess();
+    _loadAndShow();
   }
 
-  Future<void> _handleVerificationSuccess() async {
+  Future<void> _loadAndShow() async {
     try {
-      final user = firebase_auth.FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      final token = await user.getIdToken();
-
-      // 1. Enregistrer le paiement
-      final paymentResponse = await http.post(
-        Uri.parse('${getBaseUrl()}/payments/feexpay/flutter/record'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'transKey': 'VERIFICATION_${DateTime.now().millisecondsSinceEpoch}',
-          'amount': 5,
-          'description': 'Frais de vérification de documents',
-          'type': 'verification',
-          'status': 'success',
-        }),
-      );
-      print(
-        'Paiement enregistré: ${paymentResponse.statusCode} - ${paymentResponse.body}',
-      );
-
-      // 2. Créer la demande de vérification
-      final response = await http.post(
-        Uri.parse('${getBaseUrl()}/verification/request'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'type': 'document_verification', 'amount': 5}),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print('Demande de vérification créée avec succès');
-        setState(() {
-          _showSuccess = true;
-        });
-
-        // Attendre 2 secondes pour afficher le succès
-        await Future.delayed(Duration(seconds: 2));
-
-        // Afficher le toast de succès
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vérification demandée avec succès !'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Erreur création demande: $e');
+      htmlContent = await DefaultAssetBundle.of(context)
+          .loadString('assets/html/verification_success.html');
+    } catch (_) {
+      htmlContent = null;
     }
-
-    // Redirection après 5 secondes pour laisser voir le message et le toast
-    await Future.delayed(Duration(seconds: 5));
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-    }
+    setState(() {});
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted)
+      Navigator.of(context).pop(true); // retourner à l'écran appelant
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (!_showSuccess) ...[
-              CircularProgressIndicator(color: Color(0xFF00A86B)),
-              SizedBox(height: 16),
-              Text('Traitement de votre demande...'),
-            ] else ...[
-              Icon(Icons.check_circle, color: Colors.green, size: 64),
-              SizedBox(height: 16),
-              Text(
-                'Vérification demandée !',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ],
-            SizedBox(height: 8),
-            Text(
-              'Redirection automatique vers l\'accueil',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: htmlContent != null
+              ? SingleChildScrollView(
+                  child: flutter_html.Html(data: htmlContent))
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.check_circle, color: Colors.green, size: 64),
+                    SizedBox(height: 16),
+                    Text('Paiement réussi',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 8),
+                    Text('Redirection en cours...',
+                        style: TextStyle(color: Colors.grey)),
+                  ],
+                ),
         ),
       ),
     );
   }
 }
 
-class VerificationErrorPage extends StatelessWidget {
+class VerificationErrorPage extends StatefulWidget {
+  @override
+  State<VerificationErrorPage> createState() => _VerificationErrorPageState();
+}
+
+class _VerificationErrorPageState extends State<VerificationErrorPage> {
+  String? htmlContent;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAndShow();
+  }
+
+  Future<void> _loadAndShow() async {
+    try {
+      htmlContent = await DefaultAssetBundle.of(context)
+          .loadString('assets/html/verification_error.html');
+    } catch (_) {
+      htmlContent = null;
+    }
+    setState(() {});
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) Navigator.of(context).pop(false);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error, color: Colors.red, size: 64),
-            SizedBox(height: 16),
-            Text(
-              'Paiement échoué',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed:
-                  () => Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil('/', (route) => false),
-              child: Text('Retourner à l\'accueil'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: htmlContent != null
+              ? SingleChildScrollView(
+                  child: flutter_html.Html(data: htmlContent))
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.error, color: Colors.red, size: 64),
+                    SizedBox(height: 16),
+                    Text('Paiement échoué',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 8),
+                    Text('Redirection en cours...',
+                        style: TextStyle(color: Colors.grey)),
+                  ],
+                ),
         ),
       ),
     );

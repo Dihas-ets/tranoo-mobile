@@ -27,6 +27,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
   final TextEditingController _numeroIFUController = TextEditingController();
   final TextEditingController _entrepriseProvenanceController =
       TextEditingController();
+  final TextEditingController _referralController = TextEditingController();
   final UserService _userService = UserService();
   final _logger = Logger('InscriptionPage');
 
@@ -182,8 +183,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 width: double.infinity,
                 child: Padding(
                   padding: EdgeInsets.only(
-                    bottom:
-                        MediaQuery.of(context).viewInsets.bottom +
+                    bottom: MediaQuery.of(context).viewInsets.bottom +
                         20, // Marge de sécurité
                   ),
                   child: ElevatedButton(
@@ -215,8 +215,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                         "S'inscrire",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize:
-                              screenWidth *
+                          fontSize: screenWidth *
                               0.04, // Taille de police fixe relative
                         ),
                       ),
@@ -264,6 +263,17 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 isPortrait: isPortrait,
               ),
               SizedBox(height: screenHeight * 0.02),
+              // Champ optionnel: Code de parrainage (statique)
+              buildTextFieldWithController(
+                controller: _referralController,
+                label: "Code de parrainage (optionnel)",
+                icon: Icons.card_giftcard,
+                placeholder: "Ex: TRN-ABCD1234",
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                isPortrait: isPortrait,
+              ),
+              SizedBox(height: screenHeight * 0.02),
               // Champ téléphone avec sélecteur de pays
               Row(
                 children: [
@@ -279,29 +289,28 @@ class _InscriptionPageState extends State<InscriptionPage> {
                       child: DropdownButton<String>(
                         value: selectedCountry,
                         isDense: true,
-                        items:
-                            countries.map((country) {
-                              return DropdownMenuItem<String>(
-                                value: country['name'] as String,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      country['flag'] as String,
-                                      style: const TextStyle(fontSize: 16),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      country['code'] as String,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
+                        items: countries.map((country) {
+                          return DropdownMenuItem<String>(
+                            value: country['name'] as String,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  country['flag'] as String,
+                                  style: const TextStyle(fontSize: 16),
                                 ),
-                              );
-                            }).toList(),
+                                const SizedBox(width: 4),
+                                Text(
+                                  country['code'] as String,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                         onChanged: (value) {
                           final country = countries.firstWhere(
                             (c) => c['name'] == value,
@@ -496,10 +505,9 @@ class _InscriptionPageState extends State<InscriptionPage> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                            color:
-                                isFocused
-                                    ? const Color(0xFFF8BF13)
-                                    : Colors.grey,
+                            color: isFocused
+                                ? const Color(0xFFF8BF13)
+                                : Colors.grey,
                             width: 2,
                           ),
                         ),
@@ -515,19 +523,18 @@ class _InscriptionPageState extends State<InscriptionPage> {
                         ),
                       ),
                       value: selectedRole,
-                      items:
-                          roles.map((role) {
-                            return DropdownMenuItem(
-                              value: role,
-                              child: Text(
-                                role,
-                                style: TextStyle(
-                                  fontSize:
-                                      screenWidth * (isPortrait ? 0.04 : 0.03),
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                      items: roles.map((role) {
+                        return DropdownMenuItem(
+                          value: role,
+                          child: Text(
+                            role,
+                            style: TextStyle(
+                              fontSize:
+                                  screenWidth * (isPortrait ? 0.04 : 0.03),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                       onChanged: (value) {
                         setState(() {
                           selectedRole = value;
@@ -598,195 +605,187 @@ class _InscriptionPageState extends State<InscriptionPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : () async {
-                            // Vérification des champs obligatoires
-                            if (_nomController.text.trim().isEmpty ||
-                                _prenomController.text.trim().isEmpty ||
-                                _emailController.text.trim().isEmpty ||
-                                _telephoneController.text.trim().isEmpty ||
-                                _passwordController.text.trim().isEmpty ||
-                                _confirmPasswordController.text
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          // Vérification des champs obligatoires
+                          if (_nomController.text.trim().isEmpty ||
+                              _prenomController.text.trim().isEmpty ||
+                              _emailController.text.trim().isEmpty ||
+                              _telephoneController.text.trim().isEmpty ||
+                              _passwordController.text.trim().isEmpty ||
+                              _confirmPasswordController.text.trim().isEmpty ||
+                              selectedRole == null ||
+                              selectedCountry == null ||
+                              _maisonController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Veuillez remplir tous les champs.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          // Vérification des champs spécifiques aux transitaires
+                          if (selectedRole == 'Transitaire' &&
+                              _entrepriseController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Veuillez remplir le champ Entreprise.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          // Vérification des champs spécifiques aux vendeurs
+                          if (selectedRole == 'Vendeur') {
+                            if (_registreCommerceController.text
                                     .trim()
                                     .isEmpty ||
-                                selectedRole == null ||
-                                selectedCountry == null ||
-                                _maisonController.text.trim().isEmpty) {
+                                _numeroIFUController.text.trim().isEmpty ||
+                                _entrepriseProvenanceController.text
+                                    .trim()
+                                    .isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    'Veuillez remplir tous les champs.',
+                                    'Veuillez remplir tous les champs vendeur (Registre de commerce, IFU, Entreprise de provenance).',
                                   ),
                                 ),
                               );
                               return;
                             }
-
-                            // Vérification des champs spécifiques aux transitaires
-                            if (selectedRole == 'Transitaire' &&
-                                _entrepriseController.text.trim().isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Veuillez remplir le champ Entreprise.',
-                                  ),
-                                ),
-                              );
-                              return;
-                            }
-
-                            // Vérification des champs spécifiques aux vendeurs
-                            if (selectedRole == 'Vendeur') {
-                              if (_registreCommerceController.text
-                                      .trim()
-                                      .isEmpty ||
-                                  _numeroIFUController.text.trim().isEmpty ||
-                                  _entrepriseProvenanceController.text
-                                      .trim()
-                                      .isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Veuillez remplir tous les champs vendeur (Registre de commerce, IFU, Entreprise de provenance).',
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-                            }
-                            // Vérification email
-                            final email = _emailController.text.trim();
-                            final emailRegex = RegExp(
-                              r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                          }
+                          // Vérification email
+                          final email = _emailController.text.trim();
+                          final emailRegex = RegExp(
+                            r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                          );
+                          if (!emailRegex.hasMatch(email)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Adresse email invalide.'),
+                              ),
                             );
-                            if (!emailRegex.hasMatch(email)) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Adresse email invalide.'),
+                            return;
+                          }
+                          // Vérification mot de passe
+                          if (_passwordController.text.length < 6) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Le mot de passe doit contenir au moins 6 caractères.',
                                 ),
-                              );
-                              return;
-                            }
-                            // Vérification mot de passe
-                            if (_passwordController.text.length < 6) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Le mot de passe doit contenir au moins 6 caractères.',
-                                  ),
-                                ),
-                              );
-                              return;
-                            }
-                            if (_passwordController.text !=
-                                _confirmPasswordController.text) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Les mots de passe ne correspondent pas.',
-                                  ),
-                                ),
-                              );
-                              return;
-                            }
-                            // Validation du numéro de téléphone (nombre de chiffres dynamique)
-                            final phone = _telephoneController.text.trim();
-                            final phoneRegex = RegExp(
-                              '^\\d{$selectedDigits}\$',
+                              ),
                             );
-                            if (!phoneRegex.hasMatch(phone)) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Numéro de téléphone invalide. Entrez $selectedDigits chiffres.',
-                                  ),
+                            return;
+                          }
+                          if (_passwordController.text !=
+                              _confirmPasswordController.text) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Les mots de passe ne correspondent pas.',
                                 ),
-                              );
-                              return;
+                              ),
+                            );
+                            return;
+                          }
+                          // Validation du numéro de téléphone (nombre de chiffres dynamique)
+                          final phone = _telephoneController.text.trim();
+                          final phoneRegex = RegExp(
+                            '^\\d{$selectedDigits}\$',
+                          );
+                          if (!phoneRegex.hasMatch(phone)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Numéro de téléphone invalide. Entrez $selectedDigits chiffres.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          setState(() {
+                            _isLoading = true;
+                          });
+                          try {
+                            final fullPhone =
+                                (selectedCountryCode ?? '+229') + phone;
+                            // Récupérer le code de parrainage en attente
+                            final prefs = await SharedPreferences.getInstance();
+                            final pendingReferral =
+                                _referralController.text.trim().isNotEmpty
+                                    ? _referralController.text.trim()
+                                    : prefs.getString('pending_referral');
+
+                            final response = await _userService.registerUser(
+                              email: email,
+                              password: _passwordController.text.trim(),
+                              nom: _nomController.text.trim(),
+                              prenoms: _prenomController.text.trim(),
+                              telephone: fullPhone,
+                              role: selectedRole!.toLowerCase(),
+                              entreprise: selectedRole == 'Transitaire'
+                                  ? _entrepriseController.text.trim()
+                                  : null,
+                              registreCommerce: selectedRole == 'Vendeur'
+                                  ? _registreCommerceController.text.trim()
+                                  : null,
+                              numeroIFU: selectedRole == 'Vendeur'
+                                  ? _numeroIFUController.text.trim()
+                                  : null,
+                              entrepriseProvenance: selectedRole == 'Vendeur'
+                                  ? _entrepriseProvenanceController.text.trim()
+                                  : null,
+                              referralCode: pendingReferral,
+                              // fcmToken: ... (à ajouter si dispo)
+                            );
+
+                            // Supprimer le code de parrainage après utilisation
+                            if (pendingReferral != null &&
+                                _referralController.text.trim().isEmpty) {
+                              await prefs.remove('pending_referral');
                             }
+                            _logger.info('Réponse inscription: $response');
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Inscription réussie ! Connectez-vous.',
+                                ),
+                              ),
+                            );
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ConnexionPage(),
+                              ),
+                            );
+                          } catch (e) {
+                            String errorMsg = 'Erreur : ${e.toString()}';
+                            if (e.toString().contains(
+                                  'email-already-in-use',
+                                )) {
+                              errorMsg = 'Cet email est déjà utilisé.';
+                            } else if (e.toString().contains(
+                                  'weak-password',
+                                )) {
+                              errorMsg = 'Mot de passe trop faible.';
+                            }
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text(errorMsg)));
+                          } finally {
                             setState(() {
-                              _isLoading = true;
+                              _isLoading = false;
                             });
-                            try {
-                              final fullPhone =
-                                  (selectedCountryCode ?? '+229') + phone;
-                              // Récupérer le code de parrainage en attente
-                              final prefs =
-                                  await SharedPreferences.getInstance();
-                              final pendingReferral = prefs.getString(
-                                'pending_referral',
-                              );
-
-                              final response = await _userService.registerUser(
-                                email: email,
-                                password: _passwordController.text.trim(),
-                                nom: _nomController.text.trim(),
-                                prenoms: _prenomController.text.trim(),
-                                telephone: fullPhone,
-                                role: selectedRole!.toLowerCase(),
-                                entreprise:
-                                    selectedRole == 'Transitaire'
-                                        ? _entrepriseController.text.trim()
-                                        : null,
-                                registreCommerce:
-                                    selectedRole == 'Vendeur'
-                                        ? _registreCommerceController.text
-                                            .trim()
-                                        : null,
-                                numeroIFU:
-                                    selectedRole == 'Vendeur'
-                                        ? _numeroIFUController.text.trim()
-                                        : null,
-                                entrepriseProvenance:
-                                    selectedRole == 'Vendeur'
-                                        ? _entrepriseProvenanceController.text
-                                            .trim()
-                                        : null,
-                                referralCode: pendingReferral,
-                                // fcmToken: ... (à ajouter si dispo)
-                              );
-
-                              // Supprimer le code de parrainage après utilisation
-                              if (pendingReferral != null) {
-                                await prefs.remove('pending_referral');
-                              }
-                              _logger.info('Réponse inscription: $response');
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Inscription réussie ! Connectez-vous.',
-                                  ),
-                                ),
-                              );
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ConnexionPage(),
-                                ),
-                              );
-                            } catch (e) {
-                              String errorMsg = 'Erreur : ${e.toString()}';
-                              if (e.toString().contains(
-                                'email-already-in-use',
-                              )) {
-                                errorMsg = 'Cet email est déjà utilisé.';
-                              } else if (e.toString().contains(
-                                'weak-password',
-                              )) {
-                                errorMsg = 'Mot de passe trop faible.';
-                              }
-                              ScaffoldMessenger.of(
-                                context,
-                              ).showSnackBar(SnackBar(content: Text(errorMsg)));
-                            } finally {
-                              setState(() {
-                                _isLoading = false;
-                              });
-                            }
-                          },
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF8BF13),
                     foregroundColor: Colors.black,
@@ -797,17 +796,16 @@ class _InscriptionPageState extends State<InscriptionPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child:
-                      _isLoading
-                          ? const CircularProgressIndicator(color: Colors.black)
-                          : Text(
-                            "S'inscrire",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize:
-                                  screenWidth * (isPortrait ? 0.045 : 0.035),
-                            ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : Text(
+                          "S'inscrire",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize:
+                                screenWidth * (isPortrait ? 0.045 : 0.035),
                           ),
+                        ),
                 ),
               ),
 
