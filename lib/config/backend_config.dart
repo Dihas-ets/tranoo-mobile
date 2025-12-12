@@ -1,7 +1,7 @@
 /// Basculer ici entre LOCAL et PROD 
 /// Décommente simplement l'option qui t'intéresse puis commente l'autre.
-const bool kUseProdBackend = false; // <- Local (même réseau Wi-Fi)
-// const bool kUseProdBackend = true; // <- Production
+// const bool kUseProdBackend = false; // <- Local (même réseau Wi-Fi)
+const bool kUseProdBackend = true; // <- Production
 
 // ---- Paramètres locaux (téléphone physique connecté au même réseau Wi-Fi) ----
 const String kLocalHost = '192.168.1.73';
