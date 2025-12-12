@@ -1,15 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
-import 'user_service.dart';
+import '../config/backend_config.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final UserService _userService = UserService();
-  final String _baseUrl = getBaseUrl();
+  final String _baseUrl = getApiBaseUrl();
 
   Future<String?> _getAuthToken() async {
     try {
@@ -151,11 +150,4 @@ class NotificationService {
       return false;
     }
   }
-}
-
-String getBaseUrl() {
-  // Retourner l'URL de base de votre API
-  // return 'http://10.0.2.2:5000/api'; // Pour l'émulateur Android
-  // return 'http://localhost:5000/api'; // Pour le web
-  return 'http://192.168.1.87:5000/api'; // Pour un appareil physique
 }

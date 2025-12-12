@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tranoo/data/screens/wallet_screen.dart';
 import 'package:tranoo/data/screens/connexion_page.dart';
-import 'package:tranoo/data/screens/mesachats.dart';
-import 'package:tranoo/data/screens/mesavis.dart';
-import 'package:tranoo/data/screens/mesfactures.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile.dart';
 import 'package:tranoo/data/screens/parrainage_page.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
+import 'package:tranoo/services/user_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -40,9 +40,54 @@ class Profil3State extends State<Profil3> {
   File? _image;
   String selectedLanguage = "Français";
   String selectedCurrencyValue = "XOF";
+  double? _walletBalance;
+  String _walletCurrency = "XOF";
+  bool _walletLoading = true;
   // SUPPRIME : Map<String, dynamic>? userData;
   // SUPPRIME : bool loading = true;
   // SUPPRIME : String? errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWallet();
+  }
+
+  Future<void> _loadWallet() async {
+    setState(() {
+      _walletLoading = true;
+    });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          _walletLoading = false;
+          _walletBalance = null;
+        });
+        return;
+      }
+      final idToken = await user.getIdToken();
+      final String baseUrl = getBaseUrl();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+      final res = await dio.get('/wallet/me');
+      setState(() {
+        _walletBalance = (res.data['balance'] ?? 0).toDouble();
+        _walletCurrency = (res.data['currency'] ?? 'XOF').toString();
+        selectedCurrencyValue = _walletCurrency;
+        _walletLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _walletLoading = false;
+        _walletBalance = 0.0;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,9 +202,8 @@ class Profil3State extends State<Profil3> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -249,18 +293,24 @@ class Profil3State extends State<Profil3> {
           _buildListTile(
             title: "Mon portefeuille",
             icon: Icons.account_balance_wallet,
-            trailing: Text(
-              "200000 $selectedCurrencyValue",
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-              ),
-            ),
+            trailing: _walletLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    "${_walletBalance?.toStringAsFixed(0) ?? '0'} $_walletCurrency",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange,
+                    ),
+                  ),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const WalletScreen()),
-              );
+              ).then((_) => _loadWallet()); // Recharger après retour
             },
           ),
           _buildListTile(

@@ -30,7 +30,8 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? image =
+        await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
       setState(() {
@@ -40,11 +41,17 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
       if (kIsWeb) {
         // Web : lire les bytes et uploader
         final bytes = await image.readAsBytes();
-        url = await uploadImageToCloudinary(bytes);
+        url = await uploadImageToCloudinary(
+          bytes,
+          folder: CloudinaryFolders.verificationDocs,
+        );
       } else {
         // Mobile : utiliser File
         _uploadedImage = File(image.path);
-        url = await uploadImageToCloudinary(_uploadedImage!);
+        url = await uploadImageToCloudinary(
+          _uploadedImage!,
+          folder: CloudinaryFolders.verificationDocs,
+        );
       }
       if (url != null) {
         setState(() {
@@ -264,17 +271,16 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child:
-                    _isSubmitting
-                        ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                        : const Text('Soumettre'),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Soumettre'),
               ),
             ),
           ],

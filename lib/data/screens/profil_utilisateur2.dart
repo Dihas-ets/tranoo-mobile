@@ -10,6 +10,7 @@ import 'package:tranoo/data/screens/historique_transit.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/cloudinary_upload.dart';
 
 class ProfilUtilisateur2 extends StatefulWidget {
   const ProfilUtilisateur2({super.key});
@@ -25,11 +26,51 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
   Map<String, dynamic>? userData;
   bool loading = true;
   String? errorMsg;
+  double? _walletBalance;
+  String _walletCurrency = "XOF";
+  bool _walletLoading = true;
 
   @override
   void initState() {
     super.initState();
     fetchUser();
+    _loadWallet();
+  }
+
+  Future<void> _loadWallet() async {
+    setState(() {
+      _walletLoading = true;
+    });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          _walletLoading = false;
+          _walletBalance = null;
+        });
+        return;
+      }
+      final idToken = await user.getIdToken();
+      final String baseUrl = getBaseUrl();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+      final res = await dio.get('/wallet/me');
+      setState(() {
+        _walletBalance = (res.data['balance'] ?? 0).toDouble();
+        _walletCurrency = (res.data['currency'] ?? 'XOF').toString();
+        selectedCurrencyValue = _walletCurrency;
+        _walletLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _walletLoading = false;
+        _walletBalance = 0.0;
+      });
+    }
   }
 
   Future<void> fetchUser() async {
@@ -68,9 +109,8 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -82,24 +122,32 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
   Future<void> _uploadPhoto(File image) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final idToken = await user.getIdToken();
-    final String baseUrl = getBaseUrl();
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl,
-        headers: {'Authorization': 'Bearer $idToken'},
-      ),
-    );
-    FormData formData = FormData.fromMap({
-      "photo": await MultipartFile.fromFile(
-        image.path,
-        filename: "profile.jpg",
-      ),
-    });
-    final response = await dio.post('/users/photo', data: formData);
-    setState(() {
-      userData?["photo"] = response.data["photo"];
-    });
+    
+    try {
+      // Upload vers Cloudinary avec le dossier profiles
+      final url = await uploadImageToCloudinary(
+        image,
+        folder: CloudinaryFolders.profiles,
+      );
+      
+      if (url != null) {
+        // Mettre à jour via PATCH /users/me
+        final idToken = await user.getIdToken();
+        final String baseUrl = getBaseUrl();
+        final dio = Dio(
+          BaseOptions(
+            baseUrl: baseUrl,
+            headers: {'Authorization': 'Bearer $idToken'},
+          ),
+        );
+        await dio.patch('/users/me', data: {"photo": url});
+        setState(() {
+          userData?["photo"] = url;
+        });
+      }
+    } catch (e) {
+      print('Erreur upload photo: $e');
+    }
   }
 
   @override
@@ -161,9 +209,18 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
                   backgroundColor: Colors.grey[300],
                   backgroundImage:
                       _image != null
-                          ? FileImage(_image!)
-                          : const AssetImage("assets/images/jenifer.jpg")
-                              as ImageProvider,
+                          ? FileImage(_image!) as ImageProvider
+                          : (userData != null &&
+                              userData!["photo"] != null &&
+                              userData!["photo"].toString().isNotEmpty)
+                          ? NetworkImage(userData!["photo"].toString()) as ImageProvider
+                          : null,
+                  child: (_image == null && 
+                          (userData == null || 
+                           userData!["photo"] == null || 
+                           userData!["photo"].toString().isEmpty))
+                      ? Icon(Icons.person, size: 30, color: Colors.grey[600])
+                      : null,
                 ),
                 Positioned(
                   bottom: 0,
@@ -274,18 +331,24 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
           _buildListTile(
             title: "Mon portefeuille",
             icon: Icons.account_balance_wallet,
-            trailing: Text(
-              "200000 $selectedCurrencyValue",
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-              ),
-            ),
+            trailing: _walletLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    "${_walletBalance?.toStringAsFixed(0) ?? '0'} $_walletCurrency",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange,
+                    ),
+                  ),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const WalletScreen()),
-              );
+              ).then((_) => _loadWallet()); // Recharger après retour
             },
           ),
           _buildListTile(

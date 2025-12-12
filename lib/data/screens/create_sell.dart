@@ -20,6 +20,7 @@ class CreateSellPage extends StatefulWidget {
 }
 
 class _CreateSellPageState extends State<CreateSellPage> {
+  static const int _maxMediaSlots = 12;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -47,19 +48,21 @@ class _CreateSellPageState extends State<CreateSellPage> {
   String? _cloudinaryUrl;
 
   // Ajout pour plusieurs images et vidéo
-  List<File?> _uploadedImages = List.filled(11, null); // mobile - 11 images max
+  List<File?> _uploadedImages =
+      List.filled(_maxMediaSlots, null); // mobile - max images
   List<Uint8List?> _uploadedImagesWeb = List.filled(
-    11,
+    _maxMediaSlots,
     null,
-  ); // web - 11 images max
-  List<String?> _cloudinaryImageUrls = List.filled(11, null);
+  ); // web - max images
+  List<String?> _cloudinaryImageUrls = List.filled(_maxMediaSlots, null);
   List<bool> _isUploadingImage = List.filled(
-    11,
+    _maxMediaSlots,
     false,
   ); // Ajouté pour le chargement
   File? _uploadedVideo;
   String? _cloudinaryVideoUrl;
   bool _isUploadingVideo = false; // Ajouté pour le chargement vidéo
+  double _videoUploadProgress = 0.0; // Progression de l'upload vidéo
 
   String? _customModel; // Ajouté pour la saisie personnalisée du modèle
   String? _customMarque; // Ajouté pour la saisie personnalisée de la marque
@@ -67,11 +70,16 @@ class _CreateSellPageState extends State<CreateSellPage> {
   bool? _dedouanement; // Dédouanement (true = Oui, false = Non)
 
   final List<String> _conditions = ['Nouveau', 'Occasion']; // Reste en String
-  final List<String> _models = [
-    'Modèle1',
-    'Modèle2',
-    'Autre',
-  ]; // Ajout de "Autre"
+
+  // Mapping des marques vers leurs modèles
+  final Map<String, List<String>> _marqueModels = {
+    'BMW': ['Série 3', 'Série 5', 'X3', 'X5', 'Série 1', 'Autre'],
+    'Mercedes': ['Classe C', 'Classe E', 'GLC', 'GLE', 'Classe A', 'Autre'],
+    'Audi': ['A3', 'A4', 'A6', 'Q5', 'Q7', 'Autre'],
+    'Ford': ['Focus', 'Fiesta', 'Ranger', 'Explorer', 'Mustang', 'Autre'],
+    'Lexus': ['IS', 'ES', 'RX', 'NX', 'LS', 'Autre'],
+  };
+
   final List<String> _marques = [
     'BMW',
     'Mercedes',
@@ -80,6 +88,15 @@ class _CreateSellPageState extends State<CreateSellPage> {
     'Lexus',
     'Autre',
   ]; // Ajout de "Autre"
+
+  // Getter pour obtenir les modèles selon la marque sélectionnée
+  List<String> get _availableModels {
+    if (_selectedMarques == null || _selectedMarques == 'Autre') {
+      return ['Autre']; // Si "Autre" marque ou aucune marque, seulement "Autre"
+    }
+    return _marqueModels[_selectedMarques] ?? ['Autre'];
+  }
+
   final List<String> _boiteVitesses = ['Manuelle', 'Automatique'];
   final List<String> _carburantsList = [
     'Essence',
@@ -167,7 +184,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
           _uploadedImagesWeb[gridIndex] = bytes;
           _isUploadingImage[gridIndex] = true;
         });
-        final url = await uploadImageToCloudinaryWeb(bytes);
+        final url = await uploadImageToCloudinaryWeb(
+          bytes,
+          folder: CloudinaryFolders.vehicleImages,
+        );
         if (url != null) {
           setState(() {
             _cloudinaryImageUrls[gridIndex] = url;
@@ -181,7 +201,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
           _uploadedImages[gridIndex] = File(img.path);
           _isUploadingImage[gridIndex] = true;
         });
-        final url = await uploadImageToCloudinary(_uploadedImages[gridIndex]!);
+        final url = await uploadImageToCloudinary(
+          _uploadedImages[gridIndex]!,
+          folder: CloudinaryFolders.vehicleImages,
+        );
         if (url != null) {
           setState(() {
             _cloudinaryImageUrls[gridIndex] = url;
@@ -219,19 +242,21 @@ class _CreateSellPageState extends State<CreateSellPage> {
     if (video != null) {
       print('[CreateSell] Vidéo sélectionnée: ${video.path}');
 
-      // Vérification de la taille (20 Mo max)
-      final int maxSizeBytes = 20 * 1024 * 1024; // 20 Mo
+      // Vérification de la taille (500 Mo max)
+      final int maxSizeBytes = 500 * 1024 * 1024; // 500 Mo
       final int videoSize = await video.length();
-      print('[CreateSell] Taille de la vidéo: ${videoSize / (1024 * 1024)} Mo');
+      final double videoSizeMB = videoSize / (1024 * 1024);
+      print(
+          '[CreateSell] Taille de la vidéo: ${videoSizeMB.toStringAsFixed(2)} Mo');
 
       if (videoSize > maxSizeBytes) {
         print(
-          '[CreateSell] Vidéo trop lourde: ${videoSize / (1024 * 1024)} Mo > 20 Mo',
+          '[CreateSell] Vidéo trop lourde: ${videoSizeMB.toStringAsFixed(2)} Mo > 500 Mo',
         );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'La vidéo est trop lourde (max 20 Mo). Veuillez choisir une vidéo plus courte.',
+              'La vidéo est trop lourde (${videoSizeMB.toStringAsFixed(2)} Mo). Limite: 500 Mo.',
             ),
             backgroundColor: Colors.red,
           ),
@@ -242,6 +267,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
       setState(() {
         _uploadedVideo = File(video.path);
         _isUploadingVideo = true;
+        _videoUploadProgress = 0.0;
       });
       print('[CreateSell] État mis à jour: _isUploadingVideo = true');
 
@@ -254,11 +280,22 @@ class _CreateSellPageState extends State<CreateSellPage> {
           final bytes = await video.readAsBytes();
           print('[CreateSell] Bytes lus: ${bytes.length} bytes');
           print('[CreateSell] Appel uploadVideoToCloudinaryWeb...');
-          url = await uploadVideoToCloudinaryWeb(bytes);
+          url = await uploadVideoToCloudinaryWeb(
+            bytes,
+            folder: CloudinaryFolders.vehicleVideos,
+          );
         } else {
           print('[CreateSell] Appel uploadVideoToCloudinary pour mobile...');
           print('[CreateSell] Fichier: ${_uploadedVideo!.path}');
-          url = await uploadVideoToCloudinary(_uploadedVideo!);
+          url = await uploadVideoToCloudinary(
+            _uploadedVideo!,
+            folder: CloudinaryFolders.vehicleVideos,
+            onProgress: (progress) {
+              setState(() {
+                _videoUploadProgress = progress;
+              });
+            },
+          );
         }
 
         print('[CreateSell] URL retournée: $url');
@@ -298,6 +335,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
       } finally {
         setState(() {
           _isUploadingVideo = false;
+          _videoUploadProgress = 0.0;
         });
         print('[CreateSell] État final: _isUploadingVideo = false');
       }
@@ -327,24 +365,31 @@ class _CreateSellPageState extends State<CreateSellPage> {
     print('[CreateSell] _cloudinaryVideoUrl: $_cloudinaryVideoUrl');
     print('[CreateSell] _uploadedVideo: $_uploadedVideo');
 
-    // Vérifie qu'au moins 3 images (min) et jusqu'à 11 (max)
     final imagesCount = _cloudinaryImageUrls.whereType<String>().length;
-    if (imagesCount < 3) {
+    if (imagesCount > _maxMediaSlots) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner au minimum 3 images.'),
+        SnackBar(
+          content: Text(
+            'Vous pouvez sélectionner au maximum $_maxMediaSlots médias.',
+          ),
         ),
       );
       return;
     }
-    if (imagesCount > 11) {
+
+    // Vérifier qu'au moins un média (image ou vidéo) est présent
+    final hasImages = imagesCount > 0;
+    final hasVideo =
+        _cloudinaryVideoUrl != null && _cloudinaryVideoUrl!.isNotEmpty;
+    if (!hasImages && !hasVideo) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vous pouvez sélectionner au maximum 11 images.'),
+          content: Text('Veuillez ajouter au moins une image ou une vidéo.'),
         ),
       );
       return;
     }
+
     if (_isAnyUploading) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Veuillez attendre la fin de l\'upload.')),
@@ -357,10 +402,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
         _selectedCondition == null ||
         _selectedMarques == null ||
         (_selectedMarques == 'Autre' &&
-            (_customMarque == null || _customMarque!.isEmpty)) ||
-        _selectedModel == null ||
-        (_selectedModel == 'Autre' &&
-            (_customModel == null || _customModel!.isEmpty)) ||
+            ((_customMarque == null || _customMarque!.isEmpty) ||
+                (_customModel == null || _customModel!.isEmpty))) ||
+        (_selectedMarques != 'Autre' &&
+            (_selectedModel == null ||
+                (_selectedModel == 'Autre' &&
+                    (_customModel == null || _customModel!.isEmpty)))) ||
         _cylindreController.text.isEmpty ||
         _selectedPorte == null ||
         _selectedBoiteVitesse == null ||
@@ -383,7 +430,14 @@ class _CreateSellPageState extends State<CreateSellPage> {
     // Détermine la marque et le modèle à utiliser
     String? marque =
         _selectedMarques == 'Autre' ? _customMarque : _selectedMarques;
-    String? modele = _selectedModel == 'Autre' ? _customModel : _selectedModel;
+    String? modele;
+    if (_selectedMarques == 'Autre') {
+      // Si marque "Autre", utiliser directement le modèle personnalisé
+      modele = _customModel;
+    } else {
+      // Sinon, utiliser le modèle sélectionné ou personnalisé si "Autre"
+      modele = _selectedModel == 'Autre' ? _customModel : _selectedModel;
+    }
     // Passe toutes les infos à cars_info.dart
     final imagesList = _cloudinaryImageUrls.whereType<String>().toList();
     print('[CreateSell] images transmises à CarsInfo: $imagesList');
@@ -391,28 +445,27 @@ class _CreateSellPageState extends State<CreateSellPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (context) => CarsInfo(
-              titre: _titleController.text,
-              description: _descriptionController.text,
-              marque: marque,
-              modele: modele,
-              annee: _yearController.text,
-              prix: _priceController.text,
-              condition: _selectedCondition,
-              boiteVitesse: _selectedBoiteVitesse,
-              carburant: _selectedCarburantDropdown,
-              climatiseur: _selectedClimatiseurDropdown,
-              distance: _distanceController.text,
-              sieges: _siegesController.text,
-              portes: _selectedPorte?.toString(),
-              cylindre: _cylindreController.text,
-              couleur: _selectedCouleur,
-              dedouanement: _dedouanement,
-              images: imagesList,
-              video: _cloudinaryVideoUrl,
-              entreprise: _companyController.text,
-            ),
+        builder: (context) => CarsInfo(
+          titre: _titleController.text,
+          description: _descriptionController.text,
+          marque: marque,
+          modele: modele,
+          annee: _yearController.text,
+          prix: _priceController.text,
+          condition: _selectedCondition,
+          boiteVitesse: _selectedBoiteVitesse,
+          carburant: _selectedCarburantDropdown,
+          climatiseur: _selectedClimatiseurDropdown,
+          distance: _distanceController.text,
+          sieges: _siegesController.text,
+          portes: _selectedPorte?.toString(),
+          cylindre: _cylindreController.text,
+          couleur: _selectedCouleur,
+          dedouanement: _dedouanement,
+          images: imagesList,
+          video: _cloudinaryVideoUrl,
+          entreprise: _companyController.text,
+        ),
       ),
     );
   }
@@ -520,7 +573,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedMarques = value;
-                                    if (value != 'Autre') _customMarque = null;
+                                    if (value != 'Autre') {
+                                      _customMarque = null;
+                                    }
+                                    // Réinitialiser le modèle quand la marque change
+                                    _selectedModel = null;
+                                    _customModel = null;
                                   });
                                 },
                               ),
@@ -556,38 +614,68 @@ class _CreateSellPageState extends State<CreateSellPage> {
                             children: [
                               _buildLabel('Modèle'),
                               const SizedBox(height: 8),
-                              _buildDropdown<String>(
-                                value: _selectedModel,
-                                hint: 'Choisissez le modèle',
-                                items: _models,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedModel = value;
-                                    if (value != 'Autre') _customModel = null;
-                                  });
-                                },
-                              ),
-                              if (_selectedModel == 'Autre')
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
-                                  child: TextField(
-                                    decoration: const InputDecoration(
-                                      hintText: 'Entrez le modèle',
-                                      filled: true,
-                                      fillColor: Color(0xFFF2F2F2),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(8),
-                                        ),
-                                        borderSide: BorderSide.none,
+                              // Si marque "Autre", afficher directement le champ texte
+                              if (_selectedMarques == 'Autre')
+                                TextField(
+                                  decoration: const InputDecoration(
+                                    hintText: 'Entrez le modèle',
+                                    filled: true,
+                                    fillColor: Color(0xFFF2F2F2),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(8),
                                       ),
+                                      borderSide: BorderSide.none,
                                     ),
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _customModel = val;
-                                      });
-                                    },
                                   ),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _customModel = val;
+                                    });
+                                  },
+                                )
+                              else
+                                // Sinon, afficher le dropdown avec les modèles de la marque
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildDropdown<String>(
+                                      value: _selectedModel,
+                                      hint: 'Choisissez le modèle',
+                                      items: _availableModels,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedModel = value;
+                                          if (value != 'Autre')
+                                            _customModel = null;
+                                        });
+                                      },
+                                    ),
+                                    if (_selectedModel == 'Autre')
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(top: 8.0),
+                                        child: TextField(
+                                          decoration: const InputDecoration(
+                                            hintText:
+                                                'Entrez le modèle personnalisé',
+                                            filled: true,
+                                            fillColor: Color(0xFFF2F2F2),
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(8),
+                                              ),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                          ),
+                                          onChanged: (val) {
+                                            setState(() {
+                                              _customModel = val;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                  ],
                                 ),
                             ],
                           ),
@@ -643,10 +731,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           child: GridView.builder(
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 6,
-                                  crossAxisSpacing: 8,
-                                  mainAxisSpacing: 8,
-                                ),
+                              crossAxisCount: 6,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
                             itemCount: _couleurs.length,
                             itemBuilder: (context, index) {
                               final couleurNom = _couleurs.keys.elementAt(
@@ -668,37 +756,34 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                     shape: BoxShape.circle,
                                     color: couleurValeur,
                                     border: Border.all(
-                                      color:
-                                          isSelected
-                                              ? Colors.amber
-                                              : Colors.grey,
+                                      color: isSelected
+                                          ? Colors.amber
+                                          : Colors.grey,
                                       width: isSelected ? 3 : 1,
                                     ),
-                                    boxShadow:
-                                        isSelected
-                                            ? [
-                                              BoxShadow(
-                                                color: Colors.amber.withOpacity(
-                                                  0.5,
-                                                ),
-                                                blurRadius: 4,
-                                                spreadRadius: 1,
+                                    boxShadow: isSelected
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.amber.withOpacity(
+                                                0.5,
                                               ),
-                                            ]
-                                            : null,
-                                  ),
-                                  child:
-                                      couleurValeur == Colors.white
-                                          ? Container(
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: Colors.grey.shade300,
-                                                width: 1,
-                                              ),
+                                              blurRadius: 4,
+                                              spreadRadius: 1,
                                             ),
-                                          )
-                                          : null,
+                                          ]
+                                        : null,
+                                  ),
+                                  child: couleurValeur == Colors.white
+                                      ? Container(
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: Colors.grey.shade300,
+                                              width: 1,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
                                 ),
                               );
                             },
@@ -999,20 +1084,21 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Télécharger des images (min 3, max 11)
-                    _buildLabel('Images (min 3, max 11)'),
+                    // Télécharger des images optionnelles
+                    _buildLabel('Images (optionnel, max 12)',
+                        isRequired: false),
                     const SizedBox(height: 8),
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                            childAspectRatio: 1.2,
-                          ),
-                      itemCount: 11,
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        childAspectRatio: 1.2,
+                      ),
+                      itemCount: _maxMediaSlots,
                       itemBuilder: (context, index) {
                         return GestureDetector(
                           onTap: () => _pickImage(index),
@@ -1110,26 +1196,28 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     ),
                     const SizedBox(height: 24),
                     // Upload vidéo (optionnelle)
-                    _buildLabel('Vidéo (optionnelle, max 20 Mo)'),
+                    _buildLabel('Vidéo (optionnelle, max 500 Mo)',
+                        isRequired: false),
                     const SizedBox(height: 8),
                     GestureDetector(
                       onTap: _cloudinaryVideoUrl == null ? _pickVideo : null,
                       child: Container(
                         height: 100,
                         width: double.infinity,
+                        clipBehavior: Clip.hardEdge,
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color:
-                                _cloudinaryVideoUrl == null
-                                    ? Colors.blue
-                                    : Colors.green,
+                            color: _cloudinaryVideoUrl == null
+                                ? Colors.blue
+                                : Colors.green,
                             width: 2,
                           ),
                         ),
                         child: Stack(
                           alignment: Alignment.center,
+                          clipBehavior: Clip.hardEdge,
                           children: [
                             if (_cloudinaryVideoUrl != null)
                               ClipRRect(
@@ -1202,23 +1290,72 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                 ],
                               ),
                             if (_isUploadingVideo)
-                              const Positioned.fill(
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      CircularProgressIndicator(
-                                        color: Colors.white,
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        'Upload en cours...',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
+                              Positioned.fill(
+                                child: Container(
+                                  color: Colors.black54,
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 40,
+                                          height: 40,
+                                          child: CircularProgressIndicator(
+                                            value: _videoUploadProgress > 0
+                                                ? _videoUploadProgress
+                                                : null,
+                                            color: Colors.blue,
+                                            backgroundColor: Colors.white24,
+                                            strokeWidth: 3,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          _videoUploadProgress < 0.85
+                                              ? 'Envoi...'
+                                              : 'Traitement...',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${(_videoUploadProgress * 100).toStringAsFixed(0)}%',
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        // Barre de progression linéaire
+                                        Container(
+                                          width: 150,
+                                          height: 3,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white24,
+                                            borderRadius:
+                                                BorderRadius.circular(2),
+                                          ),
+                                          child: FractionallySizedBox(
+                                            alignment: Alignment.centerLeft,
+                                            widthFactor: _videoUploadProgress,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.blue,
+                                                borderRadius:
+                                                    BorderRadius.circular(2),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1294,9 +1431,9 @@ class _CreateSellPageState extends State<CreateSellPage> {
     );
   }
 
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(String text, {bool isRequired = true}) {
     return Text(
-      text + ' *',
+      isRequired ? '$text *' : text,
       style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
     );
   }
@@ -1320,13 +1457,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
             style: const TextStyle(color: Colors.grey, fontSize: 14),
           ),
           isExpanded: true,
-          items:
-              items.map((T item) {
-                return DropdownMenuItem<T>(
-                  value: item,
-                  child: Text(item.toString()),
-                );
-              }).toList(),
+          items: items.map((T item) {
+            return DropdownMenuItem<T>(
+              value: item,
+              child: Text(item.toString()),
+            );
+          }).toList(),
           onChanged: onChanged,
         ),
       ),
@@ -1346,24 +1482,23 @@ class _CreateSellPageState extends State<CreateSellPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        child:
-            _isAnyUploading
-                ? const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 12),
-                    Text('Upload en cours...'),
-                  ],
-                )
-                : const Text(
-                  'Valider',
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-                ),
+        child: _isAnyUploading
+            ? const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 12),
+                  Text('Upload en cours...'),
+                ],
+              )
+            : const Text(
+                'Valider',
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+              ),
       ),
     );
   }
@@ -1383,7 +1518,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
 }
 
 // Fonction d'upload Cloudinary pour Flutter Web
-Future<String?> uploadImageToCloudinaryWeb(Uint8List bytes) async {
+Future<String?> uploadImageToCloudinaryWeb(
+  Uint8List bytes, {
+  String folder = CloudinaryFolders.vehicleImages,
+}) async {
   // Remplace par ta clé Cloudinary et ton preset
   const String cloudName = 'dy0raj5bh'; // <-- à remplacer par ton cloud name
   const String uploadPreset =
@@ -1392,12 +1530,12 @@ Future<String?> uploadImageToCloudinaryWeb(Uint8List bytes) async {
     'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
   );
 
-  final request =
-      http.MultipartRequest('POST', url)
-        ..fields['upload_preset'] = uploadPreset
-        ..files.add(
-          http.MultipartFile.fromBytes('file', bytes, filename: 'upload.jpg'),
-        );
+  final request = http.MultipartRequest('POST', url)
+    ..fields['upload_preset'] = uploadPreset
+    ..fields['folder'] = folder
+    ..files.add(
+      http.MultipartFile.fromBytes('file', bytes, filename: 'upload.jpg'),
+    );
 
   final response = await request.send();
   if (response.statusCode == 200) {
@@ -1409,27 +1547,4 @@ Future<String?> uploadImageToCloudinaryWeb(Uint8List bytes) async {
   }
 }
 
-// Fonction d'upload vidéo Cloudinary pour Flutter Web
-Future<String?> uploadVideoToCloudinaryWeb(Uint8List bytes) async {
-  const String cloudName = 'dy0raj5bh';
-  const String uploadPreset = 'unsigned_preset';
-  final url = Uri.parse(
-    'https://api.cloudinary.com/v1_1/$cloudName/video/upload',
-  );
-
-  final request =
-      http.MultipartRequest('POST', url)
-        ..fields['upload_preset'] = uploadPreset
-        ..files.add(
-          http.MultipartFile.fromBytes('file', bytes, filename: 'upload.mp4'),
-        );
-
-  final response = await request.send();
-  if (response.statusCode == 200) {
-    final respStr = await response.stream.bytesToString();
-    final json = jsonDecode(respStr) as Map<String, dynamic>;
-    return json['secure_url'] as String?;
-  } else {
-    return null;
-  }
-}
+// Fonction locale supprimée - utiliser celle importée depuis cloudinary_upload.dart

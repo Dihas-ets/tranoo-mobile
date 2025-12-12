@@ -571,7 +571,10 @@ class _PayementScreenState extends State<PayementScreen>
       if (uploadedImage != null) {
         try {
           // ignore: use_build_context_synchronously
-          uploadedUrl = await uploadImageToCloudinary(uploadedImage!);
+          uploadedUrl = await uploadImageToCloudinary(
+            uploadedImage!,
+            folder: CloudinaryFolders.verificationDocs,
+          );
         } catch (_) {}
       }
 

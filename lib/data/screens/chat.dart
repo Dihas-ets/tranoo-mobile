@@ -169,12 +169,7 @@ class _ChatListPageState extends State<ChatListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+        automaticallyImplyLeading: false, // Retirer le bouton retour
         title: const Text('Discussions'),
         backgroundColor: Colors.amber,
         foregroundColor: Colors.black,

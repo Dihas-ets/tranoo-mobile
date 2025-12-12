@@ -13,6 +13,10 @@ import 'package:logging/logging.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tranoo/widgets/video_preview_placeholder.dart';
+import 'package:tranoo/data/screens/movie.dart';
 
 class Article {
   final String id;
@@ -152,6 +156,7 @@ class Pub {
   final DateTime? dateDebut;
   final DateTime? dateFin;
   final List<String> media;
+  final String? lien;
 
   Pub({
     required this.id,
@@ -163,6 +168,7 @@ class Pub {
     this.dateDebut,
     this.dateFin,
     required this.media,
+    this.lien,
   });
 
   factory Pub.fromJson(Map<String, dynamic> json) {
@@ -177,6 +183,7 @@ class Pub {
       dateDebut: DateTime.tryParse(json['dateDebut'] ?? ''),
       dateFin: DateTime.tryParse(json['dateFin'] ?? ''),
       media: (json['media'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      lien: json['lien'],
     );
   }
 }
@@ -196,6 +203,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   final UserService _userService = UserService();
   late int _marqueTabIndex;
   late int _modeleTabIndex;
+  late int _statistiquesTabIndex;
   late int _localisationTabIndex;
   late int _budgetTabIndex;
   List<Article> articlesPieces = [];
@@ -277,8 +285,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   double? _budgetMin;
   double? _budgetMax;
 
-  // Favoris
-  Set<String> _favoriteArticleIds = <String>{};
+  // Comptage des vues locales par article
+  Map<String, int> _vehicleClickCounts = {};
 
   @override
   void initState() {
@@ -286,12 +294,23 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
 
     // Initialisation des indices des onglets selon le rôle
     final isTransitaire = _userService.currentRole == UserRole.transitaire;
-    _marqueTabIndex = isTransitaire ? 1 : 0;
-    _modeleTabIndex = isTransitaire ? 2 : 1;
-    _localisationTabIndex = isTransitaire ? 3 : 2;
-    _budgetTabIndex = isTransitaire ? 4 : 3;
-
-    _tabController = TabController(length: isTransitaire ? 5 : 4, vsync: this);
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    if (isVendeur) {
+      // Vendeur: Statistiques visible, Localisation/Budget cachés
+      _marqueTabIndex = isTransitaire ? 1 : 0;
+      _modeleTabIndex = isTransitaire ? 2 : 1;
+      _statistiquesTabIndex = isTransitaire ? 3 : 2;
+      _tabController =
+          TabController(length: isTransitaire ? 4 : 3, vsync: this);
+    } else {
+      // Autres rôles: Localisation/Budget visibles, Statistiques cachée
+      _marqueTabIndex = isTransitaire ? 1 : 0;
+      _modeleTabIndex = isTransitaire ? 2 : 1;
+      _localisationTabIndex = isTransitaire ? 3 : 2;
+      _budgetTabIndex = isTransitaire ? 4 : 3;
+      _tabController =
+          TabController(length: isTransitaire ? 5 : 4, vsync: this);
+    }
 
     _tabController.addListener(() {
       setState(() {});
@@ -310,10 +329,22 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     fetchVoituresRecommandees();
     fetchPubs();
     fetchPubsSponsorisees();
-    _loadFavorites();
+    _loadVehicleClickStats();
   }
 
   void _reloadAll() {
+    // Réinitialiser la recherche
+    _searchGlobalController.clear();
+    _searchGlobalText = '';
+
+    // Réinitialiser les filtres
+    _selectedBrand = null;
+    _selectedModel = null;
+    _selectedLocation = null;
+    _budgetMin = null;
+    _budgetMax = null;
+
+    // Recharger les données
     fetchArticlesPieces();
     fetchVoituresRecommandees();
     fetchPubs();
@@ -337,25 +368,22 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         url += '&vendeur=$userId';
       }
       _logger.info('[DEBUG] URL pièces: $url');
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: {
-              'Authorization': 'Bearer $idToken',
-              'Content-Type': 'application/json',
-            },
-          )
-          .timeout(const Duration(seconds: 8));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final body = response.body;
         try {
           final List<dynamic> data = json.decode(body);
           if (!mounted) return;
           final allPieces = data.map((e) => Article.fromJson(e)).toList();
-          final piecesFiltered =
-              allPieces
-                  .where((p) => (p.statut ?? 'en_ligne') != 'vendu')
-                  .toList();
+          final piecesFiltered = allPieces
+              .where((p) => (p.statut ?? 'en_ligne') != 'vendu')
+              .toList();
 
           _logger.info('[DEBUG] Total pièces reçues: ${allPieces.length}');
           _logger.info(
@@ -400,73 +428,63 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     }
   }
 
-  Future<void> _loadFavorites() async {
+  Future<void> _loadVehicleClickStats() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      if (idToken == null) return;
-      final response = await http.get(
-        Uri.parse(getBaseUrl() + '/users/me/favoris'),
-        headers: {
-          'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List favoris = data['favoris'] ?? [];
-        setState(() {
-          _favoriteArticleIds =
-              favoris
-                  .map(
-                    (e) =>
-                        (e is Map && e['_id'] != null)
-                            ? e['_id'].toString()
-                            : e.toString(),
-                  )
-                  .toSet();
-        });
-      }
-    } catch (_) {}
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('vehicle_click_counts');
+      if (raw == null) return;
+      final parsed = jsonDecode(raw) as Map<String, dynamic>;
+      setState(() {
+        _vehicleClickCounts = parsed.map(
+          (key, value) => MapEntry(key, (value as num).toInt()),
+        );
+      });
+    } catch (e) {
+      _logger.warning('[STATS] Impossible de charger les clics locaux: $e');
+    }
   }
 
-  Future<void> _toggleFavorite(String articleId) async {
+  Future<void> _saveVehicleClickStats() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      if (idToken == null) return;
-      final isFav = _favoriteArticleIds.contains(articleId);
-      final uri = Uri.parse(getBaseUrl() + '/users/me/favoris');
-      final response =
-          await (isFav
-              ? http.delete(
-                uri,
-                headers: {
-                  'Authorization': 'Bearer $idToken',
-                  'Content-Type': 'application/json',
-                },
-                body: json.encode({'articleId': articleId}),
-              )
-              : http.post(
-                uri,
-                headers: {
-                  'Authorization': 'Bearer $idToken',
-                  'Content-Type': 'application/json',
-                },
-                body: json.encode({'articleId': articleId}),
-              ));
-      if (response.statusCode == 200) {
-        setState(() {
-          if (isFav) {
-            _favoriteArticleIds.remove(articleId);
-          } else {
-            _favoriteArticleIds.add(articleId);
-          }
-        });
-      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'vehicle_click_counts',
+        jsonEncode(_vehicleClickCounts),
+      );
     } catch (e) {
-      _logger.info('toggle favorite error: $e');
+      _logger.warning('[STATS] Impossible de sauvegarder les clics: $e');
     }
+  }
+
+  void _recordVehicleInteraction(String articleId) {
+    if (articleId.isEmpty) return;
+    setState(() {
+      _vehicleClickCounts[articleId] =
+          (_vehicleClickCounts[articleId] ?? 0) + 1;
+    });
+    _saveVehicleClickStats();
+  }
+
+  Widget _buildViewBadge(String articleId) {
+    final views = _vehicleClickCounts[articleId] ?? 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.remove_red_eye, size: 14, color: Colors.white),
+          const SizedBox(width: 4),
+          Text(
+            views.toString(),
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ],
+      ),
+    );
   }
 
   List<ArticleVoiture> _applyFilters(List<ArticleVoiture> source) {
@@ -486,8 +504,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             ((v.entreprise ?? '') + ' ' + (v.description)).toLowerCase();
         if (!loc.contains(_selectedLocation!.toLowerCase()) &&
             !(v.titre.toLowerCase().contains(
-              _selectedLocation!.toLowerCase(),
-            ))) {
+                  _selectedLocation!.toLowerCase(),
+                ))) {
           // fallback: try titre
           return false;
         }
@@ -502,40 +520,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     }).toList();
   }
 
-  Future<Map<String, String?>> _fetchArticleMetaFromPub(String pubId) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      final pubRes = await http.get(
-        Uri.parse(getBaseUrl() + '/publicites/$pubId'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-      );
-      if (pubRes.statusCode == 200) {
-        final pubData = jsonDecode(pubRes.body);
-        final articleId = pubData['articleId']?.toString();
-        if (articleId != null && articleId.isNotEmpty) {
-          final artRes = await http.get(
-            Uri.parse(getBaseUrl() + '/articles/$articleId'),
-            headers: {
-              'Content-Type': 'application/json',
-              if (idToken != null) 'Authorization': 'Bearer $idToken',
-            },
-          );
-          if (artRes.statusCode == 200) {
-            final art = jsonDecode(artRes.body);
-            final cond = (art['condition'] ?? art['pieceType'])?.toString();
-            return {'articleId': articleId, 'condition': cond};
-          }
-          return {'articleId': articleId, 'condition': null};
-        }
-      }
-    } catch (_) {}
-    return {'articleId': null, 'condition': null};
-  }
-
   Future<void> fetchVoituresRecommandees() async {
     setState(() {
       isLoadingVoitures = true;
@@ -547,24 +531,21 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       String url =
           getBaseUrl() + '/articles?type=voiture&statut=en_ligne&vendu=false';
       _logger.info('[DEBUG] URL voitures: $url');
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: {
-              'Authorization': 'Bearer $idToken',
-              'Content-Type': 'application/json',
-            },
-          )
-          .timeout(const Duration(seconds: 8));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         if (!mounted) return;
         final allVoitures =
             data.map((e) => ArticleVoiture.fromJson(e)).toList();
-        final voituresFiltered =
-            allVoitures
-                .where((v) => (v.statut ?? 'en_ligne') != 'vendu')
-                .toList();
+        final voituresFiltered = allVoitures
+            .where((v) => (v.statut ?? 'en_ligne') != 'vendu')
+            .toList();
 
         _logger.info('[DEBUG] Total voitures reçues: ${allVoitures.length}');
         _logger.info(
@@ -622,10 +603,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         final pubs = data.map((e) => Pub.fromJson(e)).toList();
         if (!mounted) return;
         setState(() {
-          pubsALaUne =
-              pubs
-                  .where((p) => p.typePub == 'À la une' && _isPubValid(p))
-                  .toList();
+          pubsALaUne = pubs
+              .where((p) => p.typePub == 'À la une' && _isPubValid(p))
+              .toList();
           _logger.info('[DEBUG] 📺 Total pubs reçues: ${pubs.length}');
           _logger.info(
             '[DEBUG] 📺 Publicités À la une: ${pubsALaUne.length} valides sur ${pubs.where((p) => p.typePub == 'À la une').length} totales',
@@ -740,6 +720,61 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     });
   }
 
+  Future<void> _openPubLink(String url) async {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return;
+    final normalized =
+        trimmed.startsWith('http://') || trimmed.startsWith('https://')
+            ? trimmed
+            : 'https://$trimmed';
+
+    final uri = Uri.tryParse(normalized);
+    if (uri == null) {
+      _logger.warning('[DEBUG] Lien publicité invalide: $normalized');
+      return;
+    }
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      _logger.warning('[DEBUG] Impossible d\'ouvrir le lien: $normalized');
+    }
+  }
+
+  void _openFlyerPreview(String imageUrl) {
+    if (imageUrl.isEmpty) return;
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _carouselTimer?.cancel();
@@ -750,6 +785,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
 
   Widget _buildTabButton(String title, int index, {bool isWide = false}) {
     bool isSelected = _tabController.index == index;
+    const selectedColor = Color(0xFFF8BF13); // Jaune unifié plus doux
+    const unselectedBorderColor = Color(0xFF000000);
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -757,14 +794,13 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         });
       },
       child: Container(
-        width: isWide ? 85 : 65,
+        width: isWide ? 100 : 70,
         height: 40,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF007AFF) : Colors.transparent,
+          color: isSelected ? selectedColor : Colors.transparent,
           border: Border.all(
-            color:
-                isSelected ? const Color(0xFF007AFF) : const Color(0xFF000000),
+            color: isSelected ? selectedColor : unselectedBorderColor,
             width: 0.8,
           ),
           borderRadius: BorderRadius.circular(7),
@@ -791,14 +827,13 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     // Filtrer les voitures avec statut 'en_ligne' et non vendues
     final userService = _userService;
     final isVendeur = userService.currentRole == UserRole.vendeur;
-    final voituresEnLigne =
-        voituresRecommandees
-            .where(
-              (v) =>
-                  (v.statut ?? 'en_ligne') == 'en_ligne' &&
-                  (v.statut ?? '') != 'vendu',
-            )
-            .toList();
+    final voituresEnLigne = voituresRecommandees
+        .where(
+          (v) =>
+              (v.statut ?? 'en_ligne') == 'en_ligne' &&
+              (v.statut ?? '') != 'vendu',
+        )
+        .toList();
     if (voituresEnLigne.isEmpty) {
       return Center(
         child: Text(
@@ -813,61 +848,68 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       );
     }
     // Appliquer filtres + recherche globale
-    final filtered =
-        _applyFilters(voituresEnLigne).where((v) {
-          if (_searchGlobalText.isEmpty) return true;
-          final hay =
-              (v.marque +
-                      ' ' +
-                      v.modele +
-                      ' ' +
-                      v.titre +
-                      ' ' +
-                      (v.entreprise ?? ''))
-                  .toLowerCase();
-          return hay.contains(_searchGlobalText.toLowerCase());
-        }).toList();
+    final filtered = _applyFilters(voituresEnLigne).where((v) {
+      if (_searchGlobalText.isEmpty) return true;
+      final hay = (v.marque +
+              ' ' +
+              v.modele +
+              ' ' +
+              v.titre +
+              ' ' +
+              (v.entreprise ?? ''))
+          .toLowerCase();
+      return hay.contains(_searchGlobalText.toLowerCase());
+    }).toList();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardAspectRatio = screenWidth < 360
+        ? 0.68
+        : screenWidth < 420
+            ? 0.6
+            : 0.55;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: GridView.builder(
         shrinkWrap: true,
         primary: false,
         physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
-          childAspectRatio: 0.52,
+          childAspectRatio: cardAspectRatio,
         ),
         itemCount: filtered.length > 8 ? 8 : filtered.length,
         itemBuilder: (context, index) {
           final voiture = filtered[index];
           return GestureDetector(
             onTap: () {
+              setState(() {
+                _recordVehicleInteraction(voiture.id.toString());
+              });
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder:
-                      (context) => CarsInfo(
-                        id: voiture.id.toString(),
-                        titre: voiture.titre,
-                        description: voiture.description,
-                        marque: voiture.marque,
-                        modele: voiture.modele,
-                        annee: voiture.annee,
-                        prix: voiture.prix,
-                        condition: voiture.condition,
-                        boiteVitesse: voiture.boiteVitesse,
-                        carburant: voiture.carburant,
-                        climatiseur: voiture.climatiseur,
-                        distance: voiture.distance,
-                        sieges: voiture.sieges,
-                        portes: voiture.portes,
-                        cylindre: voiture.cylindre,
-                        images: voiture.images,
-                        video: voiture.video,
-                        entreprise: voiture.entreprise,
-                      ),
+                  builder: (context) => CarsInfo(
+                    id: voiture.id.toString(),
+                    titre: voiture.titre,
+                    description: voiture.description,
+                    marque: voiture.marque,
+                    modele: voiture.modele,
+                    annee: voiture.annee,
+                    prix: voiture.prix,
+                    condition: voiture.condition,
+                    boiteVitesse: voiture.boiteVitesse,
+                    carburant: voiture.carburant,
+                    climatiseur: voiture.climatiseur,
+                    distance: voiture.distance,
+                    sieges: voiture.sieges,
+                    portes: voiture.portes,
+                    cylindre: voiture.cylindre,
+                    images: voiture.images,
+                    video: voiture.video,
+                    entreprise: voiture.entreprise,
+                  ),
                 ),
               );
             },
@@ -903,43 +945,32 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                             topLeft: Radius.circular(12),
                             topRight: Radius.circular(12),
                           ),
-                          child:
-                              voiture.images.isNotEmpty
-                                  ? Image.network(
-                                    voiture.images.first,
-                                    height: double.infinity,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                  )
+                          child: voiture.images.isNotEmpty
+                              ? Image.network(
+                                  voiture.images.first,
+                                  height: double.infinity,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                )
+                              : (voiture.video?.isNotEmpty ?? false)
+                                  ? VideoPreviewPlaceholder(
+                                      videoUrl: voiture.video,
+                                      enablePreviewFrame: false,
+                                    )
                                   : Container(
-                                    height: double.infinity,
-                                    width: double.infinity,
-                                    color: Colors.grey[300],
-                                    child: const Icon(
-                                      Icons.image_not_supported,
+                                      height: double.infinity,
+                                      width: double.infinity,
+                                      color: Colors.grey[300],
+                                      child: const Icon(
+                                        Icons.image_not_supported,
+                                      ),
                                     ),
-                                  ),
                         ),
-                        // Coeur (favoris)
+                        // Badge de vues
                         Positioned(
                           top: 8,
                           right: 8,
-                          child: GestureDetector(
-                            onTap: () => _toggleFavorite(voiture.id.toString()),
-                            child: CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.white,
-                              child: Icon(
-                                _favoriteArticleIds.contains(
-                                      voiture.id.toString(),
-                                    )
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                                color: Colors.red,
-                                size: 18,
-                              ),
-                            ),
-                          ),
+                          child: _buildViewBadge(voiture.id),
                         ),
                         // Badge condition (nouveau/occasion)
                         Positioned(
@@ -951,13 +982,12 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color:
-                                  (voiture.condition?.toLowerCase() ==
-                                              'nouveau' ||
-                                          voiture.condition?.toLowerCase() ==
-                                              'neuf')
-                                      ? Colors.purple
-                                      : const Color(0xFFF8BF13),
+                              color: (voiture.condition?.toLowerCase() ==
+                                          'nouveau' ||
+                                      voiture.condition?.toLowerCase() ==
+                                          'neuf')
+                                  ? Colors.purple
+                                  : const Color(0xFFF8BF13),
                               borderRadius: BorderRadius.circular(50),
                             ),
                             child: Text(
@@ -1012,14 +1042,16 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                           ),
                           const SizedBox(height: 6),
                           // Caractéristiques en deux colonnes
-                          SizedBox(
-                            height: 80,
+                          Flexible(
                             child: SingleChildScrollView(
+                              physics: const NeverScrollableScrollPhysics(),
                               child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   // Ligne 1: Boite vitesse + Année
-                                  if (voiture.boiteVitesse != null ||
-                                      voiture.annee != null)
+                                  if ((voiture.boiteVitesse?.isNotEmpty ??
+                                          false) ||
+                                      voiture.annee.trim().isNotEmpty)
                                     Row(
                                       children: [
                                         Expanded(
@@ -1033,7 +1065,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                         Expanded(
                                           child: _buildCaracteristic(
                                             Icons.calendar_today,
-                                            voiture.annee ?? '',
+                                            voiture.annee,
                                           ),
                                         ),
                                       ],
@@ -1141,32 +1173,24 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     }
     final userService = _userService;
     final isVendeur = userService.currentRole == UserRole.vendeur;
-    final piecesEnLigne =
-        articlesPieces
-            .where(
-              (p) =>
-                  (p.statut ?? 'en_ligne') == 'en_ligne' &&
-                  (p.statut ?? '') != 'vendu',
-            )
-            .toList();
+    final piecesEnLigne = articlesPieces
+        .where(
+          (p) =>
+              (p.statut ?? 'en_ligne') == 'en_ligne' &&
+              (p.statut ?? '') != 'vendu',
+        )
+        .toList();
     // Filtrage recherche
-    final filteredPieces =
-        piecesEnLigne.where((p) {
-          final q1 = _searchPieceText.trim().toLowerCase();
-          final q2 = _searchGlobalText.trim().toLowerCase();
-          final hay =
-              (p.title +
-                      ' ' +
-                      p.description +
-                      ' ' +
-                      p.company +
-                      ' ' +
-                      p.location)
-                  .toLowerCase();
-          final ok1 = q1.isEmpty || hay.contains(q1);
-          final ok2 = q2.isEmpty || hay.contains(q2);
-          return ok1 && ok2;
-        }).toList();
+    final filteredPieces = piecesEnLigne.where((p) {
+      final q1 = _searchPieceText.trim().toLowerCase();
+      final q2 = _searchGlobalText.trim().toLowerCase();
+      final hay =
+          (p.title + ' ' + p.description + ' ' + p.company + ' ' + p.location)
+              .toLowerCase();
+      final ok1 = q1.isEmpty || hay.contains(q1);
+      final ok2 = q2.isEmpty || hay.contains(q2);
+      return ok1 && ok2;
+    }).toList();
     if (filteredPieces.isEmpty) {
       return Center(
         child: Text(
@@ -1214,25 +1238,25 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               final piece = filteredPieces[index];
               return GestureDetector(
                 onTap: () {
+                  _recordVehicleInteraction(piece.id);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => MastervacPage(
-                            id: piece.id,
-                            isAcheteur: true,
-                            title: piece.title,
-                            year: piece.year,
-                            description: piece.description,
-                            company: piece.company,
-                            location: piece.location,
-                            price: piece.price,
-                            images: piece.images,
-                            fuelType: piece.fuelType,
-                            model: piece.model,
-                            pieceType: piece.pieceType,
-                            video: piece.video,
-                          ),
+                      builder: (context) => MastervacPage(
+                        id: piece.id,
+                        isAcheteur: true,
+                        title: piece.title,
+                        year: piece.year,
+                        description: piece.description,
+                        company: piece.company,
+                        location: piece.location,
+                        price: piece.price,
+                        images: piece.images,
+                        fuelType: piece.fuelType,
+                        model: piece.model,
+                        pieceType: piece.pieceType,
+                        video: piece.video,
+                      ),
                     ),
                   );
                 },
@@ -1245,17 +1269,21 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         children: [
                           piece.images.isNotEmpty
                               ? Image.network(
-                                piece.images.first,
-                                height: 40,
-                                width: 40,
-                                fit: BoxFit.cover,
-                              )
-                              : Container(
-                                height: 40,
-                                width: 40,
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.image_not_supported),
-                              ),
+                                  piece.images.first,
+                                  height: 40,
+                                  width: 40,
+                                  fit: BoxFit.cover,
+                                )
+                              : (piece.video?.isNotEmpty ?? false)
+                                  ? VideoPreviewPlaceholder(
+                                      videoUrl: piece.video, iconSize: 28)
+                                  : Container(
+                                      height: 40,
+                                      width: 40,
+                                      color: Colors.grey[300],
+                                      child:
+                                          const Icon(Icons.image_not_supported),
+                                    ),
                           // Badge condition (aligné au style voitures) pour les pièces
                           Positioned(
                             top: 8,
@@ -1266,8 +1294,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                     (piece.condition ?? piece.pieceType ?? '')
                                         .toString()
                                         .toLowerCase();
-                                final isNew =
-                                    rawCond == 'nouveau' ||
+                                final isNew = rawCond == 'nouveau' ||
                                     rawCond == 'neuf' ||
                                     rawCond == 'new';
                                 return Container(
@@ -1276,10 +1303,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color:
-                                        isNew
-                                            ? Colors.purple
-                                            : const Color(0xFFF8BF13),
+                                    color: isNew
+                                        ? Colors.purple
+                                        : const Color(0xFFF8BF13),
                                     borderRadius: BorderRadius.circular(50),
                                   ),
                                   child: Text(
@@ -1298,20 +1324,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                           Positioned(
                             top: 2,
                             right: 2,
-                            child: GestureDetector(
-                              onTap: () => _toggleFavorite(piece.id),
-                              child: CircleAvatar(
-                                radius: 10,
-                                backgroundColor: Colors.white,
-                                child: Icon(
-                                  _favoriteArticleIds.contains(piece.id)
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: Colors.red,
-                                  size: 12,
-                                ),
-                              ),
-                            ),
+                            child: _buildViewBadge(piece.id),
                           ),
                         ],
                       ),
@@ -1337,14 +1350,19 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
 
   Widget buildVoituresRecommandeesSection() {
     final isVendeur = _userService.currentRole == UserRole.vendeur;
-    final voituresEnLigne =
-        voituresRecommandees
-            .where(
-              (v) =>
-                  (v.statut ?? 'en_ligne') == 'en_ligne' &&
-                  (v.statut ?? '') != 'vendu',
-            )
-            .toList();
+    final voituresEnLigne = voituresRecommandees
+        .where(
+          (v) =>
+              (v.statut ?? 'en_ligne') == 'en_ligne' &&
+              (v.statut ?? '') != 'vendu',
+        )
+        .toList();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final sectionCardAspectRatio = screenWidth < 360
+        ? 0.64
+        : screenWidth < 420
+            ? 0.6
+            : 0.58;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1379,344 +1397,330 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             ],
           ),
         ),
-
         if (isLoadingVoitures) const Center(child: CircularProgressIndicator()),
         if (errorVoitures != null) Center(child: Text(errorVoitures!)),
-
         if (!isLoadingVoitures && errorVoitures == null)
           _applyFilters(voituresEnLigne).isEmpty
               ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Text(
-                    isVendeur
-                        ? "Vous n'avez aucune voiture en ligne"
-                        : "Aucune voiture disponible pour le moment.",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      isVendeur
+                          ? "Vous n'avez aucune voiture en ligne"
+                          : "Aucune voiture disponible pour le moment.",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
-                ),
-              )
+                )
               : Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 13.0),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  primary: false,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.68, // RÉDUIT pour moins d'espace
-                  ),
-                  itemCount:
-                      _applyFilters(voituresEnLigne).length > 8
-                          ? 8
-                          : _applyFilters(voituresEnLigne).length,
-                  itemBuilder: (context, index) {
-                    final list = _applyFilters(voituresEnLigne);
-                    final voiture = list[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => CarsInfo(
-                                  id: voiture.id.toString(),
-                                  titre: voiture.titre,
-                                  description: voiture.description,
-                                  marque: voiture.marque,
-                                  modele: voiture.modele,
-                                  annee: voiture.annee,
-                                  prix: voiture.prix,
-                                  condition: voiture.condition,
-                                  boiteVitesse: voiture.boiteVitesse,
-                                  carburant: voiture.carburant,
-                                  climatiseur: voiture.climatiseur,
-                                  distance: voiture.distance,
-                                  sieges: voiture.sieges,
-                                  portes: voiture.portes,
-                                  cylindre: voiture.cylindre,
-                                  images: voiture.images,
-                                  video: voiture.video,
-                                  entreprise: voiture.entreprise,
-                                ),
+                  padding: const EdgeInsets.symmetric(horizontal: 13.0),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    primary: false,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: sectionCardAspectRatio,
+                    ),
+                    itemCount: _applyFilters(voituresEnLigne).length > 8
+                        ? 8
+                        : _applyFilters(voituresEnLigne).length,
+                    itemBuilder: (context, index) {
+                      final list = _applyFilters(voituresEnLigne);
+                      final voiture = list[index];
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _recordVehicleInteraction(voiture.id.toString());
+                          });
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CarsInfo(
+                                id: voiture.id.toString(),
+                                titre: voiture.titre,
+                                description: voiture.description,
+                                marque: voiture.marque,
+                                modele: voiture.modele,
+                                annee: voiture.annee,
+                                prix: voiture.prix,
+                                condition: voiture.condition,
+                                boiteVitesse: voiture.boiteVitesse,
+                                carburant: voiture.carburant,
+                                climatiseur: voiture.climatiseur,
+                                distance: voiture.distance,
+                                sieges: voiture.sieges,
+                                portes: voiture.portes,
+                                cylindre: voiture.cylindre,
+                                images: voiture.images,
+                                video: voiture.video,
+                                entreprise: voiture.entreprise,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                spreadRadius: 2,
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.2),
-                              spreadRadius: 2,
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
-                              spreadRadius: 1,
-                              blurRadius: 5,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Image avec overlay pour le prix
-                            Expanded(
-                              flex: 3,
-                              child: Stack(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(12),
-                                      topRight: Radius.circular(12),
-                                    ),
-                                    child:
-                                        voiture.images.isNotEmpty
-                                            ? Image.network(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Image avec overlay pour le prix
+                              Expanded(
+                                flex: 3,
+                                child: Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(12),
+                                        topRight: Radius.circular(12),
+                                      ),
+                                      child: voiture.images.isNotEmpty
+                                          ? Image.network(
                                               voiture.images.first,
                                               height: double.infinity,
                                               width: double.infinity,
                                               fit: BoxFit.cover,
                                             )
-                                            : Container(
-                                              height: double.infinity,
-                                              width: double.infinity,
-                                              color: Colors.grey[300],
-                                              child: const Icon(
-                                                Icons.image_not_supported,
-                                              ),
-                                            ),
-                                  ),
-                                  // Coeur (favoris)
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: GestureDetector(
-                                      onTap:
-                                          () => _toggleFavorite(
-                                            voiture.id.toString(),
-                                          ),
-                                      child: CircleAvatar(
-                                        radius: 16,
-                                        backgroundColor: Colors.white,
-                                        child: Icon(
-                                          _favoriteArticleIds.contains(
-                                                voiture.id.toString(),
-                                              )
-                                              ? Icons.favorite
-                                              : Icons.favorite_border,
-                                          color: Colors.red,
-                                          size: 18,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  // Badge condition (nouveau/occasion)
-                                  Positioned(
-                                    top: 8,
-                                    left: 8,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            (voiture.condition?.toLowerCase() ==
-                                                        'nouveau' ||
-                                                    voiture.condition
-                                                            ?.toLowerCase() ==
-                                                        'neuf')
-                                                ? Colors.purple
-                                                : const Color(0xFFF8BF13),
-                                        borderRadius: BorderRadius.circular(50),
-                                      ),
-                                      child: Text(
-                                        (voiture.condition?.toLowerCase() ==
-                                                    'nouveau' ||
-                                                voiture.condition
-                                                        ?.toLowerCase() ==
-                                                    'neuf')
-                                            ? 'Nouveau'
-                                            : 'Occasion',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Informations de la voiture - PARTIE MODIFIÉE
-                            Expanded(
-                              flex: 2, // RÉDUIT de 3 à 2 pour moins d'espace
-                              child: Padding(
-                                padding: const EdgeInsets.all(
-                                  8,
-                                ), // RÉDUIT de 12 à 8
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // LIGNE 1: Nom + Prix sur la même ligne
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                voiture.marque,
-                                                style: TextStyle(
-                                                  // RETIRÉ le gras, mis en gris
-                                                  fontSize: 12,
-                                                  color: Colors.grey[600],
+                                          : (voiture.video?.isNotEmpty ?? false)
+                                              ? VideoPreviewPlaceholder(
+                                                  videoUrl: voiture.video)
+                                              : Container(
+                                                  height: double.infinity,
+                                                  width: double.infinity,
+                                                  color: Colors.grey[300],
+                                                  child: const Icon(
+                                                    Icons.image_not_supported,
+                                                  ),
                                                 ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              Text(
-                                                voiture.modele,
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  color: Colors.grey[500],
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
-                                          ),
+                                    ),
+                                    // Badge de vues
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: _buildViewBadge(voiture.id),
+                                    ),
+                                    // Badge condition (nouveau/occasion)
+                                    Positioned(
+                                      top: 8,
+                                      left: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${voiture.prix} FCFA',
+                                        decoration: BoxDecoration(
+                                          color: (voiture.condition
+                                                          ?.toLowerCase() ==
+                                                      'nouveau' ||
+                                                  voiture.condition
+                                                          ?.toLowerCase() ==
+                                                      'neuf')
+                                              ? Colors.purple
+                                              : const Color(0xFFF8BF13),
+                                          borderRadius:
+                                              BorderRadius.circular(50),
+                                        ),
+                                        child: Text(
+                                          (voiture.condition?.toLowerCase() ==
+                                                      'nouveau' ||
+                                                  voiture.condition
+                                                          ?.toLowerCase() ==
+                                                      'neuf')
+                                              ? 'Nouveau'
+                                              : 'Occasion',
                                           style: const TextStyle(
-                                            fontSize: 14,
+                                            color: Colors.white,
+                                            fontSize: 10,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.black,
                                           ),
                                         ),
-                                      ],
-                                    ),
-
-                                    const SizedBox(
-                                      height: 6,
-                                    ), // RÉDUIT l'espace
-                                    // CARACTÉRISTIQUES - Espaces réduits
-                                    Expanded(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment
-                                                .spaceAround, // RÉDUIT l'espacement
-                                        children: [
-                                          // Rangée 1: Boite vitesse + Année
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: _buildCaracteristic(
-                                                  Icons.settings,
-                                                  voiture.boiteVitesse ??
-                                                      'Automatique',
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                width: 4,
-                                              ), // RÉDUIT
-                                              Expanded(
-                                                child: _buildCaracteristic(
-                                                  Icons.calendar_today,
-                                                  voiture.annee ?? '',
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-
-                                          // Rangée 2: Carburant + Cylindre
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: _buildCaracteristic(
-                                                  Icons.local_gas_station,
-                                                  voiture.carburant ?? '',
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                width: 4,
-                                              ), // RÉDUIT
-                                              Expanded(
-                                                child: _buildCaracteristic(
-                                                  Icons.speed,
-                                                  voiture.cylindre ?? '',
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-
-                                          // Rangée 3: Distance + Portes
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: _buildCaracteristic(
-                                                  Icons.speed,
-                                                  '${voiture.distance ?? ''} KM',
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                width: 4,
-                                              ), // RÉDUIT
-                                              Expanded(
-                                                child: _buildCaracteristic(
-                                                  Icons.door_front_door,
-                                                  '${voiture.portes ?? ''} portes',
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ),
-                          ],
+
+                              // Informations de la voiture - PARTIE MODIFIÉE
+                              Expanded(
+                                flex: 2, // RÉDUIT de 3 à 2 pour moins d'espace
+                                child: Padding(
+                                  padding: const EdgeInsets.all(
+                                    8,
+                                  ), // RÉDUIT de 12 à 8
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // LIGNE 1: Nom + Prix sur la même ligne
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  voiture.marque,
+                                                  style: TextStyle(
+                                                    // RETIRÉ le gras, mis en gris
+                                                    fontSize: 12,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                Text(
+                                                  voiture.modele,
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.grey[500],
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${voiture.prix} FCFA',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(
+                                        height: 6,
+                                      ), // RÉDUIT l'espace
+                                      // CARACTÉRISTIQUES - Espaces réduits
+                                      Flexible(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment
+                                              .spaceAround, // RÉDUIT l'espacement
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            // Rangée 1: Boite vitesse + Année
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: _buildCaracteristic(
+                                                    Icons.settings,
+                                                    voiture.boiteVitesse ??
+                                                        'Automatique',
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  width: 4,
+                                                ), // RÉDUIT
+                                                Expanded(
+                                                  child: _buildCaracteristic(
+                                                    Icons.calendar_today,
+                                                    voiture.annee,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+
+                                            // Rangée 2: Carburant + Cylindre
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: _buildCaracteristic(
+                                                    Icons.local_gas_station,
+                                                    voiture.carburant ?? '',
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  width: 4,
+                                                ), // RÉDUIT
+                                                Expanded(
+                                                  child: _buildCaracteristic(
+                                                    Icons.speed,
+                                                    voiture.cylindre ?? '',
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+
+                                            // Rangée 3: Distance + Portes
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: _buildCaracteristic(
+                                                    Icons.speed,
+                                                    '${voiture.distance ?? ''} KM',
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  width: 4,
+                                                ), // RÉDUIT
+                                                Expanded(
+                                                  child: _buildCaracteristic(
+                                                    Icons.door_front_door,
+                                                    '${voiture.portes ?? ''} portes',
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
       ],
     );
   }
 
   Widget buildPiecesSection() {
     final isVendeur = _userService.currentRole == UserRole.vendeur;
-    final piecesEnLigne =
-        articlesPieces
-            .where(
-              (p) =>
-                  (p.statut ?? 'en_ligne') == 'en_ligne' &&
-                  (p.statut ?? '') != 'vendu',
-            )
-            .toList();
+    final piecesEnLigne = articlesPieces
+        .where(
+          (p) =>
+              (p.statut ?? 'en_ligne') == 'en_ligne' &&
+              (p.statut ?? '') != 'vendu',
+        )
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1749,177 +1753,184 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             ],
           ),
         ),
-
         if (isLoadingPieces) const Center(child: CircularProgressIndicator()),
         if (errorPieces != null) Center(child: Text(errorPieces!)),
-
         if (!isLoadingPieces && errorPieces == null)
           piecesEnLigne.isEmpty
               ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Text(
-                    isVendeur
-                        ? "Vous n'avez aucune pièce en ligne actuellement"
-                        : "Aucune pièce en ligne actuellement",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      isVendeur
+                          ? "Vous n'avez aucune pièce en ligne actuellement"
+                          : "Aucune pièce en ligne actuellement",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
-                ),
-              )
-              : Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  primary: false,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3, // 3 sur une ligne
-                    crossAxisSpacing: 4, // RÉDUIT de 8 à 4
-                    mainAxisSpacing: 4, // RÉDUIT de 8 à 4
-                    childAspectRatio: 0.65, // LÉGÈREMENT RÉDUIT
-                  ),
-                  itemCount:
-                      piecesEnLigne.length > 6 ? 6 : piecesEnLigne.length,
-                  itemBuilder: (context, index) {
-                    final piece = piecesEnLigne[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => MastervacPage(
-                                  id: piece.id,
-                                  isAcheteur: true,
-                                  title: piece.title,
-                                  year: piece.year,
-                                  description: piece.description,
-                                  company: piece.company,
-                                  location: piece.location,
-                                  price: piece.price,
-                                  images: piece.images,
-                                  fuelType: piece.fuelType,
-                                  model: piece.model,
-                                  pieceType: piece.pieceType,
-                                  video: piece.video,
-                                ),
-                          ),
-                        );
-                      },
-                      child: Column(
-                        children: [
-                          // CARD IMAGE AVEC BADGE
-                          Container(
-                            height: 70, // LÉGÈREMENT RÉDUIT
-                            width: 70, // LARGEUR FIXE pour uniformité
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8), // RÉDUIT
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2),
-                                  spreadRadius: 1,
-                                  blurRadius: 3, // RÉDUIT
-                                  offset: const Offset(0, 1), // RÉDUIT
-                                ),
-                              ],
+                )
+              : SizedBox(
+                  height: 240,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: piecesEnLigne.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      final piece = piecesEnLigne[index];
+                      return GestureDetector(
+                        onTap: () {
+                          _recordVehicleInteraction(piece.id);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MastervacPage(
+                                id: piece.id,
+                                isAcheteur: true,
+                                title: piece.title,
+                                year: piece.year,
+                                description: piece.description,
+                                company: piece.company,
+                                location: piece.location,
+                                price: piece.price,
+                                images: piece.images,
+                                fuelType: piece.fuelType,
+                                model: piece.model,
+                                pieceType: piece.pieceType,
+                                video: piece.video,
+                              ),
                             ),
-                            child: Stack(
-                              children: [
-                                // Image
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child:
-                                      piece.images.isNotEmpty
-                                          ? Image.network(
-                                            piece.images.first,
-                                            width: double.infinity,
-                                            height: double.infinity,
-                                            fit: BoxFit.cover,
-                                          )
-                                          : Container(
-                                            color: Colors.grey[300],
-                                            child: const Icon(
-                                              Icons.image_not_supported,
-                                              size: 25,
-                                            ),
-                                          ),
-                                ),
-                                // Badge condition (nouveau/occasion)
-                                Positioned(
-                                  top: 2, // RAPPROCHÉ du bord
-                                  left: 2, // RAPPROCHÉ du bord
-                                  child: Builder(
-                                    builder: (context) {
-                                      final rawCond =
-                                          (piece.condition ??
-                                                  piece.pieceType ??
-                                                  '')
-                                              .toString()
-                                              .toLowerCase();
-                                      final isNew =
-                                          rawCond == 'nouveau' ||
-                                          rawCond == 'neuf' ||
-                                          rawCond == 'new' ||
-                                          piece.pieceType?.toLowerCase() ==
-                                              'nouveau';
-                                      return Container(
+                          );
+                        },
+                        child: Container(
+                          width: 180,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black12.withOpacity(0.08),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: SizedBox(
+                                        width: double.infinity,
+                                        child: piece.images.isNotEmpty
+                                            ? Image.network(
+                                                piece.images.first,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : (piece.video?.isNotEmpty ?? false)
+                                                ? VideoPreviewPlaceholder(
+                                                    videoUrl: piece.video,
+                                                    iconSize: 32,
+                                                  )
+                                                : Container(
+                                                    color: Colors.grey[200],
+                                                    child: const Icon(
+                                                      Icons.image_not_supported,
+                                                      size: 30,
+                                                      color: Colors.black26,
+                                                    ),
+                                                  ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 8,
+                                      left: 8,
+                                      child: Container(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 4, // RÉDUIT
-                                          vertical: 1, // RÉDUIT
+                                          horizontal: 6,
+                                          vertical: 3,
                                         ),
                                         decoration: BoxDecoration(
-                                          color:
-                                              isNew
-                                                  ? Colors.purple
-                                                  : const Color(0xFFF8BF13),
-                                          borderRadius: BorderRadius.circular(
-                                            3,
-                                          ), // RÉDUIT
+                                          color: (piece.pieceType ?? '')
+                                                      .toLowerCase() ==
+                                                  'nouveau'
+                                              ? Colors.purple
+                                              : const Color(0xFFF8BF13),
+                                          borderRadius:
+                                              BorderRadius.circular(30),
                                         ),
                                         child: Text(
-                                          isNew
-                                              ? 'Nouv.'
-                                              : 'Occas.', // TEXTE RACCOURCI
+                                          (piece.pieceType ?? '')
+                                                      .toLowerCase() ==
+                                                  'nouveau'
+                                              ? 'Nouveau'
+                                              : 'Occasion',
                                           style: const TextStyle(
                                             color: Colors.white,
-                                            fontSize: 7, // RÉDUIT
-                                            fontWeight: FontWeight.bold,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                      );
-                                    },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                piece.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                piece.company,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF5E5),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Text(
+                                  piece.price.isNotEmpty
+                                      ? "${piece.price} FCFA"
+                                      : 'Prix non communiqué',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Color(0xFFB45309),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 4), // RÉDUIT
-                          // NOM EN DESSOUS
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 2,
-                            ), // RÉDUIT
-                            child: Text(
-                              piece.title,
-                              style: const TextStyle(
-                                fontSize: 9, // LÉGÈREMENT RÉDUIT
-                                fontWeight: FontWeight.w500,
                               ),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  },
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
       ],
     );
   }
@@ -1984,9 +1995,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     showDialog(
                       context: context,
                       barrierDismissible: false,
-                      builder:
-                          (context) =>
-                              const Center(child: CircularProgressIndicator()),
+                      builder: (context) =>
+                          const Center(child: CircularProgressIndicator()),
                     );
                     try {
                       // Récupérer la pub complète pour avoir l'articleId
@@ -2021,63 +2031,54 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) => CarsInfo(
-                                        titre: article['titre'] ?? '',
-                                        description:
-                                            article['description'] ?? '',
-                                        marque: article['marque'] ?? '',
-                                        modele: article['modele'] ?? '',
-                                        annee: article['annee'] ?? '',
-                                        prix: article['prix']?.toString() ?? '',
-                                        condition: article['condition'] ?? '',
-                                        boiteVitesse:
-                                            article['boiteVitesse'] ?? '',
-                                        carburant: article['carburant'] ?? '',
-                                        climatiseur:
-                                            article['climatiseur'] ?? '',
-                                        distance: article['distance'] ?? '',
-                                        sieges: article['sieges'] ?? '',
-                                        portes: article['portes'] ?? '',
-                                        cylindre: article['cylindre'] ?? '',
-                                        lieu: article['lieu'] ?? '',
-                                        images:
-                                            (article['photos'] as List?)
-                                                ?.map((e) => e.toString())
-                                                .toList() ??
-                                            [],
-                                        video: article['video'],
-                                        entreprise: article['entreprise'],
-                                        fromPub: true,
-                                      ),
+                                  builder: (context) => CarsInfo(
+                                    titre: article['titre'] ?? '',
+                                    description: article['description'] ?? '',
+                                    marque: article['marque'] ?? '',
+                                    modele: article['modele'] ?? '',
+                                    annee: article['annee'] ?? '',
+                                    prix: article['prix']?.toString() ?? '',
+                                    condition: article['condition'] ?? '',
+                                    boiteVitesse: article['boiteVitesse'] ?? '',
+                                    carburant: article['carburant'] ?? '',
+                                    climatiseur: article['climatiseur'] ?? '',
+                                    distance: article['distance'] ?? '',
+                                    sieges: article['sieges'] ?? '',
+                                    portes: article['portes'] ?? '',
+                                    cylindre: article['cylindre'] ?? '',
+                                    lieu: article['lieu'] ?? '',
+                                    images: (article['photos'] as List?)
+                                            ?.map((e) => e.toString())
+                                            .toList() ??
+                                        [],
+                                    video: article['video'],
+                                    entreprise: article['entreprise'],
+                                    fromPub: true,
+                                  ),
                                 ),
                               );
                             } else if (article['type'] == 'piece') {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) => MastervacPage(
-                                        isAcheteur: true,
-                                        title: article['titre'] ?? '',
-                                        year: article['annee'] ?? '',
-                                        description:
-                                            article['description'] ?? '',
-                                        company: article['entreprise'] ?? '',
-                                        location: article['localisation'] ?? '',
-                                        price:
-                                            article['prix']?.toString() ?? '',
-                                        images:
-                                            (article['photos'] as List?)
-                                                ?.map((e) => e.toString())
-                                                .toList() ??
-                                            [],
-                                        fuelType: article['typeMoteur'],
-                                        model: article['modele']?.toString(),
-                                        pieceType: article['pieceType'],
-                                        video: article['video'],
-                                        fromPub: true,
-                                      ),
+                                  builder: (context) => MastervacPage(
+                                    isAcheteur: true,
+                                    title: article['titre'] ?? '',
+                                    year: article['annee'] ?? '',
+                                    description: article['description'] ?? '',
+                                    company: article['entreprise'] ?? '',
+                                    location: article['localisation'] ?? '',
+                                    price: article['prix']?.toString() ?? '',
+                                    images: (article['photos'] as List?)
+                                            ?.map((e) => e.toString())
+                                            .toList() ??
+                                        [],
+                                    fuelType: article['typeMoteur'],
+                                    model: article['modele']?.toString(),
+                                    pieceType: article['pieceType'],
+                                    video: article['video'],
+                                    fromPub: true,
+                                  ),
                                 ),
                               );
                             } else {
@@ -2147,30 +2148,29 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                   height: 170,
                                   width: 340,
                                   color: Colors.grey[300],
-                                  child:
-                                      pub.media.isNotEmpty
-                                          ? Image.network(
-                                            pub.media[0],
-                                            width: 340,
-                                            height: 170,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (
-                                              context,
-                                              error,
-                                              stackTrace,
-                                            ) {
-                                              return Icon(
-                                                Icons.image_not_supported,
-                                                size: 80,
-                                                color: Colors.grey[600],
-                                              );
-                                            },
-                                          )
-                                          : Icon(
-                                            Icons.image_not_supported,
-                                            size: 80,
-                                            color: Colors.grey[600],
-                                          ),
+                                  child: pub.media.isNotEmpty
+                                      ? Image.network(
+                                          pub.media[0],
+                                          width: 340,
+                                          height: 170,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Icon(
+                                              Icons.image_not_supported,
+                                              size: 80,
+                                              color: Colors.grey[600],
+                                            );
+                                          },
+                                        )
+                                      : Icon(
+                                          Icons.image_not_supported,
+                                          size: 80,
+                                          color: Colors.grey[600],
+                                        ),
                                 ),
                               ),
                               Positioned(
@@ -2280,7 +2280,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             itemCount: pubsALaUne.length,
             itemBuilder: (context, index) {
               final pub = pubsALaUne[index];
-              return Card(
+              final hasLink = (pub.lien ?? '').trim().isNotEmpty;
+              final card = Card(
                 margin: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 12,
@@ -2289,29 +2290,33 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child:
-                          pub.media.isNotEmpty
-                              ? Image.network(
+                      child: pub.media.isNotEmpty
+                          ? Container(
+                              width: double.infinity,
+                              height: 260,
+                              color: Colors.black,
+                              child: Image.network(
                                 pub.media[0],
-                                width: double.infinity,
-                                height: 260,
-                                fit: BoxFit.cover,
+                                fit: BoxFit.contain,
+                                alignment: Alignment.center,
+                                filterQuality: FilterQuality.high,
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
-                                    height: 260,
                                     color: Colors.grey[300],
                                     child: const Icon(
                                       Icons.image_not_supported,
                                       size: 80,
+                                      color: Colors.black54,
                                     ),
                                   );
                                 },
-                              )
-                              : Container(
-                                height: 260,
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.image, size: 120),
                               ),
+                            )
+                          : Container(
+                              height: 260,
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.image, size: 120),
+                            ),
                     ),
                     Positioned(
                       left: 8,
@@ -2337,8 +2342,51 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         ),
                       ),
                     ),
+                    if (hasLink)
+                      Positioned(
+                        right: 12,
+                        bottom: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.85),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.link, size: 16, color: Colors.black87),
+                              SizedBox(width: 4),
+                              Text(
+                                'Voir plus',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                   ],
                 ),
+              );
+
+              if (hasLink) {
+                return InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _openPubLink(pub.lien!.trim()),
+                  child: card,
+                );
+              }
+              return InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () =>
+                    _openFlyerPreview(pub.media.isNotEmpty ? pub.media[0] : ''),
+                child: card,
               );
             },
           ),
@@ -2435,12 +2483,20 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     if (isTransitaire) _buildTabButton("Activités", 0),
                     _buildTabButton("Marque", _marqueTabIndex),
                     _buildTabButton("Modèles", _modeleTabIndex),
-                    _buildTabButton(
-                      "Localisation",
-                      _localisationTabIndex,
-                      isWide: true,
-                    ),
-                    _buildTabButton("Budget", _budgetTabIndex),
+                    if (_userService.currentRole == UserRole.vendeur)
+                      _buildTabButton(
+                        "Statistiques",
+                        _statistiquesTabIndex,
+                        isWide: true,
+                      ),
+                    if (_userService.currentRole != UserRole.vendeur)
+                      _buildTabButton(
+                        "Localisation",
+                        _localisationTabIndex,
+                        isWide: true,
+                      ),
+                    if (_userService.currentRole != UserRole.vendeur)
+                      _buildTabButton("Budget", _budgetTabIndex),
                   ],
                 ),
               ),
@@ -2449,9 +2505,15 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               _buildActivitesSection(),
             if (_tabController.index == _marqueTabIndex) _buildMarqueSection(),
             if (_tabController.index == _modeleTabIndex) _buildModeleSection(),
-            if (_tabController.index == _localisationTabIndex)
+            if (_userService.currentRole == UserRole.vendeur &&
+                _tabController.index == _statistiquesTabIndex)
+              _buildStatistiquesSection(),
+            if (_userService.currentRole != UserRole.vendeur &&
+                _tabController.index == _localisationTabIndex)
               _buildLocalisationSection(),
-            if (_tabController.index == _budgetTabIndex) _buildBudgetSection(),
+            if (_userService.currentRole != UserRole.vendeur &&
+                _tabController.index == _budgetTabIndex)
+              _buildBudgetSection(),
             // Section sponsorisée: toujours affichée
             buildPubsSponsoriseesSection(),
             buildVoituresRecommandeesSection(),
@@ -2702,74 +2764,257 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     );
   }
 
+  Widget _buildStatistiquesSection() {
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    if (!isVendeur) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8E1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFFFE082)),
+          ),
+          child: const Text(
+            "Les statistiques détaillées sont réservées aux vendeurs.",
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF795548),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final currentVehicleIds = voituresRecommandees.map((v) => v.id).toSet();
+    final totalClicks =
+        _vehicleClickCounts.values.fold<int>(0, (sum, value) => sum + value);
+
+    final statsCards = [
+      {
+        "label": "Véhicules en ligne",
+        "value": currentVehicleIds.length,
+        "icon": Icons.directions_car_filled,
+        "color": const Color(0xFFF8BF13),
+        "background": const Color(0xFFFFF3CD),
+        "description": "Annonce(s) visibles"
+      },
+      {
+        "label": "Vues enregistrées",
+        "value": totalClicks,
+        "icon": Icons.remove_red_eye,
+        "color": const Color(0xFF536DFE),
+        "background": const Color(0xFFE8EAFE),
+        "description": "Consultations sur vos annonces"
+      },
+    ];
+
+    final topVehicles = voituresRecommandees
+        .where((v) => (_vehicleClickCounts[v.id] ?? 0) > 0)
+        .toList()
+      ..sort((a, b) {
+        final countA = _vehicleClickCounts[a.id] ?? 0;
+        final countB = _vehicleClickCounts[b.id] ?? 0;
+        return countB.compareTo(countA);
+      });
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Vos statistiques",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: statsCards.map((card) {
+                return Container(
+                  width: 190,
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        (card["color"] as Color).withOpacity(0.15),
+                        Colors.white,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: (card["color"] as Color).withOpacity(0.3),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (card["color"] as Color).withOpacity(0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        card["icon"] as IconData,
+                        color: card["color"] as Color,
+                        size: 28,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        card["label"] as String,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: (card["color"] as Color).withOpacity(0.9),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "${card["value"]}",
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        card["description"] as String,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (topVehicles.isNotEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Top véhicules cliqués",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...topVehicles.take(3).map((vehicle) {
+                  final clicks = _vehicleClickCounts[vehicle.id] ?? 0;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundImage: vehicle.images.isNotEmpty
+                              ? NetworkImage(vehicle.images.first)
+                              : null,
+                          backgroundColor: Colors.grey.shade200,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                vehicle.titre,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "${vehicle.marque} | ${vehicle.modele}",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEF2FF),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            "$clicks clic(s)",
+                            style: const TextStyle(
+                              color: Color(0xFF536DFE),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            )
+          else
+            const Text(
+              "Vos clics apparaîtront ici dès que vos véhicules seront consultés.",
+              style: TextStyle(fontSize: 12, color: Color(0xFF795548)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Section Localisation (visible pour rôles non-vendeurs)
   Widget _buildLocalisationSection() {
-    List<Map<String, dynamic>> modeles = [
-      {
-        "name": "Benin",
-        "image": "assets/images/benin.png",
-        "logoW": 50.0,
-        "logoH": 30.0,
-      },
-      {
-        "name": "Mali",
-        "image": "assets/images/mali.png",
-        "logoW": 50.0,
-        "logoH": 30.0,
-      },
-      {
-        "name": "Niger",
-        "image": "assets/images/niger.png",
-        "logoW": 50.0,
-        "logoH": 30.0,
-      },
-      {
-        "name": "Burkina-Faso",
-        "image": "assets/images/burkina.png",
-        "logoW": 50.0,
-        "logoH": 30.0,
-      },
-      {
-        "name": "Côte d'Ivoire",
-        "image": "assets/images/ci.webp",
-        "logoW": 50.0,
-        "logoH": 30.0,
-      },
-      {
-        "name": "Sénégal",
-        "image": "assets/images/senegal.png",
-        "logoW": 50.0,
-        "logoH": 30.0,
-      },
-      {
-        "name": "Togo",
-        "image": "assets/images/togo.webp",
-        "logoW": 50.0,
-        "logoH": 30.0,
-      },
-      {
-        "name": "Ghana",
-        "image": "assets/images/ghana.png",
-        "logoW": 50.0,
-        "logoH": 30.0,
-      },
-      {
-        "name": "Nigéria",
-        "image": "assets/images/nigeria.png",
-        "logoW": 50.0,
-        "logoH": 30.0,
-      },
-      {
-        "name": "Maroc",
-        "image": "assets/images/maroc.png",
-        "logoW": 50.0,
-        "logoH": 30.0,
-      },
+    final List<Map<String, dynamic>> zones = [
+      {"name": "Bénin", "image": "assets/images/benin.png"},
+      {"name": "Mali", "image": "assets/images/mali.png"},
+      {"name": "Niger", "image": "assets/images/niger.png"},
+      {"name": "Burkina-Faso", "image": "assets/images/burkina.png"},
+      {"name": "Côte d'Ivoire", "image": "assets/images/ci.webp"},
+      {"name": "Sénégal", "image": "assets/images/senegal.png"},
+      {"name": "Togo", "image": "assets/images/togo.webp"},
+      {"name": "Ghana", "image": "assets/images/ghana.png"},
+      {"name": "Nigéria", "image": "assets/images/nigeria.png"},
+      {"name": "Maroc", "image": "assets/images/maroc.png"},
     ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SizedBox(
-        height: 90 + 16,
+        height: 106,
         child: GridView.builder(
           scrollDirection: Axis.horizontal,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -2778,9 +3023,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             mainAxisSpacing: 8,
             mainAxisExtent: 120,
           ),
-          itemCount: modeles.length,
+          itemCount: zones.length,
           itemBuilder: (context, index) {
-            final item = modeles[index];
+            final item = zones[index];
             return GestureDetector(
               onTap: () {
                 setState(() {
@@ -2820,6 +3065,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     );
   }
 
+  // Section Budget (visible pour rôles non-vendeurs)
   Widget _buildBudgetSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -2827,8 +3073,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         width: double.infinity,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0A66FF),
-            foregroundColor: Colors.white,
+            backgroundColor: const Color(0xFFF8BF13), // Jaune unifié plus doux
+            foregroundColor: const Color(0xFF000000),
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -2842,26 +3088,28 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   }
 
   void _openBudgetSheet() {
-    final prices =
-        voituresRecommandees
-            .map(
-              (v) => double.tryParse(v.prix.replaceAll(RegExp(r'[^0-9.]'), '')),
-            )
-            .whereType<double>()
-            .toList()
-          ..sort();
-    final double minPrice = prices.isNotEmpty ? prices.first : 0;
-    final double maxPrice = prices.isNotEmpty ? prices.last : 200000;
-    double currentMin = minPrice;
-    double currentMax = maxPrice;
+    // Construire la liste des prix à partir des voitures en ligne
+    final List<double> prixList = voituresRecommandees
+        .where((v) => (v.statut ?? 'en_ligne') == 'en_ligne')
+        .map((v) => double.tryParse(v.prix.replaceAll(RegExp(r'[^0-9.]'), '')))
+        .whereType<double>()
+        .toList()
+      ..sort();
+
+    final double minPrice = prixList.isNotEmpty ? prixList.first : 0;
+    final double maxPrice = prixList.isNotEmpty ? prixList.last : 200000;
+    double currentMin = _budgetMin ?? minPrice;
+    double currentMax = _budgetMax ?? maxPrice;
+
     final minCtl = TextEditingController(text: currentMin.toStringAsFixed(0));
     final maxCtl = TextEditingController(text: currentMax.toStringAsFixed(0));
 
-    int countInRange(double a, double b) {
+    int compterDansIntervalle(double a, double b) {
       return voituresRecommandees.where((v) {
         final p = double.tryParse(v.prix.replaceAll(RegExp(r'[^0-9.]'), ''));
         if (p == null) return false;
-        return p >= a && p <= b && (v.statut ?? 'en_ligne') == 'en_ligne';
+        final enLigne = (v.statut ?? 'en_ligne') == 'en_ligne';
+        return enLigne && p >= a && p <= b;
       }).length;
     }
 
@@ -2874,7 +3122,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final available = countInRange(currentMin, currentMax);
+            final disponibles = compterDansIntervalle(currentMin, currentMax);
             return Padding(
               padding: EdgeInsets.only(
                 left: 16,
@@ -2898,7 +3146,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     ),
                   ),
                   const Text(
-                    'Price (USD)',
+                    'Prix (FCFA)',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
@@ -2970,7 +3218,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                               maxCtl.text = currentMax.toStringAsFixed(0);
                             });
                           },
-                          child: const Text('Reset'),
+                          child: const Text('Réinitialiser'),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -2984,10 +3232,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0A66FF),
-                            foregroundColor: Colors.white,
+                            backgroundColor: const Color(
+                                0xFFF8BF13), // Jaune unifié plus doux
+                            foregroundColor: const Color(0xFF000000),
                           ),
-                          child: Text('Show $available cars'),
+                          child: Text('Afficher $disponibles véhicule(s)'),
                         ),
                       ),
                     ],

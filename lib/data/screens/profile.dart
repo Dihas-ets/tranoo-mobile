@@ -88,15 +88,17 @@ class _ProfileState extends State<Profile> {
 
   // Fonction pour choisir une image depuis la galerie et upload Cloudinary
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
       });
       // Upload Cloudinary
-      final url = await uploadImageToCloudinary(_image!);
+      final url = await uploadImageToCloudinary(
+        _image!,
+        folder: CloudinaryFolders.profiles,
+      );
       if (url != null) {
         await _uploadPhotoUrl(url);
       }
@@ -228,19 +230,23 @@ class _ProfileState extends State<Profile> {
                           children: [
                             CircleAvatar(
                               radius: 60,
+                              backgroundColor: Colors.grey[300],
                               backgroundImage:
                                   _image != null
-                                      ? FileImage(_image!)
+                                      ? FileImage(_image!) as ImageProvider
                                       : (userData != null &&
                                           userData!["photo"] != null &&
                                           userData!["photo"]
                                               .toString()
                                               .isNotEmpty)
-                                      ? NetworkImage(userData!["photo"])
-                                      : const AssetImage(
-                                            "assets/images/jenifer.jpg",
-                                          )
-                                          as ImageProvider,
+                                      ? NetworkImage(userData!["photo"].toString()) as ImageProvider
+                                      : null,
+                              child: (_image == null && 
+                                      (userData == null || 
+                                       userData!["photo"] == null || 
+                                       userData!["photo"].toString().isEmpty))
+                                  ? Icon(Icons.person, size: 60, color: Colors.grey[600])
+                                  : null,
                             ),
                             Positioned(
                               bottom: 0,

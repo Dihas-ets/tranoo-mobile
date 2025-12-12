@@ -9,7 +9,6 @@ import 'package:image_picker/image_picker.dart';
 // import 'package:permission_handler/permission_handler.dart';
 import 'package:tranoo/data/screens/paymentscreen.dart';
 
-import 'mobilemoneypaymentscreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -21,7 +20,7 @@ class Une extends StatefulWidget {
   final String? articleId; // ID de l'article existant (optionnel)
   final String? articleType; // 'voiture' ou 'piece' (optionnel)
   final bool
-  isStandalone; // Nouveau: true pour pub standalone, false pour pub d'article existant
+      isStandalone; // Nouveau: true pour pub standalone, false pour pub d'article existant
 
   // Paramètres pour pré-remplir les champs quand l'article n'est pas encore créé
   final String? articleTitle;
@@ -65,6 +64,7 @@ class _UneState extends State<Une> {
   String? _selectedDuree;
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _prixController = TextEditingController();
+  final TextEditingController _linkController = TextEditingController();
 
   // Contrôleurs pour les informations de voiture
   final TextEditingController _carNameController = TextEditingController();
@@ -88,6 +88,7 @@ class _UneState extends State<Une> {
   File? _uploadedVideo;
   String? _cloudinaryVideoUrl;
   bool _isUploadingVideo = false;
+  double _videoUploadProgress = 0.0; // Progression de l'upload vidéo
 
   final List<String> voitures = ['Sponsorisée', 'À la une'];
   final List<String> moyensPaiement = ['Paiement bancaire', 'Mobile Money'];
@@ -117,6 +118,15 @@ class _UneState extends State<Une> {
 
   final ImagePicker picker = ImagePicker();
 
+  bool get _isPieceArticle =>
+      (widget.articleType ?? '').toLowerCase() == 'piece';
+  String get _imageFolder => _isPieceArticle
+      ? CloudinaryFolders.pieceImages
+      : CloudinaryFolders.vehicleImages;
+  String get _videoFolder => _isPieceArticle
+      ? CloudinaryFolders.pieceVideos
+      : CloudinaryFolders.vehicleVideos;
+
   bool _isLoading = false;
   String? _createdPubId;
   bool _isLoadingArticle = false;
@@ -129,6 +139,10 @@ class _UneState extends State<Une> {
   void initState() {
     super.initState();
     _loadPrixConfig(); // Charger les prix depuis le backend
+    if (widget.isStandalone) {
+      _selectedVoiture = 'À la une';
+      _descriptionController.text = 'Publicité À la une (flyer vitrine Tranoo)';
+    }
     // Si on a un articleId, charger ses infos
     if (widget.articleId != null) {
       _loadArticleInfo();
@@ -144,24 +158,37 @@ class _UneState extends State<Une> {
       _carCompanyController.text =
           widget.articleCompany ?? 'Nom de l\'entreprise';
       _carModelController.text = widget.articleModel ?? 'Marque';
-      _selectedCarModel =
-          _carModels.contains(widget.articleModel)
-              ? widget.articleModel
-              : 'Modèle1';
-      _selectedCarFuelType =
-          _carFuelTypes.contains(widget.articleFuelType)
-              ? widget.articleFuelType
-              : 'Essence';
-      _selectedCarType =
-          _carTypes.contains(widget.articlePieceType)
-              ? widget.articlePieceType
-              : 'Nouveau';
+      _selectedCarModel = _carModels.contains(widget.articleModel)
+          ? widget.articleModel
+          : 'Modèle1';
+      _selectedCarFuelType = _carFuelTypes.contains(widget.articleFuelType)
+          ? widget.articleFuelType
+          : 'Essence';
+      _selectedCarType = _carTypes.contains(widget.articlePieceType)
+          ? widget.articlePieceType
+          : 'Nouveau';
 
       // Charger les images si fournies
       if (widget.articleImages != null && widget.articleImages!.isNotEmpty) {
         _cloudinaryImageUrls = List<String>.from(widget.articleImages!);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    _prixController.dispose();
+    _carNameController.dispose();
+    _carYearController.dispose();
+    _carLocationController.dispose();
+    _carPriceController.dispose();
+    _carDescriptionController.dispose();
+    _carCompanyController.dispose();
+    _carFuelTypeController.dispose();
+    _carModelController.dispose();
+    _linkController.dispose();
+    super.dispose();
   }
 
   // Méthode pour créer un article et récupérer son ID
@@ -278,18 +305,16 @@ class _UneState extends State<Une> {
           _carDescriptionController.text = articleData['description'] ?? '';
           _carCompanyController.text = articleData['entreprise'] ?? '';
           _carModelController.text = articleData['marque'] ?? '';
-          _selectedCarModel =
-              _carModels.contains(articleData['modele'])
-                  ? articleData['modele']
-                  : 'Modèle1';
+          _selectedCarModel = _carModels.contains(articleData['modele'])
+              ? articleData['modele']
+              : 'Modèle1';
           _selectedCarFuelType =
               _carFuelTypes.contains(articleData['carburant'])
                   ? articleData['carburant']
                   : 'Essence';
-          _selectedCarType =
-              _carTypes.contains(articleData['condition'])
-                  ? articleData['condition']
-                  : 'Nouveau';
+          _selectedCarType = _carTypes.contains(articleData['condition'])
+              ? articleData['condition']
+              : 'Nouveau';
 
           // Charger les images existantes
           if (articleData['photos'] != null) {
@@ -302,18 +327,16 @@ class _UneState extends State<Une> {
           _carPriceController.text = articleData['prix']?.toString() ?? '';
           _carDescriptionController.text = articleData['description'] ?? '';
           _carCompanyController.text = articleData['entreprise'] ?? '';
-          _selectedCarModel =
-              _carModels.contains(articleData['modele'])
-                  ? articleData['modele']
-                  : 'Modèle1';
+          _selectedCarModel = _carModels.contains(articleData['modele'])
+              ? articleData['modele']
+              : 'Modèle1';
           _selectedCarFuelType =
               _carFuelTypes.contains(articleData['typeMoteur'])
                   ? articleData['typeMoteur']
                   : 'Essence';
-          _selectedCarType =
-              _carTypes.contains(articleData['pieceType'])
-                  ? articleData['pieceType']
-                  : 'Nouveau';
+          _selectedCarType = _carTypes.contains(articleData['pieceType'])
+              ? articleData['pieceType']
+              : 'Nouveau';
 
           // Charger les images existantes
           if (articleData['photos'] != null) {
@@ -359,6 +382,7 @@ class _UneState extends State<Une> {
         if (url != null) {
           setState(() {
             _cloudinaryImageUrls[index] = url;
+            _uploadedImagesWeb[index] = null;
           });
         }
         setState(() {
@@ -369,10 +393,17 @@ class _UneState extends State<Une> {
           _uploadedImages[index] = File(image.path);
           _isUploadingImage[index] = true;
         });
-        final url = await uploadImageToCloudinary(_uploadedImages[index]!);
+        final currentFile = _uploadedImages[index];
+        final url = currentFile != null
+            ? await uploadImageToCloudinary(
+                currentFile,
+                folder: _imageFolder,
+              )
+            : null;
         if (url != null) {
           setState(() {
             _cloudinaryImageUrls[index] = url;
+            _uploadedImages[index] = null;
           });
         }
         setState(() {
@@ -402,14 +433,15 @@ class _UneState extends State<Une> {
     final ImagePicker picker = ImagePicker();
     final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
     if (video != null) {
-      // Vérification de la taille (20 Mo max)
-      final int maxSizeBytes = 20 * 1024 * 1024; // 20 Mo
+      // Vérification de la taille (500 Mo max)
+      final int maxSizeBytes = 500 * 1024 * 1024; // 500 Mo
       final int videoSize = await video.length();
+      final double videoSizeMB = videoSize / (1024 * 1024);
       if (videoSize > maxSizeBytes) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'La vidéo est trop lourde (max 20 Mo). Veuillez choisir une vidéo plus courte.',
+              'La vidéo est trop lourde (${videoSizeMB.toStringAsFixed(2)} Mo). Limite: 500 Mo.',
             ),
             backgroundColor: Colors.red,
           ),
@@ -419,15 +451,29 @@ class _UneState extends State<Une> {
       setState(() {
         _uploadedVideo = File(video.path);
         _isUploadingVideo = true;
+        _videoUploadProgress = 0.0;
       });
-      final url = await uploadVideoToCloudinary(_uploadedVideo!);
+      final currentVideo = _uploadedVideo;
+      final url = currentVideo != null
+          ? await uploadVideoToCloudinary(
+              currentVideo,
+              folder: _videoFolder,
+              onProgress: (progress) {
+                setState(() {
+                  _videoUploadProgress = progress;
+                });
+              },
+            )
+          : null;
       if (url != null) {
         setState(() {
           _cloudinaryVideoUrl = url;
+          _uploadedVideo = null;
         });
       }
       setState(() {
         _isUploadingVideo = false;
+        _videoUploadProgress = 0.0;
       });
     }
   }
@@ -439,20 +485,32 @@ class _UneState extends State<Une> {
         (index) => true,
       );
       _isUploadingVideo = true;
+      _videoUploadProgress = 0.0;
     });
 
     try {
       _cloudinaryImageUrls.clear();
       for (int i = 0; i < _uploadedImages.length; i++) {
         if (_uploadedImages[i] != null) {
-          final url = await uploadImageToCloudinary(_uploadedImages[i]!);
+          final url = await uploadImageToCloudinary(
+            _uploadedImages[i]!,
+            folder: _imageFolder,
+          );
           if (url != null) {
             _cloudinaryImageUrls[i] = url;
           }
         }
       }
       if (_uploadedVideo != null) {
-        final url = await uploadVideoToCloudinary(_uploadedVideo!);
+        final url = await uploadVideoToCloudinary(
+          _uploadedVideo!,
+          folder: _videoFolder,
+          onProgress: (progress) {
+            setState(() {
+              _videoUploadProgress = progress;
+            });
+          },
+        );
         if (url != null) {
           _cloudinaryVideoUrl = url;
         }
@@ -485,11 +543,10 @@ class _UneState extends State<Une> {
   // Méthode pour upload web (comme dans create_sell.dart)
   Future<String?> uploadImageToCloudinaryWeb(Uint8List bytes) async {
     try {
-      // Utiliser la même logique que uploadImageToCloudinary mais pour les bytes
-      final url = await uploadImageToCloudinary(
-        File('temp.jpg'),
-      ); // Placeholder
-      return url;
+      return await uploadImageToCloudinary(
+        bytes,
+        folder: _imageFolder,
+      );
     } catch (e) {
       log('[DEBUG] Erreur upload web: $e');
       return null;
@@ -512,16 +569,23 @@ class _UneState extends State<Une> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final prixSponsorisee =
+            (data['prixSponsoriseeParJour'] ?? 1000.0).toDouble();
+        final prixALaUne = (data['prixALaUneParJour'] ?? 2000.0).toDouble();
+
+        log('[DEBUG] Données brutes reçues: ${data.toString()}');
+        log('[DEBUG] prixSponsoriseeParJour brut: ${data['prixSponsoriseeParJour']}');
+        log('[DEBUG] prixALaUneParJour brut: ${data['prixALaUneParJour']}');
+
         setState(() {
-          _prixSponsoriseeParJour =
-              (data['prixSponsoriseeParJour'] ?? 1000.0).toDouble();
-          _prixALaUneParJour = (data['prixALaUneParJour'] ?? 2000.0).toDouble();
+          _prixSponsoriseeParJour = prixSponsorisee;
+          _prixALaUneParJour = prixALaUne;
         });
         log(
           '[DEBUG] Prix chargés: Sponsorisée $_prixSponsoriseeParJour, À la une $_prixALaUneParJour FCFA/jour',
         );
       } else {
-        log('[DEBUG] Erreur HTTP: ${response.statusCode}');
+        log('[DEBUG] Erreur HTTP: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       log('[DEBUG] Erreur chargement prix: $e');
@@ -551,14 +615,19 @@ class _UneState extends State<Une> {
   // Récupérer le prix par jour selon le type de pub
   double _getPrixParJour(String? typePub) {
     if (typePub == null) return 0.0;
+    double prix = 0.0;
     switch (typePub) {
       case 'Sponsorisée':
-        return _prixSponsoriseeParJour;
+        prix = _prixSponsoriseeParJour;
+        break;
       case 'À la une':
-        return _prixALaUneParJour;
+        prix = _prixALaUneParJour;
+        break;
       default:
-        return 0.0;
+        prix = 0.0;
     }
+    log('[DEBUG] _getPrixParJour: type=$typePub, prix=$prix, _prixSponsoriseeParJour=$_prixSponsoriseeParJour, _prixALaUneParJour=$_prixALaUneParJour');
+    return prix;
   }
 
   // Mettre à jour le prix selon la durée et le type
@@ -579,11 +648,12 @@ class _UneState extends State<Une> {
         );
       } else {
         // Afficher juste le prix par jour quand seul le type est sélectionné
+        final prixFormate = prixParJour.round();
         setState(() {
-          _prixController.text = '${prixParJour.round()}/jour';
+          _prixController.text = '$prixFormate/jour';
         });
 
-        log('[DEBUG] Prix par jour: $prixParJour FCFA');
+        log('[DEBUG] Prix par jour: $prixParJour FCFA (formaté: $prixFormate)');
       }
     } else {
       setState(() {
@@ -617,32 +687,14 @@ class _UneState extends State<Une> {
     return prix.toString();
   }
 
-  Map<String, dynamic> _buildPubData() {
-    final pubImages = _cloudinaryImageUrls.whereType<String>().toList();
-
-    return {
-      'titre': _carNameController.text.trim(),
-      'annee': _carYearController.text.trim(),
-      'description': _carDescriptionController.text.trim(),
-      'entreprise': _carCompanyController.text.trim(),
-      'localisation': _carLocationController.text.trim(),
-      'prix': _carPriceController.text.trim(),
-      'typeMoteur': _selectedCarFuelType,
-      'modele': _selectedCarModel,
-      'pieceType': _selectedCarType,
-      'photos': pubImages,
-      'video': _cloudinaryVideoUrl,
-      'duree': _selectedDuree,
-      'type': widget.articleType ?? 'voiture',
-    };
-  }
-
   Future<void> _onPayer() async {
     debugPrint('🚀 [DEBUG] Début _onPayer - articleId: ${widget.articleId}');
     log('🚀 [DEBUG] Début _onPayer - articleId: ${widget.articleId}');
 
+    final currentType =
+        _selectedVoiture ?? (widget.isStandalone ? 'À la une' : null);
     if (!_formKey.currentState!.validate() ||
-        _selectedVoiture == null ||
+        currentType == null ||
         _selectedDuree == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Veuillez remplir tous les champs.')),
@@ -650,8 +702,12 @@ class _UneState extends State<Une> {
       return;
     }
 
+    _selectedVoiture = currentType;
+
     // Vérification stricte : au moins une image doit être présente
     final pubImages = _cloudinaryImageUrls.whereType<String>().toList();
+    final lienValue = _linkController.text.trim();
+    final lien = lienValue.isEmpty ? null : lienValue;
     if (pubImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -662,7 +718,10 @@ class _UneState extends State<Une> {
     }
 
     // Validation spécifique pour les annonces sponsorisées
-    if (_selectedVoiture == 'Sponsorisée') {
+    final bool isSponsorisee = currentType == 'Sponsorisée';
+    final bool isALaUne = currentType == 'À la une';
+
+    if (isSponsorisee) {
       if (_isAnyUploading) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -690,7 +749,7 @@ class _UneState extends State<Une> {
     }
 
     // Validation pour "À la une" - image principale obligatoire
-    if (_selectedVoiture == 'À la une') {
+    if (isALaUne) {
       if (_cloudinaryImageUrls[0] == null || _cloudinaryImageUrls[0]!.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -722,7 +781,7 @@ class _UneState extends State<Une> {
         // Préparation des données de publicité pour standalone
         final pubData = {
           'description': _descriptionController.text.trim(),
-          'typePub': _selectedVoiture,
+          'typePub': currentType,
           'duree': _selectedDuree,
           'prix': int.tryParse(_prixController.text) ?? 0,
           'moyenPaiement': 'Paiement bancaire',
@@ -743,6 +802,7 @@ class _UneState extends State<Une> {
           'pieceType': _selectedCarType,
           'video': _cloudinaryVideoUrl,
           'type': widget.articleType ?? 'voiture',
+          'lien': lien,
         };
 
         // Créer la publicité standalone
@@ -823,24 +883,48 @@ class _UneState extends State<Une> {
           return;
         }
       } else {
-        log('⚠️ [DEBUG] Aucun articleId fourni - widget.articleId est null');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Cet article n\'existe pas, veuillez le créer et après validation par l\'admin vous pourrez le mettre en avant.',
+        // Pour les pubs "Sponsorisée", créer automatiquement l'article
+        if (_selectedVoiture == 'Sponsorisée') {
+          log('📝 [DEBUG] Création automatique d\'article pour pub Sponsorisée');
+          articleIdToUse = await _createArticle();
+
+          if (articleIdToUse == null) {
+            log('❌ [DEBUG] Échec de la création de l\'article');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Erreur lors de la création de l\'article. Veuillez réessayer.',
+                ),
+              ),
+            );
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
+
+          log('✅ [DEBUG] Article créé avec succès: $articleIdToUse');
+        } else {
+          // Pour les autres types de pub, nécessiter un article existant
+          log('⚠️ [DEBUG] Aucun articleId fourni et type de pub non-Sponsorisée');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Cet article n\'existe pas. Pour les pubs "À la une", veuillez d\'abord créer l\'article et après validation par l\'admin vous pourrez le mettre en avant.',
+              ),
             ),
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-        return;
+          );
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
       }
 
       // Préparation des données de publicité
       final pubData = {
         'description': _descriptionController.text.trim(),
-        'typePub': _selectedVoiture,
+        'typePub': currentType,
         'duree': _selectedDuree,
         'prix': int.tryParse(_prixController.text) ?? 0,
         'moyenPaiement': 'Paiement bancaire',
@@ -848,6 +932,7 @@ class _UneState extends State<Une> {
         'statut': 'en_attente',
         'vendeur': user?.uid,
         'articleId': articleIdToUse, // Utiliser l'article existant ou créé
+        'lien': lien,
       };
 
       // Créer la publicité
@@ -993,16 +1078,14 @@ class _UneState extends State<Une> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color:
-                            widget.isStandalone
-                                ? Colors.orange.shade50
-                                : Colors.blue.shade50,
+                        color: widget.isStandalone
+                            ? Colors.orange.shade50
+                            : Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color:
-                              widget.isStandalone
-                                  ? Colors.orange.shade200
-                                  : Colors.blue.shade200,
+                          color: widget.isStandalone
+                              ? Colors.orange.shade200
+                              : Colors.blue.shade200,
                         ),
                       ),
                       child: Column(
@@ -1014,10 +1097,9 @@ class _UneState extends State<Une> {
                                 widget.isStandalone
                                     ? Icons.campaign
                                     : Icons.article,
-                                color:
-                                    widget.isStandalone
-                                        ? Colors.orange.shade700
-                                        : Colors.blue.shade700,
+                                color: widget.isStandalone
+                                    ? Colors.orange.shade700
+                                    : Colors.blue.shade700,
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
@@ -1027,10 +1109,9 @@ class _UneState extends State<Une> {
                                     : 'Publicité d\'article existant',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color:
-                                      widget.isStandalone
-                                          ? Colors.orange.shade700
-                                          : Colors.blue.shade700,
+                                  color: widget.isStandalone
+                                      ? Colors.orange.shade700
+                                      : Colors.blue.shade700,
                                 ),
                               ),
                             ],
@@ -1038,12 +1119,15 @@ class _UneState extends State<Une> {
                           const SizedBox(height: 8),
                           Text(
                             widget.isStandalone
-                                ? 'Vous créez une publicité sans article associé. Les utilisateurs pourront cliquer pour voir les détails de votre offre.'
-                                : 'Vous créez une publicité pour un article existant. Les utilisateurs pourront cliquer pour voir l\'article complet.',
+                                ? 'Publicité À la une indépendante. Téléchargez un flyer (1080 x 1350 px recommandé) et ajoutez un lien optionnel vers votre site ou votre catalogue.'
+                                : widget.articleId == null
+                                    ? 'Publication non existante. Vous créez une publication non existante. Les utilisateurs pourront cliquer pour voir les détails de votre offre.'
+                                    : 'Vous créez une publicité pour un article existant. Les utilisateurs pourront cliquer pour voir l\'article complet.',
                             style: TextStyle(
                               fontSize: 14,
-                              color:
-                                  widget.isStandalone
+                              color: widget.isStandalone
+                                  ? Colors.orange.shade600
+                                  : widget.articleId == null
                                       ? Colors.orange.shade600
                                       : Colors.blue.shade600,
                             ),
@@ -1133,89 +1217,143 @@ class _UneState extends State<Une> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
+
+                    if (widget.isStandalone ||
+                        (_selectedVoiture == 'À la une')) ...[
+                      TextFormField(
+                        controller: _linkController,
+                        keyboardType: TextInputType.url,
+                        decoration: const InputDecoration(
+                          labelText: 'Lien cliquable (optionnel)',
+                          hintText:
+                              'Ex: https://wa.me/2250700000000 ou https://mon-site.com',
+                          helperText:
+                              'Permettre aux utilisateurs d\'ouvrir votre site, catalogue ou formulaire de paiement.',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ] else
+                      const SizedBox(height: 10),
 
                     // Type de publicité
-                    DropdownButtonFormField<String>(
-                      value: _selectedVoiture,
-                      items:
-                          voitures
-                              .map(
-                                (voiture) => DropdownMenuItem(
-                                  value: voiture,
-                                  child: Text(voiture),
-                                ),
-                              )
-                              .toList(),
-                      decoration: const InputDecoration(
-                        labelText: 'Type de publicité',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null) {
-                          return 'Veuillez sélectionner un type';
-                        }
-                        return null;
-                      },
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedVoiture = value;
-                          _updatePrix(); // Calculer le prix dynamiquement
-                          // Met à jour le prix selon le type de pub
-                          if (value == 'Sponsorisée') {
-                            // Pré-remplir les champs si pas d'article existant
-                            if (widget.articleId == null) {
-                              // Utiliser les paramètres passés ou des valeurs par défaut
-                              _carNameController.text =
-                                  widget.articleTitle ?? 'Nom de la voiture';
-                              _carYearController.text =
-                                  widget.articleYear ??
-                                  DateTime.now().year.toString();
-                              _carLocationController.text =
-                                  widget.articleLocation ?? 'Localisation';
-                              _carPriceController.text =
-                                  widget.articlePrice ?? 'Prix';
-                              _carDescriptionController.text =
-                                  widget.articleDescription ??
-                                  'Description de la voiture';
-                              _carCompanyController.text =
-                                  widget.articleCompany ??
-                                  'Nom de l\'entreprise';
-                              _carModelController.text =
-                                  widget.articleModel ?? 'Marque';
-                              _selectedCarModel =
-                                  widget.articleModel ?? 'Modèle1';
-                              _selectedCarFuelType =
-                                  widget.articleFuelType ?? 'Essence';
-                              _selectedCarType =
-                                  widget.articlePieceType ?? 'Nouveau';
+                    if (!widget.isStandalone) ...[
+                      DropdownButtonFormField<String>(
+                        value: _selectedVoiture,
+                        items: voitures
+                            .map(
+                              (voiture) => DropdownMenuItem(
+                                value: voiture,
+                                child: Text(voiture),
+                              ),
+                            )
+                            .toList(),
+                        decoration: const InputDecoration(
+                          labelText: 'Type de publicité',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Veuillez sélectionner un type';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedVoiture = value;
+                            _updatePrix(); // Calculer le prix dynamiquement
+                            // Met à jour le prix selon le type de pub
+                            if (value == 'Sponsorisée') {
+                              // Pré-remplir les champs si pas d'article existant
+                              if (widget.articleId == null) {
+                                // Utiliser les paramètres passés ou des valeurs par défaut
+                                _carNameController.text =
+                                    widget.articleTitle ?? 'Nom de la voiture';
+                                _carYearController.text = widget.articleYear ??
+                                    DateTime.now().year.toString();
+                                _carLocationController.text =
+                                    widget.articleLocation ?? 'Localisation';
+                                _carPriceController.text =
+                                    widget.articlePrice ?? 'Prix';
+                                _carDescriptionController.text =
+                                    widget.articleDescription ??
+                                        'Description de la voiture';
+                                _carCompanyController.text =
+                                    widget.articleCompany ??
+                                        'Nom de l\'entreprise';
+                                _carModelController.text =
+                                    widget.articleModel ?? 'Marque';
+                                _selectedCarModel =
+                                    widget.articleModel ?? 'Modèle1';
+                                _selectedCarFuelType =
+                                    widget.articleFuelType ?? 'Essence';
+                                _selectedCarType =
+                                    widget.articlePieceType ?? 'Nouveau';
 
-                              // Charger les images si fournies
-                              if (widget.articleImages != null &&
-                                  widget.articleImages!.isNotEmpty) {
-                                _cloudinaryImageUrls = List<String>.from(
-                                  widget.articleImages!,
-                                );
+                                // Charger les images si fournies
+                                if (widget.articleImages != null &&
+                                    widget.articleImages!.isNotEmpty) {
+                                  _cloudinaryImageUrls = List<String>.from(
+                                    widget.articleImages!,
+                                  );
+                                }
                               }
                             }
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 30),
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 30),
+                    ] else ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.local_fire_department,
+                                color: Colors.orange),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  Text(
+                                    'Publicité À la une',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Flyer dédié, pas besoin d\'article existant. Ajoutez simplement votre visuel et (optionnellement) un lien externe.',
+                                    style: TextStyle(fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                    ],
 
                     // Durée de la pub
                     DropdownButtonFormField<String>(
                       value: _selectedDuree,
-                      items:
-                          durees
-                              .map(
-                                (duree) => DropdownMenuItem(
-                                  value: duree,
-                                  child: Text(duree),
-                                ),
-                              )
-                              .toList(),
+                      items: durees
+                          .map(
+                            (duree) => DropdownMenuItem(
+                              value: duree,
+                              child: Text(duree),
+                            ),
+                          )
+                          .toList(),
                       decoration: const InputDecoration(
                         labelText: 'Durée de la publicité',
                         border: OutlineInputBorder(),
@@ -1369,15 +1507,14 @@ class _UneState extends State<Une> {
                       // Type moteur
                       DropdownButtonFormField<String>(
                         value: _selectedCarFuelType,
-                        items:
-                            _carFuelTypes
-                                .map(
-                                  (type) => DropdownMenuItem(
-                                    value: type,
-                                    child: Text(type),
-                                  ),
-                                )
-                                .toList(),
+                        items: _carFuelTypes
+                            .map(
+                              (type) => DropdownMenuItem(
+                                value: type,
+                                child: Text(type),
+                              ),
+                            )
+                            .toList(),
                         decoration: const InputDecoration(
                           labelText: 'Type de moteur',
                           border: OutlineInputBorder(),
@@ -1399,15 +1536,14 @@ class _UneState extends State<Une> {
                       // Modèle
                       DropdownButtonFormField<String>(
                         value: _selectedCarModel,
-                        items:
-                            _carModels
-                                .map(
-                                  (model) => DropdownMenuItem(
-                                    value: model,
-                                    child: Text(model),
-                                  ),
-                                )
-                                .toList(),
+                        items: _carModels
+                            .map(
+                              (model) => DropdownMenuItem(
+                                value: model,
+                                child: Text(model),
+                              ),
+                            )
+                            .toList(),
                         decoration: const InputDecoration(
                           labelText: 'Modèle',
                           border: OutlineInputBorder(),
@@ -1429,15 +1565,14 @@ class _UneState extends State<Une> {
                       // Type (Nouveau/Occasion)
                       DropdownButtonFormField<String>(
                         value: _selectedCarType,
-                        items:
-                            _carTypes
-                                .map(
-                                  (type) => DropdownMenuItem(
-                                    value: type,
-                                    child: Text(type),
-                                  ),
-                                )
-                                .toList(),
+                        items: _carTypes
+                            .map(
+                              (type) => DropdownMenuItem(
+                                value: type,
+                                child: Text(type),
+                              ),
+                            )
+                            .toList(),
                         decoration: const InputDecoration(
                           labelText: 'Type',
                           border: OutlineInputBorder(),
@@ -1463,17 +1598,25 @@ class _UneState extends State<Une> {
                         'Image principale (flyer)',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Dimensions recommandées : 1080 x 1350 px (PNG/JPG)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
                       const SizedBox(height: 10),
 
                       // Upload d'une seule image pour "À la une"
                       GestureDetector(
                         onTap: () => _pickImage(0),
                         child: Container(
-                          height: 150,
+                          height: 260,
                           width: double.infinity,
                           decoration: BoxDecoration(
                             color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.amber, width: 2),
                           ),
                           child: Stack(
@@ -1482,12 +1625,17 @@ class _UneState extends State<Une> {
                               if (_cloudinaryImageUrls[0] != null &&
                                   _cloudinaryImageUrls[0]!.isNotEmpty)
                                 ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    _cloudinaryImageUrls[0]!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    color: Colors.black,
+                                    child: Image.network(
+                                      _cloudinaryImageUrls[0]!,
+                                      fit: BoxFit.contain,
+                                      alignment: Alignment.center,
+                                      filterQuality: FilterQuality.high,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
                                   ),
                                 )
                               else
@@ -1506,6 +1654,27 @@ class _UneState extends State<Une> {
                                     ),
                                   ],
                                 ),
+                              Positioned(
+                                right: 12,
+                                top: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.65),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text(
+                                    '1080 x 1350 px',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
                               if (_isUploadingImage[0])
                                 const Positioned.fill(
                                   child: Center(
@@ -1516,7 +1685,7 @@ class _UneState extends State<Une> {
                                   _cloudinaryImageUrls[0]!.isNotEmpty)
                                 Positioned(
                                   right: 8,
-                                  top: 8,
+                                  bottom: 8,
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -1561,84 +1730,83 @@ class _UneState extends State<Une> {
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              crossAxisSpacing: 8,
-                              mainAxisSpacing: 8,
-                              childAspectRatio: 1,
-                            ),
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 1,
+                        ),
                         itemCount: 6, // Réduire à 6 images max
-                        itemBuilder:
-                            (context, index) => GestureDetector(
-                              onTap: () => _pickImage(index),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[200],
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.amber),
-                                ),
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    if (_cloudinaryImageUrls[index] != null &&
-                                        _cloudinaryImageUrls[index]!.isNotEmpty)
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(
-                                          _cloudinaryImageUrls[index]!,
-                                          fit: BoxFit.cover,
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                        ),
-                                      )
-                                    else
-                                      const Icon(
-                                        Icons.add_a_photo,
-                                        color: Colors.grey,
-                                      ),
-                                    if (_isUploadingImage[index])
-                                      const Positioned.fill(
-                                        child: Center(
-                                          child: CircularProgressIndicator(),
-                                        ),
-                                      ),
-                                    if (_cloudinaryImageUrls[index] != null &&
-                                        _cloudinaryImageUrls[index]!.isNotEmpty)
-                                      Positioned(
-                                        right: 4,
-                                        top: 4,
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                              Icons.check_circle,
-                                              color: Colors.green,
-                                              size: 16,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            GestureDetector(
-                                              onTap: () => _removeImage(index),
-                                              child: Container(
-                                                padding: const EdgeInsets.all(
-                                                  2,
-                                                ),
-                                                decoration: const BoxDecoration(
-                                                  color: Colors.red,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: const Icon(
-                                                  Icons.close,
-                                                  color: Colors.white,
-                                                  size: 12,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
+                        itemBuilder: (context, index) => GestureDetector(
+                          onTap: () => _pickImage(index),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber),
                             ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                if (_cloudinaryImageUrls[index] != null &&
+                                    _cloudinaryImageUrls[index]!.isNotEmpty)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      _cloudinaryImageUrls[index]!,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
+                                  )
+                                else
+                                  const Icon(
+                                    Icons.add_a_photo,
+                                    color: Colors.grey,
+                                  ),
+                                if (_isUploadingImage[index])
+                                  const Positioned.fill(
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                if (_cloudinaryImageUrls[index] != null &&
+                                    _cloudinaryImageUrls[index]!.isNotEmpty)
+                                  Positioned(
+                                    right: 4,
+                                    top: 4,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.green,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        GestureDetector(
+                                          onTap: () => _removeImage(index),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(
+                                              2,
+                                            ),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 16),
 
@@ -1647,6 +1815,7 @@ class _UneState extends State<Une> {
                         onTap: _pickVideo,
                         child: Container(
                           height: 80,
+                          clipBehavior: Clip.hardEdge,
                           decoration: BoxDecoration(
                             color: Colors.grey[200],
                             borderRadius: BorderRadius.circular(8),
@@ -1654,6 +1823,7 @@ class _UneState extends State<Une> {
                           ),
                           child: Stack(
                             alignment: Alignment.center,
+                            clipBehavior: Clip.hardEdge,
                             children: [
                               if (_uploadedVideo != null)
                                 const Icon(
@@ -1667,9 +1837,68 @@ class _UneState extends State<Une> {
                                   color: Colors.grey,
                                 ),
                               if (_isUploadingVideo)
-                                const Positioned.fill(
+                                Positioned.fill(
+                                  child: Container(
+                                    color: Colors.black54,
                                   child: Center(
-                                    child: CircularProgressIndicator(),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            width: 35,
+                                            height: 35,
+                                            child: CircularProgressIndicator(
+                                              value: _videoUploadProgress > 0 ? _videoUploadProgress : null,
+                                              color: Colors.blue,
+                                              backgroundColor: Colors.white24,
+                                              strokeWidth: 3,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            _videoUploadProgress < 0.85
+                                                ? 'Envoi...'
+                                                : 'Traitement...',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            '${(_videoUploadProgress * 100).toStringAsFixed(0)}%',
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 9,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 5),
+                                          // Barre de progression linéaire
+                                          Container(
+                                            width: 140,
+                                            height: 3,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white24,
+                                              borderRadius: BorderRadius.circular(2),
+                                            ),
+                                            child: FractionallySizedBox(
+                                              alignment: Alignment.centerLeft,
+                                              widthFactor: _videoUploadProgress,
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blue,
+                                                  borderRadius: BorderRadius.circular(2),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
                               if (_cloudinaryVideoUrl != null)
@@ -1723,15 +1952,14 @@ class _UneState extends State<Une> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child:
-                            _isLoading
-                                ? const CircularProgressIndicator(
-                                  color: Colors.black,
-                                )
-                                : const Text(
-                                  'Payer',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.black,
+                              )
+                            : const Text(
+                                'Payer',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                       ),
                     ),
                   ],

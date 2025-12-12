@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:tranoo/data/screens/paymentscreen.dart';
 
 class SuccesScreen5 extends StatelessWidget {
@@ -7,14 +6,6 @@ class SuccesScreen5 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Définir la barre d'état en noir avec des icônes blanches
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.black,
-        statusBarIconBrightness: Brightness.light,
-      ),
-    );
-
     return Scaffold(
       backgroundColor: Colors.white,
       extendBodyBehindAppBar: true,
@@ -94,9 +85,8 @@ class SuccesScreen5 extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) =>
-                                          PaymentScreen(pubId: "simulation"),
+                                  builder: (context) =>
+                                      PaymentScreen(pubId: "simulation"),
                                 ),
                               );
                             },

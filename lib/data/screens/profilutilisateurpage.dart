@@ -11,6 +11,7 @@ import 'package:tranoo/data/screens/create_sell2.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/cloudinary_upload.dart';
 
 void main() {
   runApp(const MyApp());
@@ -124,9 +125,8 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -138,24 +138,32 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
   Future<void> _uploadPhoto(File image) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final idToken = await user.getIdToken();
-    final String baseUrl = getBaseUrl();
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl,
-        headers: {'Authorization': 'Bearer $idToken'},
-      ),
-    );
-    FormData formData = FormData.fromMap({
-      "photo": await MultipartFile.fromFile(
-        image.path,
-        filename: "profile.jpg",
-      ),
-    });
-    final response = await dio.post('/users/photo', data: formData);
-    setState(() {
-      userData?["photo"] = response.data["photo"];
-    });
+
+    try {
+      // Upload vers Cloudinary avec le dossier profiles
+      final url = await uploadImageToCloudinary(
+        image,
+        folder: CloudinaryFolders.profiles,
+      );
+
+      if (url != null) {
+        // Mettre à jour via PATCH /users/me
+        final idToken = await user.getIdToken();
+        final String baseUrl = getBaseUrl();
+        final dio = Dio(
+          BaseOptions(
+            baseUrl: baseUrl,
+            headers: {'Authorization': 'Bearer $idToken'},
+          ),
+        );
+        await dio.patch('/users/me', data: {"photo": url});
+        setState(() {
+          userData?["photo"] = url;
+        });
+      }
+    } catch (e) {
+      print('Erreur upload photo: $e');
+    }
   }
 
   @override
@@ -200,17 +208,21 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
                         CircleAvatar(
                           radius: 30,
                           backgroundColor: Colors.grey[300],
-                          backgroundImage:
-                              _image != null
-                                  ? FileImage(_image!)
-                                  : (userData != null &&
+                          backgroundImage: _image != null
+                              ? FileImage(_image!) as ImageProvider
+                              : (userData != null &&
                                       userData!["photo"] != null &&
                                       userData!["photo"].toString().isNotEmpty)
-                                  ? NetworkImage(userData!["photo"])
-                                  : const AssetImage(
-                                        "assets/images/jenifer.jpg",
-                                      )
-                                      as ImageProvider,
+                                  ? NetworkImage(userData!["photo"].toString())
+                                      as ImageProvider
+                                  : null,
+                          child: (_image == null &&
+                                  (userData == null ||
+                                      userData!["photo"] == null ||
+                                      userData!["photo"].toString().isEmpty))
+                              ? Icon(Icons.person,
+                                  size: 30, color: Colors.grey[600])
+                              : null,
                         ),
                         Positioned(
                           bottom: 0,
@@ -278,13 +290,12 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
     return ListTile(
       leading: Icon(icon, color: color ?? Color(0xFFFFCE31)),
       title: Text(title, style: const TextStyle()),
-      subtitle:
-          subtitle != null
-              ? Text(
-                subtitle,
-                style: const TextStyle(color: Colors.grey, fontSize: 10),
-              )
-              : null,
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              style: const TextStyle(color: Colors.grey, fontSize: 10),
+            )
+          : null,
       trailing: trailing,
       onTap: onTap,
     );
@@ -321,7 +332,6 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
               );
             },
           ),
-
           _buildListTile(
             title: "Vendre ma pièce",
             subtitle: "Devenir titulaire et vendez avec nous",
@@ -336,22 +346,21 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
           _buildListTile(
             title: "Mon portefeuille",
             icon: Icons.account_balance_wallet,
-            trailing:
-                _walletLoading
-                    ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                    : Text(
-                      _walletBalance == null
-                          ? '--'
-                          : '${_walletCurrency} ${_walletBalance!.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                      ),
+            trailing: _walletLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    _walletBalance == null
+                        ? '--'
+                        : '${_walletCurrency} ${_walletBalance!.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange,
                     ),
+                  ),
             onTap: () {
               Navigator.push(
                 context,
@@ -440,15 +449,14 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
           ),
         ],
       ),
-      trailing:
-          trailing ??
+      trailing: trailing ??
           (badge
               ? const Icon(Icons.circle, size: 12, color: Colors.red)
               : const Icon(
-                Icons.arrow_forward_ios,
-                size: 14,
-                color: Colors.black,
-              )),
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: Colors.black,
+                )),
       onTap: onTap,
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../services/user_service.dart';
 import 'package:feexpay_flutter/feexpay_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -21,6 +23,38 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
   bool isLoading = false;
   String? errorMessage;
   final String transKey = randomAlphaNumeric(15);
+  double _prixMensuel =
+      5000.0; // Prix par défaut, sera chargé depuis le backend
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSubscriptionPricing();
+  }
+
+  Future<void> _loadSubscriptionPricing() async {
+    try {
+      final url =
+          '${UserService().dio.options.baseUrl}/admin/subscription-pricing';
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _prixMensuel = (data['prixMensuel'] ?? 5000.0).toDouble();
+          });
+        }
+      }
+    } catch (e) {
+      // Garder le prix par défaut en cas d'erreur
+      if (mounted) {
+        setState(() {
+          _prixMensuel = 5000.0;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,9 +181,9 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            '5 000 FCFA',
-                            style: TextStyle(
+                          Text(
+                            '${_prixMensuel.toInt()} FCFA',
+                            style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFFFFCC00),
@@ -299,7 +333,7 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
           builder: (context) => ChoicePage(
             token: fpToken,
             id: idUser,
-            amount: '5000',
+            amount: _prixMensuel.toInt().toString(),
             redirecturl: '/subscription-success',
             errorredirecturl: '/subscription-error',
             trans_key: transKey,

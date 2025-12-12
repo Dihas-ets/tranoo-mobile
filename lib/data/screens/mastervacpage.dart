@@ -16,6 +16,8 @@ import 'package:confetti/confetti.dart';
 import 'dart:developer';
 import 'une.dart'; // Import pour la page de demande de pub
 // import 'verification_payment.dart';
+import 'package:tranoo/widgets/video_preview_placeholder.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MastervacPage extends StatefulWidget {
   final String? id;
@@ -60,11 +62,6 @@ class _MastervacPageState extends State<MastervacPage> {
   late PageController _pageController;
   // SUPPRIME la liste statique _images
 
-  // Définition des booléens nécessaires
-  bool isNew = false;
-  bool is2023 = false;
-  bool isGarantieIncluse = false;
-  bool isLivraisonRapide = false;
   TextEditingController detailsController = TextEditingController();
   // Champs de livraison/lieu supprimés - gérés dans OrderSummaryPage
   late ConfettiController _confettiController;
@@ -193,46 +190,47 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Widget _buildImageSection() {
+    final hasImages = widget.images.isNotEmpty;
+    final hasVideo = widget.video != null && widget.video!.isNotEmpty;
+    
     return Stack(
       children: [
         SizedBox(
           height: 300,
           width: double.infinity,
-          child: PageView.builder(
+          child: hasImages
+              ? PageView.builder(
             controller: _pageController,
             itemCount: widget.images.length,
             onPageChanged: (i) => setState(() => _currentImageIndex = i),
             itemBuilder: (context, index) {
               final String img = widget.images[index] ?? '';
-              final Widget child =
-                  img.startsWith('http')
-                      ? Image.network(
-                        img,
-                        fit: BoxFit.cover,
-                        errorBuilder:
-                            (c, e, s) => Container(
-                              color: Colors.grey[300],
-                              child: const Center(
-                                child: Text('Image non disponible'),
-                              ),
+              final Widget child = img.startsWith('http')
+                  ? Image.network(
+                      img,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => Container(
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Text('Image non disponible'),
+                        ),
+                      ),
+                    )
+                  : (img.isNotEmpty
+                      ? Image.asset(
+                          img,
+                          fit: BoxFit.cover,
+                          errorBuilder: (c, e, s) => Container(
+                            color: Colors.grey[300],
+                            child: const Center(
+                              child: Text('Image non disponible'),
                             ),
-                      )
-                      : (img.isNotEmpty
-                          ? Image.asset(
-                            img,
-                            fit: BoxFit.cover,
-                            errorBuilder:
-                                (c, e, s) => Container(
-                                  color: Colors.grey[300],
-                                  child: const Center(
-                                    child: Text('Image non disponible'),
-                                  ),
-                                ),
-                          )
-                          : Image.asset(
-                            'assets/images/image_not_found.png',
-                            fit: BoxFit.cover,
-                          ));
+                          ),
+                        )
+                      : Image.asset(
+                          'assets/images/image_not_found.png',
+                          fit: BoxFit.cover,
+                        ));
               return GestureDetector(
                 onTap: () => _openImageViewer(index),
                 child: ClipRect(
@@ -244,9 +242,83 @@ class _MastervacPageState extends State<MastervacPage> {
                 ),
               );
             },
+                )
+              : hasVideo
+                  ? VideoPreviewPlaceholder(
+                      videoUrl: widget.video,
+                      iconSize: 60,
+                    )
+                  : Container(
+                      color: Colors.grey[300],
+                      child: const Center(
+                        child: Icon(Icons.image_not_supported, size: 80),
+                      ),
+                    ),
+        ),
+        // Icônes verticales (droite)
+        Positioned(
+          right: 16,
+          top: 16,
+          child: Column(
+            children: [
+              // WhatsApp
+              GestureDetector(
+                onTap: () async {
+                  final url = 'https://wa.me/22941839801';
+                  final uri = Uri.parse(url);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Impossible d\'ouvrir WhatsApp')),
+                    );
+                  }
+                },
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white,
+                  child: Image.asset(
+                    'assets/images/whatsapp_icon.png',
+                    width: 22,
+                    height: 22,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.chat_bubble_outline,
+                      color: Color(0xFF25D366),
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Appel téléphonique
+              GestureDetector(
+                onTap: () async {
+                  final url = 'tel:+2290141839801';
+                  final uri = Uri.parse(url);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri);
+                  } else {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Impossible de passer un appel')),
+                    );
+                  }
+                },
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white,
+                  child: const Icon(
+                    Icons.phone,
+                    color: Colors.green,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        if (widget.images.length > 1)
+        if (hasImages && widget.images.length > 1)
           Positioned(
             bottom: 8,
             left: 0,
@@ -283,16 +355,15 @@ class _MastervacPageState extends State<MastervacPage> {
                 itemCount: widget.images.length,
                 itemBuilder: (context, index) {
                   final String img = widget.images[index] ?? '';
-                  final Widget child =
-                      img.startsWith('http')
-                          ? Image.network(img, fit: BoxFit.contain)
-                          : (img.isNotEmpty
-                              ? Image.asset(img, fit: BoxFit.contain)
-                              : const Icon(
-                                Icons.image_not_supported,
-                                color: Colors.white,
-                                size: 80,
-                              ));
+                  final Widget child = img.startsWith('http')
+                      ? Image.network(img, fit: BoxFit.contain)
+                      : (img.isNotEmpty
+                          ? Image.asset(img, fit: BoxFit.contain)
+                          : const Icon(
+                              Icons.image_not_supported,
+                              color: Colors.white,
+                              size: 80,
+                            ));
                   return Center(
                     child: InteractiveViewer(
                       minScale: 1,
@@ -337,8 +408,6 @@ class _MastervacPageState extends State<MastervacPage> {
           _buildDescription(),
           const SizedBox(height: 24),
           _buildSpecifications(),
-          const SizedBox(height: 24),
-          _buildCheckboxes(),
           const SizedBox(height: 24),
           _buildActionButton(),
         ],
@@ -461,36 +530,6 @@ class _MastervacPageState extends State<MastervacPage> {
     );
   }
 
-  Widget _buildCheckboxes() {
-    return const SizedBox.shrink(); // Supprimé - géré dans OrderSummaryPage
-  }
-
-  Widget _buildCheckboxContainer(
-    String label,
-    bool value,
-    Function(bool) onChanged,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.all(1),
-      child: Container(
-        padding: const EdgeInsets.all(1),
-        // color: Colors.amber,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Checkbox(
-              value: value,
-              onChanged: (bool? val) => onChanged(val!),
-              activeColor: Colors.black,
-              checkColor: Colors.white,
-            ),
-            Text(label),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildActionButton() {
     final userService = UserService();
     final isVendeur = userService.currentRole == UserRole.vendeur;
@@ -509,9 +548,9 @@ class _MastervacPageState extends State<MastervacPage> {
           onPressed: () async {
             // Ajout au panier (sans validation des champs de livraison)
             final firstImage = widget.images.whereType<String>().firstWhere(
-              (e) => e.startsWith('http'),
-              orElse: () => '',
-            );
+                  (e) => e.startsWith('http'),
+                  orElse: () => '',
+                );
             await CartService().addOrIncrement(
               CartItem(
                 articleId: (widget.id ?? '').toString(),
@@ -579,9 +618,9 @@ class _MastervacPageState extends State<MastervacPage> {
           onPressed: () async {
             // Ajout au panier (sans validation des champs de livraison)
             final firstImage = widget.images.whereType<String>().firstWhere(
-              (e) => e.startsWith('http'),
-              orElse: () => '',
-            );
+                  (e) => e.startsWith('http'),
+                  orElse: () => '',
+                );
             await CartService().addOrIncrement(
               CartItem(
                 articleId: (widget.id ?? '').toString(),
@@ -651,70 +690,69 @@ class _MastervacPageState extends State<MastervacPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              onPressed:
-                  _isOnline
-                      ? null
-                      : () async {
-                        log('[DEBUG] Bouton Vendez votre pièce cliqué');
-                        final pieceData = {
-                          'type': 'piece',
-                          'titre': widget.title,
-                          'annee': widget.year,
-                          'description': widget.description,
-                          'entreprise': widget.company,
-                          'localisation': widget.location,
-                          'prix': widget.price,
-                          'typeMoteur': widget.fuelType,
-                          'modele': widget.model,
-                          'pieceType': widget.pieceType,
-                          'photos': widget.images.whereType<String>().toList(),
-                          'video': widget.video,
-                        };
-                        try {
-                          final user = FirebaseAuth.instance.currentUser;
-                          final token = await user?.getIdToken();
-                          final response = await http
-                              .post(
-                                Uri.parse(getBaseUrl() + '/articles/'),
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                  if (token != null)
-                                    'Authorization': 'Bearer $token',
-                                },
-                                body: jsonEncode(pieceData),
-                              )
-                              .timeout(const Duration(seconds: 8));
-                          if (response.statusCode == 201 ||
-                              response.statusCode == 200) {
-                            if (!mounted) return;
-                            _confettiController.play();
-                            await Future.delayed(const Duration(seconds: 2));
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SuccesScreen6(),
-                              ),
-                            );
-                          } else {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Erreur lors de l\'enregistrement en BDD',
-                                ),
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          log(
-                            '[DEBUG] Exception lors de l\'appel API (mastervac): $e',
+              onPressed: _isOnline
+                  ? null
+                  : () async {
+                      log('[DEBUG] Bouton Vendez votre pièce cliqué');
+                      final pieceData = {
+                        'type': 'piece',
+                        'titre': widget.title,
+                        'annee': widget.year,
+                        'description': widget.description,
+                        'entreprise': widget.company,
+                        'localisation': widget.location,
+                        'prix': widget.price,
+                        'typeMoteur': widget.fuelType,
+                        'modele': widget.model,
+                        'pieceType': widget.pieceType,
+                        'photos': widget.images.whereType<String>().toList(),
+                        'video': widget.video,
+                      };
+                      try {
+                        final user = FirebaseAuth.instance.currentUser;
+                        final token = await user?.getIdToken();
+                        final response = await http
+                            .post(
+                              Uri.parse(getBaseUrl() + '/articles/'),
+                              headers: {
+                                'Content-Type': 'application/json',
+                                if (token != null)
+                                  'Authorization': 'Bearer $token',
+                              },
+                              body: jsonEncode(pieceData),
+                            )
+                            .timeout(const Duration(seconds: 8));
+                        if (response.statusCode == 201 ||
+                            response.statusCode == 200) {
+                          if (!mounted) return;
+                          _confettiController.play();
+                          await Future.delayed(const Duration(seconds: 2));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SuccesScreen6(),
+                            ),
                           );
+                        } else {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Erreur réseau ou serveur')),
+                            SnackBar(
+                              content: Text(
+                                'Erreur lors de l\'enregistrement en BDD',
+                              ),
+                            ),
                           );
                         }
-                      },
+                      } catch (e) {
+                        log(
+                          '[DEBUG] Exception lors de l\'appel API (mastervac): $e',
+                        );
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Erreur réseau ou serveur')),
+                        );
+                      }
+                    },
               child: const Text(
                 'Vendez votre pièce',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -740,24 +778,22 @@ class _MastervacPageState extends State<MastervacPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (context) => Une(
-                          articleId: null,
-                          articleType: 'piece',
-                          isStandalone: false,
-                          articleTitle: widget.title,
-                          articleYear: widget.year,
-                          articleLocation: widget.location,
-                          articlePrice: widget.price,
-                          articleDescription: widget.description,
-                          articleCompany: widget.company,
-                          articleModel: widget.model,
-                          articleFuelType: widget.fuelType,
-                          articlePieceType: widget.pieceType,
-                          articleImages:
-                              widget.images.whereType<String>().toList(),
-                          articleVideo: widget.video,
-                        ),
+                    builder: (context) => Une(
+                      articleId: null,
+                      articleType: 'piece',
+                      isStandalone: false,
+                      articleTitle: widget.title,
+                      articleYear: widget.year,
+                      articleLocation: widget.location,
+                      articlePrice: widget.price,
+                      articleDescription: widget.description,
+                      articleCompany: widget.company,
+                      articleModel: widget.model,
+                      articleFuelType: widget.fuelType,
+                      articlePieceType: widget.pieceType,
+                      articleImages: widget.images.whereType<String>().toList(),
+                      articleVideo: widget.video,
+                    ),
                   ),
                 );
               },

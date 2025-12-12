@@ -25,7 +25,8 @@ class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
   // Fonction pour sélectionner un fichier
   Future<void> _pickFile() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
       setState(() {

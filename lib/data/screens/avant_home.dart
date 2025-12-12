@@ -12,7 +12,7 @@ import 'package:tranoo/services/cart_service.dart';
 import 'package:tranoo/data/screens/profil3.dart';
 import 'package:tranoo/data/screens/tarif.dart';
 import 'package:tranoo/data/screens/transit.dart';
-import 'package:tranoo/data/screens/une.dart';
+// import 'package:tranoo/data/screens/une.dart'; // Masqué temporairement (onglet Publicité)
 import 'package:tranoo/data/screens/vendre.dart';
 import 'package:tranoo/data/screens/voitures.dart';
 
@@ -24,6 +24,7 @@ import 'connexion_page.dart';
 import 'chat.dart';
 import 'package:tranoo/data/screens/driver_certified.dart';
 import 'package:tranoo/data/screens/second_page.dart';
+import 'package:tranoo/data/screens/une.dart';
 
 class AvantHome extends StatefulWidget {
   const AvantHome({super.key});
@@ -83,22 +84,14 @@ class _AvantHomeState extends State<AvantHome> {
     setState(() {
       _selectedIndex = index;
     });
+    // Chat est maintenant intégré dans les onglets, pas besoin de Navigator.push
     if (role == 'chauffeur' && index == 3) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const DriverCertifiedPage()),
       );
-    } else if (role == 'transitaire' && index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ChatListPage()),
-      );
-    } else if (role == 'vendeur' && index == 4) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ChatListPage()),
-      );
     }
+    // Les transitaires et vendeurs accèdent à Chat via les onglets directement
   }
 
   final List<Widget> _pagesAcheteur = [
@@ -122,7 +115,13 @@ class _AvantHomeState extends State<AvantHome> {
     ChatListPage(),
   ];
 
-  final List<Widget> _pagesVendeur = [Marque(), Une(), Vendre(), Piece()];
+  final List<Widget> _pagesVendeur = [
+    Marque(),
+    const Une(isStandalone: true),
+    Vendre(),
+    Piece(),
+    ChatListPage(),
+  ];
 
   double responsiveSize(
     double screenWidth,
@@ -134,9 +133,8 @@ class _AvantHomeState extends State<AvantHome> {
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(
-      source: ImageSource.gallery,
-    );
+    final XFile? pickedFile =
+        await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -208,10 +206,11 @@ class _AvantHomeState extends State<AvantHome> {
           _updateLastLoginTime();
         }
 
-        if (role == 'vendeur' && _selectedIndex > 3) {
+        // Ajusté pour 5 onglets (Accueil, Vendre, Pièces, Chat, Profil)
+        if (role == 'vendeur' && _selectedIndex > 4) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             setState(() {
-              _selectedIndex = 3;
+              _selectedIndex = 4;
             });
           });
         }
@@ -342,173 +341,166 @@ class _AvantHomeState extends State<AvantHome> {
               },
             ),
           ),
-          body:
-              loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : getCurrentPage(role),
+          body: loading
+              ? const Center(child: CircularProgressIndicator())
+              : getCurrentPage(role),
           drawer: Drawer(
-            child:
-                loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : user == null
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : user == null
                     ? const Center(child: Text('Non connecté'))
                     : Column(
-                      children: [
-                        // Header fixe
-                        Container(
-                          width: double.infinity,
-                          height: drawerHeaderHeight + 20,
-                          padding: EdgeInsets.zero,
-                          margin: EdgeInsets.zero,
-                          decoration: const BoxDecoration(
-                            color: Color(0XffF8BF13),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              GestureDetector(
-                                onTap: _pickImage,
-                                child: CircleAvatar(
-                                  radius: avatarRadius,
-                                  backgroundColor: Colors.grey,
-                                  backgroundImage:
-                                      _image == null
-                                          ? const AssetImage(
+                        children: [
+                          // Header fixe
+                          Container(
+                            width: double.infinity,
+                            height: drawerHeaderHeight + 20,
+                            padding: EdgeInsets.zero,
+                            margin: EdgeInsets.zero,
+                            decoration: const BoxDecoration(
+                              color: Color(0XffF8BF13),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                GestureDetector(
+                                  onTap: _pickImage,
+                                  child: CircleAvatar(
+                                    radius: avatarRadius,
+                                    backgroundColor: Colors.grey,
+                                    backgroundImage: _image == null
+                                        ? const AssetImage(
                                             "assets/images/jenifer.jpg",
                                           )
-                                          : FileImage(_image!) as ImageProvider,
-                                ),
-                              ),
-                              SizedBox(height: spacing),
-                              Text(
-                                user['nom'] ?? "Utilisateur",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: fontSize,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                user['email'] ?? "",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: fontSize * 0.8,
-                                ),
-                              ),
-                              if (user['role'] != null)
-                                Text(
-                                  (user['role'] as String).toUpperCase(),
-                                  style: TextStyle(
-                                    color: const Color(0xFF0A1F44),
-                                    fontSize: fontSize * 0.75,
-                                    fontWeight: FontWeight.w700,
+                                        : FileImage(_image!) as ImageProvider,
                                   ),
                                 ),
-                            ],
+                                SizedBox(height: spacing),
+                                Text(
+                                  user['nom'] ?? "Utilisateur",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: fontSize,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  user['email'] ?? "",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: fontSize * 0.8,
+                                  ),
+                                ),
+                                if (user['role'] != null)
+                                  Text(
+                                    (user['role'] as String).toUpperCase(),
+                                    style: TextStyle(
+                                      color: const Color(0xFF0A1F44),
+                                      fontSize: fontSize * 0.75,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                        // Liste scrollable
-                        Expanded(
-                          child: ListView(
-                            padding: EdgeInsets.zero,
-                            children: [
-                              _buildDrawerButton(
-                                context,
-                                text: 'Accueil',
-                                onTap:
-                                    () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const AvantHome(),
-                                      ),
-                                    ),
-                                icon: Icon(
-                                  Icons.home,
-                                  color: Colors.black,
-                                  size: iconSize,
-                                ),
-                              ),
-                              _buildDrawerButton(
-                                context,
-                                text: 'Portefeuille',
-                                onTap:
-                                    () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder:
-                                            (context) => const WalletScreen(),
-                                      ),
-                                    ),
-                                icon: Icon(
-                                  Icons.account_balance_wallet,
-                                  color: Colors.black,
-                                  size: iconSize,
-                                ),
-                              ),
-                              _buildDrawerButton(
-                                context,
-                                text: 'Déconnexion',
-                                onTap: () async {
-                                  await Provider.of<myauth.AuthProvider>(
-                                    context,
-                                    listen: false,
-                                  ).logout();
-                                  Navigator.pushAndRemoveUntil(
+                          // Liste scrollable
+                          Expanded(
+                            child: ListView(
+                              padding: EdgeInsets.zero,
+                              children: [
+                                _buildDrawerButton(
+                                  context,
+                                  text: 'Accueil',
+                                  onTap: () => Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder:
-                                          (context) => const ConnexionPage(),
+                                      builder: (context) => const AvantHome(),
                                     ),
-                                    (route) => false,
-                                  );
-                                },
-                                icon: Icon(
-                                  Icons.logout,
-                                  color: Colors.black,
-                                  size: iconSize,
+                                  ),
+                                  icon: Icon(
+                                    Icons.home,
+                                    color: Colors.black,
+                                    size: iconSize,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                _buildDrawerButton(
+                                  context,
+                                  text: 'Portefeuille',
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const WalletScreen(),
+                                    ),
+                                  ),
+                                  icon: Icon(
+                                    Icons.account_balance_wallet,
+                                    color: Colors.black,
+                                    size: iconSize,
+                                  ),
+                                ),
+                                _buildDrawerButton(
+                                  context,
+                                  text: 'Déconnexion',
+                                  onTap: () async {
+                                    await Provider.of<myauth.AuthProvider>(
+                                      context,
+                                      listen: false,
+                                    ).logout();
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ConnexionPage(),
+                                      ),
+                                      (route) => false,
+                                    );
+                                  },
+                                  icon: Icon(
+                                    Icons.logout,
+                                    color: Colors.black,
+                                    size: iconSize,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
           ),
-          bottomNavigationBar:
-              loading
-                  ? null
-                  : BottomNavigationBar(
-                    type: BottomNavigationBarType.fixed,
-                    backgroundColor: const Color(0xFFF9FAFB),
-                    selectedItemColor: const Color(0xFFF8BF13),
-                    unselectedItemColor: Colors.black,
-                    currentIndex: _selectedIndex,
-                    onTap: (i) => _onItemTapped(i, role),
-                    items:
-                        role == 'acheteur'
-                            ? [
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.home, size: iconSize),
-                                label: 'Accueil',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(
-                                  Icons.directions_car,
-                                  size: iconSize,
-                                ),
-                                label: 'Voitures',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.build, size: iconSize),
-                                label: 'Pièces',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.person, size: iconSize),
-                                label: 'Profil',
-                              ),
-                            ]
-                            : role == 'vendeur'
-                            ? [
+          bottomNavigationBar: loading
+              ? null
+              : BottomNavigationBar(
+                  type: BottomNavigationBarType.fixed,
+                  backgroundColor: const Color(0xFFF9FAFB),
+                  selectedItemColor: const Color(0xFFF8BF13),
+                  unselectedItemColor: Colors.black,
+                  currentIndex: _selectedIndex,
+                  onTap: (i) => _onItemTapped(i, role),
+                  items: role == 'acheteur'
+                      ? [
+                          BottomNavigationBarItem(
+                            icon: Icon(Icons.home, size: iconSize),
+                            label: 'Accueil',
+                          ),
+                          BottomNavigationBarItem(
+                            icon: Icon(
+                              Icons.directions_car,
+                              size: iconSize,
+                            ),
+                            label: 'Voitures',
+                          ),
+                          BottomNavigationBarItem(
+                            icon: Icon(Icons.build, size: iconSize),
+                            label: 'Pièces',
+                          ),
+                          BottomNavigationBarItem(
+                            icon: Icon(Icons.person, size: iconSize),
+                            label: 'Profil',
+                          ),
+                        ]
+                      : role == 'vendeur'
+                          ? [
                               BottomNavigationBarItem(
                                 icon: Icon(Icons.home, size: iconSize),
                                 label: 'Accueil',
@@ -525,29 +517,55 @@ class _AvantHomeState extends State<AvantHome> {
                                 icon: Icon(Icons.build, size: iconSize),
                                 label: 'Pièces',
                               ),
+                              BottomNavigationBarItem(
+                                icon: Icon(Icons.chat, size: iconSize),
+                                label: 'Chat',
+                              ),
                             ]
-                            : [
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.home, size: iconSize),
-                                label: 'Accueil',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(
-                                  Icons.directions_car,
-                                  size: iconSize,
-                                ),
-                                label: 'Voitures',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.build, size: iconSize),
-                                label: 'Pièces',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.person, size: iconSize),
-                                label: 'Profil',
-                              ),
-                            ],
-                  ),
+                          : role == 'transitaire'
+                              ? [
+                                  BottomNavigationBarItem(
+                                    icon: Icon(Icons.home, size: iconSize),
+                                    label: 'Accueil',
+                                  ),
+                                  BottomNavigationBarItem(
+                                    icon: Icon(Icons.workspace_premium,
+                                        size: iconSize),
+                                    label: 'Abonnement',
+                                  ),
+                                  BottomNavigationBarItem(
+                                    icon: Icon(Icons.local_shipping,
+                                        size: iconSize),
+                                    label: 'Transits',
+                                  ),
+                                  BottomNavigationBarItem(
+                                    icon: Icon(Icons.chat, size: iconSize),
+                                    label: 'Chat',
+                                  ),
+                                ]
+                              : [
+                                  // Chauffeurs et autres rôles
+                                  BottomNavigationBarItem(
+                                    icon: Icon(Icons.home, size: iconSize),
+                                    label: 'Accueil',
+                                  ),
+                                  BottomNavigationBarItem(
+                                    icon: Icon(
+                                      Icons.directions_car,
+                                      size: iconSize,
+                                    ),
+                                    label: 'Voitures',
+                                  ),
+                                  BottomNavigationBarItem(
+                                    icon: Icon(Icons.build, size: iconSize),
+                                    label: 'Pièces',
+                                  ),
+                                  BottomNavigationBarItem(
+                                    icon: Icon(Icons.person, size: iconSize),
+                                    label: 'Profil',
+                                  ),
+                                ],
+                ),
         );
       },
     );

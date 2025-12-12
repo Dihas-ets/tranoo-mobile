@@ -746,6 +746,35 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               // fcmToken: ... (à ajouter si dispo)
                             );
 
+                            if (response.data is Map) {
+                              final data = response.data as Map;
+                              final referralError =
+                                  data['referralError']?.toString();
+                              final referralInfo = data['referral'];
+
+                              if (referralError != null &&
+                                  referralError.isNotEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(referralError)),
+                                );
+                              } else if (referralInfo is Map &&
+                                  referralInfo['status'] != null) {
+                                final status = referralInfo['status']?.toString();
+                                final amount =
+                                    referralInfo['rewardAmount']?.toString();
+                                final isAgent = referralInfo['isAgent'] == true;
+                                String message =
+                                    'Code de parrainage enregistré (statut: $status)';
+                                if (isAgent && amount != null) {
+                                  message =
+                                      ' Compte crée avec succès, Parrainage agent validé ';
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(message)),
+                                );
+                              }
+                            }
+
                             // Supprimer le code de parrainage après utilisation
                             if (pendingReferral != null &&
                                 _referralController.text.trim().isEmpty) {

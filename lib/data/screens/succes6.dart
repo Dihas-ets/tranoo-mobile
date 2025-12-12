@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
 import 'dart:developer';
 
@@ -31,14 +30,6 @@ class _SuccesScreen6State extends State<SuccesScreen6> {
 
   @override
   Widget build(BuildContext context) {
-    // Définir la barre d'état en noir avec des icônes blanches
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.black,
-        statusBarIconBrightness: Brightness.light,
-      ),
-    );
-
     return Scaffold(
       backgroundColor: Colors.white,
       extendBodyBehindAppBar: true, // Permet au contenu de passer sous l'AppBar

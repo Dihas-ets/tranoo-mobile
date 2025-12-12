@@ -223,7 +223,8 @@ class _DiscussionState extends State<Discussion> {
   // Fonction pour sélectionner une image
   Future<void> pickImage() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image =
+          await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
         await sendImage(image);
       }

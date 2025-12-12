@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/backend_config.dart';
 
 class PushOTPService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -237,7 +238,4 @@ class PushOTPService {
   }
 }
 
-String getPushOtpBaseUrl() {
-  // URL de base pour les endpoints push OTP (sans /api)
-  return 'http://192.168.1.87:5000';
-}
+String getPushOtpBaseUrl() => getBackendBaseUrl();

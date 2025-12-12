@@ -4,17 +4,33 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:tranoo/config/backend_config.dart';
 
 final _logger = Logger('CloudinaryUpload');
 
-Future<String?> uploadImageToCloudinary(dynamic image) async {
+class CloudinaryFolders {
+  static const String root = 'tranoo';
+  static const String profiles = '$root/profiles';
+  static const String vehicleImages = '$root/vehicules/images';
+  static const String vehicleVideos = '$root/vehicules/videos';
+  static const String pieceImages = '$root/pieces/images';
+  static const String pieceVideos = '$root/pieces/videos';
+  static const String verificationDocs = '$root/verification/documents';
+  static const String misc = '$root/misc';
+}
+
+Future<String?> uploadImageToCloudinary(
+  dynamic image, {
+  String folder = CloudinaryFolders.misc,
+}) async {
   final cloudName = 'dy0raj5bh';
   final uploadPreset = 'unsigned_preset';
   final url = Uri.parse(
     'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
   );
   final request = http.MultipartRequest('POST', url)
-    ..fields['upload_preset'] = uploadPreset;
+    ..fields['upload_preset'] = uploadPreset
+    ..fields['folder'] = folder;
 
   if (kIsWeb && image is Uint8List) {
     request.files.add(
@@ -42,76 +58,68 @@ Future<String?> uploadImageToCloudinary(dynamic image) async {
   }
 }
 
-Future<String?> uploadVideoToCloudinary(File videoFile) async {
-  final cloudName = 'dy0raj5bh';
-  final uploadPreset = 'unsigned_preset';
-  final url = Uri.parse(
-    'https://api.cloudinary.com/v1_1/$cloudName/video/upload',
-  );
-
-  print('[Cloudinary] === DÉBUT UPLOAD VIDÉO ===');
-  print('[Cloudinary] Fichier: ${videoFile.path}');
-  print('[Cloudinary] URL: $url');
-  print('[Cloudinary] Cloud name: $cloudName');
-  print('[Cloudinary] Upload preset: $uploadPreset');
-
-  // Vérifier que le fichier existe
+Future<String?> uploadVideoToCloudinary(
+  File videoFile, {
+  String folder = CloudinaryFolders.misc,
+  Function(double progress)? onProgress,
+}) async {
+  final backendUrl = Uri.parse('${getApiBaseUrl()}/upload/video');
   if (!await videoFile.exists()) {
-    print('[Cloudinary] ERREUR: Le fichier n\'existe pas!');
+    print('[UploadBackend] ERREUR: Le fichier n\'existe pas!');
     return null;
   }
-
+  
   final fileSize = await videoFile.length();
-  print('[Cloudinary] Taille du fichier: ${fileSize / (1024 * 1024)} Mo');
-
-  final request = http.MultipartRequest('POST', url)
-    ..fields['upload_preset'] = uploadPreset;
-
-  print('[Cloudinary] Création du MultipartFile...');
+  final request = http.MultipartRequest('POST', backendUrl);
+  request.files.add(await http.MultipartFile.fromPath('video', videoFile.path));
+  request.fields['folder'] = folder;
+  
   try {
-    final multipartFile = await http.MultipartFile.fromPath(
-      'file',
-      videoFile.path,
-    );
-    request.files.add(multipartFile);
-    print('[Cloudinary] MultipartFile créé avec succès');
-  } catch (e) {
-    print('[Cloudinary] ERREUR création MultipartFile: $e');
-    return null;
-  }
-
-  print('[Cloudinary] Envoi de la requête...');
-  try {
-    final response = await request.send().timeout(const Duration(seconds: 120));
-    print('[Cloudinary] Réponse reçue: ${response.statusCode}');
-
-    if (response.statusCode == 200) {
-      print('[Cloudinary] Upload réussi! Lecture de la réponse...');
-      final respStr = await response.stream.bytesToString();
-      print('[Cloudinary] Réponse brute: $respStr');
-
-      try {
-        final data = jsonDecode(respStr);
-        final videoUrl = data['secure_url'] as String?;
-        print('[Cloudinary] URL vidéo extraite: $videoUrl');
-        return videoUrl;
-      } catch (e) {
-        print('[Cloudinary] ERREUR parsing JSON: $e');
-        return null;
-      }
-    } else {
-      print('[Cloudinary] ERREUR HTTP: ${response.statusCode}');
-      final errorBody = await response.stream.bytesToString();
-      print('[Cloudinary] Corps de l\'erreur: $errorBody');
-      return null;
+    // Simuler la progression pendant l'upload (approximation)
+    if (onProgress != null) {
+      // Simuler 0-80% pendant l'upload
+      onProgress(0.1);
+      await Future.delayed(const Duration(milliseconds: 100));
+      onProgress(0.3);
+      await Future.delayed(const Duration(milliseconds: 100));
+      onProgress(0.5);
+      await Future.delayed(const Duration(milliseconds: 100));
+      onProgress(0.7);
+      await Future.delayed(const Duration(milliseconds: 100));
+      onProgress(0.8);
     }
+    
+    final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
+    
+    if (onProgress != null) {
+      onProgress(0.85); // Upload terminé, traitement serveur
+    }
+    
+    final respStr = await streamedResponse.stream.bytesToString();
+    
+    if (onProgress != null) {
+      onProgress(0.95); // Compression/traitement presque terminé
+    }
+    
+    if (streamedResponse.statusCode == 200) {
+      final data = jsonDecode(respStr);
+      final videoUrl = data['optimizedUrl'] ?? data['url'] as String?;
+      print('[UploadBackend] URL vidéo optimisée: $videoUrl');
+      if (onProgress != null) onProgress(1.0); // 100%
+      return videoUrl;
+    }
+    print('[UploadBackend] ERREUR HTTP: ${streamedResponse.statusCode} -> $respStr');
+    return null;
   } catch (e) {
-    print('[Cloudinary] EXCEPTION lors de l\'envoi: $e');
+    print('[UploadBackend] EXCEPTION lors de l\'envoi: $e');
     return null;
   }
 }
 
-Future<String?> uploadVideoToCloudinaryWeb(Uint8List bytes) async {
+Future<String?> uploadVideoToCloudinaryWeb(
+  Uint8List bytes, {
+  String folder = CloudinaryFolders.misc,
+}) async {
   final cloudName = 'dy0raj5bh';
   final uploadPreset = 'unsigned_preset';
   final url = Uri.parse(
@@ -120,12 +128,12 @@ Future<String?> uploadVideoToCloudinaryWeb(Uint8List bytes) async {
 
   _logger.info('[DEBUG] Upload vidéo Web vers Cloudinary');
 
-  final request =
-      http.MultipartRequest('POST', url)
-        ..fields['upload_preset'] = uploadPreset
-        ..files.add(
-          http.MultipartFile.fromBytes('file', bytes, filename: 'upload.mp4'),
-        );
+  final request = http.MultipartRequest('POST', url)
+    ..fields['upload_preset'] = uploadPreset
+    ..fields['folder'] = folder
+    ..files.add(
+      http.MultipartFile.fromBytes('file', bytes, filename: 'upload.mp4'),
+    );
 
   try {
     final response = await request.send().timeout(const Duration(seconds: 120));

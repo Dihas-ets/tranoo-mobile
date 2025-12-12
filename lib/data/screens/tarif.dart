@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:tranoo/services/user_service.dart';
 import 'subscription_payment.dart';
 
@@ -19,6 +21,8 @@ class _TarifState extends State<Tarif> {
   bool _hasSubscription = false;
   DateTime? _activatedAt;
   DateTime? _expiresAt;
+  double _prixMensuel =
+      5000.0; // Prix par défaut, sera chargé depuis le backend
 
   @override
   void initState() {
@@ -32,6 +36,9 @@ class _TarifState extends State<Tarif> {
       errorMsg = null;
     });
     try {
+      // Charger le prix de l'abonnement depuis le backend
+      await _loadSubscriptionPricing();
+
       if (_userService.isAcheteur || _userService.isChauffeur) {
         await _loadTransitaires();
       } else if (_userService.isTransitaire) {
@@ -65,6 +72,30 @@ class _TarifState extends State<Tarif> {
       queryParameters: {'role': 'transitaire'},
     );
     _transitaires = resp.data is List ? resp.data : (resp.data['users'] ?? []);
+  }
+
+  Future<void> _loadSubscriptionPricing() async {
+    try {
+      final url =
+          '${UserService().dio.options.baseUrl}/admin/subscription-pricing';
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _prixMensuel = (data['prixMensuel'] ?? 5000.0).toDouble();
+          });
+        }
+      }
+    } catch (e) {
+      // Garder le prix par défaut en cas d'erreur
+      if (mounted) {
+        setState(() {
+          _prixMensuel = 5000.0;
+        });
+      }
+    }
   }
 
   Future<void> _loadSubscription() async {
@@ -216,9 +247,9 @@ class _TarifState extends State<Tarif> {
                     style: TextStyle(color: Colors.white70),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    "5 FCFA / mois",
-                    style: TextStyle(
+                  Text(
+                    "${_prixMensuel.toInt()} FCFA / mois",
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -232,10 +263,11 @@ class _TarifState extends State<Tarif> {
                         final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const SubscriptionPaymentScreen(),
+                            builder: (context) =>
+                                const SubscriptionPaymentScreen(),
                           ),
                         );
-                        
+
                         // Si l'abonnement a été activé avec succès
                         if (result == true) {
                           await _loadSubscription(); // Recharger les données
@@ -249,7 +281,8 @@ class _TarifState extends State<Tarif> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text('Souscrire maintenant - 5 FCFA'),
+                      child: Text(
+                          'Souscrire maintenant - ${_prixMensuel.toInt()} FCFA'),
                     ),
                   ),
                 ] else ...[
@@ -264,12 +297,14 @@ class _TarifState extends State<Tarif> {
                             children: [
                               Text(
                                 'Activé le: ${_activatedAt?.day}/${_activatedAt?.month}/${_activatedAt?.year}',
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
                                 'Expire le: ${_expiresAt?.day}/${_expiresAt?.month}/${_expiresAt?.year}',
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -283,12 +318,14 @@ class _TarifState extends State<Tarif> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.black,
                               foregroundColor: const Color(0xFFFFCC00),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Text('Gérer', style: TextStyle(fontSize: 12)),
+                            child: const Text('Gérer',
+                                style: TextStyle(fontSize: 12)),
                           ),
                         ),
                       ],
@@ -313,8 +350,7 @@ class _TarifState extends State<Tarif> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _miniStatCard('Mises en avant', '—', Icons.star)
-                ),
+                    child: _miniStatCard('Mises en avant', '—', Icons.star)),
               ],
             ),
           ),
@@ -331,7 +367,8 @@ class _TarifState extends State<Tarif> {
                 backgroundColor: Colors.black,
                 foregroundColor: const Color(0xFFF8BF13),
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
@@ -369,12 +406,13 @@ class _TarifState extends State<Tarif> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  title, 
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  title,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 12),
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  value, 
+                  value,
                   style: const TextStyle(color: Colors.grey, fontSize: 11),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -402,7 +440,10 @@ class _TarifState extends State<Tarif> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -411,8 +452,13 @@ class _TarifState extends State<Tarif> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Statut d\'abonnement', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(_hasSubscription ? 'Actif' : 'Inactif', style: TextStyle(color: _hasSubscription ? const Color(0xFF188100) : Colors.red)),
+              const Text('Statut d\'abonnement',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(_hasSubscription ? 'Actif' : 'Inactif',
+                  style: TextStyle(
+                      color: _hasSubscription
+                          ? const Color(0xFF188100)
+                          : Colors.red)),
             ],
           ),
           const SizedBox(height: 8),
@@ -422,11 +468,16 @@ class _TarifState extends State<Tarif> {
               value: progress,
               minHeight: 10,
               backgroundColor: Colors.grey.shade200,
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF8BF13)),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(Color(0xFFF8BF13)),
             ),
           ),
           const SizedBox(height: 8),
-          Text(_expiresAt != null ? 'Votre abonnement expire dans $remaining jours' : 'Aucun abonnement actif', style: const TextStyle(color: Colors.grey)),
+          Text(
+              _expiresAt != null
+                  ? 'Votre abonnement expire dans $remaining jours'
+                  : 'Aucun abonnement actif',
+              style: const TextStyle(color: Colors.grey)),
         ],
       ),
     );
@@ -436,7 +487,8 @@ class _TarifState extends State<Tarif> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Performances', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const Text('Performances',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
@@ -445,20 +497,30 @@ class _TarifState extends State<Tarif> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4)),
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4)),
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Commandes livrées / mois', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text('Commandes livrées / mois',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              const _BarChart(values: [4, 8, 6, 10, 7, 12], labels: ['J', 'F', 'M', 'A', 'M', 'J']),
+              const _BarChart(
+                  values: [4, 8, 6, 10, 7, 12],
+                  labels: ['J', 'F', 'M', 'A', 'M', 'J']),
               const SizedBox(height: 16),
-              const Text('Répartition des clients', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text('Répartition des clients',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              const _PieChart(values: [40, 35, 25], colors: [Color(0xFFF8BF13), Colors.black, Colors.grey], legends: ['Acheteurs', 'Chauffeurs', 'Autres']),
+              const _PieChart(
+                  values: [40, 35, 25],
+                  colors: [Color(0xFFF8BF13), Colors.black, Colors.grey],
+                  legends: ['Acheteurs', 'Chauffeurs', 'Autres']),
             ],
           ),
         ),
@@ -474,7 +536,9 @@ class _BarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxVal = (values.isNotEmpty ? values.reduce((a, b) => a > b ? a : b) : 1).toDouble();
+    final maxVal =
+        (values.isNotEmpty ? values.reduce((a, b) => a > b ? a : b) : 1)
+            .toDouble();
     return SizedBox(
       height: 120,
       width: double.infinity,
@@ -494,10 +558,9 @@ class _BarChart extends StatelessWidget {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFFFFCC00), Colors.black], 
-                          begin: Alignment.topCenter, 
-                          end: Alignment.bottomCenter
-                        ),
+                            colors: [Color(0xFFFFCC00), Colors.black],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -505,7 +568,7 @@ class _BarChart extends StatelessWidget {
                   const SizedBox(height: 4),
                   Flexible(
                     child: Text(
-                      labels[i], 
+                      labels[i],
                       style: const TextStyle(fontSize: 10, color: Colors.grey),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -525,7 +588,8 @@ class _PieChart extends StatelessWidget {
   final List<double> values;
   final List<Color> colors;
   final List<String> legends;
-  const _PieChart({required this.values, required this.colors, required this.legends});
+  const _PieChart(
+      {required this.values, required this.colors, required this.legends});
 
   @override
   Widget build(BuildContext context) {
@@ -538,7 +602,8 @@ class _PieChart extends StatelessWidget {
           height: 140,
           width: 140,
           child: CustomPaint(
-            painter: _PiePainter(values: values, colors: colors, startAngle: start),
+            painter:
+                _PiePainter(values: values, colors: colors, startAngle: start),
             size: const Size(140, 140),
           ),
         ),
@@ -548,21 +613,20 @@ class _PieChart extends StatelessWidget {
           runSpacing: 6,
           alignment: WrapAlignment.center,
           children: List.generate(values.length, (i) {
-            final pct = total > 0 ? (values[i] / total * 100).toStringAsFixed(0) : '0';
+            final pct =
+                total > 0 ? (values[i] / total * 100).toStringAsFixed(0) : '0';
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 10, 
-                  height: 10, 
-                  decoration: BoxDecoration(
-                    color: colors[i], 
-                    borderRadius: BorderRadius.circular(2)
-                  )
-                ),
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                        color: colors[i],
+                        borderRadius: BorderRadius.circular(2))),
                 const SizedBox(width: 6),
                 Text(
-                  '${legends[i]} ($pct%)', 
+                  '${legends[i]} ($pct%)',
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -579,16 +643,20 @@ class _PiePainter extends CustomPainter {
   final List<double> values;
   final List<Color> colors;
   final double startAngle;
-  _PiePainter({required this.values, required this.colors, required this.startAngle});
+  _PiePainter(
+      {required this.values, required this.colors, required this.startAngle});
 
   @override
   void paint(Canvas canvas, Size size) {
     final total = values.fold<double>(0, (p, e) => p + e);
     double start = startAngle * 3.1415926535 / 180;
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = size.height / 2;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.height / 2;
     for (int i = 0; i < values.length; i++) {
-      final double sweep = total > 0 ? ((values[i] / total) * 2.0 * 3.1415926535) : 0.0;
+      final double sweep =
+          total > 0 ? ((values[i] / total) * 2.0 * 3.1415926535) : 0.0;
       paint.color = colors[i];
       canvas.drawArc(rect.deflate(size.height / 4), start, sweep, false, paint);
       start += sweep;

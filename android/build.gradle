@@ -2,7 +2,7 @@
 subprojects {
     afterEvaluate { project ->
         if (project.hasProperty("android")) {
-            project.android.ndkVersion = "27.0.12077973"
+            project.android.ndkVersion = "26.2.11394342"
         }
     }
 }

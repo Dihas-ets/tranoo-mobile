@@ -17,6 +17,7 @@ class CreateSellPage2 extends StatefulWidget {
 }
 
 class CreateSellPage2State extends State<CreateSellPage2> {
+  static const int _maxMediaSlots = 12;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _anneeController = TextEditingController();
   final TextEditingController _localisationController = TextEditingController();
@@ -26,18 +27,21 @@ class CreateSellPage2State extends State<CreateSellPage2> {
   String? _selectedPieceType; // Nouveau/Occasion
   String? _selectedFuelType; // Essence/Gazoil/Diezel/Electrique/Hybride
   String? _selectedModel; // Modèle (String, pas int)
-  String? _uploadedFileName;
-  bool _hasUploadedFile = false;
-
   // Variables pour l'upload d'images
-  List<XFile?> _uploadedImages = [null, null];
-  List<String?> _cloudinaryUrls = [null, null];
-  List<bool> _isUploadingImage = [false, false];
+  List<File?> _uploadedImages =
+      List<File?>.filled(_maxMediaSlots, null, growable: false);
+  List<String?> _cloudinaryUrls =
+      List<String?>.filled(_maxMediaSlots, null, growable: false);
+  List<bool> _isUploadingImage =
+      List<bool>.filled(_maxMediaSlots, false, growable: false);
 
   // Variables pour l'upload de vidéo
-  XFile? _uploadedVideo;
   String? _cloudinaryVideoUrl;
   bool _isUploadingVideo = false;
+  double _videoUploadProgress = 0.0; // Progression de l'upload vidéo
+
+  bool get _isAnyUploading =>
+      _isUploadingImage.contains(true) || _isUploadingVideo;
 
   final List<String> _pieceTypes = ['Nouveau', 'Occasion'];
   final List<String> _fuelTypes = [
@@ -54,21 +58,51 @@ class CreateSellPage2State extends State<CreateSellPage2> {
 
   Future<void> _pickImage(int index) async {
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? image =
+        await picker.pickImage(source: ImageSource.gallery);
 
-    if (image != null) {
+    if (image == null) return;
+
+    final file = File(image.path);
       setState(() {
-        _uploadedImages[index] = image;
-        _uploadedFileName = image.name;
-        _hasUploadedFile = true;
+      _uploadedImages[index] = file;
+      _isUploadingImage[index] = true;
       });
-      // Upload vers Cloudinary via utilitaire
-      final url = await uploadImageToCloudinary(File(image.path));
+
+    try {
+      final url = await uploadImageToCloudinary(
+        file,
+        folder: CloudinaryFolders.pieceImages,
+      );
+      if (!mounted) return;
       if (url != null) {
         setState(() {
           _cloudinaryUrls[index] = url;
         });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Erreur lors de l\'upload de l\'image. Veuillez réessayer.'),
+          ),
+        );
+        setState(() {
+          _uploadedImages[index] = null;
+        });
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload échoué: $e')),
+      );
+      setState(() {
+        _uploadedImages[index] = null;
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isUploadingImage[index] = false;
+      });
     }
   }
 
@@ -82,7 +116,6 @@ class CreateSellPage2State extends State<CreateSellPage2> {
 
   void _removeVideo() {
     setState(() {
-      _uploadedVideo = null;
       _cloudinaryVideoUrl = null;
       _isUploadingVideo = false;
     });
@@ -90,20 +123,49 @@ class CreateSellPage2State extends State<CreateSellPage2> {
 
   Future<void> _pickVideo() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
-    if (video != null) {
+    final XFile? video =
+        await picker.pickVideo(source: ImageSource.gallery);
+    if (video == null) return;
+
       setState(() {
         _isUploadingVideo = true;
-        _uploadedFileName = video.name;
+        _videoUploadProgress = 0.0;
       });
-      final url = await uploadVideoToCloudinary(File(video.path));
+
+    try {
+      final url = await uploadVideoToCloudinary(
+        File(video.path),
+        folder: CloudinaryFolders.pieceVideos,
+        onProgress: (progress) {
+          if (!mounted) return;
+          setState(() {
+            _videoUploadProgress = progress;
+          });
+        },
+      );
+      if (!mounted) return;
       if (url != null) {
         setState(() {
           _cloudinaryVideoUrl = url;
         });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Erreur lors de l\'upload de la vidéo. Veuillez réessayer.'),
+          ),
+        );
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload vidéo échoué: $e')),
+      );
+    } finally {
+      if (!mounted) return;
       setState(() {
         _isUploadingVideo = false;
+        _videoUploadProgress = 0.0;
       });
     }
   }
@@ -555,110 +617,92 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Télécharger des images
-                    Center(
-                      child: GestureDetector(
-                        onTap: () {
-                          _pickImage(0);
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.camera_alt, size: 20),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Télécharger une image',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    _buildLabel(
+                      'Images (optionnel, max 12)',
+                      isSmallScreen,
+                      isMediumScreen,
+                      isLargeScreen,
+                      isRequired: false,
                     ),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: GestureDetector(
-                        onTap: () {
-                          _pickImage(1);
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.camera_alt, size: 20),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Télécharger une image (optionnel)',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
+                    const SizedBox(height: 8),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: isSmallScreen ? 2 : 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        childAspectRatio: 1.2,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Fichier téléchargé
-                    if (_hasUploadedFile)
-                      Container(
+                      itemCount: _maxMediaSlots,
+                      itemBuilder: (context, index) {
+                        final file = _uploadedImages[index];
+                        final uploadedUrl = _cloudinaryUrls[index];
+                        final hasMedia = file != null || uploadedUrl != null;
+                        return GestureDetector(
+                          onTap: () => _pickImage(index),
+                          child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF2F2F2),
+                              color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              border: Border.all(color: Colors.amber),
+                                  ),
+                        child: Stack(
+                              alignment: Alignment.center,
                           children: [
-                            Text(
-                              _uploadedFileName!,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Stack(
-                              children: [
-                                const Icon(Icons.image, size: 24),
-                                Positioned(
-                                  right: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
+                                if (uploadedUrl != null)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      uploadedUrl,
+                              fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
+                                  )
+                                else if (file != null)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.file(
+                                      file,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
+                                  )
+                                else
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                        Icons.add_a_photo,
+                                        color: Colors.grey,
+                                        size: 30,
+                                  ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${index + 1}',
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                                if (_isUploadingImage[index])
+                                  const Positioned.fill(
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
                             ),
-                          ],
-                        ),
-                      ),
-                    // Affichage de l'image uploadée depuis Cloudinary
-                    if (_cloudinaryUrls[0] != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Stack(
-                          children: [
-                            Image.network(
-                              _cloudinaryUrls[0]!,
-                              height: 120,
-                              fit: BoxFit.cover,
-                            ),
+                                if (hasMedia)
                             Positioned(
                               right: 4,
                               top: 4,
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                        if (uploadedUrl != null)
                                   const Icon(
                                     Icons.check_circle,
                                     color: Colors.green,
@@ -666,7 +710,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                                   ),
                                   const SizedBox(width: 4),
                                   GestureDetector(
-                                    onTap: () => _removeImage(0),
+                                          onTap: () => _removeImage(index),
                                     child: Container(
                                       padding: const EdgeInsets.all(2),
                                       decoration: const BoxDecoration(
@@ -685,53 +729,17 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                             ),
                           ],
                         ),
-                      ),
-                    if (_cloudinaryUrls[1] != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Stack(
-                          children: [
-                            Image.network(
-                              _cloudinaryUrls[1]!,
-                              height: 120,
-                              fit: BoxFit.cover,
-                            ),
-                            Positioned(
-                              right: 4,
-                              top: 4,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  GestureDetector(
-                                    onTap: () => _removeImage(1),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(2),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.red,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.close,
-                                        color: Colors.white,
-                                        size: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        );
+                      },
                       ),
                     const SizedBox(height: 16),
                     // Upload vidéo avec aperçu
-                    _buildVideoUploadSection(),
+                    _buildVideoUploadSection(
+                      isSmallScreen: isSmallScreen,
+                      isMediumScreen: isMediumScreen,
+                      isLargeScreen: isLargeScreen,
+                    ),
                   ],
                 ),
               ),
@@ -747,10 +755,11 @@ class CreateSellPage2State extends State<CreateSellPage2> {
     String text,
     bool isSmallScreen,
     bool isMediumScreen,
-    bool isLargeScreen,
-  ) {
+    bool isLargeScreen, {
+    bool isRequired = true,
+  }) {
     return Text(
-      text + ' *',
+      isRequired ? '$text *' : text,
       style: TextStyle(
         fontWeight: FontWeight.w500,
         fontSize:
@@ -793,13 +802,20 @@ class CreateSellPage2State extends State<CreateSellPage2> {
     );
   }
 
-  Widget _buildVideoUploadSection() {
+  Widget _buildVideoUploadSection({
+    required bool isSmallScreen,
+    required bool isMediumScreen,
+    required bool isLargeScreen,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        _buildLabel(
           'Vidéo (optionnelle)',
-          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+          isSmallScreen,
+          isMediumScreen,
+          isLargeScreen,
+          isRequired: false,
         ),
         const SizedBox(height: 8),
         GestureDetector(
@@ -807,6 +823,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
           child: Container(
             height: 120,
             width: double.infinity,
+            clipBehavior: Clip.hardEdge,
             decoration: BoxDecoration(
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(8),
@@ -816,6 +833,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
               ),
             ),
             child: Stack(
+              clipBehavior: Clip.hardEdge,
               children: [
                 if (_cloudinaryVideoUrl != null)
                   ClipRRect(
@@ -866,8 +884,69 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                     ),
                   ),
                 if (_isUploadingVideo)
-                  const Positioned.fill(
-                    child: Center(child: CircularProgressIndicator()),
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black54,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: CircularProgressIndicator(
+                                value: _videoUploadProgress > 0 ? _videoUploadProgress : null,
+                                color: Colors.blue,
+                                backgroundColor: Colors.white24,
+                                strokeWidth: 3,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              _videoUploadProgress < 0.85
+                                  ? 'Envoi...'
+                                  : 'Traitement...',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              '${(_videoUploadProgress * 100).toStringAsFixed(0)}%',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // Barre de progression linéaire
+                            Container(
+                              width: 160,
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: Colors.white24,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                              child: FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: _videoUploadProgress,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 if (_cloudinaryVideoUrl != null)
                   Positioned(
@@ -902,9 +981,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
       width: double.infinity,
       margin: const EdgeInsets.only(top: 16),
       child: ElevatedButton(
-        onPressed: () {
-          _onValidate();
-        },
+        onPressed: _isAnyUploading ? null : _onValidate,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFFFCC00),
           foregroundColor: Colors.black,
@@ -912,7 +989,23 @@ class CreateSellPage2State extends State<CreateSellPage2> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        child: const Text(
+        child: _isAnyUploading
+            ? const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Upload en cours...',
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                  ),
+                ],
+              )
+            : const Text(
           'Vérification',
           style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
         ),
@@ -932,8 +1025,6 @@ class CreateSellPage2State extends State<CreateSellPage2> {
     final fuelType =
         _selectedFuelType == 'Aucun' ? _customFuelType : _selectedFuelType;
     final model = (_selectedModel == 'Autre') ? _customModel : _selectedModel;
-    final imageUrl = _cloudinaryUrls[0];
-
     log('[DEBUG] title: "$title" (empty: ${title.isEmpty})');
     log('[DEBUG] pieceType: "$pieceType" (null: ${pieceType == null})');
     log('[DEBUG] annee: "$annee" (empty: ${annee.isEmpty})');
@@ -949,9 +1040,6 @@ class CreateSellPage2State extends State<CreateSellPage2> {
     log('[DEBUG] prix: "$prix" (empty: ${prix.isEmpty})');
     log('[DEBUG] description: "$description" (empty: ${description.isEmpty})');
     log('[DEBUG] company: "$company" (empty: ${company.isEmpty})');
-    log(
-      '[DEBUG] imageUrl: "$imageUrl" (null/empty: ${imageUrl == null || imageUrl.isEmpty})',
-    );
 
     if (title.isEmpty ||
         pieceType == null ||
@@ -961,26 +1049,37 @@ class CreateSellPage2State extends State<CreateSellPage2> {
         localisation.isEmpty ||
         prix.isEmpty ||
         description.isEmpty ||
-        company.isEmpty ||
-        imageUrl == null ||
-        imageUrl.isEmpty) {
+        company.isEmpty) {
       log('[DEBUG] Validation échouée, un ou plusieurs champs sont invalides.');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Veuillez remplir tous les champs obligatoires et au moins une image.',
+            'Veuillez remplir tous les champs obligatoires.',
           ),
         ),
       );
       return;
     }
+    
+    // Vérifier qu'au moins un média (image ou vidéo) est présent
+    final imagesCount = _cloudinaryUrls.whereType<String>().where((url) => url.isNotEmpty).length;
+    final hasImages = imagesCount > 0;
+    final hasVideo = _cloudinaryVideoUrl != null && _cloudinaryVideoUrl!.isNotEmpty;
+    if (!hasImages && !hasVideo) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez ajouter au moins une image ou une vidéo.'),
+        ),
+      );
+      return;
+    }
+    
     log('[DEBUG] Validation OK, navigation vers MastervacPage.');
     final userService = UserService();
     final isAcheteur =
         userService.currentRole == UserRole.acheteur ||
         userService.currentRole == UserRole.chauffeur;
-    final images =
-        _cloudinaryUrls
+    final images = _cloudinaryUrls
             .whereType<String>()
             .where((url) => url.isNotEmpty)
             .toList();
