@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tranoo/data/screens/wallet_screen.dart';
 import 'package:tranoo/data/screens/marque.dart';
@@ -10,6 +7,7 @@ import 'package:tranoo/data/screens/piece.dart';
 import 'package:tranoo/data/screens/cart_page.dart';
 import 'package:tranoo/services/cart_service.dart';
 import 'package:tranoo/data/screens/profil3.dart';
+import 'package:tranoo/data/screens/profile.dart';
 import 'package:tranoo/data/screens/tarif.dart';
 import 'package:tranoo/data/screens/transit.dart';
 // import 'package:tranoo/data/screens/une.dart'; // Masqué temporairement (onglet Publicité)
@@ -35,7 +33,6 @@ class AvantHome extends StatefulWidget {
 
 class _AvantHomeState extends State<AvantHome> {
   int _selectedIndex = 0;
-  File? _image;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _didRedirectToLogin = false;
   bool _didCheckOnboarding = false;
@@ -131,15 +128,45 @@ class _AvantHomeState extends State<AvantHome> {
     return screenWidth < 600 ? smallSize : largeSize;
   }
 
-  Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? pickedFile =
-        await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
-    }
+  void _showAvatarDialog(String? photoUrl) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+        return Dialog(
+          backgroundColor: Colors.black,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 70,
+                  backgroundColor: Colors.grey[300],
+                  backgroundImage:
+                      hasPhoto ? NetworkImage(photoUrl) : null,
+                  child: hasPhoto
+                      ? null
+                      : const Icon(
+                          Icons.person_outline,
+                          size: 80,
+                          color: Colors.white70,
+                        ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'Fermer',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget getCurrentPage(String? role) {
@@ -363,18 +390,27 @@ class _AvantHomeState extends State<AvantHome> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                GestureDetector(
-                                  onTap: _pickImage,
+                                Builder(builder: (context) {
+                                  final photoUrl = (user['photo'] as String?) ?? '';
+                                  final hasPhoto = photoUrl.isNotEmpty;
+                                  return GestureDetector(
+                                    onTap: () => _showAvatarDialog(photoUrl),
                                   child: CircleAvatar(
                                     radius: avatarRadius,
-                                    backgroundColor: Colors.grey,
-                                    backgroundImage: _image == null
-                                        ? const AssetImage(
-                                            "assets/images/jenifer.jpg",
+                                      backgroundColor: Colors.grey[300],
+                                      backgroundImage: hasPhoto
+                                          ? NetworkImage(photoUrl)
+                                          : null,
+                                      child: !hasPhoto
+                                          ? Icon(
+                                              Icons.person_outline,
+                                              size: avatarRadius * 0.9,
+                                              color: Colors.grey[700],
                                           )
-                                        : FileImage(_image!) as ImageProvider,
+                                          : null,
                                   ),
-                                ),
+                                  );
+                                }),
                                 SizedBox(height: spacing),
                                 Text(
                                   user['nom'] ?? "Utilisateur",
@@ -419,6 +455,21 @@ class _AvantHomeState extends State<AvantHome> {
                                   ),
                                   icon: Icon(
                                     Icons.home,
+                                    color: Colors.black,
+                                    size: iconSize,
+                                  ),
+                                ),
+                                _buildDrawerButton(
+                                  context,
+                                  text: 'Profil',
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const Profile(),
+                                    ),
+                                  ),
+                                  icon: Icon(
+                                    Icons.person_outline,
                                     color: Colors.black,
                                     size: iconSize,
                                   ),

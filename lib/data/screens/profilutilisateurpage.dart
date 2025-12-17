@@ -12,6 +12,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/utils/cloudinary_upload.dart';
+import 'package:provider/provider.dart';
+import 'package:tranoo/providers/auth_provider.dart' as local_auth;
 
 void main() {
   runApp(const MyApp());
@@ -157,9 +159,16 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
           ),
         );
         await dio.patch('/users/me', data: {"photo": url});
+        // Resynchronise avec le backend pour propager partout
+        final me = await dio.get('/protected/me');
+        final refreshedUser = me.data['user'];
+        await local_auth.AuthProvider.saveUserToPrefs(idToken, refreshedUser);
+        if (mounted) {
+          context.read<local_auth.AuthProvider>().reloadUser();
         setState(() {
           userData?["photo"] = url;
         });
+        }
       }
     } catch (e) {
       print('Erreur upload photo: $e');

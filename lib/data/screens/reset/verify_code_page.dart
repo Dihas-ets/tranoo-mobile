@@ -107,7 +107,14 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Entrez le code reçu par notification push pour le numéro $_telephone',
+                    () {
+                      final phone = _telephone;
+                      if (phone.isNotEmpty && phone.length >= 4) {
+                        final last4 = phone.substring(phone.length - 4);
+                        return 'Un code de vérification vous a été envoyé par message WhatsApp au numéro se terminant par $last4.';
+                      }
+                      return 'Un code de vérification vous a été envoyé par message WhatsApp sur votre numéro de téléphone.';
+                    }(),
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.black),
                   ),

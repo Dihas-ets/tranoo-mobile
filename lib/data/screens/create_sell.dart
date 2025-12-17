@@ -10,6 +10,7 @@ import '../../utils/cloudinary_upload.dart';
 import 'package:http/http.dart' as http; // Ajouté pour l'upload web
 
 import 'cars_info.dart'; // Importer le fichier combiné cars_info
+import 'movie.dart';
 
 class CreateSellPage extends StatefulWidget {
   const CreateSellPage({super.key});
@@ -21,6 +22,7 @@ class CreateSellPage extends StatefulWidget {
 
 class _CreateSellPageState extends State<CreateSellPage> {
   static const int _maxMediaSlots = 12;
+  static const int _maxVideoSlots = 3;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -59,10 +61,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
     _maxMediaSlots,
     false,
   ); // Ajouté pour le chargement
-  File? _uploadedVideo;
-  String? _cloudinaryVideoUrl;
-  bool _isUploadingVideo = false; // Ajouté pour le chargement vidéo
-  double _videoUploadProgress = 0.0; // Progression de l'upload vidéo
+  final PageController _videoPageController = PageController();
+  int _currentVideoIndex = 0;
+  List<File?> _uploadedVideos = List.filled(_maxVideoSlots, null);
+  List<String?> _cloudinaryVideoUrls = List.filled(_maxVideoSlots, null);
+  List<bool> _isUploadingVideo = List.filled(_maxVideoSlots, false);
+  List<double> _videoUploadProgress =
+      List.filled(_maxVideoSlots, 0.0); // Progression de l'upload vidéo
 
   String? _customModel; // Ajouté pour la saisie personnalisée du modèle
   String? _customMarque; // Ajouté pour la saisie personnalisée de la marque
@@ -226,16 +231,17 @@ class _CreateSellPageState extends State<CreateSellPage> {
     });
   }
 
-  void _removeVideo() {
+  void _removeVideo(int index) {
     setState(() {
-      _uploadedVideo = null;
-      _cloudinaryVideoUrl = null;
-      _isUploadingVideo = false;
+      _uploadedVideos[index] = null;
+      _cloudinaryVideoUrls[index] = null;
+      _isUploadingVideo[index] = false;
+      _videoUploadProgress[index] = 0.0;
     });
   }
 
-  Future<void> _pickVideo() async {
-    print('[CreateSell] Début de la sélection vidéo');
+  Future<void> _pickVideo(int index) async {
+    print('[CreateSell] Début de la sélection vidéo (slot $index)');
     final ImagePicker picker = ImagePicker();
     final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
 
@@ -265,11 +271,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
       }
 
       setState(() {
-        _uploadedVideo = File(video.path);
-        _isUploadingVideo = true;
-        _videoUploadProgress = 0.0;
+        if (!kIsWeb) {
+          _uploadedVideos[index] = File(video.path);
+        }
+        _isUploadingVideo[index] = true;
+        _videoUploadProgress[index] = 0.0;
       });
-      print('[CreateSell] État mis à jour: _isUploadingVideo = true');
+      print('[CreateSell] État mis à jour: _isUploadingVideo[$index] = true');
 
       try {
         String? url;
@@ -286,13 +294,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
           );
         } else {
           print('[CreateSell] Appel uploadVideoToCloudinary pour mobile...');
-          print('[CreateSell] Fichier: ${_uploadedVideo!.path}');
+          print('[CreateSell] Fichier: ${_uploadedVideos[index]!.path}');
           url = await uploadVideoToCloudinary(
-            _uploadedVideo!,
+            _uploadedVideos[index]!,
             folder: CloudinaryFolders.vehicleVideos,
             onProgress: (progress) {
               setState(() {
-                _videoUploadProgress = progress;
+                _videoUploadProgress[index] = progress;
               });
             },
           );
@@ -302,7 +310,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
 
         if (url != null) {
           setState(() {
-            _cloudinaryVideoUrl = url;
+            _cloudinaryVideoUrls[index] = url;
           });
           print('[CreateSell] Vidéo uploadée avec succès! URL: $url');
           ScaffoldMessenger.of(context).showSnackBar(
@@ -334,10 +342,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
         );
       } finally {
         setState(() {
-          _isUploadingVideo = false;
-          _videoUploadProgress = 0.0;
+          _isUploadingVideo[index] = false;
+          _videoUploadProgress[index] = 0.0;
         });
-        print('[CreateSell] État final: _isUploadingVideo = false');
+        print('[CreateSell] État final: _isUploadingVideo[$index] = false');
       }
     } else {
       print('[CreateSell] Aucune vidéo sélectionnée');
@@ -345,7 +353,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
   }
 
   bool get _isAnyUploading =>
-      _isUploadingImage.contains(true) || _isUploadingVideo;
+      _isUploadingImage.contains(true) || _isUploadingVideo.contains(true);
 
   // Synchronisation Condition <-> Checkbox
   void _onConditionChanged(String? value) {
@@ -362,11 +370,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
 
   void _onValidate() {
     // Debug logs
-    print('[CreateSell] _cloudinaryVideoUrl: $_cloudinaryVideoUrl');
-    print('[CreateSell] _uploadedVideo: $_uploadedVideo');
+    print('[CreateSell] _cloudinaryVideoUrls: $_cloudinaryVideoUrls');
+    print('[CreateSell] _uploadedVideos: $_uploadedVideos');
 
     final imagesCount = _cloudinaryImageUrls.whereType<String>().length;
-    if (imagesCount > _maxMediaSlots) {
+    final videosCount = _cloudinaryVideoUrls.whereType<String>().length;
+    final totalMedia = imagesCount + videosCount;
+    if (totalMedia > _maxMediaSlots) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -379,8 +389,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
 
     // Vérifier qu'au moins un média (image ou vidéo) est présent
     final hasImages = imagesCount > 0;
-    final hasVideo =
-        _cloudinaryVideoUrl != null && _cloudinaryVideoUrl!.isNotEmpty;
+    final hasVideo = videosCount > 0;
     if (!hasImages && !hasVideo) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -440,8 +449,9 @@ class _CreateSellPageState extends State<CreateSellPage> {
     }
     // Passe toutes les infos à cars_info.dart
     final imagesList = _cloudinaryImageUrls.whereType<String>().toList();
+    final videosList = _cloudinaryVideoUrls.whereType<String>().toList();
     print('[CreateSell] images transmises à CarsInfo: $imagesList');
-    print('[CreateSell] vidéo transmise à CarsInfo: $_cloudinaryVideoUrl');
+    print('[CreateSell] vidéos transmises à CarsInfo: $videosList');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -463,7 +473,8 @@ class _CreateSellPageState extends State<CreateSellPage> {
           couleur: _selectedCouleur,
           dedouanement: _dedouanement,
           images: imagesList,
-          video: _cloudinaryVideoUrl,
+          video: videosList.isNotEmpty ? videosList.first : null,
+          videos: videosList,
           entreprise: _companyController.text,
         ),
       ),
@@ -1199,35 +1210,51 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     _buildLabel('Vidéo (optionnelle, max 500 Mo)',
                         isRequired: false),
                     const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: _cloudinaryVideoUrl == null ? _pickVideo : null,
+                    SizedBox(
+                      height: 150,
+                      child: Stack(
+                        children: [
+                          PageView.builder(
+                            controller: _videoPageController,
+                            itemCount: _maxVideoSlots,
+                            onPageChanged: (idx) =>
+                                setState(() => _currentVideoIndex = idx),
+                            itemBuilder: (context, index) {
+                              final cloudUrl = _cloudinaryVideoUrls[index];
+                              final isUploading = _isUploadingVideo[index];
+                              final progress = _videoUploadProgress[index];
+                              final hasVideo = cloudUrl != null;
+                              return GestureDetector(
+                                onTap: hasVideo
+                                    ? () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                Movie(videoUrl: cloudUrl),
+                                          ),
+                                        );
+                                      }
+                                    : () => _pickVideo(index),
                       child: Container(
-                        height: 100,
-                        width: double.infinity,
-                        clipBehavior: Clip.hardEdge,
+                                  margin:
+                                      const EdgeInsets.symmetric(horizontal: 4),
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: _cloudinaryVideoUrl == null
-                                ? Colors.blue
-                                : Colors.green,
+                                      color: hasVideo ? Colors.green : Colors.blue,
                             width: 2,
                           ),
                         ),
+                                  clipBehavior: Clip.hardEdge,
                         child: Stack(
                           alignment: Alignment.center,
-                          clipBehavior: Clip.hardEdge,
                           children: [
-                            if (_cloudinaryVideoUrl != null)
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  width: double.infinity,
-                                  height: double.infinity,
+                                      if (hasVideo)
+                                        Container(
                                   color: Colors.black87,
-                                  child: const Center(
-                                    child: Column(
+                                          child: const Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
@@ -1238,7 +1265,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                         ),
                                         SizedBox(height: 8),
                                         Text(
-                                          'Vidéo uploadée',
+                                                'Vidéo prête',
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 12,
@@ -1247,109 +1274,99 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ),
-                              )
-                            else if (_uploadedVideo != null)
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.videocam,
-                                    color: Colors.blue,
-                                    size: 40,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    'Vidéo sélectionnée',
-                                    style: TextStyle(
-                                      color: Colors.blue,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
                               )
                             else
                               Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                 children: [
                                   const Icon(
                                     Icons.video_call,
                                     color: Colors.grey,
                                     size: 40,
                                   ),
-                                  const SizedBox(height: 8),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              'Emplacement ${index + 1}',
+                                              style: const TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
                                   const Text(
-                                    'Ajouter une vidéo',
+                                              'Appuyer pour ajouter',
                                     style: TextStyle(
                                       color: Colors.grey,
-                                      fontSize: 12,
+                                                fontSize: 11,
                                     ),
                                   ),
                                 ],
                               ),
-                            if (_isUploadingVideo)
+                                      if (isUploading)
                               Positioned.fill(
                                 child: Container(
                                   color: Colors.black54,
                                   child: Center(
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
                                       children: [
                                         SizedBox(
                                           width: 40,
                                           height: 40,
-                                          child: CircularProgressIndicator(
-                                            value: _videoUploadProgress > 0
-                                                ? _videoUploadProgress
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      value: progress > 0
+                                                          ? progress
                                                 : null,
                                             color: Colors.blue,
-                                            backgroundColor: Colors.white24,
+                                                      backgroundColor:
+                                                          Colors.white24,
                                             strokeWidth: 3,
                                           ),
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          _videoUploadProgress < 0.85
+                                                    progress < 0.85
                                               ? 'Envoi...'
                                               : 'Traitement...',
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 11,
-                                            fontWeight: FontWeight.w500,
+                                                      fontWeight:
+                                                          FontWeight.w500,
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          '${(_videoUploadProgress * 100).toStringAsFixed(0)}%',
+                                                    '${(progress * 100).toStringAsFixed(0)}%',
                                           style: const TextStyle(
                                             color: Colors.white70,
                                             fontSize: 10,
                                           ),
                                         ),
                                         const SizedBox(height: 6),
-                                        // Barre de progression linéaire
                                         Container(
-                                          width: 150,
+                                                    width: 140,
                                           height: 3,
                                           decoration: BoxDecoration(
                                             color: Colors.white24,
                                             borderRadius:
-                                                BorderRadius.circular(2),
+                                                          BorderRadius.circular(
+                                                        2,
+                                                      ),
                                           ),
                                           child: FractionallySizedBox(
-                                            alignment: Alignment.centerLeft,
-                                            widthFactor: _videoUploadProgress,
+                                                      alignment:
+                                                          Alignment.centerLeft,
+                                                      widthFactor: progress,
                                             child: Container(
-                                              decoration: BoxDecoration(
+                                                        decoration:
+                                                            BoxDecoration(
                                                 color: Colors.blue,
                                                 borderRadius:
-                                                    BorderRadius.circular(2),
+                                                              BorderRadius
+                                                                  .circular(2),
                                               ),
                                             ),
                                           ),
@@ -1359,12 +1376,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                   ),
                                 ),
                               ),
-                            if (_cloudinaryVideoUrl != null)
+                                      if (hasVideo)
                               Positioned(
                                 right: 8,
                                 top: 8,
                                 child: GestureDetector(
-                                  onTap: _removeVideo,
+                                            onTap: () => _removeVideo(index),
                                   child: Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: const BoxDecoration(
@@ -1381,6 +1398,34 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               ),
                           ],
                         ),
+                                ),
+                              );
+                            },
+                          ),
+                          Positioned(
+                            bottom: 8,
+                            left: 0,
+                            right: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(
+                                _maxVideoSlots,
+                                (index) => Container(
+                                  margin:
+                                      const EdgeInsets.symmetric(horizontal: 4),
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _currentVideoIndex == index
+                                        ? Colors.blue
+                                        : Colors.grey[400],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),

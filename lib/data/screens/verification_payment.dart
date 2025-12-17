@@ -60,181 +60,177 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // En-tête avec icône vérification
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF00A86B), Colors.black],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // En-tête avec icône vérification
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF00A86B), Colors.black],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.verified_user,
-                            size: 60,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Vérification de documents',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Vérifiez l\'authenticité de vos documents',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
+                    const Icon(
+                      Icons.verified_user,
+                      size: 60,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 24),
-
-                    // Avantages de la vérification
+                    const SizedBox(height: 12),
                     const Text(
-                      'Services inclus',
+                      'Vérification de documents',
                       style: TextStyle(
-                        fontSize: 18,
+                        color: Colors.white,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 16),
-
-                    _buildAdvantageItem(
-                      Icons.security,
-                      'Vérification complète',
-                      'Contrôle de tous vos documents officiels',
-                    ),
-                    _buildAdvantageItem(
-                      Icons.schedule,
-                      'Traitement rapide',
-                      'Résultats sous 10 jours ouvrables',
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Prix
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8F9FA),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: const Color(0xFF00A86B), width: 2),
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Frais de vérification',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            '10 000 FCFA',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF00A86B),
-                            ),
-                          ),
-                          const Text(
-                            'paiement unique',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Note
+                    const SizedBox(height: 8),
                     const Text(
-                      'Après paiement, vous recevrez un récapitulatif et les vérifications seront effectuées sous 10 jours ouvrables.',
+                      'Vérifiez l\'authenticité de vos documents',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
+                        color: Colors.white70,
+                        fontSize: 14,
                       ),
                       textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
-            ),
+              const SizedBox(height: 24),
 
-            // Bouton de paiement
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(top: 16),
-              child: ElevatedButton(
-                onPressed: isLoading ? null : _processVerification,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00A86B),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
+              // Avantages de la vérification
+              const Text(
+                'Services inclus',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-                child: isLoading
-                    ? const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      )
-                    : const Text(
-                        'Procéder au paiement - 10 000 FCFA',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ),
               ),
-            ),
+              const SizedBox(height: 16),
 
-            if (errorMessage != null)
+              _buildAdvantageItem(
+                Icons.security,
+                'Vérification complète',
+                'Contrôle de tous vos documents officiels',
+              ),
+              _buildAdvantageItem(
+                Icons.schedule,
+                'Traitement rapide',
+                'Résultats sous 10 jours ouvrables',
+              ),
+
+              const SizedBox(height: 24),
+
+              // Prix
               Container(
-                margin: const EdgeInsets.only(top: 8),
-                padding: const EdgeInsets.all(12),
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red[200]!),
+                  color: const Color(0xFFF8F9FA),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF00A86B), width: 2),
                 ),
-                child: Text(
-                  errorMessage!,
-                  style: const TextStyle(color: Colors.red),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Frais de vérification',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '50 FCFA',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF00A86B),
+                      ),
+                    ),
+                    const Text(
+                      'paiement unique',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-          ],
+
+              const SizedBox(height: 16),
+
+              // Note
+              const Text(
+                'Après paiement, vous recevrez un récapitulatif et les vérifications seront effectuées sous 10 jours ouvrables.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 24),
+
+              // Bouton de paiement (un peu plus haut et scrollable)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : _processVerification,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00A86B),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: isLoading
+                      ? const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        )
+                      : const Text(
+                          'Procéder au paiement - 50 FCFA',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                ),
+              ),
+
+              if (errorMessage != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -307,7 +303,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
           builder: (context) => ChoicePage(
             token: fpToken,
             id: idUser,
-            amount: '10000',
+            amount: '50', // Montant test 50 FCFA
             redirecturl:
                 (successUrl.isNotEmpty ? successUrl : '/verification-success'),
             errorredirecturl:
@@ -357,7 +353,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
     try {
       final response = await dio.post('/verification/request', data: {
         'type': 'document_verification',
-        'amount': 50000,
+        'amount': 50, // Montant test 50 FCFA
         if ((widget.articleId ?? '').isNotEmpty) 'articleId': widget.articleId,
         'transKey': transKey, // utile pour traçabilité
       });

@@ -46,10 +46,21 @@ class _MovieState extends State<Movie> {
           </style>
         </head>
         <body>
-          <video controls autoplay>
+          <video id="vid" controls autoplay playsinline muted>
             <source src="${widget.videoUrl}" type="video/mp4">
             Votre navigateur ne supporte pas la lecture vidéo.
           </video>
+          <script>
+            const v = document.getElementById('vid');
+            if (v) {
+              const tryPlay = () => {
+                v.play().catch(() => {});
+              };
+              v.addEventListener('loadeddata', tryPlay);
+              v.addEventListener('canplay', tryPlay);
+              tryPlay();
+            }
+          </script>
         </body>
         </html>
       ''';

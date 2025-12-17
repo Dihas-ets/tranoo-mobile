@@ -35,6 +35,7 @@ class CarsInfo extends StatefulWidget {
   final bool? dedouanement; // Dédouanement
   final String? lieu;
   final List<String> images;
+  final List<String> videos;
   final String? video;
   final String? videoOptimized;
   final int? selectedImageIndex;
@@ -62,6 +63,7 @@ class CarsInfo extends StatefulWidget {
     this.dedouanement,
     this.lieu,
     required this.images,
+    this.videos = const [],
     this.video,
     this.videoOptimized,
     this.selectedImageIndex,
@@ -76,8 +78,14 @@ class CarsInfo extends StatefulWidget {
 class _CarsinfoState extends State<CarsInfo> {
   late int _currentImageIndex; // Gère l'image actuelle affichée
   late PageController _pageController;
+  late List<String> _videos; // Vidéos associées
   Set<String> _favoriteIds = <String>{};
   String? _selectedCountry;
+  int get _imagesCount => widget.images.length;
+  int get _videosCount => _videos.length;
+  int get _totalMediaCount => _imagesCount + _videosCount;
+  String? get _primaryVideo =>
+      _videos.isNotEmpty ? _videos.first : (widget.videoOptimized ?? widget.video);
   final List<String> africanCountries = [
     'Bénin',
     'Burkina Faso',
@@ -123,9 +131,16 @@ class _CarsinfoState extends State<CarsInfo> {
     log('[CarsInfo] cylindre: ${widget.cylindre}');
     log('[CarsInfo] images: ${widget.images}');
     log('[CarsInfo] video: ${widget.video}');
+    _videos = widget.videos.isNotEmpty
+        ? widget.videos.where((v) => v.isNotEmpty).toList()
+        : (widget.video != null && widget.video!.isNotEmpty
+            ? [widget.video!]
+            : <String>[]);
+    log('[CarsInfo] videos: $_videos');
     log('[CarsInfo] selectedImageIndex: ${widget.selectedImageIndex}');
+    final totalMediaCount = widget.images.length + _videos.length;
     // Correction RangeError : si la liste est vide, index = 0
-    if (widget.images.isEmpty) {
+    if (totalMediaCount == 0) {
       _currentImageIndex = 0;
     } else if (widget.selectedImageIndex != null &&
         widget.selectedImageIndex! >= 0 &&
@@ -137,7 +152,12 @@ class _CarsinfoState extends State<CarsInfo> {
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
     );
-    _pageController = PageController(initialPage: _currentImageIndex);
+    _pageController = PageController(
+      initialPage: _currentImageIndex.clamp(
+        0,
+        totalMediaCount > 0 ? totalMediaCount - 1 : 0,
+      ),
+    );
     _loadArticleStatut();
   }
 
@@ -285,88 +305,88 @@ class _CarsinfoState extends State<CarsInfo> {
       );
     }
 
-    // Si pas d'images mais vidéo disponible, afficher l'aperçu vidéo
-    final hasImages = widget.images.isNotEmpty;
-    final hasVideo = widget.video != null && widget.video!.isNotEmpty;
-
     return Stack(
       children: [
         SizedBox(
           height: screenHeight * 0.4,
           width: double.infinity,
-          child: hasImages
+          child: _totalMediaCount > 0
               ? PageView.builder(
                   controller: _pageController,
-                  itemCount: widget.images.length,
+                  itemCount: _totalMediaCount,
                   onPageChanged: (i) => setState(() => _currentImageIndex = i),
                   itemBuilder: (context, index) {
-                    final hasImage = index < widget.images.length &&
-                        widget.images[index].isNotEmpty;
-                    if (!hasImage) {
-                      return Container(
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Icon(Icons.image_not_supported, size: 80),
-                        ),
-                      );
-                    }
-                    return GestureDetector(
-                      onTap: () => _openImageViewer(index),
-                      child: ClipRect(
-                        child: InteractiveViewer(
-                          minScale: 1,
-                          maxScale: 4,
-                          child: Image.network(
-                            widget.images[index],
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                              color: Colors.grey[300],
-                              child: const Center(
-                                child: Text('Image non disponible'),
+                    if (index < _imagesCount) {
+                      final hasImage =
+                          index < widget.images.length && widget.images[index].isNotEmpty;
+                      if (!hasImage) {
+                        return Container(
+                          color: Colors.grey[300],
+                          child: const Center(
+                            child: Icon(Icons.image_not_supported, size: 80),
+                          ),
+                        );
+                      }
+                      return GestureDetector(
+                        onTap: () => _openImageViewer(index),
+                        child: ClipRect(
+                          child: InteractiveViewer(
+                            minScale: 1,
+                            maxScale: 4,
+                            child: Image.network(
+                              widget.images[index],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                color: Colors.grey[300],
+                                child: const Center(
+                                  child: Text('Image non disponible'),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    );
+                      );
+                    } else {
+                      final videoIndex = index - _imagesCount;
+                      final videoUrl = videoIndex < _videos.length
+                          ? _videos[videoIndex]
+                          : _primaryVideo;
+                      return VideoPreviewPlaceholder(
+                        videoUrl: videoUrl,
+                        iconSize: 60,
+                        onTap: () {
+                          final article = {
+                            'id': widget.id,
+                            'titre': widget.titre,
+                            'description': widget.description,
+                            'marque': widget.marque,
+                            'modele': widget.modele,
+                            'annee': widget.annee,
+                            'prix': widget.prix,
+                            'photos': widget.images,
+                            'video': videoUrl,
+                            'entreprise': widget.entreprise,
+                            'type': 'voiture',
+                          };
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  Movie(videoUrl: videoUrl, article: article),
+                            ),
+                          );
+                        },
+                      );
+                    }
                   },
                 )
-              : hasVideo
-                  ? VideoPreviewPlaceholder(
-                      videoUrl: widget.videoOptimized ?? widget.video,
-                      iconSize: 60,
-                      onTap: () {
-                        final article = {
-                          'id': widget.id,
-                          'titre': widget.titre,
-                          'description': widget.description,
-                          'marque': widget.marque,
-                          'modele': widget.modele,
-                          'annee': widget.annee,
-                          'prix': widget.prix,
-                          'photos': widget.images,
-                          'video': widget.videoOptimized ?? widget.video,
-                          'entreprise': widget.entreprise,
-                          'type': 'voiture',
-                        };
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => Movie(
-                              videoUrl: widget.videoOptimized ?? widget.video,
-                              article: article,
-                            ),
-                          ),
-                        );
-                      },
-                    )
-                  : Container(
-                      color: Colors.grey[300],
-                      child: const Center(
-                        child: Icon(Icons.image_not_supported, size: 80),
-                      ),
-                    ),
+              : Container(
+                  color: Colors.grey[300],
+                  child: const Center(
+                    child: Icon(Icons.image_not_supported, size: 80),
+                  ),
+                ),
         ),
         // Badge condition (gauche)
         Positioned(
@@ -422,7 +442,8 @@ class _CarsinfoState extends State<CarsInfo> {
               // Icône play vidéo
               GestureDetector(
                 onTap: () {
-                  if (widget.video != null && widget.video!.isNotEmpty) {
+                  final videoUrl = _primaryVideo;
+                  if (videoUrl != null && videoUrl.isNotEmpty) {
                     final article = {
                       'titre': widget.titre,
                       'description': widget.description,
@@ -441,7 +462,7 @@ class _CarsinfoState extends State<CarsInfo> {
                       'couleur': widget.couleur,
                       'dedouanement': widget.dedouanement,
                       'photos': widget.images,
-                      'video': widget.video,
+                      'video': videoUrl,
                       'entreprise': widget.entreprise,
                       'type': 'voiture',
                     };
@@ -449,7 +470,7 @@ class _CarsinfoState extends State<CarsInfo> {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            Movie(videoUrl: widget.video, article: article),
+                            Movie(videoUrl: videoUrl, article: article),
                       ),
                     );
                   } else {
@@ -460,15 +481,13 @@ class _CarsinfoState extends State<CarsInfo> {
                 },
                 child: CircleAvatar(
                   radius: 18,
-                  backgroundColor:
-                      widget.video != null && widget.video!.isNotEmpty
-                          ? Colors.white
-                          : Colors.grey[300],
+                  backgroundColor: _primaryVideo != null
+                      ? Colors.white
+                      : Colors.grey[300],
                   child: Icon(
                     Icons.play_circle_fill,
-                    color: widget.video != null && widget.video!.isNotEmpty
-                        ? Colors.red
-                        : Colors.grey,
+                    color:
+                        _primaryVideo != null ? Colors.red : Colors.grey,
                     size: 20,
                   ),
                 ),
@@ -532,7 +551,7 @@ class _CarsinfoState extends State<CarsInfo> {
           ),
         ),
         // Dots indicator
-        if (hasImages && widget.images.length > 1)
+        if (_totalMediaCount > 1)
           Positioned(
             bottom: 8,
             left: 0,
@@ -540,7 +559,7 @@ class _CarsinfoState extends State<CarsInfo> {
             child: Center(
               child: SmoothPageIndicator(
                 controller: _pageController,
-                count: widget.images.length,
+                count: _totalMediaCount,
                 effect: JumpingDotEffect(
                   activeDotColor: Colors.white,
                   dotColor: Colors.white70,
@@ -1031,7 +1050,7 @@ class _CarsinfoState extends State<CarsInfo> {
                   'couleur': widget.couleur,
                   'dedouanement': widget.dedouanement,
                   'photos': widget.images,
-                  'video': widget.video,
+                  'video': _primaryVideo,
                   'entreprise': widget.entreprise,
                   'type': 'voiture',
                   'modeLivraison':
@@ -1102,7 +1121,7 @@ class _CarsinfoState extends State<CarsInfo> {
                           ),
                           const SizedBox(height: 12),
                           const Text(
-                            '10.000 FCFA',
+                            '50 FCFA',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF00A86B),
@@ -1242,7 +1261,7 @@ class _CarsinfoState extends State<CarsInfo> {
               'couleur': widget.couleur,
               'dedouanement': widget.dedouanement,
               'photos': widget.images,
-              'video': widget.video,
+              'video': _primaryVideo,
               'entreprise': widget.entreprise,
               'type': 'voiture',
               // Pré-sélections pour payement
@@ -1312,7 +1331,7 @@ class _CarsinfoState extends State<CarsInfo> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        '10.000 FCFA',
+                        '50 FCFA',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF00A86B),
@@ -1412,7 +1431,7 @@ class _CarsinfoState extends State<CarsInfo> {
               'couleur': widget.couleur,
               'dedouanement': widget.dedouanement,
               'photos': widget.images,
-              'video': widget.video,
+              'video': _primaryVideo,
               'entreprise': widget.entreprise,
               'type': 'voiture',
               // Pré-sélections pour payement
@@ -1483,7 +1502,7 @@ class _CarsinfoState extends State<CarsInfo> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        '10.000 FCFA',
+                        '50 FCFA',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF00A86B),
@@ -1570,7 +1589,7 @@ class _CarsinfoState extends State<CarsInfo> {
                         'couleur': widget.couleur,
                         'dedouanement': widget.dedouanement,
                         'photos': widget.images,
-                        'video': widget.video,
+                        'video': _primaryVideo,
                         'entreprise': widget.entreprise,
                       };
                       log('[DEBUG] Données envoyées à l\'API :');
@@ -1657,7 +1676,7 @@ class _CarsinfoState extends State<CarsInfo> {
                       articleFuelType: widget.carburant,
                       articlePieceType: widget.condition,
                       articleImages: widget.images,
-                      articleVideo: widget.video,
+                      articleVideo: _primaryVideo,
                     ),
                   ),
                 );

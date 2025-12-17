@@ -8,6 +8,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/utils/cloudinary_upload.dart'; // Importer le composant d'upload Cloudinary
+import 'package:provider/provider.dart';
+import 'package:tranoo/providers/auth_provider.dart' as local_auth;
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -118,9 +120,15 @@ class _ProfileState extends State<Profile> {
       ),
     );
     await dio.patch('/users/me', data: {"photo": url});
-    setState(() {
-      userData?['photo'] = url;
-    });
+    final me = await dio.get('/protected/me');
+    final refreshedUser = me.data['user'];
+    await local_auth.AuthProvider.saveUserToPrefs(idToken, refreshedUser);
+    if (mounted) {
+      context.read<local_auth.AuthProvider>().reloadUser();
+      setState(() {
+        userData?['photo'] = url;
+      });
+    }
   }
 
   // Edition des infos utilisateur
