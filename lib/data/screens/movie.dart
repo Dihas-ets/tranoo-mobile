@@ -21,7 +21,7 @@ class _MovieState extends State<Movie> {
     super.initState();
     log('[MOVIE] initState called');
     log('[MOVIE] videoUrl: ${widget.videoUrl}');
-    
+
     _webController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -33,7 +33,7 @@ class _MovieState extends State<Movie> {
           },
         ),
       );
-    
+
     if (widget.videoUrl != null) {
       final htmlContent = '''
         <!DOCTYPE html>
@@ -64,7 +64,7 @@ class _MovieState extends State<Movie> {
         </body>
         </html>
       ''';
-      
+
       _webController.loadHtmlString(htmlContent);
     }
   }
@@ -78,8 +78,31 @@ class _MovieState extends State<Movie> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Center(
-        child: _buildVideoSection(),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Center(
+              child: _buildVideoSection(),
+            ),
+          ),
+          // Bouton de fermeture (utile sur iOS quand le lecteur est en plein écran)
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Material(
+                  color: Colors.black54,
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

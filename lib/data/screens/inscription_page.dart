@@ -344,6 +344,32 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3CD), // jaune pâle d’alerte
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFFC107)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Icon(Icons.warning_amber_rounded, color: Color(0xFF8A6D3B)),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Utilisez un numéro joignable sur WhatsApp : il servira aux OTP et aux échanges entre notre équipe et les utilistaeurs.',
+                        style: TextStyle(
+                          color: Color(0xFF8A6D3B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               SizedBox(height: screenHeight * 0.02),
               // Mot de passe avec icône oeil et jauge
               Focus(
@@ -759,7 +785,8 @@ class _InscriptionPageState extends State<InscriptionPage> {
                                 );
                               } else if (referralInfo is Map &&
                                   referralInfo['status'] != null) {
-                                final status = referralInfo['status']?.toString();
+                                final status =
+                                    referralInfo['status']?.toString();
                                 final amount =
                                     referralInfo['rewardAmount']?.toString();
                                 final isAgent = referralInfo['isAgent'] == true;

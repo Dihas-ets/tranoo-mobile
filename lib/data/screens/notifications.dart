@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/user_service.dart';
 import 'payement.dart' show PayementScreen;
 
@@ -25,6 +26,25 @@ List<String> getNotifImages(Map notif) {
     return [];
   } catch (e) {
     print('Erreur getNotifImages: $e');
+    return [];
+  }
+}
+
+List<String> getNotifDocuments(Map notif) {
+  try {
+    final att = notif['attachments'];
+    if (att == null || att is! Map) return [];
+
+    final docs = att['documents'];
+    if (docs == null) return [];
+
+    if (docs is List) {
+      return docs.map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
+    }
+    if (docs is String) return [docs];
+    return [];
+  } catch (e) {
+    print('Erreur getNotifDocuments: $e');
     return [];
   }
 }
@@ -109,6 +129,7 @@ class VerificationDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final images = getNotifImages(notification);
+    final documents = getNotifDocuments(notification);
     final stampUrl = getStampUrl(notification);
     final signatureUrl = getSignatureUrl(notification);
     final bodyHtml = _safeGetStringLocal(notification, 'bodyHtml') ??
@@ -173,6 +194,51 @@ class VerificationDetailPage extends StatelessWidget {
             ],
             const SizedBox(height: 10),
             Html(data: bodyHtml),
+            if (documents.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Documents joints',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Column(
+                children: documents.map((url) {
+                  final name = url.split('/').last.split('?').first;
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        // Ouvre dans le navigateur / viewer du téléphone
+                        try {
+                          final uri = Uri.parse(url);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Impossible d\'ouvrir le document'),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Erreur: $e')),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.insert_drive_file, size: 18),
+                      label: Text(
+                        name,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
             if (images.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
