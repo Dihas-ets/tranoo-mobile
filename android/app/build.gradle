@@ -130,6 +130,11 @@ android {
     }
 }
 
+dependencies {
+    // Nécessaire pour WindowCompat.setDecorFitsSystemWindows (Android 15+ bord à bord)
+    implementation 'androidx.core:core-ktx:1.15.0'
+}
+
 flutter {
     source = "../.."
 }
