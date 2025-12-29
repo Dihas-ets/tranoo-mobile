@@ -1121,7 +1121,7 @@ class _CarsinfoState extends State<CarsInfo> {
                           ),
                           const SizedBox(height: 12),
                           const Text(
-                            '50 FCFA',
+                            '10 000 FCFA',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF00A86B),
@@ -1331,7 +1331,7 @@ class _CarsinfoState extends State<CarsInfo> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        '50 FCFA',
+                        '10 000 FCFA',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF00A86B),
@@ -1502,7 +1502,7 @@ class _CarsinfoState extends State<CarsInfo> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        '50 FCFA',
+                        '10 000 FCFA',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF00A86B),

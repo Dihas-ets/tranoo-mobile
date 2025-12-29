@@ -151,7 +151,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                      '50 FCFA',
+                      '10 000 FCFA',  
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
@@ -203,7 +203,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
                         strokeWidth: 2,
                       )
                     : const Text(
-                          'Procéder au paiement - 50 FCFA',
+                          'Procéder au paiement - 10 000 FCFA',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
@@ -303,7 +303,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
           builder: (context) => ChoicePage(
             token: fpToken,
             id: idUser,
-            amount: '50', // Montant test 50 FCFA
+            amount: '10000', // Montant test 10 000 FCFA
             redirecturl:
                 (successUrl.isNotEmpty ? successUrl : '/verification-success'),
             errorredirecturl:
@@ -353,7 +353,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
     try {
       final response = await dio.post('/verification/request', data: {
         'type': 'document_verification',
-        'amount': 50, // Montant test 50 FCFA
+        'amount': 10000, // Montant test 10 000 FCFA
         if ((widget.articleId ?? '').isNotEmpty) 'articleId': widget.articleId,
         'transKey': transKey, // utile pour traçabilité
       });
