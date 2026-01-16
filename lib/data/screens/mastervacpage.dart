@@ -6,15 +6,12 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
 import 'package:tranoo/services/cart_service.dart';
 import 'cart_page.dart';
-import 'package:tranoo/utils/role_redirect.dart';
 // import 'package:tranoo/data/screens/paymentscreen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:tranoo/data/screens/succes6.dart';
+import 'package:tranoo/utils/auth_dialog.dart';
 import 'package:confetti/confetti.dart';
-import 'dart:developer';
-import 'une.dart'; // Import pour la page de demande de pub
 // import 'verification_payment.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -531,8 +528,6 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Widget _buildActionButton() {
-    final userService = UserService();
-    final isVendeur = userService.currentRole == UserRole.vendeur;
     if (widget.fromPub == true) {
       // Toujours afficher uniquement le bouton Acheter
       return SizedBox(
@@ -546,6 +541,13 @@ class _MastervacPageState extends State<MastervacPage> {
             ),
           ),
           onPressed: () async {
+            // Vérifier l'authentification avant d'ajouter au panier
+            final firebaseUser = FirebaseAuth.instance.currentUser;
+            if (firebaseUser == null) {
+              showAuthDialog(context, message: 'Connectez-vous pour ajouter cette pièce au panier');
+              return;
+            }
+            
             // Ajout au panier (sans validation des champs de livraison)
             final firstImage = widget.images.whereType<String>().firstWhere(
                   (e) => e.startsWith('http'),
@@ -603,9 +605,8 @@ class _MastervacPageState extends State<MastervacPage> {
         ),
       );
     }
-    if (!isVendeur) {
-      // Acheteur ou chauffeur : bouton acheter
-      return SizedBox(
+    // Acheteur : bouton acheter
+    return SizedBox(
         width: double.infinity,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
@@ -616,6 +617,13 @@ class _MastervacPageState extends State<MastervacPage> {
             ),
           ),
           onPressed: () async {
+            // Vérifier l'authentification avant d'ajouter au panier
+            final firebaseUser = FirebaseAuth.instance.currentUser;
+            if (firebaseUser == null) {
+              showAuthDialog(context, message: 'Connectez-vous pour ajouter cette pièce au panier');
+              return;
+            }
+            
             // Ajout au panier (sans validation des champs de livraison)
             final firstImage = widget.images.whereType<String>().firstWhere(
                   (e) => e.startsWith('http'),
@@ -672,153 +680,5 @@ class _MastervacPageState extends State<MastervacPage> {
           ),
         ),
       );
-    } else {
-      // Vendeur : boutons vendre + pub
-      return Column(
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isOnline ? Colors.grey[300] : Colors.amber,
-                foregroundColor: _isOnline ? Colors.grey[600] : Colors.black,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 64,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: _isOnline
-                  ? null
-                  : () async {
-                      log('[DEBUG] Bouton Vendez votre pièce cliqué');
-                      final pieceData = {
-                        'type': 'piece',
-                        'titre': widget.title,
-                        'annee': widget.year,
-                        'description': widget.description,
-                        'entreprise': widget.company,
-                        'localisation': widget.location,
-                        'prix': widget.price,
-                        'typeMoteur': widget.fuelType,
-                        'modele': widget.model,
-                        'pieceType': widget.pieceType,
-                        'photos': widget.images.whereType<String>().toList(),
-                        'video': widget.video,
-                      };
-                      try {
-                        final user = FirebaseAuth.instance.currentUser;
-                        final token = await user?.getIdToken();
-                        final response = await http
-                            .post(
-                              Uri.parse(getBaseUrl() + '/articles/'),
-                              headers: {
-                                'Content-Type': 'application/json',
-                                if (token != null)
-                                  'Authorization': 'Bearer $token',
-                              },
-                              body: jsonEncode(pieceData),
-                            )
-                            .timeout(const Duration(seconds: 8));
-                        if (response.statusCode == 201 ||
-                            response.statusCode == 200) {
-                          if (!mounted) return;
-                          _confettiController.play();
-                          await Future.delayed(const Duration(seconds: 2));
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SuccesScreen6(),
-                            ),
-                          );
-                        } else {
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Erreur lors de l\'enregistrement en BDD',
-                              ),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        log(
-                          '[DEBUG] Exception lors de l\'appel API (mastervac): $e',
-                        );
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Erreur réseau ou serveur')),
-                        );
-                      }
-                    },
-              child: const Text(
-                'Vendez votre pièce',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 64,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () {
-                log('[DEBUG] Bouton Faire une pub cliqué');
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Une(
-                      articleId: null,
-                      articleType: 'piece',
-                      isStandalone: false,
-                      articleTitle: widget.title,
-                      articleYear: widget.year,
-                      articleLocation: widget.location,
-                      articlePrice: widget.price,
-                      articleDescription: widget.description,
-                      articleCompany: widget.company,
-                      articleModel: widget.model,
-                      articleFuelType: widget.fuelType,
-                      articlePieceType: widget.pieceType,
-                      articleImages: widget.images.whereType<String>().toList(),
-                      articleVideo: widget.video,
-                    ),
-                  ),
-                );
-              },
-              child: const Text(
-                'Faire une pub pour cette pièce',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
-          ConfettiWidget(
-            confettiController: _confettiController,
-            blastDirectionality: BlastDirectionality.explosive,
-            shouldLoop: false,
-            emissionFrequency: 0.05,
-            numberOfParticles: 30,
-            maxBlastForce: 20,
-            minBlastForce: 8,
-            gravity: 0.3,
-          ),
-        ],
-      );
-    }
   }
 }

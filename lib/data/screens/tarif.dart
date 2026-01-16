@@ -39,10 +39,8 @@ class _TarifState extends State<Tarif> {
       // Charger le prix de l'abonnement depuis le backend
       await _loadSubscriptionPricing();
 
-      if (_userService.isAcheteur || _userService.isChauffeur) {
+      if (_userService.isAcheteur) {
         await _loadTransitaires();
-      } else if (_userService.isTransitaire) {
-        await _loadSubscription();
       }
     } catch (e) {
       errorMsg = 'Impossible de charger les données';
@@ -146,9 +144,7 @@ class _TarifState extends State<Tarif> {
       // ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
-          : (_userService.isAcheteur || _userService.isChauffeur)
-              ? _buildAcheteurView()
-              : _buildTransitaireView(),
+          : _buildAcheteurView(),
     );
   }
 
@@ -212,6 +208,7 @@ class _TarifState extends State<Tarif> {
     );
   }
 
+  // Cette méthode n'est plus utilisée - seuls les acheteurs sont autorisés
   Widget _buildTransitaireView() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),

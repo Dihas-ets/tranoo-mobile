@@ -7,9 +7,6 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'cars_info.dart';
 import 'package:tranoo/services/user_service.dart';
-import 'package:tranoo/utils/role_redirect.dart';
-import 'create_sell.dart';
-import 'movie.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 
 class VoituresPage extends StatefulWidget {
@@ -35,34 +32,23 @@ class _VoituresPageState extends State<VoituresPage>
   double? _budgetMin;
   double? _budgetMax;
 
-  // TabController pour les filtres
+  // TabController pour les filtres (acheteur uniquement)
   late TabController _tabController;
   late int _marqueTabIndex;
   late int _modeleTabIndex;
   late int _localisationTabIndex;
   late int _budgetTabIndex;
 
-  final UserService _userService = UserService();
-
   @override
   void initState() {
     super.initState();
 
-    // Initialisation des indices des onglets selon le rôle
-    final isVendeur = _userService.currentRole == UserRole.vendeur;
-    if (isVendeur) {
-      // Vendeur: pas de filtres Localisation/Budget
-      _marqueTabIndex = 0;
-      _modeleTabIndex = 1;
-      _tabController = TabController(length: 2, vsync: this);
-    } else {
-      // Autres rôles: tous les filtres
-      _marqueTabIndex = 0;
-      _modeleTabIndex = 1;
-      _localisationTabIndex = 2;
-      _budgetTabIndex = 3;
-      _tabController = TabController(length: 4, vsync: this);
-    }
+    // Initialisation des indices des onglets (acheteur)
+    _marqueTabIndex = 0;
+    _modeleTabIndex = 1;
+    _localisationTabIndex = 2;
+    _budgetTabIndex = 3;
+    _tabController = TabController(length: 4, vsync: this);
 
     _tabController.addListener(() {
       setState(() {});
@@ -116,17 +102,19 @@ class _VoituresPageState extends State<VoituresPage>
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      final userService = UserService();
-      final role = userService.currentRole;
-      final userId = user?.uid;
-      String url = getBaseUrl() + '/articles?type=voiture';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 8));
+      String url = getBaseUrl() + '/public/articles?type=voiture';
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      if (idToken != null) {
+        headers['Authorization'] = 'Bearer $idToken';
+      }
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
@@ -708,9 +696,6 @@ class _VoituresPageState extends State<VoituresPage>
 
   @override
   Widget build(BuildContext context) {
-    final userService = UserService();
-    final isVendeur = userService.currentRole == UserRole.vendeur;
-
     final filteredVoitures = _applyFilters(voitures).where((v) {
       final titre = ((v['marque'] ?? '').toString() +
               ' ' +
@@ -725,20 +710,7 @@ class _VoituresPageState extends State<VoituresPage>
       appBar: AppBar(
         title: const Text('Voitures en ligne'),
         backgroundColor: Colors.amber,
-        actions: [
-          if (isVendeur)
-            IconButton(
-              icon: const Icon(Icons.add_circle, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CreateSellPage(),
-                  ),
-                );
-              },
-            ),
-        ],
+        actions: const [],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -769,7 +741,7 @@ class _VoituresPageState extends State<VoituresPage>
                         ),
                       ),
                     ),
-                    // Filtres TabBar
+                    // Filtres TabBar (acheteur)
                     Container(
                       padding: const EdgeInsets.all(8),
                       child: Center(
@@ -784,14 +756,12 @@ class _VoituresPageState extends State<VoituresPage>
                           tabs: [
                             _buildTabButton("Marque", _marqueTabIndex),
                             _buildTabButton("Modèles", _modeleTabIndex),
-                            if (!isVendeur)
-                              _buildTabButton(
-                                "Localisation",
-                                _localisationTabIndex,
-                                isWide: true,
-                              ),
-                            if (!isVendeur)
-                              _buildTabButton("Budget", _budgetTabIndex),
+                            _buildTabButton(
+                              "Localisation",
+                              _localisationTabIndex,
+                              isWide: true,
+                            ),
+                            _buildTabButton("Budget", _budgetTabIndex),
                           ],
                         ),
                       ),
@@ -801,19 +771,16 @@ class _VoituresPageState extends State<VoituresPage>
                       _buildMarqueSection(),
                     if (_tabController.index == _modeleTabIndex)
                       _buildModeleSection(),
-                    if (!isVendeur &&
-                        _tabController.index == _localisationTabIndex)
+                    if (_tabController.index == _localisationTabIndex)
                       _buildLocalisationSection(),
-                    if (!isVendeur && _tabController.index == _budgetTabIndex)
+                    if (_tabController.index == _budgetTabIndex)
                       _buildBudgetSection(),
                     // Liste des voitures
                     Expanded(
                       child: filteredVoitures.isEmpty
                           ? Center(
                               child: Text(
-                                isVendeur
-                                    ? "Vous n'avez aucune voiture en ligne"
-                                    : "Aucune voiture disponible pour le moment.",
+                                "Aucune voiture disponible pour le moment.",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.grey,
@@ -1212,7 +1179,7 @@ class _VoituresPageState extends State<VoituresPage>
                                             ),
                                           ),
                                         ),
-                                        if (isVendeur)
+                                        // Avec uniquement les acheteurs, pas d'icône spécifique vendeur ici
                                           Positioned(
                                             top: 8,
                                             right: 8,

@@ -7,6 +7,7 @@ import 'package:tranoo/data/screens/connexion_page.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile.dart';
 import 'package:tranoo/data/screens/parrainage_page.dart';
+import 'package:tranoo/utils/auth_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 import 'package:firebase_auth/firebase_auth.dart';
@@ -94,13 +95,26 @@ class Profil3State extends State<Profil3> {
     final authProvider = Provider.of<myauth.AuthProvider>(context);
     final userData = authProvider.user;
     final loading = authProvider.loading;
-    final errorMsg =
-        userData == null && !loading ? "Utilisateur non connecté." : null;
 
-    if (loading) return Center(child: CircularProgressIndicator());
-    if (errorMsg != null) return Center(child: Text(errorMsg));
+    if (loading) return const Center(child: CircularProgressIndicator());
+    
+    // Si l'utilisateur n'est pas connecté, afficher le popup d'authentification
     if (userData == null) {
-      return Center(child: Text("Aucune donnée utilisateur"));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showAuthDialog(context, message: 'Connectez-vous pour accéder à votre profil');
+      });
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF9FAFB),
+          elevation: 0,
+        ),
+        body: const Center(
+          child: Text(
+            'Utilisateur non connecté',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
     }
     return Scaffold(
       // appBar: AppBar(

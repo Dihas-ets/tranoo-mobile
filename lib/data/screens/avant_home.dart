@@ -8,21 +8,16 @@ import 'package:tranoo/data/screens/cart_page.dart';
 import 'package:tranoo/services/cart_service.dart';
 import 'package:tranoo/data/screens/profil3.dart';
 import 'package:tranoo/data/screens/profile.dart';
-import 'package:tranoo/data/screens/tarif.dart';
-import 'package:tranoo/data/screens/transit.dart';
-// import 'package:tranoo/data/screens/une.dart'; // Masqué temporairement (onglet Publicité)
-import 'package:tranoo/data/screens/vendre.dart';
 import 'package:tranoo/data/screens/voitures.dart';
+import 'package:tranoo/utils/auth_dialog.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 import 'package:tranoo/providers/counter_provider.dart';
 
 import 'connexion_page.dart';
-import 'chat.dart';
-import 'package:tranoo/data/screens/driver_certified.dart';
 import 'package:tranoo/data/screens/second_page.dart';
-import 'package:tranoo/data/screens/une.dart';
 
 class AvantHome extends StatefulWidget {
   const AvantHome({super.key});
@@ -34,8 +29,9 @@ class AvantHome extends StatefulWidget {
 class _AvantHomeState extends State<AvantHome> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _didRedirectToLogin = false;
   bool _didCheckOnboarding = false;
+  bool _isInitialLoading = true;
+  bool _hasCompletedInitialLoad = false;
 
   @override
   void initState() {
@@ -78,17 +74,11 @@ class _AvantHomeState extends State<AvantHome> {
   }
 
   void _onItemTapped(int index, String? role) {
+    // Permettre l'accès à toutes les pages sans authentification
+    // Le popup d'auth sera affiché dans les pages individuelles si nécessaire
     setState(() {
       _selectedIndex = index;
     });
-    // Chat est maintenant intégré dans les onglets, pas besoin de Navigator.push
-    if (role == 'chauffeur' && index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const DriverCertifiedPage()),
-      );
-    }
-    // Les transitaires et vendeurs accèdent à Chat via les onglets directement
   }
 
   final List<Widget> _pagesAcheteur = [
@@ -96,28 +86,6 @@ class _AvantHomeState extends State<AvantHome> {
     VoituresPage(),
     Piece(),
     Profil3(),
-  ];
-
-  final List<Widget> _pagesChauffeur = [
-    Marque(),
-    VoituresPage(),
-    Piece(),
-    DriverCertifiedPage(),
-  ];
-
-  final List<Widget> _pagesTransitaire = [
-    Marque(),
-    Tarif(),
-    Transit(),
-    ChatListPage(),
-  ];
-
-  final List<Widget> _pagesVendeur = [
-    Marque(),
-    const Une(isStandalone: true),
-    Vendre(),
-    Piece(),
-    ChatListPage(),
   ];
 
   double responsiveSize(
@@ -170,25 +138,11 @@ class _AvantHomeState extends State<AvantHome> {
   }
 
   Widget getCurrentPage(String? role) {
-    if (role == 'acheteur') {
-      return _selectedIndex < _pagesAcheteur.length
-          ? _pagesAcheteur[_selectedIndex]
-          : _pagesAcheteur[0];
-    } else if (role == 'chauffeur') {
-      return _selectedIndex < _pagesChauffeur.length
-          ? _pagesChauffeur[_selectedIndex]
-          : _pagesChauffeur[0];
-    } else if (role == 'transitaire') {
-      return _selectedIndex < _pagesTransitaire.length
-          ? _pagesTransitaire[_selectedIndex]
-          : _pagesTransitaire[0];
-    } else if (role == 'vendeur') {
-      return _selectedIndex < _pagesVendeur.length
-          ? _pagesVendeur[_selectedIndex]
-          : _pagesVendeur[0];
-    } else {
-      return const Center(child: CircularProgressIndicator());
-    }
+    // Permettre l'accès à toutes les pages même sans authentification
+    // Puisqu'il n'y a plus d'autres rôles, tout le monde peut accéder
+    return _selectedIndex < _pagesAcheteur.length
+        ? _pagesAcheteur[_selectedIndex]
+        : _pagesAcheteur[0];
   }
 
   @override
@@ -211,36 +165,31 @@ class _AvantHomeState extends State<AvantHome> {
         final loading = auth.loading;
         final role = user != null ? user['role'] as String? : null;
 
+        // Gérer le chargement initial uniquement au tout premier chargement de l'app
+        // Une fois que le premier chargement est terminé, ne plus cacher les éléments
+        // même si loading devient true lors des changements d'authentification
+        if (!_hasCompletedInitialLoad && !loading) {
+          // Le premier chargement est terminé
+          _hasCompletedInitialLoad = true;
+          _isInitialLoading = false;
+        }
+
+        // Si c'est encore le chargement initial et que loading est true, garder _isInitialLoading à true
+        if (!_hasCompletedInitialLoad && loading) {
+          _isInitialLoading = true;
+        }
+
         if (!loading && !_didCheckOnboarding) {
           _checkOnboardingAndInactivity();
         }
 
-        if (!loading &&
-            user == null &&
-            !_didRedirectToLogin &&
-            _didCheckOnboarding) {
-          _didRedirectToLogin = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const ConnexionPage()),
-              (route) => false,
-            );
-          });
-        }
+        // Ne plus rediriger automatiquement vers la connexion
+        // L'utilisateur peut naviguer librement sans authentification
 
         if (user != null) {
           _updateLastLoginTime();
         }
 
-        // Ajusté pour 5 onglets (Accueil, Vendre, Pièces, Chat, Profil)
-        if (role == 'vendeur' && _selectedIndex > 4) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            setState(() {
-              _selectedIndex = 4;
-            });
-          });
-        }
 
         return Scaffold(
           key: _scaffoldKey,
@@ -255,8 +204,7 @@ class _AvantHomeState extends State<AvantHome> {
               ),
             ),
             actions: [
-              // Icône de panier (seulement pour les non-vendeurs)
-              if (role != 'vendeur')
+              // Icône de panier
                 Consumer<CartService>(
                   builder: (context, cart, child) {
                     return IconButton(
@@ -368,158 +316,210 @@ class _AvantHomeState extends State<AvantHome> {
               },
             ),
           ),
-          body: loading
+          body: _isInitialLoading
               ? const Center(child: CircularProgressIndicator())
               : getCurrentPage(role),
           drawer: Drawer(
-            child: loading
+            child: _isInitialLoading
                 ? const Center(child: CircularProgressIndicator())
-                : user == null
-                    ? const Center(child: Text('Non connecté'))
-                    : Column(
-                        children: [
-                          // Header fixe
-                          Container(
-                            width: double.infinity,
-                            height: drawerHeaderHeight + 20,
-                            padding: EdgeInsets.zero,
-                            margin: EdgeInsets.zero,
-                            decoration: const BoxDecoration(
-                              color: Color(0XffF8BF13),
+                : Column(
+                    children: [
+                      // Header fixe
+                      Container(
+                        width: double.infinity,
+                        height: drawerHeaderHeight + 20,
+                        padding: EdgeInsets.zero,
+                        margin: EdgeInsets.zero,
+                        decoration: const BoxDecoration(
+                          color: Color(0XffF8BF13),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Builder(builder: (context) {
+                              if (user == null) {
+                                // Utilisateur non connecté
+                                return CircleAvatar(
+                                  radius: avatarRadius,
+                                  backgroundColor: Colors.grey[300],
+                                  child: Icon(
+                                    Icons.person_outline,
+                                    size: avatarRadius * 0.9,
+                                    color: Colors.grey[700],
+                                  ),
+                                );
+                              }
+                              final photoUrl = (user['photo'] as String?) ?? '';
+                              final hasPhoto = photoUrl.isNotEmpty;
+                              return GestureDetector(
+                                onTap: () => _showAvatarDialog(photoUrl),
+                                child: CircleAvatar(
+                                  radius: avatarRadius,
+                                  backgroundColor: Colors.grey[300],
+                                  backgroundImage: hasPhoto
+                                      ? NetworkImage(photoUrl)
+                                      : null,
+                                  child: !hasPhoto
+                                      ? Icon(
+                                          Icons.person_outline,
+                                          size: avatarRadius * 0.9,
+                                          color: Colors.grey[700],
+                                        )
+                                      : null,
+                                ),
+                              );
+                            }),
+                            SizedBox(height: spacing),
+                            Text(
+                              user != null
+                                  ? (user['nom'] ?? "Utilisateur")
+                                  : "Utilisateur non connecté",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: fontSize,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Builder(builder: (context) {
-                                  final photoUrl = (user['photo'] as String?) ?? '';
-                                  final hasPhoto = photoUrl.isNotEmpty;
-                                  return GestureDetector(
-                                    onTap: () => _showAvatarDialog(photoUrl),
-                                  child: CircleAvatar(
-                                    radius: avatarRadius,
-                                      backgroundColor: Colors.grey[300],
-                                      backgroundImage: hasPhoto
-                                          ? NetworkImage(photoUrl)
-                                          : null,
-                                      child: !hasPhoto
-                                          ? Icon(
-                                              Icons.person_outline,
-                                              size: avatarRadius * 0.9,
-                                              color: Colors.grey[700],
-                                          )
-                                          : null,
-                                  ),
-                                  );
-                                }),
-                                SizedBox(height: spacing),
+                            if (user != null) ...[
+                              Text(
+                                user['email'] ?? "",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: fontSize * 0.8,
+                                ),
+                              ),
+                              if (user['role'] != null)
                                 Text(
-                                  user['nom'] ?? "Utilisateur",
+                                  (user['role'] as String).toUpperCase(),
                                   style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: fontSize,
-                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF0A1F44),
+                                    fontSize: fontSize * 0.75,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                Text(
-                                  user['email'] ?? "",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: fontSize * 0.8,
+                            ],
+                          ],
+                        ),
+                      ),
+                      // Liste scrollable
+                      Expanded(
+                        child: ListView(
+                          padding: EdgeInsets.zero,
+                          children: [
+                            _buildDrawerButton(
+                              context,
+                              text: 'Accueil',
+                              onTap: () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const AvantHome(),
                                   ),
-                                ),
-                                if (user['role'] != null)
-                                  Text(
-                                    (user['role'] as String).toUpperCase(),
-                                    style: TextStyle(
-                                      color: const Color(0xFF0A1F44),
-                                      fontSize: fontSize * 0.75,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                              ],
+                                );
+                              },
+                              icon: Icon(
+                                Icons.home,
+                                color: Colors.black,
+                                size: iconSize,
+                              ),
                             ),
-                          ),
-                          // Liste scrollable
-                          Expanded(
-                            child: ListView(
-                              padding: EdgeInsets.zero,
-                              children: [
-                                _buildDrawerButton(
-                                  context,
-                                  text: 'Accueil',
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const AvantHome(),
-                                    ),
-                                  ),
-                                  icon: Icon(
-                                    Icons.home,
-                                    color: Colors.black,
-                                    size: iconSize,
-                                  ),
-                                ),
-                                _buildDrawerButton(
-                                  context,
-                                  text: 'Profil',
-                                  onTap: () => Navigator.push(
+                            _buildDrawerButton(
+                              context,
+                              text: 'Profil',
+                              onTap: () {
+                                Navigator.pop(context);
+                                final firebaseUser = FirebaseAuth.instance.currentUser;
+                                if (firebaseUser == null) {
+                                  showAuthDialog(context, message: 'Connectez-vous pour accéder à votre profil');
+                                } else {
+                                  Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => const Profile(),
                                     ),
-                                  ),
-                                  icon: Icon(
-                                    Icons.person_outline,
-                                    color: Colors.black,
-                                    size: iconSize,
-                                  ),
-                                ),
-                                _buildDrawerButton(
-                                  context,
-                                  text: 'Portefeuille',
-                                  onTap: () => Navigator.push(
+                                  );
+                                }
+                              },
+                              icon: Icon(
+                                Icons.person_outline,
+                                color: Colors.black,
+                                size: iconSize,
+                              ),
+                            ),
+                            _buildDrawerButton(
+                              context,
+                              text: 'Portefeuille',
+                              onTap: () {
+                                Navigator.pop(context);
+                                final firebaseUser = FirebaseAuth.instance.currentUser;
+                                if (firebaseUser == null) {
+                                  showAuthDialog(context, message: 'Connectez-vous pour accéder à votre portefeuille');
+                                } else {
+                                  Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          const WalletScreen(),
+                                      builder: (context) => const WalletScreen(),
                                     ),
-                                  ),
-                                  icon: Icon(
-                                    Icons.account_balance_wallet,
-                                    color: Colors.black,
-                                    size: iconSize,
-                                  ),
-                                ),
-                                _buildDrawerButton(
-                                  context,
-                                  text: 'Déconnexion',
-                                  onTap: () async {
-                                    await Provider.of<myauth.AuthProvider>(
-                                      context,
-                                      listen: false,
-                                    ).logout();
-                                    Navigator.pushAndRemoveUntil(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const ConnexionPage(),
-                                      ),
-                                      (route) => false,
-                                    );
-                                  },
-                                  icon: Icon(
-                                    Icons.logout,
-                                    color: Colors.black,
-                                    size: iconSize,
-                                  ),
-                                ),
-                              ],
+                                  );
+                                }
+                              },
+                              icon: Icon(
+                                Icons.account_balance_wallet,
+                                color: Colors.black,
+                                size: iconSize,
+                              ),
                             ),
-                          ),
-                        ],
+                            if (user != null)
+                              _buildDrawerButton(
+                                context,
+                                text: 'Déconnexion',
+                                onTap: () async {
+                                  Navigator.pop(context);
+                                  await Provider.of<myauth.AuthProvider>(
+                                    context,
+                                    listen: false,
+                                  ).logout();
+                                  Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const Marque(),
+                                    ),
+                                    (route) => false,
+                                  );
+                                },
+                                icon: Icon(
+                                  Icons.logout,
+                                  color: Colors.black,
+                                  size: iconSize,
+                                ),
+                              ),
+                            if (user == null)
+                              _buildDrawerButton(
+                                context,
+                                text: 'Connexion',
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const ConnexionPage(),
+                                    ),
+                                  );
+                                },
+                                icon: Icon(
+                                  Icons.login,
+                                  color: Colors.black,
+                                  size: iconSize,
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
+                    ],
+                  ),
           ),
-          bottomNavigationBar: loading
+          bottomNavigationBar: _isInitialLoading
               ? null
               : BottomNavigationBar(
                   type: BottomNavigationBarType.fixed,
@@ -528,74 +528,7 @@ class _AvantHomeState extends State<AvantHome> {
                   unselectedItemColor: Colors.black,
                   currentIndex: _selectedIndex,
                   onTap: (i) => _onItemTapped(i, role),
-                  items: role == 'acheteur'
-                      ? [
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.home, size: iconSize),
-                            label: 'Accueil',
-                          ),
-                          BottomNavigationBarItem(
-                            icon: Icon(
-                              Icons.directions_car,
-                              size: iconSize,
-                            ),
-                            label: 'Voitures',
-                          ),
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.build, size: iconSize),
-                            label: 'Pièces',
-                          ),
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.person, size: iconSize),
-                            label: 'Profil',
-                          ),
-                        ]
-                      : role == 'vendeur'
-                          ? [
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.home, size: iconSize),
-                                label: 'Accueil',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.campaign, size: iconSize),
-                                label: 'Publicité',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.sell, size: iconSize),
-                                label: 'Vendre',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.build, size: iconSize),
-                                label: 'Pièces',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.chat, size: iconSize),
-                                label: 'Chat',
-                              ),
-                            ]
-                          : role == 'transitaire'
-                              ? [
-                                  BottomNavigationBarItem(
-                                    icon: Icon(Icons.home, size: iconSize),
-                                    label: 'Accueil',
-                                  ),
-                                  BottomNavigationBarItem(
-                                    icon: Icon(Icons.workspace_premium,
-                                        size: iconSize),
-                                    label: 'Abonnement',
-                                  ),
-                                  BottomNavigationBarItem(
-                                    icon: Icon(Icons.local_shipping,
-                                        size: iconSize),
-                                    label: 'Transits',
-                                  ),
-                                  BottomNavigationBarItem(
-                                    icon: Icon(Icons.chat, size: iconSize),
-                                    label: 'Chat',
-                                  ),
-                                ]
-                              : [
-                                  // Chauffeurs et autres rôles
+                  items: [
                                   BottomNavigationBarItem(
                                     icon: Icon(Icons.home, size: iconSize),
                                     label: 'Accueil',

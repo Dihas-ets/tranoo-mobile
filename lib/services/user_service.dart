@@ -50,10 +50,7 @@ class UserService extends ChangeNotifier {
   Dio get dio => _dio;
 
   UserRole? get currentRole => _currentRole;
-  bool get isTransitaire => _currentRole == UserRole.transitaire;
-  bool get isVendeur => _currentRole == UserRole.vendeur;
   bool get isAcheteur => _currentRole == UserRole.acheteur;
-  bool get isChauffeur => _currentRole == UserRole.chauffeur;
 
   void setRole(UserRole role) {
     _currentRole = role;

@@ -5,8 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:tranoo/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'mastervacpage.dart';
-import 'create_sell2.dart';
-import 'package:tranoo/utils/role_redirect.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 
 class Piece extends StatefulWidget {
@@ -31,34 +29,23 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
   double? _budgetMin;
   double? _budgetMax;
 
-  // TabController pour les filtres
+  // TabController pour les filtres (acheteur uniquement)
   late TabController _tabController;
   late int _marqueTabIndex;
   late int _modeleTabIndex;
   late int _localisationTabIndex;
   late int _budgetTabIndex;
 
-  final UserService _userService = UserService();
-
   @override
   void initState() {
     super.initState();
 
-    // Initialisation des indices des onglets selon le rôle
-    final isVendeur = _userService.currentRole == UserRole.vendeur;
-    if (isVendeur) {
-      // Vendeur: pas de filtres Localisation/Budget
-      _marqueTabIndex = 0;
-      _modeleTabIndex = 1;
-      _tabController = TabController(length: 2, vsync: this);
-    } else {
-      // Autres rôles: tous les filtres
-      _marqueTabIndex = 0;
-      _modeleTabIndex = 1;
-      _localisationTabIndex = 2;
-      _budgetTabIndex = 3;
-      _tabController = TabController(length: 4, vsync: this);
-    }
+    // Initialisation des indices des onglets (acheteur)
+    _marqueTabIndex = 0;
+    _modeleTabIndex = 1;
+    _localisationTabIndex = 2;
+    _budgetTabIndex = 3;
+    _tabController = TabController(length: 4, vsync: this);
 
     _tabController.addListener(() {
       setState(() {});
@@ -104,14 +91,19 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      String url = getBaseUrl() + '/articles?type=piece';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 8));
+      String url = getBaseUrl() + '/public/articles?type=piece';
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      if (idToken != null) {
+        headers['Authorization'] = 'Bearer $idToken';
+      }
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
@@ -676,9 +668,6 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final userService = UserService();
-    final isVendeur = userService.currentRole == UserRole.vendeur;
-
     final filteredPieces = _applyFilters(pieces).where((p) {
       final title = (p['titre'] ?? '').toString().toLowerCase();
       return _searchText.isEmpty || title.contains(_searchText);
@@ -686,23 +675,8 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isVendeur ? 'Ajouter une pièce' : 'Pièces détachées'),
+        title: const Text('Pièces détachées'),
         backgroundColor: Colors.amber,
-        actions: [
-          if (isVendeur)
-            IconButton(
-              icon: const Icon(Icons.add_circle, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CreateSellPage2(),
-                  ),
-                ).then((_) => fetchPieces());
-              },
-              tooltip: 'Ajouter une pièce',
-            ),
-        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -732,7 +706,7 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                         ),
                       ),
                     ),
-                    // Filtres TabBar
+                    // Filtres TabBar (acheteur)
                     Container(
                       padding: const EdgeInsets.all(8),
                       child: Center(
@@ -747,14 +721,12 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                           tabs: [
                             _buildTabButton("Marque", _marqueTabIndex),
                             _buildTabButton("Modèles", _modeleTabIndex),
-                            if (!isVendeur)
-                              _buildTabButton(
-                                "Localisation",
-                                _localisationTabIndex,
-                                isWide: true,
-                              ),
-                            if (!isVendeur)
-                              _buildTabButton("Budget", _budgetTabIndex),
+                            _buildTabButton(
+                              "Localisation",
+                              _localisationTabIndex,
+                              isWide: true,
+                            ),
+                            _buildTabButton("Budget", _budgetTabIndex),
                           ],
                         ),
                       ),
@@ -764,19 +736,16 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                       _buildMarqueSection(),
                     if (_tabController.index == _modeleTabIndex)
                       _buildModeleSection(),
-                    if (!isVendeur &&
-                        _tabController.index == _localisationTabIndex)
+                    if (_tabController.index == _localisationTabIndex)
                       _buildLocalisationSection(),
-                    if (!isVendeur && _tabController.index == _budgetTabIndex)
+                    if (_tabController.index == _budgetTabIndex)
                       _buildBudgetSection(),
                     // Liste des pièces
                     Expanded(
                       child: filteredPieces.isEmpty
                           ? Center(
-                              child: Text(
-                                isVendeur
-                                    ? "Vous n'avez aucune pièce en ligne actuellement"
-                                    : "Aucune pièce en ligne actuellement",
+                              child: const Text(
+                                "Aucune pièce en ligne actuellement",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.grey,
@@ -819,7 +788,7 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                                           piece['Id'] ??
                                                           piece['article'])
                                                       ?.toString(),
-                                                  isAcheteur: !isVendeur,
+                                                  isAcheteur: true,
                                                   title: piece['titre'] ?? '',
                                                   year: piece['annee'] ?? '',
                                                   description:
@@ -960,7 +929,7 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                             ),
                                           ),
                                         ),
-                                        if (isVendeur)
+                                        // Avec uniquement les acheteurs, pas d'icône de fermeture spécifique vendeur
                                           Positioned(
                                             top: 6,
                                             right: 6,

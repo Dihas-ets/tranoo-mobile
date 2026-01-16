@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import 'mastervacpage.dart'; // Importez la page MastervacPage
 import '../../utils/cloudinary_upload.dart';
 import 'package:tranoo/services/user_service.dart';
-import 'package:tranoo/utils/role_redirect.dart';
 import 'dart:developer';
 
 class CreateSellPage2 extends StatefulWidget {
@@ -1076,9 +1075,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
     
     log('[DEBUG] Validation OK, navigation vers MastervacPage.');
     final userService = UserService();
-    final isAcheteur =
-        userService.currentRole == UserRole.acheteur ||
-        userService.currentRole == UserRole.chauffeur;
+    final isAcheteur = userService.isAcheteur;
     final images = _cloudinaryUrls
             .whereType<String>()
             .where((url) => url.isNotEmpty)

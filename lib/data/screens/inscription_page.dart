@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:logging/logging.dart';
+import 'package:provider/provider.dart';
+import 'package:tranoo/providers/auth_provider.dart' as myauth;
 
-import 'connexion_page.dart'; // Assurez-vous que ce fichier existe
+import 'connexion_page.dart';
+import 'marque.dart';
 
 class InscriptionPage extends StatefulWidget {
   const InscriptionPage({super.key});
@@ -89,10 +92,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
   ];
 
   final List<String> roles = [
-    'Transitaire',
     'Acheteur',
-    'Vendeur',
-    'Chauffeur',
   ];
   final TextEditingController _entrepriseController = TextEditingController();
   bool _isLoading = false;
@@ -498,134 +498,6 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 ),
               ),
               SizedBox(height: screenHeight * 0.02),
-
-              // Nouveau champ de sélection du rôle
-              Focus(
-                onFocusChange: (hasFocus) {
-                  setState(() {});
-                },
-                child: Builder(
-                  builder: (context) {
-                    final focusNode = Focus.of(context);
-                    final bool isFocused = focusNode.hasFocus;
-
-                    return DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'Rôle',
-                        labelStyle: TextStyle(
-                          color: Colors.grey,
-                          fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
-                        ),
-                        prefixIcon: Icon(
-                          Icons.person_outline,
-                          color:
-                              isFocused ? const Color(0xFFF8BF13) : Colors.grey,
-                          size: screenWidth * (isPortrait ? 0.06 : 0.04),
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: EdgeInsets.symmetric(
-                          vertical: screenHeight * 0.02,
-                          horizontal: screenWidth * 0.04,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: isFocused
-                                ? const Color(0xFFF8BF13)
-                                : Colors.grey,
-                            width: 2,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.grey),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFF8BF13),
-                          ),
-                        ),
-                      ),
-                      value: selectedRole,
-                      items: roles.map((role) {
-                        return DropdownMenuItem(
-                          value: role,
-                          child: Text(
-                            role,
-                            style: TextStyle(
-                              fontSize:
-                                  screenWidth * (isPortrait ? 0.04 : 0.03),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedRole = value;
-                        });
-                      },
-                    );
-                  },
-                ),
-              ),
-              if (selectedRole == 'Transitaire') ...[
-                SizedBox(height: screenHeight * 0.02),
-                buildTextFieldWithController(
-                  controller: _entrepriseController,
-                  label: "Entreprise",
-                  icon: Icons.business,
-                  placeholder: "Nom de l'entreprise",
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                  isPortrait: isPortrait,
-                ),
-              ],
-              if (selectedRole == 'Vendeur') ...[
-                SizedBox(height: screenHeight * 0.02),
-                buildTextFieldWithController(
-                  controller: _registreCommerceController,
-                  label: "Numéro du registre de commerce",
-                  icon: Icons.business_center,
-                  placeholder: "RC-123456789",
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                  isPortrait: isPortrait,
-                ),
-                SizedBox(height: screenHeight * 0.02),
-                buildTextFieldWithController(
-                  controller: _numeroIFUController,
-                  label: "Numéro IFU",
-                  icon: Icons.receipt_long,
-                  placeholder: "IFU123456789",
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                  isPortrait: isPortrait,
-                ),
-                SizedBox(height: screenHeight * 0.02),
-                buildTextFieldWithController(
-                  controller: _entrepriseProvenanceController,
-                  label: "Entreprise de provenance",
-                  icon: Icons.factory,
-                  placeholder: "Nom de l'entreprise",
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                  isPortrait: isPortrait,
-                ),
-              ],
-              SizedBox(height: screenHeight * 0.02),
-
-              SizedBox(height: screenHeight * 0.02),
-              buildTextFieldWithController(
-                controller: _maisonController,
-                label: "Maison",
-                icon: Icons.home,
-                placeholder: "Rue 123, Cotonou",
-                screenWidth: screenWidth,
-                screenHeight: screenHeight,
-                isPortrait: isPortrait,
-              ),
               SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
 
               SizedBox(
@@ -641,9 +513,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               _telephoneController.text.trim().isEmpty ||
                               _passwordController.text.trim().isEmpty ||
                               _confirmPasswordController.text.trim().isEmpty ||
-                              selectedRole == null ||
-                              selectedCountry == null ||
-                              _maisonController.text.trim().isEmpty) {
+                              selectedCountry == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -652,39 +522,6 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               ),
                             );
                             return;
-                          }
-
-                          // Vérification des champs spécifiques aux transitaires
-                          if (selectedRole == 'Transitaire' &&
-                              _entrepriseController.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Veuillez remplir le champ Entreprise.',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          // Vérification des champs spécifiques aux vendeurs
-                          if (selectedRole == 'Vendeur') {
-                            if (_registreCommerceController.text
-                                    .trim()
-                                    .isEmpty ||
-                                _numeroIFUController.text.trim().isEmpty ||
-                                _entrepriseProvenanceController.text
-                                    .trim()
-                                    .isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Veuillez remplir tous les champs vendeur (Registre de commerce, IFU, Entreprise de provenance).',
-                                  ),
-                                ),
-                              );
-                              return;
-                            }
                           }
                           // Vérification email
                           final email = _emailController.text.trim();
@@ -755,19 +592,11 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               nom: _nomController.text.trim(),
                               prenoms: _prenomController.text.trim(),
                               telephone: fullPhone,
-                              role: selectedRole!.toLowerCase(),
-                              entreprise: selectedRole == 'Transitaire'
-                                  ? _entrepriseController.text.trim()
-                                  : null,
-                              registreCommerce: selectedRole == 'Vendeur'
-                                  ? _registreCommerceController.text.trim()
-                                  : null,
-                              numeroIFU: selectedRole == 'Vendeur'
-                                  ? _numeroIFUController.text.trim()
-                                  : null,
-                              entrepriseProvenance: selectedRole == 'Vendeur'
-                                  ? _entrepriseProvenanceController.text.trim()
-                                  : null,
+                              role: 'acheteur', // Toujours acheteur pour Tranoo
+                              entreprise: null,
+                              registreCommerce: null,
+                              numeroIFU: null,
+                              entrepriseProvenance: null,
                               referralCode: pendingReferral,
                               // fcmToken: ... (à ajouter si dispo)
                             );
@@ -809,18 +638,44 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             }
                             _logger.info('Réponse inscription: $response');
                             if (!mounted) return;
+                            
+                            // Charger l'utilisateur via AuthProvider (l'utilisateur est déjà connecté via Firebase)
+                            final auth = context.read<myauth.AuthProvider>();
+                            await auth.reloadUser();
+                            
+                            // Attendre brièvement que l'état soit bien propagé
+                            final startWait = DateTime.now();
+                            while (auth.user == null &&
+                                DateTime.now().difference(startWait) <
+                                    const Duration(seconds: 5)) {
+                              await Future.delayed(
+                                const Duration(milliseconds: 100),
+                              );
+                            }
+                            
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              const SnackBar(
                                 content: Text(
-                                  'Inscription réussie ! Connectez-vous.',
+                                  'Inscription réussie ! Bienvenue sur Tranoo.',
                                 ),
                               ),
                             );
-                            Navigator.pushReplacement(
+                            
+                            // Mettre à jour le timestamp de dernière connexion
+                            await prefs.setInt(
+                              'lastLoginTime',
+                              DateTime.now().millisecondsSinceEpoch,
+                            );
+                            
+                            if (!mounted) return;
+                            // Rediriger vers la page d'accueil (Marque)
+                            Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const ConnexionPage(),
+                                builder: (context) => const Marque(),
                               ),
+                              (route) => false,
                             );
                           } catch (e) {
                             String errorMsg = 'Erreur : ${e.toString()}';

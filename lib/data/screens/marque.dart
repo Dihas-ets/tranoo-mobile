@@ -292,25 +292,13 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    // Initialisation des indices des onglets selon le rôle
-    final isTransitaire = _userService.currentRole == UserRole.transitaire;
-    final isVendeur = _userService.currentRole == UserRole.vendeur;
-    if (isVendeur) {
-      // Vendeur: Statistiques visible, Localisation/Budget cachés
-      _marqueTabIndex = isTransitaire ? 1 : 0;
-      _modeleTabIndex = isTransitaire ? 2 : 1;
-      _statistiquesTabIndex = isTransitaire ? 3 : 2;
-      _tabController =
-          TabController(length: isTransitaire ? 4 : 3, vsync: this);
-    } else {
-      // Autres rôles: Localisation/Budget visibles, Statistiques cachée
-      _marqueTabIndex = isTransitaire ? 1 : 0;
-      _modeleTabIndex = isTransitaire ? 2 : 1;
-      _localisationTabIndex = isTransitaire ? 3 : 2;
-      _budgetTabIndex = isTransitaire ? 4 : 3;
-      _tabController =
-          TabController(length: isTransitaire ? 5 : 4, vsync: this);
-    }
+    // Initialisation des indices des onglets
+    // On ne garde que le rôle acheteur
+    _marqueTabIndex = 0;
+    _modeleTabIndex = 1;
+    _localisationTabIndex = 2;
+    _budgetTabIndex = 3;
+    _tabController = TabController(length: 4, vsync: this);
 
     _tabController.addListener(() {
       setState(() {});
@@ -358,23 +346,23 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       errorPieces = null;
     });
     try {
-      final role = _userService.currentRole;
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      final userId = user?.uid;
       String url =
-          getBaseUrl() + '/articles?type=piece&statut=en_ligne&vendu=false';
-      if (role == UserRole.vendeur && userId != null) {
-        url += '&vendeur=$userId';
-      }
+          getBaseUrl() + '/public/articles?type=piece&statut=en_ligne&vendu=false';
       _logger.info('[DEBUG] URL pièces: $url');
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 8));
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      if (idToken != null) {
+        headers['Authorization'] = 'Bearer $idToken';
+      }
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final body = response.body;
         try {
@@ -529,15 +517,20 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
       String url =
-          getBaseUrl() + '/articles?type=voiture&statut=en_ligne&vendu=false';
+          getBaseUrl() + '/public/articles?type=voiture&statut=en_ligne&vendu=false';
       _logger.info('[DEBUG] URL voitures: $url');
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 8));
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      if (idToken != null) {
+        headers['Authorization'] = 'Bearer $idToken';
+      }
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         if (!mounted) return;
@@ -590,13 +583,16 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      String url = getBaseUrl() + '/publicites?statut=valide';
+      String url = getBaseUrl() + '/public/publicites?statut=valide';
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      if (idToken != null) {
+        headers['Authorization'] = 'Bearer $idToken';
+      }
       final response = await http.get(
         Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -652,13 +648,16 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
       String url =
-          getBaseUrl() + '/publicites?typePub=Sponsorisée&statut=valide';
+          getBaseUrl() + '/public/publicites?typePub=Sponsorisée&statut=valide';
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      if (idToken != null) {
+        headers['Authorization'] = 'Bearer $idToken';
+      }
       final response = await http.get(
         Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -825,8 +824,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       return Center(child: Text(errorVoitures!));
     }
     // Filtrer les voitures avec statut 'en_ligne' et non vendues
-    final userService = _userService;
-    final isVendeur = userService.currentRole == UserRole.vendeur;
+    const bool isVendeur = false;
     final voituresEnLigne = voituresRecommandees
         .where(
           (v) =>
@@ -1171,8 +1169,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     if (errorPieces != null) {
       return Center(child: Text(errorPieces!));
     }
-    final userService = _userService;
-    final isVendeur = userService.currentRole == UserRole.vendeur;
+    const bool isVendeur = false;
     final piecesEnLigne = articlesPieces
         .where(
           (p) =>
@@ -1349,7 +1346,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   }
 
   Widget buildVoituresRecommandeesSection() {
-    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    const bool isVendeur = false;
     final voituresEnLigne = voituresRecommandees
         .where(
           (v) =>
@@ -1713,7 +1710,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   }
 
   Widget buildPiecesSection() {
-    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    const bool isVendeur = false;
     final piecesEnLigne = articlesPieces
         .where(
           (p) =>
@@ -2413,7 +2410,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     final screenWidth = mediaQuery.size.width;
     final screenHeight = mediaQuery.size.height;
     final isPortrait = mediaQuery.orientation == Orientation.portrait;
-    final isTransitaire = _userService.currentRole == UserRole.transitaire;
+    const bool isTransitaire = false;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -2480,39 +2477,23 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     horizontal: screenWidth * 0.01,
                   ),
                   tabs: [
-                    if (isTransitaire) _buildTabButton("Activités", 0),
                     _buildTabButton("Marque", _marqueTabIndex),
                     _buildTabButton("Modèles", _modeleTabIndex),
-                    if (_userService.currentRole == UserRole.vendeur)
-                      _buildTabButton(
-                        "Statistiques",
-                        _statistiquesTabIndex,
-                        isWide: true,
-                      ),
-                    if (_userService.currentRole != UserRole.vendeur)
-                      _buildTabButton(
-                        "Localisation",
-                        _localisationTabIndex,
-                        isWide: true,
-                      ),
-                    if (_userService.currentRole != UserRole.vendeur)
-                      _buildTabButton("Budget", _budgetTabIndex),
+                    _buildTabButton(
+                      "Localisation",
+                      _localisationTabIndex,
+                      isWide: true,
+                    ),
+                    _buildTabButton("Budget", _budgetTabIndex),
                   ],
                 ),
               ),
             ),
-            if (_tabController.index == 0 && isTransitaire)
-              _buildActivitesSection(),
             if (_tabController.index == _marqueTabIndex) _buildMarqueSection(),
             if (_tabController.index == _modeleTabIndex) _buildModeleSection(),
-            if (_userService.currentRole == UserRole.vendeur &&
-                _tabController.index == _statistiquesTabIndex)
-              _buildStatistiquesSection(),
-            if (_userService.currentRole != UserRole.vendeur &&
-                _tabController.index == _localisationTabIndex)
+            if (_tabController.index == _localisationTabIndex)
               _buildLocalisationSection(),
-            if (_userService.currentRole != UserRole.vendeur &&
-                _tabController.index == _budgetTabIndex)
+            if (_tabController.index == _budgetTabIndex)
               _buildBudgetSection(),
             // Section sponsorisée: toujours affichée
             buildPubsSponsoriseesSection(),
@@ -2765,30 +2746,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildStatistiquesSection() {
-    final isVendeur = _userService.currentRole == UserRole.vendeur;
-    if (!isVendeur) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF8E1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFFFE082)),
-          ),
-          child: const Text(
-            "Les statistiques détaillées sont réservées aux vendeurs.",
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF795548),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      );
-    }
-
     final currentVehicleIds = voituresRecommandees.map((v) => v.id).toSet();
     final totalClicks =
         _vehicleClickCounts.values.fold<int>(0, (sum, value) => sum + value);

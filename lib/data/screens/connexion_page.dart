@@ -243,9 +243,7 @@
 // ... existing code ...
 
 import 'package:flutter/material.dart';
-import 'package:tranoo/data/screens/avant_home.dart';
 import 'package:tranoo/services/user_service.dart';
-import 'package:tranoo/utils/role_redirect.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
@@ -254,6 +252,7 @@ import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 
 import 'inscription_page.dart';
+import 'marque.dart';
 
 class ConnexionPage extends StatefulWidget {
   const ConnexionPage({super.key});
@@ -523,10 +522,11 @@ class _ConnexionPageState extends State<ConnexionPage> {
                               );
 
                               if (!mounted) return;
+                              // Rediriger vers la page d'accueil (Marque)
                               Navigator.pushAndRemoveUntil(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const AvantHome(),
+                                  builder: (context) => const Marque(),
                                 ),
                                 (route) => false,
                               );
@@ -622,18 +622,13 @@ class _ConnexionPageState extends State<ConnexionPage> {
     );
   }
 
-  UserRole _getUserRoleFromString(String? role) {
-    switch (role) {
-      case 'vendeur':
-        return UserRole.vendeur;
-      case 'acheteur':
-        return UserRole.acheteur;
-      case 'transitaire':
-        return UserRole.transitaire;
-      case 'chauffeur':
-        return UserRole.chauffeur;
-      default:
-        return UserRole.acheteur;
-    }
-  }
+  // Cette méthode n'est plus utilisée - seuls les acheteurs sont autorisés
+  // UserRole _getUserRoleFromString(String? role) {
+  //   switch (role) {
+  //     case 'acheteur':
+  //       return UserRole.acheteur;
+  //     default:
+  //       return UserRole.acheteur;
+  //   }
+  // }
 }

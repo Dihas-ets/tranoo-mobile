@@ -2,18 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:http/http.dart' as http;
 import 'movie.dart';
-import 'package:tranoo/services/user_service.dart'; // Importer UserService pour gérer les rôles
-import 'package:tranoo/utils/role_redirect.dart'; // Importer RoleRedirect pour la redirection basée sur le rôle
-import 'package:tranoo/data/screens/succes_vente.dart'; // Importer SuccesVenteScreen
+import 'package:tranoo/services/user_service.dart';
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:confetti/confetti.dart';
-import 'une.dart'; // Import pour la page de demande de pub
 import 'dart:developer';
 import 'verification_payment.dart'; // Import pour la page de vérification de paiement
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:tranoo/utils/auth_dialog.dart';
 
 class CarsInfo extends StatefulWidget {
   final String? id;
@@ -84,8 +82,9 @@ class _CarsinfoState extends State<CarsInfo> {
   int get _imagesCount => widget.images.length;
   int get _videosCount => _videos.length;
   int get _totalMediaCount => _imagesCount + _videosCount;
-  String? get _primaryVideo =>
-      _videos.isNotEmpty ? _videos.first : (widget.videoOptimized ?? widget.video);
+  String? get _primaryVideo => _videos.isNotEmpty
+      ? _videos.first
+      : (widget.videoOptimized ?? widget.video);
   final List<String> africanCountries = [
     'Bénin',
     'Burkina Faso',
@@ -109,7 +108,6 @@ class _CarsinfoState extends State<CarsInfo> {
     'Éthiopie',
   ];
   late ConfettiController _confettiController;
-  bool _isOnline = false;
 
   @override
   void initState() {
@@ -158,31 +156,6 @@ class _CarsinfoState extends State<CarsInfo> {
         totalMediaCount > 0 ? totalMediaCount - 1 : 0,
       ),
     );
-    _loadArticleStatut();
-  }
-
-  Future<void> _loadArticleStatut() async {
-    try {
-      final id = widget.id;
-      if (id == null || id.isEmpty) return;
-      final user = FirebaseAuth.instance.currentUser;
-      final token = await user?.getIdToken();
-      final res = await http.get(
-        Uri.parse('${UserService().dio.options.baseUrl}/articles/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      );
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        final statut = (data['statut'] ?? '').toString().toLowerCase();
-        if (!mounted) return;
-        setState(() {
-          _isOnline = (statut == 'en_ligne');
-        });
-      }
-    } catch (_) {}
   }
 
   void _openImageViewer(int startIndex) {
@@ -249,10 +222,8 @@ class _CarsinfoState extends State<CarsInfo> {
 
   @override
   Widget build(BuildContext context) {
-    final userService = UserService(); // Instance du service utilisateur
-    final isAcheteurOuChauffeur =
-        userService.currentRole == UserRole.acheteur ||
-            userService.currentRole == UserRole.chauffeur;
+    // On garde uniquement les acheteurs, donc toujours true
+    final isAcheteurOuChauffeur = true;
 
     // Récupération des dimensions de l'écran pour la responsivité
     final mediaQuery = MediaQuery.of(context);
@@ -269,12 +240,15 @@ class _CarsinfoState extends State<CarsInfo> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: _buildAppBar(),
-      body: ListView(
-        physics: const BouncingScrollPhysics(),
-        children: [
-          _buildImageSection(screenWidth, screenHeight),
-          _buildContentSection(screenWidth, isAcheteurOuChauffeur),
-        ],
+      body: Container(
+        color: const Color(0xFFF9FAFB),
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          children: [
+            _buildImageSection(screenWidth, screenHeight),
+            _buildContentSection(screenWidth, isAcheteurOuChauffeur),
+          ],
+        ),
       ),
     );
   }
@@ -317,8 +291,8 @@ class _CarsinfoState extends State<CarsInfo> {
                   onPageChanged: (i) => setState(() => _currentImageIndex = i),
                   itemBuilder: (context, index) {
                     if (index < _imagesCount) {
-                      final hasImage =
-                          index < widget.images.length && widget.images[index].isNotEmpty;
+                      final hasImage = index < widget.images.length &&
+                          widget.images[index].isNotEmpty;
                       if (!hasImage) {
                         return Container(
                           color: Colors.grey[300],
@@ -481,13 +455,11 @@ class _CarsinfoState extends State<CarsInfo> {
                 },
                 child: CircleAvatar(
                   radius: 18,
-                  backgroundColor: _primaryVideo != null
-                      ? Colors.white
-                      : Colors.grey[300],
+                  backgroundColor:
+                      _primaryVideo != null ? Colors.white : Colors.grey[300],
                   child: Icon(
                     Icons.play_circle_fill,
-                    color:
-                        _primaryVideo != null ? Colors.red : Colors.grey,
+                    color: _primaryVideo != null ? Colors.red : Colors.grey,
                     size: 20,
                   ),
                 ),
@@ -1000,716 +972,233 @@ class _CarsinfoState extends State<CarsInfo> {
     );
   }
 
-  // Bouton d'action dynamique
+  // Bouton d'action dynamique - Toujours afficher les 2 boutons (bleu + jaune) pour les acheteurs
   Widget _buildActionButton(bool isAcheteurOuChauffeur) {
-    final userService = UserService();
-    final isVendeur = userService.currentRole == UserRole.vendeur;
+    // Toujours afficher les 2 boutons pour les acheteurs
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () {
+              // Vérifier l'authentification avant de continuer
+              final firebaseUser = FirebaseAuth.instance.currentUser;
+              if (firebaseUser == null) {
+                showAuthDialog(context,
+                    message: 'Connectez-vous pour demander une vérification');
+                return;
+              }
 
-    // Nouveaux boutons pour les non-vendeurs : vérification + contact WhatsApp
-    if (widget.fromPub == true || !isVendeur) {
-      return Row(
-        children: [
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () {
-                if (!_isEnConsommationChecked && !_isEnTransitChecked) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Veuillez choisir un mode de livraison (En Consommation ou En Transit).',
-                      ),
+              if (!_isEnConsommationChecked && !_isEnTransitChecked) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Veuillez choisir un mode de livraison (En Consommation ou En Transit).',
                     ),
-                  );
-                  return;
-                }
-                if (_selectedCountry == null || _selectedCountry!.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Veuillez sélectionner un lieu.'),
-                    ),
-                  );
-                  return;
-                }
-
-                final article = {
-                  '_id': widget.id, // Doit être l'ID Mongo réel
-                  'titre': widget.titre,
-                  'description': widget.description,
-                  'marque': widget.marque,
-                  'modele': widget.modele,
-                  'annee': widget.annee,
-                  'prix': widget.prix,
-                  'condition': widget.condition,
-                  'boiteVitesse': widget.boiteVitesse,
-                  'carburant': widget.carburant,
-                  'climatiseur': widget.climatiseur,
-                  'distance': widget.distance,
-                  'sieges': widget.sieges,
-                  'portes': widget.portes,
-                  'cylindre': widget.cylindre,
-                  'couleur': widget.couleur,
-                  'dedouanement': widget.dedouanement,
-                  'photos': widget.images,
-                  'video': _primaryVideo,
-                  'entreprise': widget.entreprise,
-                  'type': 'voiture',
-                  'modeLivraison':
-                      _isEnTransitChecked ? 'transit' : 'consommation',
-                  'paysDestination': _selectedCountry,
-                  'detailsSupplementaires': _detailsController.text.trim(),
-                };
-                log('[PUB][verif] Article payload: $article');
-
-                showDialog(
-                  context: context,
-                  builder: (ctx) {
-                    return AlertDialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      contentPadding: const EdgeInsets.all(20),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Image.asset(
-                            'assets/images/smiley.png',
-                            height: 80,
-                            width: 80,
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Contrôle en cours',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          RichText(
-                            textAlign: TextAlign.center,
-                            text: const TextSpan(
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 14,
-                                height: 1.5,
-                              ),
-                              children: [
-                                TextSpan(
-                                  text:
-                                      'Les vérifications seront effectuées et vous seront envoyées sous ',
-                                ),
-                                TextSpan(
-                                  text: '10 jours',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFFFFA000),
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: '. Pour démarrer, veuillez payer les ',
-                                ),
-                                TextSpan(
-                                  text: 'frais de vérification',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF00A86B),
-                                  ),
-                                ),
-                                TextSpan(text: '.'),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            '10 000 FCFA',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF00A86B),
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        VerificationPaymentScreen(
-                                      articleId: widget.id.toString(),
-                                    ),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFFCC00),
-                                foregroundColor: Colors.black,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child:
-                                  const Text('Payer les frais de vérification'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Center(
-                child: Text(
-                  'Demander une vérification',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
                   ),
-                  textAlign: TextAlign.center,
-                ),
+                );
+                return;
+              }
+              if (_selectedCountry == null || _selectedCountry!.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Veuillez sélectionner un lieu.'),
+                  ),
+                );
+                return;
+              }
+
+              final article = {
+                '_id': widget.id, // Doit être l'ID Mongo réel
+                'titre': widget.titre,
+                'description': widget.description,
+                'marque': widget.marque,
+                'modele': widget.modele,
+                'annee': widget.annee,
+                'prix': widget.prix,
+                'condition': widget.condition,
+                'boiteVitesse': widget.boiteVitesse,
+                'carburant': widget.carburant,
+                'climatiseur': widget.climatiseur,
+                'distance': widget.distance,
+                'sieges': widget.sieges,
+                'portes': widget.portes,
+                'cylindre': widget.cylindre,
+                'couleur': widget.couleur,
+                'dedouanement': widget.dedouanement,
+                'photos': widget.images,
+                'video': _primaryVideo,
+                'entreprise': widget.entreprise,
+                'type': 'voiture',
+                'modeLivraison':
+                    _isEnTransitChecked ? 'transit' : 'consommation',
+                'paysDestination': _selectedCountry,
+                'detailsSupplementaires': _detailsController.text.trim(),
+              };
+              log('[CarsInfo][verif] Article payload: $article');
+
+              showDialog(
+                context: context,
+                builder: (ctx) {
+                  return AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    contentPadding: const EdgeInsets.all(20),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          'assets/images/smiley.png',
+                          height: 80,
+                          width: 80,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Contrôle en cours',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        RichText(
+                          textAlign: TextAlign.center,
+                          text: const TextSpan(
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 14,
+                              height: 1.5,
+                            ),
+                            children: [
+                              TextSpan(
+                                text:
+                                    'Les vérifications seront effectuées et vous seront envoyées sous ',
+                              ),
+                              TextSpan(
+                                text: '10 jours',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFFFA000),
+                                ),
+                              ),
+                              TextSpan(
+                                text: '. Pour démarrer, veuillez payer les ',
+                              ),
+                              TextSpan(
+                                text: 'frais de vérification',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF00A86B),
+                                ),
+                              ),
+                              TextSpan(text: '.'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          '10 000 FCFA',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF00A86B),
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      VerificationPaymentScreen(
+                                    articleId: widget.id.toString(),
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFCC00),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child:
+                                const Text('Payer les frais de vérification'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () async {
-                final uri = Uri.parse('https://wa.me/22941839801');
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Impossible d\'ouvrir WhatsApp'),
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Acheter cette voiture',
+            child: const Center(
+              child: Text(
+                'Demander une vérification',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (widget.fromPub == true) {
-      // Toujours afficher uniquement le bouton Acheter
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: () {
-            if (!_isEnConsommationChecked && !_isEnTransitChecked) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Veuillez choisir un mode de livraison (En Consommation ou En Transit).',
-                  ),
-                ),
-              );
-              return;
-            }
-            if (_selectedCountry == null || _selectedCountry!.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Veuillez sélectionner un lieu.')),
-              );
-              return;
-            }
-            // Créer l'objet article à partir des propriétés du widget
-            final article = {
-              '_id': widget.id, // Doit être l'ID Mongo réel
-              'titre': widget.titre,
-              'description': widget.description,
-              'marque': widget.marque,
-              'modele': widget.modele,
-              'annee': widget.annee,
-              'prix': widget.prix,
-              'condition': widget.condition,
-              'boiteVitesse': widget.boiteVitesse,
-              'carburant': widget.carburant,
-              'climatiseur': widget.climatiseur,
-              'distance': widget.distance,
-              'sieges': widget.sieges,
-              'portes': widget.portes,
-              'cylindre': widget.cylindre,
-              'couleur': widget.couleur,
-              'dedouanement': widget.dedouanement,
-              'photos': widget.images,
-              'video': _primaryVideo,
-              'entreprise': widget.entreprise,
-              'type': 'voiture',
-              // Pré-sélections pour payement
-              'modeLivraison': _isEnTransitChecked ? 'transit' : 'consommation',
-              'paysDestination': _selectedCountry,
-              'detailsSupplementaires': _detailsController.text.trim(),
-            };
-            log('[PUB][fromPub] Article payload: $article');
-            showDialog(
-              context: context,
-              builder: (ctx) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  contentPadding: const EdgeInsets.all(20),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        'assets/images/smiley.png',
-                        height: 80,
-                        width: 80,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Contrôle en cours',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: const TextSpan(
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                            height: 1.5,
-                          ),
-                          children: [
-                            TextSpan(
-                              text:
-                                  'Les vérifications seront effectuées et vous seront envoyées sous ',
-                            ),
-                            TextSpan(
-                              text: '10 jours',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFFFA000),
-                              ),
-                            ),
-                            TextSpan(
-                              text: '. Pour démarrer, veuillez payer les ',
-                            ),
-                            TextSpan(
-                              text: 'frais de vérification',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF00A86B),
-                              ),
-                            ),
-                            TextSpan(text: '.'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        '10 000 FCFA',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF00A86B),
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => VerificationPaymentScreen(
-                                  articleId: widget.id.toString(),
-                                ),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFCC00),
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text('Payer les frais de vérification'),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.amber,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Text(
-            'Acheter cette voiture',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-        ),
-      );
-    }
-    if (!isVendeur) {
-      // Pour les acheteurs/chauffeurs, un seul bouton
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: () {
-            if (!_isEnConsommationChecked && !_isEnTransitChecked) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Veuillez choisir un mode de livraison (En Consommation ou En Transit).',
-                  ),
-                ),
-              );
-              return;
-            }
-            if (_selectedCountry == null || _selectedCountry!.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Veuillez sélectionner un lieu.')),
-              );
-              return;
-            }
-
-            // Créer l'objet article à partir des propriétés du widget
-            final article = {
-              '_id': widget.id, // Doit être l'ID Mongo réel
-              'titre': widget.titre,
-              'description': widget.description,
-              'marque': widget.marque,
-              'modele': widget.modele,
-              'annee': widget.annee,
-              'prix': widget.prix,
-              'condition': widget.condition,
-              'boiteVitesse': widget.boiteVitesse,
-              'carburant': widget.carburant,
-              'climatiseur': widget.climatiseur,
-              'distance': widget.distance,
-              'sieges': widget.sieges,
-              'portes': widget.portes,
-              'cylindre': widget.cylindre,
-              'couleur': widget.couleur,
-              'dedouanement': widget.dedouanement,
-              'photos': widget.images,
-              'video': _primaryVideo,
-              'entreprise': widget.entreprise,
-              'type': 'voiture',
-              // Pré-sélections pour payement
-              'modeLivraison': _isEnTransitChecked ? 'transit' : 'consommation',
-              'paysDestination': _selectedCountry,
-              'detailsSupplementaires': _detailsController.text.trim(),
-            };
-            log('[PUB][standard] Article payload: $article');
-
-            showDialog(
-              context: context,
-              builder: (ctx) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  contentPadding: const EdgeInsets.all(20),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        'assets/images/smiley.png',
-                        height: 80,
-                        width: 80,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Contrôle en cours',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: const TextSpan(
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                            height: 1.5,
-                          ),
-                          children: [
-                            TextSpan(
-                              text:
-                                  'Les vérifications seront effectuées et vous seront envoyées sous ',
-                            ),
-                            TextSpan(
-                              text: '10 jours',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFFFA000),
-                              ),
-                            ),
-                            TextSpan(
-                              text: '. Pour démarrer, veuillez payer les ',
-                            ),
-                            TextSpan(
-                              text: 'frais de vérification',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF00A86B),
-                              ),
-                            ),
-                            TextSpan(text: '.'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        '10 000 FCFA',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF00A86B),
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => VerificationPaymentScreen(
-                                  articleId: widget.id.toString(),
-                                ),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFCC00),
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text('Payer les frais de vérification'),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.amber,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Text(
-            'Acheter cette voiture',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-        ),
-      );
-    } else {
-      // Pour les vendeurs, deux boutons
-      return Column(
-        children: [
-          // Bouton principal "Vendre ma voiture"
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isOnline
-                  ? null
-                  : () async {
-                      // Vendeur : enregistre l'article dans la BDD puis redirige vers la page de succès
-                      final articleData = {
-                        'type': 'voiture',
-                        'titre': widget.titre,
-                        'description': widget.description,
-                        'marque': widget.marque,
-                        'modele': widget.modele,
-                        'annee': widget.annee,
-                        'prix': widget.prix,
-                        'condition': widget.condition,
-                        'boiteVitesse': widget.boiteVitesse,
-                        'carburant': widget.carburant,
-                        'climatiseur': widget.climatiseur,
-                        'distance': widget.distance,
-                        'sieges': widget.sieges,
-                        'portes': widget.portes,
-                        'cylindre': widget.cylindre,
-                        'couleur': widget.couleur,
-                        'dedouanement': widget.dedouanement,
-                        'photos': widget.images,
-                        'video': _primaryVideo,
-                        'entreprise': widget.entreprise,
-                      };
-                      log('[DEBUG] Données envoyées à l\'API :');
-                      log(articleData.toString());
-                      try {
-                        final user = FirebaseAuth.instance.currentUser;
-                        final token = await user?.getIdToken();
-                        final response = await http.post(
-                          Uri.parse(
-                            '${UserService().dio.options.baseUrl}/articles/',
-                          ),
-                          headers: {
-                            'Content-Type': 'application/json',
-                            if (token != null) 'Authorization': 'Bearer $token',
-                          },
-                          body: jsonEncode(articleData),
-                        );
-                        log(
-                          '[DEBUG] Status code réponse API : ${response.statusCode}',
-                        );
-                        log('[DEBUG] Body réponse API : ${response.body}');
-                        if (response.statusCode == 201 ||
-                            response.statusCode == 200) {
-                          _confettiController.play();
-                          await Future.delayed(const Duration(seconds: 2));
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SuccesVenteScreen(),
-                            ),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Erreur lors de l\'enregistrement en BDD',
-                              ),
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        log('[DEBUG] Exception lors de l\'appel API : $e');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Erreur réseau ou serveur')),
-                        );
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isOnline ? Colors.grey[300] : Colors.amber,
-                foregroundColor: _isOnline ? Colors.grey[600] : Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Vendre ma voiture',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Bouton "Faire une pub" pour les vendeurs
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                log('[DEBUG] Bouton Faire une pub cliqué');
-                // Ouvrir la page de demande de pub avec les infos de l'article
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Une(
-                      articleId: widget.id, // Utiliser l'ID réel de l'article
-                      articleType: 'voiture',
-                      isStandalone: false,
-                      articleTitle: widget.titre,
-                      articleYear: widget.annee,
-                      articleLocation: widget.lieu,
-                      articlePrice: widget.prix,
-                      articleDescription: widget.description,
-                      articleCompany: widget.entreprise,
-                      articleModel: widget.modele,
-                      articleFuelType: widget.carburant,
-                      articlePieceType: widget.condition,
-                      articleImages: widget.images,
-                      articleVideo: _primaryVideo,
-                    ),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Faire une pub pour cette voiture',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
-          ConfettiWidget(
-            confettiController: _confettiController,
-            blastDirectionality: BlastDirectionality.explosive,
-            shouldLoop: false,
-            emissionFrequency: 0.05,
-            numberOfParticles: 30,
-            maxBlastForce: 20,
-            minBlastForce: 8,
-            gravity: 0.3,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () async {
+              // Vérifier l'authentification avant de continuer
+              final firebaseUser = FirebaseAuth.instance.currentUser;
+              if (firebaseUser == null) {
+                showAuthDialog(context,
+                    message: 'Connectez-vous pour acheter cette voiture');
+                return;
+              }
+
+              final uri = Uri.parse('https://wa.me/22941839801');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Impossible d\'ouvrir WhatsApp'),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Acheter cette voiture',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
           ),
-        ],
-      );
-    }
+        ),
+      ],
+    );
   }
 }

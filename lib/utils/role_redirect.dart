@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 import '../services/user_service.dart';
 
-enum UserRole { acheteur, vendeur, transitaire, chauffeur }
+enum UserRole { acheteur }
 
 UserRole? stringToUserRole(String? role) {
   switch (role) {
     case 'acheteur':
       return UserRole.acheteur;
-    case 'vendeur':
-      return UserRole.vendeur;
-    case 'transitaire':
-      return UserRole.transitaire;
-    case 'chauffeur':
-      return UserRole.chauffeur;
     default:
       return null;
   }
