@@ -30,6 +30,8 @@ dependencies:
   http: ^1.4.0
   provider: ^6.1.5
   shared_preferences: ^2.5.3
+  device_info_plus: ^11.2.0
+  flutter_local_notifications: ^18.0.1
   video_player: ^2.8.6
   chewie: ^1.8.5
   webview_flutter: ^4.10.0

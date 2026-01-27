@@ -116,6 +116,8 @@ android {
     }
 
     compileOptions {
+        // Requis par flutter_local_notifications (Java 8+ APIs via desugaring)
+        coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
@@ -131,6 +133,8 @@ android {
 }
 
 dependencies {
+    // Requis pour "core library desugaring" (voir erreur :flutter_local_notifications)
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
     // Nécessaire pour WindowCompat.setDecorFitsSystemWindows (Android 15+ bord à bord)
     implementation 'androidx.core:core-ktx:1.15.0'
 }

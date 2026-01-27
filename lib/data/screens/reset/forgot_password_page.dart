@@ -25,14 +25,28 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     try {
       final email = _emailCtrl.text.trim();
 
-      // D'abord récupérer le numéro de téléphone via l'email
-      final phoneResult = await PushOTPService.getPhoneByEmail(email);
-
-      if (!phoneResult['success']) {
+      final fcmToken = await PushOTPService.getFCMToken();
+      if (fcmToken == null || fcmToken.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(phoneResult['message']),
+            const SnackBar(
+              content: Text(
+                'Autorisez les notifications pour recevoir le code sur cet appareil.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        setState(() => _loading = false);
+        return;
+      }
+
+      final deviceId = await PushOTPService.getDeviceId();
+      if (deviceId == null || deviceId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible d’identifier ce téléphone.'),
               backgroundColor: Colors.red,
             ),
           );
@@ -41,29 +55,43 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         return;
       }
 
-      final phoneNumber = phoneResult['phoneNumber'];
-
-      // Envoyer l'OTP au numéro récupéré
-      final result = await PushOTPService.requestOTP(phoneNumber);
+      final result = await PushOTPService.requestPasswordReset(
+        identifier: email,
+        deviceId: deviceId,
+        fcmToken: fcmToken,
+      );
 
       if (!mounted) return;
 
-      if (result['success']) {
+      if (result['success'] == true) {
+        final requestId = result['requestId']?.toString();
+        if (requestId == null || requestId.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible de démarrer la demande. Réessayez.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message']),
+            content: Text(result['message'] as String? ?? 'Code envoyé.'),
             backgroundColor: Colors.green,
           ),
         );
         Navigator.pushNamed(
           context,
           '/auth/verify-reset',
-          arguments: phoneNumber,
+          arguments: {
+            'requestId': requestId,
+            'deviceId': deviceId,
+          },
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message']),
+            content: Text(result['message'] as String? ?? 'Erreur.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -114,7 +142,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Text(
-                      'Entrez l\'adresse email de votre compte.\nUn code de vérification vous sera envoyé par WhatsApp sur votre numéro enregistré.',
+                      'Entrez l\'adresse email de votre compte.\nUn code sera envoyé par notification sur ce téléphone.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.black),
                     ),

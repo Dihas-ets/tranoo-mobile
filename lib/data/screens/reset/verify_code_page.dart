@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:tranoo/services/push_otp_service.dart';
-import 'create_new_password_page.dart';
+import 'dart:async';
 
 class VerifyResetCodePage extends StatefulWidget {
   const VerifyResetCodePage({super.key});
@@ -12,58 +13,121 @@ class VerifyResetCodePage extends StatefulWidget {
 class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
   final _formKey = GlobalKey<FormState>();
   final _codeCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
   bool _loading = false;
-  late final String _telephone;
+  late final String _requestId;
+  late final String _deviceId;
+  StreamSubscription<RemoteMessage>? _notificationSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // Écouter les notifications pour auto-remplir le code OTP
+    _notificationSubscription = FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (message.data['type'] == 'otp' && mounted) {
+        // Extraire le code depuis data.code (prioritaire) ou depuis notification.body
+        String? code = message.data['code'] as String?;
+        if (code == null || code.isEmpty) {
+          // Fallback: extraire depuis notification.body (format: "Votre code : 123456")
+          final body = message.notification?.body ?? '';
+          final match = RegExp(r'(\d{6})').firstMatch(body);
+          code = match?.group(1);
+        }
+        
+        if (code != null && code.isNotEmpty && _codeCtrl.text.isEmpty) {
+          setState(() {
+            _codeCtrl.text = code!;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Code OTP reçu : $code'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    });
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments;
-    _telephone = (args is String) ? args : '';
+    if (args is Map) {
+      _requestId = (args['requestId'] as String?) ?? '';
+      _deviceId = (args['deviceId'] as String?) ?? '';
+    } else {
+      _requestId = '';
+      _deviceId = '';
+    }
+    
+    // Vérifier que les arguments requis sont présents
+    if (_requestId.isEmpty || _deviceId.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Informations manquantes. Veuillez recommencer.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          Navigator.of(context).pop();
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
+    _notificationSubscription?.cancel();
     _codeCtrl.dispose();
-    _passwordCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _verifyOTP() async {
+  Future<void> _verifyCode() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    // Vérifier que les arguments requis sont présents
+    if (_requestId.isEmpty || _deviceId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Informations manquantes. Veuillez recommencer.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
+    
     setState(() => _loading = true);
     try {
-      // Vérifier seulement le code OTP, pas le mot de passe
-      final result = await PushOTPService.verifyOTPCode(
-        telephone: _telephone,
+      final result = await PushOTPService.verifyResetCode(
+        requestId: _requestId,
+        deviceId: _deviceId,
         code: _codeCtrl.text.trim(),
       );
 
       if (!mounted) return;
 
-      if (result['success']) {
+      if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Code OTP vérifié avec succès'),
+          SnackBar(
+            content: Text(result['message'] as String? ?? 'Code vérifié'),
             backgroundColor: Colors.green,
           ),
         );
-        // Rediriger vers la page de création de mot de passe
-        Navigator.pushReplacement(
+        Navigator.pushNamed(
           context,
-          MaterialPageRoute(
-            builder:
-                (context) => CreateNewPasswordPage(
-                  telephone: _telephone,
-                  otpCode: _codeCtrl.text.trim(),
-                ),
-          ),
+          '/auth/create-password',
+          arguments: {
+            'requestId': _requestId,
+            'deviceId': _deviceId,
+          },
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message']),
+            content: Text(result['message'] as String? ?? 'Erreur'),
             backgroundColor: Colors.red,
           ),
         );
@@ -107,14 +171,7 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    () {
-                      final phone = _telephone;
-                      if (phone.isNotEmpty && phone.length >= 4) {
-                        final last4 = phone.substring(phone.length - 4);
-                        return 'Un code de vérification vous a été envoyé par message WhatsApp au numéro se terminant par $last4.';
-                      }
-                      return 'Un code de vérification vous a été envoyé par message WhatsApp sur votre numéro de téléphone.';
-                    }(),
+                    'Un code vous a été envoyé par notification push sur cet appareil. Saisissez-le ci-dessous.',
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.black),
                   ),
@@ -155,7 +212,7 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _loading ? null : _verifyOTP,
+                    onPressed: _loading ? null : _verifyCode,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF8BF13),
                       foregroundColor: Colors.black,

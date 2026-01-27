@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,6 +10,25 @@ import '../config/backend_config.dart';
 class PushOTPService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final String _baseUrl = getPushOtpBaseUrl();
+
+  static Future<String?> getDeviceId() async {
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final info = await deviceInfo.androidInfo;
+        // info.id est l'ID unique du device Android (remplace androidId dans les nouvelles versions)
+        return info.id.isNotEmpty ? info.id : null;
+      }
+      if (Platform.isIOS) {
+        final info = await deviceInfo.iosInfo;
+        return info.identifierForVendor;
+      }
+      return null;
+    } catch (e) {
+      print('Erreur récupération deviceId: $e');
+      return null;
+    }
+  }
 
   // Récupérer le token FCM de l'utilisateur
   static Future<String?> getFCMToken() async {
@@ -47,13 +68,14 @@ class PushOTPService {
       if (user == null) return false;
 
       final idToken = await user.getIdToken();
+      final deviceId = await getDeviceId();
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/users/update-fcm-token'),
+        Uri.parse('$_baseUrl/api/users/fcm-token'),
         headers: {
           'Authorization': 'Bearer $idToken',
           'Content-Type': 'application/json',
         },
-        body: json.encode({'fcmToken': fcmToken}),
+        body: json.encode({'fcmToken': fcmToken, 'deviceId': deviceId}),
       );
 
       if (response.statusCode == 200) {
@@ -69,27 +91,49 @@ class PushOTPService {
     }
   }
 
-  // Récupérer le numéro de téléphone par email
-  static Future<Map<String, dynamic>> getPhoneByEmail(String email) async {
+  static Future<Map<String, dynamic>> requestPasswordReset({
+    required String identifier,
+    required String deviceId,
+    required String fcmToken,
+  }) async {
     try {
+      if (identifier.trim().isEmpty) {
+        return {'success': false, 'message': 'Veuillez entrer votre identifiant.'};
+      }
+      if (deviceId.trim().isEmpty) {
+        return {'success': false, 'message': 'Impossible d’identifier ce téléphone.'};
+      }
+      if (fcmToken.trim().isEmpty) {
+        return {
+          'success': false,
+          'message':
+              'Autorisez les notifications pour recevoir le code sur cet appareil.',
+        };
+      }
+
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/public/users/phone-by-email'),
+        Uri.parse('$_baseUrl/api/push-otp/request'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email}),
+        body: json.encode({
+          'identifier': identifier.trim(),
+          'deviceId': deviceId.trim(),
+          'fcmToken': fcmToken.trim(),
+        }),
       );
 
-      final data = json.decode(response.body);
+      final data = json.decode(response.body) as Map<String, dynamic>? ?? {};
 
       if (response.statusCode == 200) {
         return {
           'success': true,
-          'phoneNumber': data['phoneNumber'],
-          'message': data['message'],
+          'message': data['message'] as String? ?? 'Code envoyé par notification.',
+          'requestId': data['requestId'],
+          'expiresInSeconds': data['expiresInSeconds'],
         };
       } else {
         return {
           'success': false,
-          'message': data['message'] ?? 'Erreur inconnue',
+          'message': data['message'] as String? ?? 'Erreur inconnue',
         };
       }
     } catch (e) {
@@ -97,50 +141,26 @@ class PushOTPService {
     }
   }
 
-  // Demander un code OTP
-  static Future<Map<String, dynamic>> requestOTP(String telephone) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/push-otp/send-otp'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'telephone': telephone}),
-      );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'message': data['message'],
-          'messageId': data['messageId'],
-        };
-      } else {
-        return {
-          'success': false,
-          'message': data['message'] ?? 'Erreur inconnue',
-        };
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Erreur de connexion: $e'};
-    }
-  }
-
-  // Vérifier seulement le code OTP (sans réinitialiser le mot de passe)
-  static Future<Map<String, dynamic>> verifyOTPCode({
-    required String telephone,
+  static Future<Map<String, dynamic>> verifyResetCode({
+    required String requestId,
+    required String deviceId,
     required String code,
   }) async {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/api/push-otp/verify-code'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'telephone': telephone, 'code': code}),
+        body: json.encode({
+          'requestId': requestId,
+          'deviceId': deviceId,
+          'code': code,
+        }),
       );
 
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message']};
+        return {'success': true, 'message': data['message'] ?? 'Code vérifié.'};
       } else {
         return {
           'success': false,
@@ -152,19 +172,18 @@ class PushOTPService {
     }
   }
 
-  // Vérifier le code OTP et réinitialiser le mot de passe
-  static Future<Map<String, dynamic>> verifyOTPAndResetPassword({
-    required String telephone,
-    required String code,
+  static Future<Map<String, dynamic>> resetPassword({
+    required String requestId,
+    required String deviceId,
     required String newPassword,
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/push-otp/verify-otp'),
+        Uri.parse('$_baseUrl/api/push-otp/reset-password'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'telephone': telephone,
-          'code': code,
+          'requestId': requestId,
+          'deviceId': deviceId,
           'newPassword': newPassword,
         }),
       );
@@ -172,7 +191,7 @@ class PushOTPService {
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message']};
+        return {'success': true, 'message': data['message'] ?? 'Mot de passe réinitialisé.'};
       } else {
         return {
           'success': false,
@@ -189,11 +208,24 @@ class PushOTPService {
     // Notification reçue en foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Notification reçue en foreground: ${message.notification?.title}');
+      print('Notification body: ${message.notification?.body}');
+      print('Notification data: ${message.data}');
 
       if (message.data['type'] == 'otp') {
-        final code = message.data['code'];
-        if (code != null) {
+        // Extraire le code depuis data.code (prioritaire) ou depuis notification.body
+        String? code = message.data['code'] as String?;
+        if (code == null || code.isEmpty) {
+          // Fallback: extraire depuis notification.body (format: "Votre code : 123456")
+          final body = message.notification?.body ?? '';
+          final match = RegExp(r'(\d{6})').firstMatch(body);
+          code = match?.group(1);
+        }
+        
+        if (code != null && code.isNotEmpty) {
+          print('Code OTP extrait: $code');
           _showOTPNotification(code);
+        } else {
+          print('⚠️ Code OTP non trouvé dans la notification');
         }
       }
     });
@@ -201,11 +233,24 @@ class PushOTPService {
     // Notification tapée (app en background)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print('Notification tapée: ${message.notification?.title}');
+      print('Notification body: ${message.notification?.body}');
+      print('Notification data: ${message.data}');
 
       if (message.data['type'] == 'otp') {
-        final code = message.data['code'];
-        if (code != null) {
+        // Extraire le code depuis data.code (prioritaire) ou depuis notification.body
+        String? code = message.data['code'] as String?;
+        if (code == null || code.isEmpty) {
+          // Fallback: extraire depuis notification.body (format: "Votre code : 123456")
+          final body = message.notification?.body ?? '';
+          final match = RegExp(r'(\d{6})').firstMatch(body);
+          code = match?.group(1);
+        }
+        
+        if (code != null && code.isNotEmpty) {
+          print('Code OTP extrait: $code');
           _showOTPNotification(code);
+        } else {
+          print('⚠️ Code OTP non trouvé dans la notification');
         }
       }
     });

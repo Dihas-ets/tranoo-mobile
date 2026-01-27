@@ -17,7 +17,7 @@
         android:maxSdkVersion="28"/>
 
     <application
-        android:label="tranoo"
+        android:label="Tranoo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 

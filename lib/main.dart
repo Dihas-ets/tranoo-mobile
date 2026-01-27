@@ -17,6 +17,7 @@ import 'package:tranoo/data/screens/avant_home.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/blocked_user_service.dart';
 import 'package:tranoo/services/push_otp_service.dart';
+import 'package:tranoo/utils/local_notification_service.dart';
 
 // import 'package:flutter/services.dart';
 import 'data/screens/marque.dart';
@@ -127,11 +128,26 @@ class NotificationService {
   }
 
   void _showLocalNotification(RemoteMessage message) {
-    // Améliorer l'affichage des notifications locales
     _logger.info('Notification locale: ${message.notification?.title}');
-
-    // Ici tu peux ajouter une notification locale avec flutter_local_notifications
-    // si tu veux afficher des notifications même quand l'app est en premier plan
+    
+    // Afficher une notification locale visible même en foreground
+    if (message.data['type'] == 'otp') {
+      final code = message.data['code'] as String?;
+      if (code != null && code.isNotEmpty) {
+        LocalNotificationService.showOTPNotification(code);
+      } else {
+        final body = message.notification?.body ?? '';
+        final match = RegExp(r'(\d{6})').firstMatch(body);
+        if (match != null) {
+          LocalNotificationService.showOTPNotification(match.group(1)!);
+        }
+      }
+    } else {
+      LocalNotificationService.showNotification(
+        message.notification?.title ?? 'Tranoo',
+        message.notification?.body ?? '',
+      );
+    }
   }
 
   void _handleNotificationTap(RemoteMessage message) {
@@ -174,6 +190,15 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Charger les variables d'environnement
   await dotenv.load(fileName: ".env");
+  
+  // Initialiser le service de notifications locales
+  try {
+    await LocalNotificationService.initialize();
+    print('LocalNotificationService initialisé');
+  } catch (e) {
+    print('Erreur LocalNotificationService: $e');
+  }
+  
   // Initialiser le service de notifications
   await NotificationService().initialize();
 
@@ -228,8 +253,8 @@ class MyApp extends StatelessWidget {
           final args = ModalRoute.of(context)?.settings.arguments
               as Map<String, dynamic>?;
           return CreateNewPasswordPage(
-            telephone: args?['telephone'] ?? '',
-            otpCode: args?['otpCode'] ?? '',
+            requestId: args?['requestId'] ?? '',
+            deviceId: args?['deviceId'] ?? '',
           );
         },
       },

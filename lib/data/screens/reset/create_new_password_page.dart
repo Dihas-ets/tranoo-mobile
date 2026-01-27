@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:tranoo/services/push_otp_service.dart';
 
 class CreateNewPasswordPage extends StatefulWidget {
-  final String telephone;
-  final String otpCode;
+  final String requestId;
+  final String deviceId;
 
   const CreateNewPasswordPage({
     super.key,
-    required this.telephone,
-    required this.otpCode,
+    required this.requestId,
+    required this.deviceId,
   });
 
   @override
@@ -81,9 +81,9 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
     setState(() => _loading = true);
 
     try {
-      final result = await PushOTPService.verifyOTPAndResetPassword(
-        telephone: widget.telephone,
-        code: widget.otpCode,
+      final result = await PushOTPService.resetPassword(
+        requestId: widget.requestId,
+        deviceId: widget.deviceId,
         newPassword: _newPasswordController.text,
       );
 
