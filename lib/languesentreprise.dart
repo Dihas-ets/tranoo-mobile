@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/providers/locale_provider.dart';
 
 class LanguesEntreprise extends StatefulWidget {
   const LanguesEntreprise({super.key});
@@ -8,10 +11,11 @@ class LanguesEntreprise extends StatefulWidget {
 }
 
 class _LanguesState extends State<LanguesEntreprise> {
-  String _selectedLanguage = 'francais'; // Langue par défaut
+  String _selectedLanguage = 'fr'; // Langue par défaut (FR/EN)
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final mediaQuery = MediaQuery.of(context);
     final screenHeight = mediaQuery.size.height;
     final screenWidth = mediaQuery.size.width;
@@ -19,9 +23,9 @@ class _LanguesState extends State<LanguesEntreprise> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Langue',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        title: Text(
+          l10n.language,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
         backgroundColor: const Color(0xffF8BF13),
         centerTitle: true,
@@ -41,8 +45,8 @@ class _LanguesState extends State<LanguesEntreprise> {
               children: [
                 Expanded(
                   child: RadioListTile<String>(
-                    title: const Text('Français'),
-                    value: 'francais',
+                    title: Text(l10n.french),
+                    value: 'fr',
                     activeColor: const Color(0xff072858),
                     groupValue: _selectedLanguage,
                     onChanged: (value) {
@@ -65,8 +69,8 @@ class _LanguesState extends State<LanguesEntreprise> {
               children: [
                 Expanded(
                   child: RadioListTile<String>(
-                    title: const Text('Anglais'),
-                    value: 'anglais',
+                    title: Text(l10n.english),
+                    value: 'en',
                     activeColor: const Color(0xff072858),
                     groupValue: _selectedLanguage,
                     onChanged: (value) {
@@ -84,78 +88,6 @@ class _LanguesState extends State<LanguesEntreprise> {
                 ),
               ],
             ),
-            SizedBox(height: screenHeight * (isPortrait ? 0.03 : 0.1)),
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('Espagnol'),
-                    value: 'espagnol',
-                    activeColor: const Color(0xff072858),
-                    groupValue: _selectedLanguage,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedLanguage = value!;
-                      });
-                    },
-                  ),
-                ),
-                CircleAvatar(
-                  radius: screenWidth * (isPortrait ? 0.06 : 0.04),
-                  backgroundImage: const AssetImage(
-                    'assets/images/espagnol.jpg',
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: screenHeight * (isPortrait ? 0.03 : 0.1)),
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('Allemand'),
-                    value: 'allemand',
-                    activeColor: const Color(0xff072858),
-                    groupValue: _selectedLanguage,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedLanguage = value!;
-                      });
-                    },
-                  ),
-                ),
-                CircleAvatar(
-                  radius: screenWidth * (isPortrait ? 0.06 : 0.04),
-                  backgroundImage: const AssetImage(
-                    'assets/images/demangle.jpg',
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: screenHeight * (isPortrait ? 0.03 : 0.1)),
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('Italien'),
-                    value: 'italien',
-                    activeColor: const Color(0xff072858),
-                    groupValue: _selectedLanguage,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedLanguage = value!;
-                      });
-                    },
-                  ),
-                ),
-                CircleAvatar(
-                  radius: screenWidth * (isPortrait ? 0.06 : 0.04),
-                  backgroundImage: const AssetImage(
-                    'assets/images/francais.jpg',
-                  ),
-                ),
-              ],
-            ),
             SizedBox(height: screenHeight * (isPortrait ? 0.2 : 0.2)),
             SizedBox(
               width:
@@ -164,12 +96,10 @@ class _LanguesState extends State<LanguesEntreprise> {
               height: screenHeight * (isPortrait ? 0.06 : 0.2),
               child: ElevatedButton(
                 onPressed: () {
-                  // Action à réaliser après la sélection
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Langue sélectionnée: $_selectedLanguage'),
-                    ),
-                  );
+                  final provider =
+                      Provider.of<LocaleProvider>(context, listen: false);
+                  provider.setLocale(Locale(_selectedLanguage));
+                  Navigator.pop(context);
                 },
                 style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(
@@ -183,7 +113,7 @@ class _LanguesState extends State<LanguesEntreprise> {
                   elevation: WidgetStateProperty.all(3),
                 ),
                 child: Text(
-                  'Valider',
+                  l10n.validate,
                   style: TextStyle(
                     fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
                     fontWeight: FontWeight.bold,

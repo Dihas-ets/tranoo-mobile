@@ -17,6 +17,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/data/screens/movie.dart';
+import 'package:lottie/lottie.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/data/screens/tricycle/tricycle_home.dart';
 
 class Article {
   final String id;
@@ -2416,85 +2419,12 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Logo supprimé (demandé par le client)
-            Padding(
-              padding: EdgeInsets.all(screenWidth * 0.04),
-              child: TextField(
-                controller: _searchGlobalController,
-                decoration: InputDecoration(
-                  hintText: 'Recherche de Honda Pilot 7-Passenger',
-                  hintStyle: TextStyle(
-                    color: const Color(0xFF8C9199),
-                    fontSize: screenWidth * (isPortrait ? 0.035 : 0.025),
-                    letterSpacing: 0.1,
-                    height: 1.8,
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFFEDEEEF),
-                  prefixIcon: Padding(
-                    padding: EdgeInsets.only(
-                      left: screenWidth * 0.02,
-                      right: screenWidth * 0.01,
-                    ),
-                    child: Icon(
-                      Icons.search,
-                      color: const Color(0xFF8C9199),
-                      size: screenWidth * 0.06,
-                    ),
-                  ),
-                  prefixIconConstraints: BoxConstraints(
-                    minWidth: screenWidth * 0.1,
-                  ),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.refresh, color: Color(0xFF8C9199)),
-                    onPressed: _reloadAll,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(screenWidth * 0.02),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: screenHeight * 0.02,
-                    horizontal: screenWidth * 0.03,
-                  ),
-                ),
-                onChanged: (text) => setState(() {}),
-              ),
-            ),
             buildPubsALaUneCarousel(),
-            // Section filtres/tabbar (centrée, scrollable)
-            Container(
-              padding: EdgeInsets.all(screenWidth * 0.02),
-              child: Center(
-                child: TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  // Centrage visuel même avec 5+ onglets
-                  tabAlignment: TabAlignment.center,
-                  indicator: const BoxDecoration(),
-                  padding: EdgeInsets.zero,
-                  labelPadding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.01,
-                  ),
-                  tabs: [
-                    _buildTabButton("Marque", _marqueTabIndex),
-                    _buildTabButton("Modèles", _modeleTabIndex),
-                    _buildTabButton(
-                      "Localisation",
-                      _localisationTabIndex,
-                      isWide: true,
-                    ),
-                    _buildTabButton("Budget", _budgetTabIndex),
-                  ],
-                ),
-              ),
+            _buildServicesSummarySection(
+              screenWidth: screenWidth,
+              screenHeight: screenHeight,
+              isPortrait: isPortrait,
             ),
-            if (_tabController.index == _marqueTabIndex) _buildMarqueSection(),
-            if (_tabController.index == _modeleTabIndex) _buildModeleSection(),
-            if (_tabController.index == _localisationTabIndex)
-              _buildLocalisationSection(),
-            if (_tabController.index == _budgetTabIndex)
-              _buildBudgetSection(),
             // Section sponsorisée: toujours affichée
             buildPubsSponsoriseesSection(),
             buildVoituresRecommandeesSection(),
@@ -2502,6 +2432,139 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             // Add the new sections here
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildServicesSummarySection({
+    required double screenWidth,
+    required double screenHeight,
+    required bool isPortrait,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    final titleSize = screenWidth * (isPortrait ? 0.045 : 0.03);
+    final iconSize = screenWidth * (isPortrait ? 0.12 : 0.08);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.04,
+        vertical: screenHeight * 0.015,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.services,
+                  style: TextStyle(
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0A1F44),
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Rafraîchir',
+                onPressed: _reloadAll,
+                icon: const Icon(Icons.refresh, color: Color(0xFF0A1F44)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildServiceIcon(
+                label: l10n.service_sales_cars,
+                icon: Icons.directions_car,
+                iconSize: iconSize,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => VoituresPage()),
+                  );
+                },
+              ),
+              _buildServiceIcon(
+                label: l10n.service_delivery_parts,
+                icon: Icons.local_shipping,
+                iconSize: iconSize,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Piece()),
+                  );
+                },
+              ),
+              _buildServiceIcon(
+                label: l10n.service_tricycle,
+                icon: Icons.pedal_bike,
+                iconSize: iconSize,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TricycleHomePage(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServiceIcon({
+    required String label,
+    required IconData icon,
+    required double iconSize,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(60),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: iconSize * 1.6,
+            height: iconSize * 1.6,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Lottie.asset(
+                  'assets/lottie/service_pulse.json',
+                  repeat: true,
+                  fit: BoxFit.contain,
+                ),
+                Icon(
+                  icon,
+                  size: iconSize,
+                  color: const Color(0xFF0A1F44),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: iconSize * 1.8,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF0A1F44),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

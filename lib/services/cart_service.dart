@@ -13,6 +13,10 @@ class CartItem {
   final String? modeLivraison; // consommation | transit
   final String? paysDestination;
   final String? detailsSupplementaires;
+  final String? supplierId;
+  final double? supplierLatitude;
+  final double? supplierLongitude;
+  final String? supplierName;
   int quantity;
 
   CartItem({
@@ -26,6 +30,10 @@ class CartItem {
     this.modeLivraison,
     this.paysDestination,
     this.detailsSupplementaires,
+    this.supplierId,
+    this.supplierLatitude,
+    this.supplierLongitude,
+    this.supplierName,
     this.quantity = 1,
   });
 
@@ -47,6 +55,10 @@ class CartItem {
     'modeLivraison': modeLivraison,
     'paysDestination': paysDestination,
     'detailsSupplementaires': detailsSupplementaires,
+    'supplierId': supplierId,
+    'supplierLatitude': supplierLatitude,
+    'supplierLongitude': supplierLongitude,
+    'supplierName': supplierName,
     'quantity': quantity,
   };
 
@@ -61,6 +73,10 @@ class CartItem {
     modeLivraison: json['modeLivraison'] as String?,
     paysDestination: json['paysDestination'] as String?,
     detailsSupplementaires: json['detailsSupplementaires'] as String?,
+    supplierId: json['supplierId'] as String?,
+    supplierLatitude: (json['supplierLatitude'] as num?)?.toDouble(),
+    supplierLongitude: (json['supplierLongitude'] as num?)?.toDouble(),
+    supplierName: json['supplierName'] as String?,
     quantity: (json['quantity'] as num?)?.toInt() ?? 1,
   );
 }

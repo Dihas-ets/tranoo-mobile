@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 
 import 'connexion_page.dart';
-import 'marque.dart';
+import 'avant_home.dart';
 
 class InscriptionPage extends StatefulWidget {
   const InscriptionPage({super.key});
@@ -669,11 +669,11 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             );
                             
                             if (!mounted) return;
-                            // Rediriger vers la page d'accueil (Marque)
+                            // Rediriger vers la page d'accueil avec drawer et navbar
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const Marque(),
+                                builder: (context) => const AvantHome(),
                               ),
                               (route) => false,
                             );

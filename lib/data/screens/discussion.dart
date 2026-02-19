@@ -4,6 +4,9 @@ import 'package:image_picker/image_picker.dart'; // Pour la sélection d'image
 import '../../services/chat_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import 'package:tranoo/providers/auth_provider.dart' as myauth;
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class Discussion extends StatefulWidget {
   final String roomId;
@@ -39,11 +42,9 @@ class _DiscussionState extends State<Discussion> {
 
   Future<void> _initializeChat() async {
     try {
-      // Récupérer l'ID de l'utilisateur actuel
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        currentUserId = user.uid;
-      }
+      // Récupérer l'ID Mongo (_id) de l'utilisateur actuel
+      final auth = Provider.of<myauth.AuthProvider>(context, listen: false);
+      currentUserId = auth.user?['_id']?.toString();
 
       // Marquer les messages comme lus
       await _chatService.markMessagesAsRead(widget.roomId);
@@ -673,6 +674,9 @@ class _DiscussionState extends State<Discussion> {
   }
 
   String _getArticleTitle() {
+    if (widget.roomData['contextType'] == 'tricycle') {
+      return AppLocalizations.of(context)?.service_tricycle ?? 'Tricycle';
+    }
     final article = widget.roomData['article'] as Map<String, dynamic>?;
     return article?['titre'] ?? 'Article';
   }

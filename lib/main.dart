@@ -13,11 +13,14 @@ import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/blocked_user_service.dart';
 import 'package:tranoo/services/push_otp_service.dart';
 import 'package:tranoo/utils/local_notification_service.dart';
+import 'package:tranoo/utils/in_app_delivery_popup.dart';
+import 'package:tranoo/providers/locale_provider.dart';
 
 // import 'package:flutter/services.dart';
 import 'data/screens/marque.dart';
@@ -29,6 +32,7 @@ import 'services/cart_service.dart';
 import 'package:tranoo/data/screens/reset/forgot_password_page.dart';
 import 'package:tranoo/data/screens/reset/verify_code_page.dart';
 import 'package:tranoo/data/screens/reset/create_new_password_page.dart';
+import 'package:tranoo/data/screens/orders_page.dart';
 
 // Gestionnaire pour les notifications en arrière-plan
 @pragma('vm:entry-point')
@@ -130,6 +134,15 @@ class NotificationService {
   void _showLocalNotification(RemoteMessage message) {
     _logger.info('Notification locale: ${message.notification?.title}');
     
+    // Popup global (in-app) pour arrivée livreur (peu importe l'écran)
+    if (message.data['type'] == 'delivery' &&
+        (message.data['eventType'] == 'arrived' ||
+            message.data['eventType'] == 'arrived'.toString()) &&
+        message.data['relatedId'] != null) {
+      final deliveryId = message.data['relatedId'].toString();
+      InAppDeliveryPopup.showLivreurArrived(deliveryId: deliveryId);
+    }
+
     // Afficher une notification locale visible même en foreground
     if (message.data['type'] == 'otp') {
       final code = message.data['code'] as String?;
@@ -158,25 +171,28 @@ class NotificationService {
 
     // Exemple de navigation selon le type de notification
     if (message.data.containsKey('type')) {
-      switch (message.data['type']) {
+      final type = message.data['type'];
+      final eventType = message.data['eventType'];
+      if (type == 'delivery' && eventType == 'arrived' && message.data['relatedId'] != null) {
+        final deliveryId = message.data['relatedId'].toString();
+        InAppDeliveryPopup.showLivreurArrived(deliveryId: deliveryId);
+        return;
+      }
+
+      switch (type) {
         case 'chat':
-          // Naviguer vers la page de chat spécifique
           _logger.info('Navigation vers chat: ${message.data['roomId']}');
           break;
         case 'publicite':
-          // Naviguer vers la page des publicités
           _logger.info('Navigation vers publicités');
           break;
         case 'article':
-          // Naviguer vers la page des articles
           _logger.info('Navigation vers articles');
           break;
         case 'system':
-          // Notification système
           _logger.info('Notification système: ${message.notification?.body}');
           break;
         default:
-          // Navigation par défaut
           _logger.info('Navigation par défaut');
           break;
       }
@@ -210,21 +226,29 @@ void main() async {
         ChangeNotifierProvider(create: (_) => myauth.AuthProvider()),
         ChangeNotifierProvider(create: (_) => CounterProvider()),
         ChangeNotifierProvider(create: (_) => CartService()),
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
       ],
       child: const MyApp(),
     ),
   );
 }
 
+// Navigator global pour afficher des popups depuis n'importe où (FCM)
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
     return MaterialApp(
       title: 'Tranoo',
       debugShowCheckedModeBanner: false,
-      locale: DevicePreview.locale(context),
+      navigatorKey: rootNavigatorKey,
+      locale: localeProvider.locale ?? DevicePreview.locale(context),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       builder: (context, child) {
         // Définir le contexte pour BlockedUserService
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -239,7 +263,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const AppInitializer(),
+      home: const AvantHome(),
       routes: {
         '/marque': (context) => const Marque(),
         '/subscription-success': (context) => _buildSubscriptionSuccessPage(),
@@ -257,6 +281,7 @@ class MyApp extends StatelessWidget {
             deviceId: args?['deviceId'] ?? '',
           );
         },
+        '/orders': (context) => const OrdersPage(),
       },
     );
   }

@@ -1,0 +1,28 @@
+{
+  "@@locale": "fr",
+  "language": "Langue",
+  "validate": "Valider",
+  "french": "Français",
+  "english": "Anglais",
+  "services": "Services",
+  "service_sales_cars": "Vente (Voitures)",
+  "service_delivery_parts": "Livraison (Pièces)",
+  "service_tricycle": "Tricycle",
+  "tricycle_location_required": "Veuillez activer la localisation pour utiliser le service Tricycle.",
+  "tricycle_permission_denied": "Autorisation de localisation refusée.",
+  "tricycle_permission_denied_forever": "Autorisation de localisation bloquée. Activez-la dans les réglages.",
+  "tricycle_position_active_title": "Position active",
+  "tricycle_position_active_subtitle": "Localisation en cours… Les tricycles proches seront mis à jour automatiquement.",
+  "tricycle_none_nearby": "Aucun tricycle à proximité pour le moment.",
+  "tricycle_out_of_range": "Hors de portée",
+  "retry": "Réessayer",
+  "enable_location": "Activer la localisation",
+  "open_settings": "Ouvrir les réglages",
+  "refresh": "Rafraîchir",
+  "call": "Appeler",
+  "message": "Message",
+  
+  "tricycle_auth_required": "Authentification requise",
+  "tricycle_connect_to_see": "Connectez-vous pour voir",
+  "tricycle_connect_description": "Veuillez connecter votre compte pour voir ce contenu"
+}

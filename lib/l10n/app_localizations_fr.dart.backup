@@ -1,0 +1,78 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for French (`fr`).
+class AppLocalizationsFr extends AppLocalizations {
+  AppLocalizationsFr([String locale = 'fr']) : super(locale);
+
+  @override
+  String get language => 'Langue';
+
+  @override
+  String get validate => 'Valider';
+
+  @override
+  String get french => 'Français';
+
+  @override
+  String get english => 'Anglais';
+
+  @override
+  String get services => 'Services';
+
+  @override
+  String get service_sales_cars => 'Vente (Voitures)';
+
+  @override
+  String get service_delivery_parts => 'Livraison (Pièces)';
+
+  @override
+  String get service_tricycle => 'Tricycle';
+
+  @override
+  String get tricycle_location_required =>
+      'Veuillez activer la localisation pour utiliser le service Tricycle.';
+
+  @override
+  String get tricycle_permission_denied =>
+      'Autorisation de localisation refusée.';
+
+  @override
+  String get tricycle_permission_denied_forever =>
+      'Autorisation de localisation bloquée. Activez-la dans les réglages.';
+
+  @override
+  String get tricycle_position_active_title => 'Position active';
+
+  @override
+  String get tricycle_position_active_subtitle =>
+      'Localisation en cours… Les tricycles proches seront mis à jour automatiquement.';
+
+  @override
+  String get tricycle_none_nearby =>
+      'Aucun tricycle à proximité pour le moment.';
+
+  @override
+  String get tricycle_out_of_range => 'Hors de portée';
+
+  @override
+  String get retry => 'Réessayer';
+
+  @override
+  String get enable_location => 'Activer la localisation';
+
+  @override
+  String get open_settings => 'Ouvrir les réglages';
+
+  @override
+  String get refresh => 'Rafraîchir';
+
+  @override
+  String get call => 'Appeler';
+
+  @override
+  String get message => 'Message';
+}

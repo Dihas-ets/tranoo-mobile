@@ -1179,24 +1179,6 @@ class _VoituresPageState extends State<VoituresPage>
                                             ),
                                           ),
                                         ),
-                                        // Avec uniquement les acheteurs, pas d'icône spécifique vendeur ici
-                                          Positioned(
-                                            top: 8,
-                                            right: 8,
-                                            child: IconButton(
-                                              icon: const Icon(
-                                                Icons.close,
-                                                color: Colors.red,
-                                                size: 24,
-                                              ),
-                                              onPressed: () {
-                                                _deleteVoiture(
-                                                  voiture['_id'] ?? '',
-                                                  index,
-                                                );
-                                              },
-                                            ),
-                                          ),
                                       ],
                                     ),
                                   );

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'user_service.dart';
+import '../config/backend_config.dart';
 
 class ChatService {
   static final ChatService _instance = ChatService._internal();
@@ -10,7 +11,7 @@ class ChatService {
   ChatService._internal();
 
   final UserService _userService = UserService();
-  final String _baseUrl = getBaseUrl();
+  final String _baseUrl = getApiBaseUrl();
   IO.Socket? _socket;
   bool _isConnected = false;
 

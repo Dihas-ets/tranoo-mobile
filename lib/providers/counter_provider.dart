@@ -1,16 +1,21 @@
 import 'package:flutter/foundation.dart';
 import '../services/chat_service.dart';
 import '../services/notification_service.dart';
+import '../services/cart_service.dart';
 
 class CounterProvider with ChangeNotifier {
   final ChatService _chatService = ChatService();
   final NotificationService _notificationService = NotificationService();
+  final CartService _cartService = CartService();
 
   int _unreadMessagesCount = 0;
   int _unreadNotificationsCount = 0;
 
   int get unreadMessagesCount => _unreadMessagesCount;
   int get unreadNotificationsCount => _unreadNotificationsCount;
+  
+  // Getter pour le nombre d'articles dans le panier
+  int get cartItemCount => _cartService.totalQuantity;
 
   // Charger les compteurs
   Future<void> loadCounters() async {
@@ -60,6 +65,12 @@ class CounterProvider with ChangeNotifier {
   // Réinitialiser le compteur de notifications
   void resetNotificationsCount() {
     _unreadNotificationsCount = 0;
+    notifyListeners();
+  }
+
+  // Vider le panier et mettre à jour le compteur
+  void clearCart() {
+    _cartService.clear();
     notifyListeners();
   }
 }

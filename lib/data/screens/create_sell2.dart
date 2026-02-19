@@ -575,7 +575,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                       controller: _descriptionController,
                       maxLines: 5,
                       decoration: InputDecoration(
-                        hintText: 'Entrer une description de votre voiture',
+                        hintText: 'Entrer une description de votre pièce',
                         filled: true,
                         fillColor: const Color(0xFFF2F2F2),
                         border: OutlineInputBorder(

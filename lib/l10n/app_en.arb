@@ -1,0 +1,28 @@
+{
+  "@@locale": "en",
+  "language": "Language",
+  "validate": "Confirm",
+  "french": "French",
+  "english": "English",
+  "services": "Services",
+  "service_sales_cars": "Sales (Cars)",
+  "service_delivery_parts": "Delivery (Parts)",
+  "service_tricycle": "Tricycle",
+  "tricycle_location_required": "Please enable location to use the Tricycle service.",
+  "tricycle_permission_denied": "Location permission denied.",
+  "tricycle_permission_denied_forever": "Location permission blocked. Enable it in settings.",
+  "tricycle_position_active_title": "Location active",
+  "tricycle_position_active_subtitle": "Location is running… Nearby tricycles will refresh automatically.",
+  "tricycle_none_nearby": "No nearby tricycles at the moment.",
+  "tricycle_out_of_range": "Out of range",
+  "retry": "Retry",
+  "enable_location": "Enable location",
+  "open_settings": "Open settings",
+  "refresh": "Refresh",
+  "call": "Call",
+  "message": "Message",
+  
+  "tricycle_auth_required": "Authentication required",
+  "tricycle_connect_to_see": "Connect to see",
+  "tricycle_connect_description": "Please connect your account to view this content"
+}

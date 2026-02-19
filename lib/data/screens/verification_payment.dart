@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'marque.dart';
+import 'avant_home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import '../../services/user_service.dart';
@@ -392,7 +392,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
     // Redirection finale vers Marque
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const Marque()),
+      MaterialPageRoute(builder: (_) => const AvantHome()),
       (route) => false,
     );
   }

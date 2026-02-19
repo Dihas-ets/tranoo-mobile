@@ -108,6 +108,7 @@ class _CarsinfoState extends State<CarsInfo> {
     'Éthiopie',
   ];
   late ConfettiController _confettiController;
+  static const String _whatsAppPhone = '22941839801'; // sans +
 
   @override
   void initState() {
@@ -218,6 +219,43 @@ class _CarsinfoState extends State<CarsInfo> {
     _confettiController.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openWhatsApp() async {
+    // Format recommandé par WhatsApp: https://wa.me/<countrycode><number>
+    final phone = _whatsAppPhone.replaceAll(RegExp(r'[^0-9]'), '');
+
+    // 1) Essayer le schéma natif WhatsApp (ouvre directement l'app)
+    final deepLink = Uri.parse('whatsapp://send?phone=$phone');
+    if (await canLaunchUrl(deepLink)) {
+      await launchUrl(deepLink, mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    // 2) Fallback navigateur / WhatsApp Web
+    final webUrl = Uri.parse('https://wa.me/$phone');
+    if (await canLaunchUrl(webUrl)) {
+      await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      return;
+    }
+
+     // 3) Dernier recours : ouvrir la page WhatsApp sur le Play Store
+    final playStoreUrl =
+        Uri.parse('https://play.google.com/store/apps/details?id=com.whatsapp');
+    if (await canLaunchUrl(playStoreUrl)) {
+      await launchUrl(playStoreUrl, mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Impossible d\'ouvrir WhatsApp. Vérifiez que l\'application ou un navigateur est installé sur votre téléphone.',
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -468,16 +506,7 @@ class _CarsinfoState extends State<CarsInfo> {
               // WhatsApp
               GestureDetector(
                 onTap: () async {
-                  final url = 'https://wa.me/22941839801';
-                  final uri = Uri.parse(url);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Impossible d\'ouvrir WhatsApp')),
-                    );
-                  }
+                  await _openWhatsApp();
                 },
                 child: CircleAvatar(
                   radius: 18,
@@ -1170,16 +1199,7 @@ class _CarsinfoState extends State<CarsInfo> {
                 return;
               }
 
-              final uri = Uri.parse('https://wa.me/22941839801');
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Impossible d\'ouvrir WhatsApp'),
-                  ),
-                );
-              }
+              await _openWhatsApp();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.amber,

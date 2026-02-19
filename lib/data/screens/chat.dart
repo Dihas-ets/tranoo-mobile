@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'discussion.dart';
 import '../../services/chat_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:tranoo/providers/auth_provider.dart' as myauth;
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -28,11 +31,9 @@ class _ChatListPageState extends State<ChatListPage> {
         isLoading = true;
       });
 
-      // Récupérer l'ID de l'utilisateur actuel
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        currentUserId = user.uid;
-      }
+      // Récupérer l'ID Mongo (_id) de l'utilisateur actuel
+      final auth = Provider.of<myauth.AuthProvider>(context, listen: false);
+      currentUserId = auth.user?['_id']?.toString();
 
       // Récupérer les rooms depuis le backend
       final roomsData = await _chatService.getUserRooms();
@@ -136,6 +137,9 @@ class _ChatListPageState extends State<ChatListPage> {
 
   // Obtenir le titre de l'article
   String _getArticleTitle(Map<String, dynamic> room) {
+    if (room['contextType'] == 'tricycle') {
+      return AppLocalizations.of(context)?.service_tricycle ?? 'Tricycle';
+    }
     final article = room['article'] as Map<String, dynamic>?;
     return article?['titre'] ?? 'Article';
   }
@@ -157,7 +161,10 @@ class _ChatListPageState extends State<ChatListPage> {
 
     // Vérifier s'il y a des messages non lus (non marqués comme lus par l'utilisateur actuel)
     for (final message in messages) {
-      if (message['sender'] != currentUserId &&
+      final sender = message['sender'];
+      final senderId = sender is Map ? sender['_id']?.toString() : sender?.toString();
+      if (senderId != null &&
+          senderId != currentUserId &&
           (message['isRead'] == null || message['isRead'] == false)) {
         return true;
       }

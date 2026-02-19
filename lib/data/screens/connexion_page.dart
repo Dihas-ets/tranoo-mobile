@@ -252,7 +252,7 @@ import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 
 import 'inscription_page.dart';
-import 'marque.dart';
+import 'avant_home.dart';
 
 class ConnexionPage extends StatefulWidget {
   const ConnexionPage({super.key});
@@ -522,11 +522,11 @@ class _ConnexionPageState extends State<ConnexionPage> {
                               );
 
                               if (!mounted) return;
-                              // Rediriger vers la page d'accueil (Marque)
+                              // Rediriger vers la page d'accueil avec drawer et navbar
                               Navigator.pushAndRemoveUntil(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const Marque(),
+                                  builder: (context) => const AvantHome(),
                                 ),
                                 (route) => false,
                               );

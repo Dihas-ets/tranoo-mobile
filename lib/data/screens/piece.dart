@@ -857,21 +857,23 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                                                         .isNotEmpty ??
                                                                     false))
                                                             ? VideoPreviewPlaceholder(
-                                                                videoUrl: piece['video']?.toString(),
+                                                                videoUrl: piece[
+                                                                        'video']
+                                                                    ?.toString(),
                                                                 iconSize: 36,
-                                                          )
-                                                        : Container(
-                                                            color: Colors
-                                                                .grey[200],
+                                                              )
+                                                            : Container(
+                                                                color: Colors
+                                                                    .grey[200],
                                                                 child:
                                                                     const Icon(
-                                                              Icons
-                                                                  .image_not_supported,
-                                                              size: 30,
-                                                              color: Colors
-                                                                  .black26,
-                                                            ),
-                                                          ),
+                                                                  Icons
+                                                                      .image_not_supported,
+                                                                  size: 30,
+                                                                  color: Colors
+                                                                      .black26,
+                                                                ),
+                                                              ),
                                                   ),
                                                 ),
                                                 const SizedBox(height: 8),
@@ -929,17 +931,6 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                             ),
                                           ),
                                         ),
-                                        // Avec uniquement les acheteurs, pas d'icône de fermeture spécifique vendeur
-                                          Positioned(
-                                            top: 6,
-                                            right: 6,
-                                            child: IconButton(
-                                              icon: const Icon(Icons.close,
-                                                  color: Colors.red, size: 20),
-                                              onPressed: () =>
-                                                  _deletePiece(pieceId, index),
-                                            ),
-                                          ),
                                       ],
                                     ),
                                   );
