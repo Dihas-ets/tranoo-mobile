@@ -4,12 +4,10 @@ import 'package:tranoo/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tranoo/widgets/auth_message_popup.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:tranoo/services/user_service.dart';
-import 'package:tranoo/data/screens/discussion.dart';
-import 'package:tranoo/data/screens/connexion_page.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -26,6 +24,10 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
   String? _error;
   Position? _position;
   List<Map<String, dynamic>> _chauffeurs = [];
+  String? _pendingChauffeurId;
+  String? _pendingContactId;
+  bool _pendingAccepted = false;
+  Timer? _pendingStatusTimer;
   DateTime? _lastLocationSentAt;
   Position? _lastLocationSent;
   StreamSubscription<Position>? _posSub;
@@ -55,7 +57,43 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
   void dispose() {
     _posSub?.cancel();
     _authSub?.cancel();
+    _pendingStatusTimer?.cancel();
     super.dispose();
+  }
+
+  void _startPendingStatusWatch() {
+    _pendingStatusTimer?.cancel();
+    final contactId = _pendingContactId;
+    if (contactId == null || contactId.isEmpty) return;
+    _pendingStatusTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      await _refreshPendingContactStatus();
+    });
+  }
+
+  Future<void> _refreshPendingContactStatus() async {
+    final contactId = _pendingContactId;
+    if (contactId == null || contactId.isEmpty) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      final token = await user.getIdToken();
+      if (token == null) return;
+      final baseUrl = getBaseUrl();
+      final res = await http.get(
+        Uri.parse('$baseUrl/tricycles/contacts/$contactId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (res.statusCode != 200) return;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final contact = data['contact'] as Map<String, dynamic>?;
+      final status = contact?['status']?.toString();
+      if (status == 'accepted' && mounted) {
+        setState(() {
+          _pendingAccepted = true;
+        });
+        _pendingStatusTimer?.cancel();
+      }
+    } catch (_) {}
   }
 
   Future<void> _init() async {
@@ -314,49 +352,11 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              const Text('Veuillez vous connecter pour appeler un chauffeur'),
-          action: SnackBarAction(
-            label: 'OK',
-            onPressed: () {},
-          ),
-        ),
-      );
-      return;
-    }
-
-    if (chauffeur['canContact'] != true) return;
-    try {
-      await _createContact(chauffeur['_id'] as String);
-      // Après contact initié, appel direct
-      final phone = (chauffeur['telephone'] ?? '').toString();
-      if (phone.isEmpty) return;
-      final uri = Uri(scheme: 'tel', path: phone);
-      await launchUrl(uri);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: ${e.toString()}')),
-      );
-    }
-  }
-
-  Future<void> _messageChauffeur(Map<String, dynamic> chauffeur) async {
-    // Vérifier si l'utilisateur est connecté
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              const Text('Veuillez vous connecter pour envoyer un message'),
-          action: SnackBarAction(
-            label: 'OK',
-            onPressed: () {},
-          ),
-        ),
+      AuthMessagePopup.showError(
+        context,
+        title: 'Vous devez vous connecter pour continuer.',
+        subtitle: 'Connectez-vous pour pouvoir commander un tricycle.',
+        buttonText: 'OK',
       );
       return;
     }
@@ -364,36 +364,99 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
     if (chauffeur['canContact'] != true) return;
     try {
       final payload = await _createContact(chauffeur['_id'] as String);
-      final room = payload['room'] as Map<String, dynamic>?;
-      final roomId = (payload['roomId'] ?? room?['_id'])?.toString();
-      if (roomId == null || roomId.isEmpty || room == null) {
-        throw Exception('Room de discussion introuvable');
-      }
+      final contact = payload['contact'] as Map<String, dynamic>?;
+      final contactId = (contact?['_id'] ?? payload['contactId'])?.toString();
 
+      if (contactId != null && contactId.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _pendingChauffeurId = chauffeur['_id'] as String;
+            _pendingContactId = contactId;
+            _pendingAccepted = false;
+          });
+        }
+        _startPendingStatusWatch();
+      }
       if (!mounted) return;
-      Navigator.push(
+      AuthMessagePopup.showInfo(
         context,
-        MaterialPageRoute(
-          builder: (context) => Discussion(roomId: roomId, roomData: room),
-        ),
+        title: 'Demande envoyée au chauffeur.',
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: ${e.toString()}')),
+      AuthMessagePopup.showError(
+        context,
+        title: 'Une erreur est survenue.',
+        subtitle: 'Vérifiez votre connexion internet puis réessayez.',
+        buttonText: 'Réessayer',
       );
     }
   }
 
-  Future<void> _openDirections(Map<String, dynamic> chauffeur) async {
-    final lat = chauffeur['latitude'];
-    final lng = chauffeur['longitude'];
-    if (lat == null || lng == null) return;
-    final uri = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving',
-    );
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  Future<void> _cancelRequest() async {
+    final contactId = _pendingContactId;
+    if (contactId == null || contactId.isEmpty) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final token = await user.getIdToken();
+      if (token == null) return;
+
+      final baseUrl = getBaseUrl();
+      final res = await http.post(
+        Uri.parse('$baseUrl/tricycles/contacts/$contactId/close'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (!mounted) return;
+
+      if (res.statusCode == 200) {
+        setState(() {
+          _pendingChauffeurId = null;
+          _pendingContactId = null;
+          _pendingAccepted = false;
+        });
+        _pendingStatusTimer?.cancel();
+        AuthMessagePopup.showSuccess(
+          context,
+          title: 'Votre demande a été annulée.',
+        );
+      } else if (res.statusCode == 403) {
+        // Annulation impossible uniquement si la demande a été acceptée.
+        setState(() {
+          _pendingChauffeurId = null;
+          _pendingContactId = null;
+          _pendingAccepted = false;
+        });
+        _pendingStatusTimer?.cancel();
+        AuthMessagePopup.showWarning(
+          context,
+          title: 'La demande ne peut plus être annulée.',
+          subtitle: 'Le chauffeur a déjà pris en charge ou clôturé la demande.',
+        );
+      } else {
+        AuthMessagePopup.showError(
+          context,
+          title: "Impossible d'annuler la demande.",
+          subtitle: 'Code: ${res.statusCode}. Veuillez réessayer.',
+          buttonText: 'Réessayer',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        AuthMessagePopup.showError(
+          context,
+          title: 'Erreur lors de l’annulation.',
+          subtitle: 'Vérifiez votre connexion puis réessayez.',
+          buttonText: 'Réessayer',
+        );
+      }
+    }
   }
+
+  // _messageChauffeur et _openDirections ne sont plus utilisés côté acheteur
 
   Widget _buildErrorState(String message) {
     return Padding(
@@ -439,15 +502,21 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
                   userAgentPackageName: 'com.tranoo.tranoo_pro',
                 ),
                 MarkerLayer(
-                  markers: _chauffeurs.map<Marker>((chauffeur) {
+                  markers: _chauffeurs
+                      .where((c) =>
+                          c['latitude'] != null && c['longitude'] != null)
+                      .map<Marker>((chauffeur) {
                     return Marker(
-                      point: LatLng(chauffeur['latitude'], chauffeur['longitude']),
-                      width: 80.0,
-                      height: 80.0,
+                      point: LatLng(
+                        (chauffeur['latitude'] as num).toDouble(),
+                        (chauffeur['longitude'] as num).toDouble(),
+                      ),
+                      width: 40.0,
+                      height: 40.0,
                       child: const Icon(
                         Icons.location_on,
                         color: Colors.red,
-                        size: 40.0,
+                        size: 32.0,
                       ),
                     );
                   }).toList(),
@@ -455,48 +524,64 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
               ],
             ),
           ),
-          // Partie inférieure : Liste des tricycles disponibles
+          // Partie inférieure : panneau type "bottom sheet" avec les tricycles
           Expanded(
             flex: 1,
-            child: _loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFF8BF13)))
-                : _error != null
-                    ? _buildErrorState(_error!)
-                    : _chauffeurs.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.directions_bike,
-                                  size: 80,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  'Aucun tricycle disponible pour le moment.',
-                                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: () async {
-                              await _ensureLocationReady();
-                              await _sendLocationIfNeeded(force: true);
-                              await _loadNearby();
-                            },
-                            child: ListView.builder(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: _chauffeurs.length,
-                              itemBuilder: (context, index) {
-                                final chauffeur = _chauffeurs[index];
-                                return _buildChauffeurCard(chauffeur);
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: _loading
+                  ? const Center(
+                      child:
+                          CircularProgressIndicator(color: Color(0xFFF8BF13)))
+                  : _error != null
+                      ? _buildErrorState(_error!)
+                      : _chauffeurs.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(
+                                    Icons.directions_bike,
+                                    size: 80,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    'Aucun tricycle disponible pour le moment.',
+                                    style: TextStyle(
+                                        fontSize: 16, color: Colors.grey),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: () async {
+                                await _ensureLocationReady();
+                                await _sendLocationIfNeeded(force: true);
+                                await _loadNearby();
                               },
+                              child: ListView.builder(
+                                padding: const EdgeInsets.fromLTRB(
+                                    16, 12, 16, 24),
+                                itemCount: _chauffeurs.length,
+                                itemBuilder: (context, index) {
+                                  final chauffeur = _chauffeurs[index];
+                                  return _buildChauffeurCard(chauffeur);
+                                },
+                              ),
                             ),
-                          ),
+            ),
           ),
         ],
       ),
@@ -504,62 +589,234 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
   }
 
   Widget _buildChauffeurCard(Map<String, dynamic> chauffeur) {
+    final distanceKm = chauffeur['distanceKm'] as num?;
+    final eta = chauffeur['etaMinutes'] as num?;
+    final status = (chauffeur['status'] ?? '') as String;
+    final statusColor = switch (chauffeur['statusColor']) {
+      'green' => Colors.green,
+      'red' => Colors.red,
+      _ => Colors.orange,
+    };
+    final isPending = _pendingChauffeurId != null &&
+        _pendingChauffeurId == chauffeur['_id']?.toString();
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
-        onTap: () {
-          // Action lors de l'appui sur la carte
-          _openDirections(chauffeur);
-        },
+        borderRadius: BorderRadius.circular(16),
+        // L'acheteur ne gère pas l'itinéraire, uniquement la commande.
+        onTap: null,
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipOval(
-                child: Image.network(
-                  chauffeur['photo'] ?? 'https://via.placeholder.com/150',
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
-                ),
+              Row(
+                children: [
+                  // Icône véhicule (image fournie côté app)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/images/tricycle.png',
+                      width: 52,
+                      height: 52,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tricycle',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              distanceKm != null
+                                  ? '${distanceKm.toStringAsFixed(2)} Km'
+                                  : 'Distance inconnue',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            if (eta != null)
+                              Text(
+                                '• ${eta.toInt()} min',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.circle,
+                          size: 10,
+                          color: statusColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          status == 'available'
+                              ? 'Disponible'
+                              : status == 'out_of_range'
+                                  ? 'Loin'
+                                  : 'Occupé',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: statusColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      chauffeur['nom'] ?? 'Nom inconnu',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${chauffeur['prenoms'] ?? ''} ${chauffeur['nom'] ?? ''}'
+                        .trim()
+                        .isEmpty
+                        ? 'Chauffeur tricycle'
+                        : '${chauffeur['prenoms'] ?? ''} ${chauffeur['nom'] ?? ''}'
+                            .trim(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    chauffeur['telephone'] ?? '',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              isPending
+                  ? Row(
+                      children: [
+                        if (_pendingAccepted) ...[
+                          Expanded(
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                side:
+                                    const BorderSide(color: Color(0xFF05C46B)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                              ),
+                              onPressed: null,
+                              child: const Text(
+                                'Demande acceptée',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF05C46B),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          Expanded(
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                side:
+                                    const BorderSide(color: Color(0xFF05C46B)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                              ),
+                              onPressed: null,
+                              child: const Text(
+                                'Demande envoyée',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF05C46B),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFE5E5),
+                                foregroundColor: Colors.red,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                              ),
+                              onPressed: _cancelRequest,
+                              child: const Text(
+                                'Annuler',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    )
+                  : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF05C46B),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                        onPressed: chauffeur['canContact'] == true
+                            ? () => _callChauffeur(chauffeur)
+                            : null,
+                        child: const Text(
+                          'Commander · Tricycle',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      chauffeur['telephone'] ?? 'Téléphone inconnu',
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () {
-                  // Appeler le chauffeur
-                  _callChauffeur(chauffeur);
-                },
-                icon: const Icon(Icons.phone, color: Color(0xFFF8BF13)),
-              ),
-              IconButton(
-                onPressed: () {
-                  // Envoyer un message au chauffeur
-                  _messageChauffeur(chauffeur);
-                },
-                icon: const Icon(Icons.message, color: Color(0xFFF8BF13)),
-              ),
             ],
           ),
         ),

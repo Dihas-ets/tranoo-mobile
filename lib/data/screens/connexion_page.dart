@@ -53,7 +53,7 @@
 //               ),
 //               SizedBox(height: screenHeight * 0.02),
 //               Text(
-//                 "Bienvenue à Tranoo",
+//                 "Bienvenue sur Tranoo",
 //                 style: TextStyle(
 //                   fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
 //                 ),
@@ -250,6 +250,7 @@ import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
+import 'package:tranoo/widgets/auth_message_popup.dart';
 
 import 'inscription_page.dart';
 import 'avant_home.dart';
@@ -323,7 +324,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
               ),
               SizedBox(height: screenHeight * 0.02),
               Text(
-                "Bienvenue à Tranoo",
+                "Bienvenue sur Tranoo",
                 style: TextStyle(
                   fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
                 ),
@@ -455,109 +456,134 @@ class _ConnexionPageState extends State<ConnexionPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed:
-                      _isLoading
-                          ? null
-                          : () async {
-                            // Vérification des champs obligatoires
-                            if (_emailController.text.trim().isEmpty ||
-                                _passwordController.text.trim().isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Veuillez remplir tous les champs.',
-                                  ),
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          // Vérification des champs obligatoires
+                          if (_emailController.text.trim().isEmpty ||
+                              _passwordController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Veuillez remplir tous les champs.',
                                 ),
-                              );
-                              return;
-                            }
-                            setState(() {
-                              _isLoading = true;
-                            });
-                            _logger.info(
-                              'Tentative de connexion avec email: ${_emailController.text.trim()}',
+                              ),
                             );
-                            try {
-                              await userService.loginUser(
-                                email: _emailController.text.trim(),
-                                password: _passwordController.text.trim(),
-                              );
-                              _logger.info(
-                                'Connexion Firebase réussie pour: ${_emailController.text.trim()}',
-                              );
+                            return;
+                          }
+                          setState(() {
+                            _isLoading = true;
+                          });
+                          _logger.info(
+                            'Tentative de connexion avec email: ${_emailController.text.trim()}',
+                          );
+                          try {
+                            await userService.loginUser(
+                              email: _emailController.text.trim(),
+                              password: _passwordController.text.trim(),
+                            );
+                            _logger.info(
+                              'Connexion Firebase réussie pour: ${_emailController.text.trim()}',
+                            );
 
-                              // Charger l'utilisateur et le rôle via AuthProvider puis naviguer
-                              final auth = context.read<myauth.AuthProvider>();
-                              await auth.reloadUser();
+                            // Charger l'utilisateur et le rôle via AuthProvider puis naviguer
+                            final auth = context.read<myauth.AuthProvider>();
+                            await auth.reloadUser();
 
-                              // Attendre brièvement que l'état soit bien propagé
-                              final startWait = DateTime.now();
-                              while (auth.user == null &&
-                                  DateTime.now().difference(startWait) <
-                                      const Duration(seconds: 5)) {
-                                await Future.delayed(
-                                  const Duration(milliseconds: 100),
-                                );
-                              }
-
-                              if (auth.user == null) {
-                                throw Exception(
-                                  "La session n'a pas pu être initialisée. Réessayez.",
-                                );
-                              }
-
-                              // Mettre à jour le timestamp de dernière connexion
-                              final prefs =
-                                  await SharedPreferences.getInstance();
-                              await prefs.setInt(
-                                'lastLoginTime',
-                                DateTime.now().millisecondsSinceEpoch,
+                            // Attendre brièvement que l'état soit bien propagé
+                            final startWait = DateTime.now();
+                            while (auth.user == null &&
+                                DateTime.now().difference(startWait) <
+                                    const Duration(seconds: 5)) {
+                              await Future.delayed(
+                                const Duration(milliseconds: 100),
                               );
-
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Connexion réussie !'),
-                                ),
-                              );
-
-                              if (!mounted) return;
-                              // Rediriger vers la page d'accueil avec drawer et navbar
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const AvantHome(),
-                                ),
-                                (route) => false,
-                              );
-                            } catch (e) {
-                              _logger.warning(
-                                'Erreur lors de la connexion Firebase: ${e.toString()}',
-                              );
-                              String errorMsg = 'Erreur : ${e.toString()}';
-                              if (e.toString().contains('user-not-found')) {
-                                errorMsg =
-                                    'Aucun utilisateur trouvé avec cet email.';
-                              } else if (e.toString().contains(
-                                'wrong-password',
-                              )) {
-                                errorMsg = 'Mot de passe incorrect.';
-                              } else if (e.toString().contains(
-                                'invalid-credential',
-                              )) {
-                                errorMsg =
-                                    "Identifiants invalides ou expirés. Vérifiez l'email et le mot de passe, ou réinitialisez le mot de passe si besoin.";
-                              }
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(
-                                context,
-                              ).showSnackBar(SnackBar(content: Text(errorMsg)));
-                            } finally {
-                              setState(() {
-                                _isLoading = false;
-                              });
                             }
-                          },
+
+                            if (auth.user == null) {
+                              throw Exception(
+                                "La session n'a pas pu être initialisée. Réessayez.",
+                              );
+                            }
+
+                            // Mettre à jour le timestamp de dernière connexion
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setInt(
+                              'lastLoginTime',
+                              DateTime.now().millisecondsSinceEpoch,
+                            );
+
+                            if (!mounted) return;
+                            AuthMessagePopup.showSuccess(
+                              context,
+                              title: 'Connexion réussie. Bienvenue !',
+                            );
+
+                            if (!mounted) return;
+                            // Rediriger vers la page d'accueil avec drawer et navbar
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AvantHome(),
+                              ),
+                              (route) => false,
+                            );
+                          } catch (e) {
+                            _logger.warning(
+                              'Erreur lors de la connexion Firebase: ${e.toString()}',
+                            );
+                            String title =
+                                'Impossible de se connecter avec ces informations.';
+                            String? subtitle;
+                            if (e.toString().contains('user-not-found')) {
+                              title =
+                                  'Aucun compte n\'est associé à cet email.';
+                              subtitle = 'Créez un compte pour continuer.';
+                            } else if (e.toString().contains(
+                                  'wrong-password',
+                                )) {
+                              title = 'Mot de passe incorrect.';
+                              subtitle =
+                                  'Vérifiez vos informations et réessayez.';
+                            } else if (e.toString().contains(
+                                  'invalid-credential',
+                                )) {
+                              title = 'Email ou mot de passe incorrect.';
+                              subtitle =
+                                  'Vérifiez vos informations et réessayez.';
+                            } else if (e.toString().contains('user-disabled')) {
+                              title = 'Votre compte est temporairement bloqué.';
+                              subtitle = 'Contactez l\'assistance.';
+                            } else if (e
+                                .toString()
+                                .contains('too-many-requests')) {
+                              title = 'Trop de tentatives de connexion.';
+                              subtitle = 'Réessayez dans quelques minutes.';
+                            } else if (e.toString().contains('network') ||
+                                e.toString().contains('SocketException') ||
+                                e.toString().contains('Failed host lookup')) {
+                              title = 'Impossible de se connecter au serveur.';
+                              subtitle = 'Vérifiez votre connexion internet.';
+                            } else if (e.toString().contains('server') ||
+                                e.toString().contains('500') ||
+                                e.toString().contains('503')) {
+                              title =
+                                  'Notre service rencontre un problème temporaire.';
+                              subtitle = 'Veuillez réessayer plus tard.';
+                            }
+                            if (!mounted) return;
+                            AuthMessagePopup.showError(
+                              context,
+                              title: title,
+                              subtitle: subtitle,
+                              buttonText: 'Réessayer',
+                            );
+                          } finally {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF8BF13),
                     foregroundColor: Colors.black,
@@ -568,17 +594,16 @@ class _ConnexionPageState extends State<ConnexionPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child:
-                      _isLoading
-                          ? const CircularProgressIndicator(color: Colors.black)
-                          : Text(
-                            'Se connecter',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize:
-                                  screenWidth * (isPortrait ? 0.045 : 0.035),
-                            ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : Text(
+                          'Se connecter',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize:
+                                screenWidth * (isPortrait ? 0.045 : 0.035),
                           ),
+                        ),
                 ),
               ),
 

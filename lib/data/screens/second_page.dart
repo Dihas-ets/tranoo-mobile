@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tranoo/data/screens/connexion_page.dart';
+import 'package:tranoo/data/screens/inscription_page.dart';
 
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
@@ -141,7 +141,7 @@ class SecondPageState extends State<SecondPage>
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const ConnexionPage(),
+                              builder: (context) => const InscriptionPage(),
                             ),
                           );
                         },

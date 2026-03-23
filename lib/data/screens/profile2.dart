@@ -504,8 +504,8 @@ class _Profile2State extends State<Profile2> {
       child: ElevatedButton(
         onPressed: isSaving ? null : _saveProfile,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF007BFF),
-          foregroundColor: Colors.white,
+          backgroundColor: const Color(0xFFF8BF13),
+          foregroundColor: Colors.black,
           padding: EdgeInsets.symmetric(vertical: fontSize * 1.2),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,

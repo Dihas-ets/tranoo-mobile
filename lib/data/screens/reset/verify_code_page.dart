@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:tranoo/services/push_otp_service.dart';
+import 'package:tranoo/widgets/auth_message_popup.dart';
 import 'dart:async';
 
 class VerifyResetCodePage extends StatefulWidget {
@@ -37,12 +38,10 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
           setState(() {
             _codeCtrl.text = code!;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Code OTP reçu : $code'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
-            ),
+          AuthMessagePopup.showInfo(
+            context,
+            title: 'Code OTP reçu',
+            subtitle: 'Code : $code',
           );
         }
       }
@@ -65,13 +64,14 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
     if (_requestId.isEmpty || _deviceId.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Informations manquantes. Veuillez recommencer.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          Navigator.of(context).pop();
+          AuthMessagePopup.showError(
+            context,
+            title: 'Informations manquantes.',
+            subtitle: 'Veuillez recommencer depuis la page mot de passe oublié.',
+            buttonText: 'OK',
+          ).then((_) {
+            if (mounted) Navigator.of(context).pop();
+          });
         }
       });
     }
@@ -89,13 +89,14 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
     
     // Vérifier que les arguments requis sont présents
     if (_requestId.isEmpty || _deviceId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Informations manquantes. Veuillez recommencer.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      Navigator.of(context).pop();
+      AuthMessagePopup.showError(
+        context,
+        title: 'Informations manquantes.',
+        subtitle: 'Veuillez recommencer depuis la page mot de passe oublié.',
+        buttonText: 'OK',
+      ).then((_) {
+        if (mounted) Navigator.of(context).pop();
+      });
       return;
     }
     
@@ -110,11 +111,9 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
       if (!mounted) return;
 
       if (result['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] as String? ?? 'Code vérifié'),
-            backgroundColor: Colors.green,
-          ),
+        AuthMessagePopup.showSuccess(
+          context,
+          title: result['message'] as String? ?? 'Code vérifié.',
         );
         Navigator.pushNamed(
           context,
@@ -125,20 +124,20 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
           },
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] as String? ?? 'Erreur'),
-            backgroundColor: Colors.red,
-          ),
+        final msg = result['message'] as String? ?? 'Code invalide.';
+        AuthMessagePopup.showError(
+          context,
+          title: msg,
+          buttonText: 'Réessayer',
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
+      AuthMessagePopup.showError(
+        context,
+        title: 'Une erreur est survenue.',
+        subtitle: 'Vérifiez votre connexion et réessayez.',
+        buttonText: 'Réessayer',
       );
     } finally {
       if (mounted) setState(() => _loading = false);

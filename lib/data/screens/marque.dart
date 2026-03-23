@@ -2477,9 +2477,10 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildServiceIcon(
-                label: l10n.service_sales_cars,
+                label: 'Vente',
                 icon: Icons.directions_car,
                 iconSize: iconSize,
+                imagePath: 'assets/images/icon_vente.png',
                 onTap: () {
                   Navigator.push(
                     context,
@@ -2488,9 +2489,10 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 },
               ),
               _buildServiceIcon(
-                label: l10n.service_delivery_parts,
+                label: 'Livraison',
                 icon: Icons.local_shipping,
                 iconSize: iconSize,
+                imagePath: 'assets/images/icon_livraison.png',
                 onTap: () {
                   Navigator.push(
                     context,
@@ -2499,9 +2501,10 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 },
               ),
               _buildServiceIcon(
-                label: l10n.service_tricycle,
+                label: 'Tricycle',
                 icon: Icons.pedal_bike,
                 iconSize: iconSize,
+                imagePath: 'assets/images/icon_tricycle.png',
                 onTap: () {
                   Navigator.push(
                     context,
@@ -2523,6 +2526,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     required IconData icon,
     required double iconSize,
     required VoidCallback onTap,
+    String? imagePath,
   }) {
     return InkWell(
       onTap: onTap,
@@ -2533,20 +2537,24 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           SizedBox(
             width: iconSize * 1.6,
             height: iconSize * 1.6,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Lottie.asset(
-                  'assets/lottie/service_pulse.json',
-                  repeat: true,
-                  fit: BoxFit.contain,
-                ),
-                Icon(
-                  icon,
-                  size: iconSize,
-                  color: const Color(0xFF0A1F44),
-                ),
-              ],
+            child: Center(
+              child: imagePath != null
+                  ? Image.asset(
+                      imagePath,
+                      width: iconSize,
+                      height: iconSize,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Icon(
+                        icon,
+                        size: iconSize,
+                        color: const Color(0xFF0A1F44),
+                      ),
+                    )
+                  : Icon(
+                      icon,
+                      size: iconSize,
+                      color: const Color(0xFF0A1F44),
+                    ),
             ),
           ),
           const SizedBox(height: 6),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/services/push_otp_service.dart';
+import 'package:tranoo/widgets/auth_message_popup.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -28,13 +29,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       final fcmToken = await PushOTPService.getFCMToken();
       if (fcmToken == null || fcmToken.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Autorisez les notifications pour recevoir le code sur cet appareil.',
-              ),
-              backgroundColor: Colors.orange,
-            ),
+          AuthMessagePopup.showSupportContact(
+            context,
+            message: 'Autorisez les notifications pour recevoir le code sur cet appareil.',
+            subtitle: 'En cas de difficulté, contactez notre assistance.',
           );
         }
         setState(() => _loading = false);
@@ -44,11 +42,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       final deviceId = await PushOTPService.getDeviceId();
       if (deviceId == null || deviceId.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Impossible d’identifier ce téléphone.'),
-              backgroundColor: Colors.red,
-            ),
+          AuthMessagePopup.showSupportContact(
+            context,
+            message: "Impossible d'identifier ce téléphone.",
+            subtitle: 'Contactez notre assistance pour vous aider.',
           );
         }
         setState(() => _loading = false);
@@ -66,19 +63,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       if (result['success'] == true) {
         final requestId = result['requestId']?.toString();
         if (requestId == null || requestId.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Impossible de démarrer la demande. Réessayez.'),
-              backgroundColor: Colors.red,
-            ),
+          AuthMessagePopup.showSupportContact(
+            context,
+            message: 'Impossible de démarrer la demande.',
+            subtitle: 'Contactez notre assistance pour vous aider.',
           );
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] as String? ?? 'Code envoyé.'),
-            backgroundColor: Colors.green,
-          ),
+        AuthMessagePopup.showSuccess(
+          context,
+          title: 'Un lien de réinitialisation a été envoyé à votre email.',
         );
         Navigator.pushNamed(
           context,
@@ -89,21 +83,49 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           },
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] as String? ?? 'Erreur.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        final msg = result['message'] as String? ?? 'Une erreur est survenue.';
+        final needsSupport = msg.toLowerCase().contains('device') ||
+            msg.toLowerCase().contains('appareil') ||
+            msg.toLowerCase().contains('reconnu') ||
+            msg.toLowerCase().contains('identifi') ||
+            msg.toLowerCase().contains('compte') && msg.toLowerCase().contains('pas trouvé');
+        if (needsSupport || msg.contains('assistance') || msg.contains('support')) {
+          AuthMessagePopup.showSupportContact(
+            context,
+            message: msg,
+            subtitle: 'Contactez notre assistance pour vous aider.',
+          );
+        } else {
+          AuthMessagePopup.showError(
+            context,
+            title: msg.contains('aucun') || msg.contains('pas trouvé')
+                ? 'Nous n\'avons trouvé aucun compte avec cet email.'
+                : msg,
+            buttonText: 'Réessayer',
+          );
+        }
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      final err = e.toString().toLowerCase();
+      final isNetwork = err.contains('network') ||
+          err.contains('socket') ||
+          err.contains('host lookup') ||
+          err.contains('connection');
+      if (isNetwork) {
+        AuthMessagePopup.showError(
+          context,
+          title: 'Impossible de se connecter au serveur.',
+          subtitle: 'Vérifiez votre connexion internet.',
+          buttonText: 'Réessayer',
+        );
+      } else {
+        AuthMessagePopup.showSupportContact(
+          context,
+          message: 'Une erreur est survenue lors de votre demande.',
+          subtitle: 'Contactez notre assistance pour vous aider.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

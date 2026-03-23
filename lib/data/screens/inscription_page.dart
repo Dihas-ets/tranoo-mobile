@@ -4,6 +4,7 @@ import 'package:tranoo/services/user_service.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
+import 'package:tranoo/widgets/auth_message_popup.dart';
 
 import 'connexion_page.dart';
 import 'avant_home.dart';
@@ -24,12 +25,6 @@ class _InscriptionPageState extends State<InscriptionPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
-  final TextEditingController _maisonController = TextEditingController();
-  final TextEditingController _registreCommerceController =
-      TextEditingController();
-  final TextEditingController _numeroIFUController = TextEditingController();
-  final TextEditingController _entrepriseProvenanceController =
-      TextEditingController();
   final TextEditingController _referralController = TextEditingController();
   final UserService _userService = UserService();
   final _logger = Logger('InscriptionPage');
@@ -37,7 +32,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
   String? selectedCountry;
   String? selectedCountryCode;
   int selectedDigits = 8;
-  String? selectedRole;
+  int _currentStep = 0; // 0: infos, 1: sécurité
   final List<Map<String, dynamic>> countries = [
     {'name': 'Bénin', 'code': '+229', 'flag': '🇧🇯', 'digits': 8},
     {'name': 'Côte d\'Ivoire', 'code': '+225', 'flag': '🇨🇮', 'digits': 10},
@@ -91,10 +86,6 @@ class _InscriptionPageState extends State<InscriptionPage> {
     {'name': 'Pays-Bas', 'code': '+31', 'flag': '🇳🇱', 'digits': 9},
   ];
 
-  final List<String> roles = [
-    'Acheteur',
-  ];
-  final TextEditingController _entrepriseController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePasswordReg = true;
   bool _obscureConfirmReg = true;
@@ -149,6 +140,136 @@ class _InscriptionPageState extends State<InscriptionPage> {
     selectedDigits = countries[0]['digits'] as int;
   }
 
+  Widget _buildStepBar() {
+    const active = Color(0xFFF8BF13);
+    final inactive = Colors.grey.shade300;
+    return Column(
+      children: [
+        Row(
+          children: List.generate(2, (i) {
+            final isActive = i <= _currentStep;
+            return Expanded(
+              child: Container(
+                height: 6,
+                margin: EdgeInsets.only(
+                  right: i == 1 ? 0 : 8,
+                ),
+                decoration: BoxDecoration(
+                  color: isActive ? active : inactive,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          _currentStep == 0
+              ? 'Informations'
+              : 'Sécurité',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openCountryPicker() async {
+    final controller = TextEditingController();
+    List<Map<String, dynamic>> filtered = List.from(countries);
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModal) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: SizedBox(
+                height: MediaQuery.of(ctx).size.height * 0.72,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextField(
+                        controller: controller,
+                        decoration: InputDecoration(
+                          hintText: 'Rechercher un indicatif (pays ou +code)',
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onChanged: (v) {
+                          final q = v.trim().toLowerCase();
+                          setModal(() {
+                            filtered = countries.where((c) {
+                              final name = (c['name'] ?? '').toString().toLowerCase();
+                              final code = (c['code'] ?? '').toString().toLowerCase();
+                              return name.contains(q) || code.contains(q);
+                            }).toList();
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (_, index) {
+                          final c = filtered[index];
+                          return ListTile(
+                            leading: Text(
+                              c['flag'] as String? ?? '',
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                            title: Text(c['name'] as String? ?? ''),
+                            trailing: Text(
+                              c['code'] as String? ?? '',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            onTap: () {
+                              setState(() {
+                                selectedCountry = c['name'] as String?;
+                                selectedCountryCode = c['code'] as String?;
+                                selectedDigits = c['digits'] as int? ?? 8;
+                                _telephoneController.clear();
+                              });
+                              Navigator.pop(ctx);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Récupération des dimensions de l'écran
@@ -158,7 +279,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
     final isPortrait = mediaQuery.orientation == Orientation.portrait;
 
     return Scaffold(
-      appBar: AppBar(backgroundColor: const Color(0xFFF9FAFB), elevation: 0),
+      appBar: null,
       backgroundColor: const Color(0xFFF9FAFB),
       body: SingleChildScrollView(
         child: Padding(
@@ -178,51 +299,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   fit: BoxFit.contain,
                 ),
               ),
-              // Dans votre méthode build(), remplacez le bouton d'inscription par ceci :
-              SizedBox(
-                width: double.infinity,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom +
-                        20, // Marge de sécurité
-                  ),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ConnexionPage(),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF8BF13),
-                      foregroundColor: Colors.black,
-                      padding: EdgeInsets.symmetric(
-                        vertical: screenHeight * 0.02,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      minimumSize: Size(
-                        0,
-                        screenHeight * 0.06,
-                      ), // Hauteur minimale adaptable
-                    ),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        "S'inscrire",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: screenWidth *
-                              0.04, // Taille de police fixe relative
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              _buildStepBar(),
               SizedBox(height: screenHeight * 0.02),
               Text(
                 "Trouvez votre voiture de rêve!",
@@ -233,143 +310,170 @@ class _InscriptionPageState extends State<InscriptionPage> {
               SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
 
               // Champs du formulaire avec les contrôleurs
-              buildTextFieldWithController(
-                controller: _nomController,
-                label: "Nom",
-                icon: Icons.person,
-                placeholder: "Jean",
-                screenWidth: screenWidth,
-                screenHeight: screenHeight,
-                isPortrait: isPortrait,
-              ),
-              SizedBox(height: screenHeight * 0.02),
-              buildTextFieldWithController(
-                controller: _prenomController,
-                label: "Prénom(s)",
-                icon: Icons.person_outline,
-                placeholder: "Dupont",
-                screenWidth: screenWidth,
-                screenHeight: screenHeight,
-                isPortrait: isPortrait,
-              ),
-              SizedBox(height: screenHeight * 0.02),
-              buildTextFieldWithController(
-                controller: _emailController,
-                label: "Adresse email",
-                icon: Icons.email,
-                placeholder: "jean.dupont@email.com",
-                screenWidth: screenWidth,
-                screenHeight: screenHeight,
-                isPortrait: isPortrait,
-              ),
-              SizedBox(height: screenHeight * 0.02),
-              // Champ optionnel: Code de parrainage (statique)
-              buildTextFieldWithController(
-                controller: _referralController,
-                label: "Code de parrainage (optionnel)",
-                icon: Icons.card_giftcard,
-                placeholder: "Ex: TRN-ABCD1234",
-                screenWidth: screenWidth,
-                screenHeight: screenHeight,
-                isPortrait: isPortrait,
-              ),
-              SizedBox(height: screenHeight * 0.02),
-              // Champ téléphone avec sélecteur de pays
-              Row(
-                children: [
-                  // Sélecteur de pays compact
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
+              if (_currentStep == 0) ...[
+                buildTextFieldWithController(
+                  controller: _nomController,
+                  label: "Nom",
+                  icon: Icons.person,
+                  placeholder: "Jean",
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                  isPortrait: isPortrait,
+                ),
+                SizedBox(height: screenHeight * 0.02),
+                buildTextFieldWithController(
+                  controller: _prenomController,
+                  label: "Prénom(s)",
+                  icon: Icons.person_outline,
+                  placeholder: "Dupont",
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                  isPortrait: isPortrait,
+                ),
+                SizedBox(height: screenHeight * 0.02),
+                buildTextFieldWithController(
+                  controller: _emailController,
+                  label: "Adresse email",
+                  icon: Icons.email,
+                  placeholder: "jean.dupont@email.com",
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                  isPortrait: isPortrait,
+                ),
+                SizedBox(height: screenHeight * 0.02),
+                buildTextFieldWithController(
+                  controller: _referralController,
+                  label: "Code de parrainage (optionnel)",
+                  icon: Icons.card_giftcard,
+                  placeholder: "Ex: TRN-ABCD1234",
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                  isPortrait: isPortrait,
+                ),
+                SizedBox(height: screenHeight * 0.02),
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: _openCountryPicker,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: selectedCountry,
-                        isDense: true,
-                        items: countries.map((country) {
-                          return DropdownMenuItem<String>(
-                            value: country['name'] as String,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  country['flag'] as String,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  country['code'] as String,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          final country = countries.firstWhere(
-                            (c) => c['name'] == value,
-                          );
-                          setState(() {
-                            selectedCountry = value;
-                            selectedCountryCode = country['code'] as String?;
-                            selectedDigits = country['digits'] as int;
-                            _telephoneController.clear(); // Vider le champ
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _telephoneController,
-                      keyboardType: TextInputType.number,
-                      maxLength: selectedDigits,
-                      decoration: InputDecoration(
-                        labelText: 'Téléphone ($selectedDigits chiffres)',
-                        counterText: '',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              countries
+                                      .firstWhere(
+                                        (c) => c['name'] == selectedCountry,
+                                        orElse: () => countries[0],
+                                      )['flag']
+                                      ?.toString() ??
+                                  '',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              selectedCountryCode ?? '+229',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.keyboard_arrow_down, size: 18),
+                          ],
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3CD), // jaune pâle d’alerte
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFC107)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Icon(Icons.warning_amber_rounded, color: Color(0xFF8A6D3B)),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        'Utilisez un numéro joignable sur WhatsApp : il servira aux OTP et aux échanges entre notre équipe et les utilistaeurs.',
-                        style: TextStyle(
-                          color: Color(0xFF8A6D3B),
-                          fontWeight: FontWeight.w600,
+                      child: TextField(
+                        controller: _telephoneController,
+                        keyboardType: TextInputType.number,
+                        maxLength: selectedDigits,
+                        decoration: InputDecoration(
+                          labelText: 'Téléphone ($selectedDigits chiffres)',
+                          counterText: '',
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3CD), // jaune pâle d’alerte
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFFC107)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Icon(Icons.warning_amber_rounded,
+                          color: Color(0xFF8A6D3B)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Utilisez un numéro joignable sur WhatsApp : il servira aux OTP et aux échanges entre notre équipe et les utilistaeurs.',
+                          style: TextStyle(
+                            color: Color(0xFF8A6D3B),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_nomController.text.trim().isEmpty ||
+                          _prenomController.text.trim().isEmpty ||
+                          _emailController.text.trim().isEmpty ||
+                          _telephoneController.text.trim().isEmpty) {
+                        AuthMessagePopup.showWarning(
+                          context,
+                          title: 'Certains champs sont manquants.',
+                          subtitle: 'Veuillez compléter les informations requises.',
+                        );
+                        return;
+                      }
+                      setState(() => _currentStep = 1);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF8BF13),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Suivant',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+
+              if (_currentStep == 1) ...[
               SizedBox(height: screenHeight * 0.02),
               // Mot de passe avec icône oeil et jauge
               Focus(
@@ -382,7 +486,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   obscureText: _obscurePasswordReg,
                   decoration: InputDecoration(
                     labelText: 'Mot de passe',
-                    hintText: 'Min. 6 caractères (8+ recommandé)',
+                    hintText: 'Min. 8 caractères',
                     labelStyle: TextStyle(
                       color: Colors.grey,
                       fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
@@ -514,12 +618,10 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               _passwordController.text.trim().isEmpty ||
                               _confirmPasswordController.text.trim().isEmpty ||
                               selectedCountry == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Veuillez remplir tous les champs.',
-                                ),
-                              ),
+                            AuthMessagePopup.showWarning(
+                              context,
+                              title: 'Certains champs sont manquants.',
+                              subtitle: 'Veuillez compléter les informations requises.',
                             );
                             return;
                           }
@@ -529,32 +631,25 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
                           );
                           if (!emailRegex.hasMatch(email)) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Adresse email invalide.'),
-                              ),
+                            AuthMessagePopup.showError(
+                              context,
+                              title: 'Veuillez entrer une adresse email valide.',
                             );
                             return;
                           }
                           // Vérification mot de passe
-                          if (_passwordController.text.length < 6) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Le mot de passe doit contenir au moins 6 caractères.',
-                                ),
-                              ),
+                          if (_passwordController.text.length < 8) {
+                            AuthMessagePopup.showError(
+                              context,
+                              title: 'Le mot de passe doit contenir au moins 8 caractères.',
                             );
                             return;
                           }
                           if (_passwordController.text !=
                               _confirmPasswordController.text) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Les mots de passe ne correspondent pas.',
-                                ),
-                              ),
+                            AuthMessagePopup.showError(
+                              context,
+                              title: 'Les mots de passe ne correspondent pas.',
                             );
                             return;
                           }
@@ -564,12 +659,10 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             '^\\d{$selectedDigits}\$',
                           );
                           if (!phoneRegex.hasMatch(phone)) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Numéro de téléphone invalide. Entrez $selectedDigits chiffres.',
-                                ),
-                              ),
+                            AuthMessagePopup.showError(
+                              context,
+                              title: 'Numéro invalide',
+                              subtitle: 'Entrez $selectedDigits chiffres.',
                             );
                             return;
                           }
@@ -592,7 +685,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               nom: _nomController.text.trim(),
                               prenoms: _prenomController.text.trim(),
                               telephone: fullPhone,
-                              role: 'acheteur', // Toujours acheteur pour Tranoo
+                              role: 'acheteur',
                               entreprise: null,
                               registreCommerce: null,
                               numeroIFU: null,
@@ -609,8 +702,9 @@ class _InscriptionPageState extends State<InscriptionPage> {
 
                               if (referralError != null &&
                                   referralError.isNotEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(referralError)),
+                                AuthMessagePopup.showWarning(
+                                  context,
+                                  title: referralError,
                                 );
                               } else if (referralInfo is Map &&
                                   referralInfo['status'] != null) {
@@ -625,8 +719,9 @@ class _InscriptionPageState extends State<InscriptionPage> {
                                   message =
                                       ' Compte crée avec succès, Parrainage agent validé ';
                                 }
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(message)),
+                                AuthMessagePopup.showSuccess(
+                                  context,
+                                  title: message,
                                 );
                               }
                             }
@@ -654,12 +749,10 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             }
                             
                             if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Inscription réussie ! Bienvenue sur Tranoo.',
-                                ),
-                              ),
+                            AuthMessagePopup.showSuccess(
+                              context,
+                              title: 'Votre compte a été créé avec succès.',
+                              subtitle: 'Bienvenue sur Tranoo !',
                             );
                             
                             // Mettre à jour le timestamp de dernière connexion
@@ -678,19 +771,34 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               (route) => false,
                             );
                           } catch (e) {
-                            String errorMsg = 'Erreur : ${e.toString()}';
+                            String title = 'Une erreur est survenue.';
+                            String? subtitle;
                             if (e.toString().contains(
                                   'email-already-in-use',
                                 )) {
-                              errorMsg = 'Cet email est déjà utilisé.';
+                              title = 'Un compte existe déjà avec cette adresse email.';
+                              subtitle = 'Essayez de vous connecter.';
                             } else if (e.toString().contains(
                                   'weak-password',
                                 )) {
-                              errorMsg = 'Mot de passe trop faible.';
+                              title = 'Le mot de passe doit contenir au moins 8 caractères.';
+                            } else if (e.toString().contains('network') ||
+                                e.toString().contains('SocketException') ||
+                                e.toString().contains('Failed host lookup')) {
+                              title = 'Impossible de se connecter au serveur.';
+                              subtitle = 'Vérifiez votre connexion internet.';
+                            } else if (e.toString().contains('server') ||
+                                e.toString().contains('500') ||
+                                e.toString().contains('503')) {
+                              title = 'Notre service rencontre un problème temporaire.';
+                              subtitle = 'Veuillez réessayer plus tard.';
                             }
-                            ScaffoldMessenger.of(
+                            AuthMessagePopup.showError(
                               context,
-                            ).showSnackBar(SnackBar(content: Text(errorMsg)));
+                              title: title,
+                              subtitle: subtitle,
+                              buttonText: 'Réessayer',
+                            );
                           } finally {
                             setState(() {
                               _isLoading = false;
@@ -752,6 +860,14 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 ],
               ),
               SizedBox(height: screenHeight * 0.03),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => setState(() => _currentStep = 0),
+                  child: const Text('Retour'),
+                ),
+              ),
+              ],
             ],
           ),
         ),

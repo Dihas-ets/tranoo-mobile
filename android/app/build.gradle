@@ -83,8 +83,10 @@ android {
         applicationId "tech.dihas.tramoo"
         minSdkVersion flutter.minSdkVersion      // nécessaire pour les .so modernes et 16K
         targetSdkVersion 36
-        versionCode 10
-        versionName "1.1.0"
+    //     versionCode flutterVersionCode.toInteger()
+    //   versionName flutterVersionName
+        versionCode 11
+        versionName "2.0.0"
         multiDexEnabled true  
     }
 

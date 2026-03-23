@@ -207,15 +207,17 @@ class _ProfileState extends State<Profile> {
     final spacing = screenHeight * (isPortrait ? 0.02 : 0.03);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: Text(
-          "Mon compte",
+        title: const Text(
+          "Compte",
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
             color: Colors.black,
           ),
         ),
+        backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
@@ -279,30 +281,73 @@ class _ProfileState extends State<Profile> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      // Nom
+                      // Nom / Email / Téléphone (mode lecture ou édition groupée)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          isEditingName
-                              ? Expanded(
-                                child: TextField(
-                                  autofocus: true,
-                                  onChanged: (v) => editedName = v,
-                                  controller: TextEditingController(
-                                    text: editedName,
-                                  ),
-                                  decoration: const InputDecoration(
-                                    labelText: "Nom complet",
-                                  ),
-                                ),
-                              )
-                              : Text(
-                                userData?["nom"] ?? "",
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                isEditingName
+                                    ? TextField(
+                                        autofocus: true,
+                                        onChanged: (v) => editedName = v,
+                                        controller: TextEditingController(
+                                          text: editedName,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          labelText: "Nom complet",
+                                        ),
+                                      )
+                                    : Text(
+                                        userData?["nom"] ?? "",
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                const SizedBox(height: 4),
+                                isEditingName
+                                    ? TextField(
+                                        onChanged: (v) => editedEmail = v,
+                                        controller: TextEditingController(
+                                          text: editedEmail,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          labelText: "Email",
+                                        ),
+                                      )
+                                    : Text(
+                                        userData?["email"] ?? "",
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 16,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                const SizedBox(height: 4),
+                                isEditingName
+                                    ? TextField(
+                                        onChanged: (v) => editedPhone = v,
+                                        controller: TextEditingController(
+                                          text: editedPhone,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          labelText: "Téléphone",
+                                        ),
+                                      )
+                                    : Text(
+                                        userData?["telephone"] ?? "",
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 16,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                              ],
+                            ),
+                          ),
                           IconButton(
                             icon: Icon(
                               isEditingName ? Icons.close : Icons.edit,
@@ -312,8 +357,13 @@ class _ProfileState extends State<Profile> {
                                 if (isEditingName) {
                                   isEditingName = false;
                                   editedName = userData?["nom"] ?? "";
+                                  editedEmail = userData?["email"] ?? "";
+                                  editedPhone = userData?["telephone"] ?? "";
                                 } else {
                                   isEditingName = true;
+                                  editedName = userData?["nom"] ?? "";
+                                  editedEmail = userData?["email"] ?? "";
+                                  editedPhone = userData?["telephone"] ?? "";
                                 }
                               });
                             },
@@ -322,206 +372,34 @@ class _ProfileState extends State<Profile> {
                             IconButton(
                               icon: const Icon(
                                 Icons.check,
-                                color: Colors.green,
+                                color: Color(0xFFF8BF13),
                               ),
-                              onPressed:
-                                  isSaving
-                                      ? null
-                                      : () async {
-                                        if (editedName != null &&
-                                            editedName!.trim().isNotEmpty) {
-                                          await _saveProfileField(
-                                            "nom",
-                                            editedName!.trim(),
-                                          );
-                                        }
-                                      },
-                            ),
-                        ],
-                      ),
-                      // Email
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          isEditingEmail
-                              ? Expanded(
-                                child: TextField(
-                                  autofocus: true,
-                                  onChanged: (v) => editedEmail = v,
-                                  controller: TextEditingController(
-                                    text: editedEmail,
-                                  ),
-                                  decoration: const InputDecoration(
-                                    labelText: "Email",
-                                  ),
-                                ),
-                              )
-                              : Text(
-                                userData?["email"] ?? "",
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                          IconButton(
-                            icon: Icon(
-                              isEditingEmail ? Icons.close : Icons.edit,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                if (isEditingEmail) {
-                                  isEditingEmail = false;
-                                  editedEmail = userData?["email"] ?? "";
-                                } else {
-                                  isEditingEmail = true;
-                                }
-                              });
-                            },
-                          ),
-                          if (isEditingEmail)
-                            IconButton(
-                              icon: const Icon(
-                                Icons.check,
-                                color: Colors.green,
-                              ),
-                              onPressed:
-                                  isSaving
-                                      ? null
-                                      : () async {
-                                        if (editedEmail != null &&
-                                            editedEmail!.trim().isNotEmpty) {
-                                          await _saveProfileField(
-                                            "email",
-                                            editedEmail!.trim(),
-                                          );
-                                        }
-                                      },
-                            ),
-                        ],
-                      ),
-                      // Téléphone
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          isEditingPhone
-                              ? Expanded(
-                                child: TextField(
-                                  autofocus: true,
-                                  onChanged: (v) => editedPhone = v,
-                                  controller: TextEditingController(
-                                    text: editedPhone,
-                                  ),
-                                  decoration: const InputDecoration(
-                                    labelText: "Téléphone",
-                                  ),
-                                ),
-                              )
-                              : Text(
-                                userData?["telephone"] ?? "",
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                          IconButton(
-                            icon: Icon(
-                              isEditingPhone ? Icons.close : Icons.edit,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                if (isEditingPhone) {
-                                  isEditingPhone = false;
-                                  editedPhone = userData?["telephone"] ?? "";
-                                } else {
-                                  isEditingPhone = true;
-                                }
-                              });
-                            },
-                          ),
-                          if (isEditingPhone)
-                            IconButton(
-                              icon: const Icon(
-                                Icons.check,
-                                color: Colors.green,
-                              ),
-                              onPressed:
-                                  isSaving
-                                      ? null
-                                      : () async {
-                                        if (editedPhone != null &&
-                                            editedPhone!.trim().isNotEmpty) {
-                                          await _saveProfileField(
-                                            "telephone",
-                                            editedPhone!.trim(),
-                                          );
-                                        }
-                                      },
-                            ),
-                        ],
-                      ),
-                      SizedBox(height: spacing * 2),
-                      // Mot de passe
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          isEditingPassword
-                              ? Expanded(
-                                child: TextField(
-                                  autofocus: true,
-                                  obscureText: true,
-                                  onChanged: (v) => newPassword = v,
-                                  decoration: const InputDecoration(
-                                    labelText: "Nouveau mot de passe",
-                                  ),
-                                ),
-                              )
-                              : const Text(
-                                "********",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                          IconButton(
-                            icon: Icon(
-                              isEditingPassword ? Icons.close : Icons.edit,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                if (isEditingPassword) {
-                                  isEditingPassword = false;
-                                  newPassword = null;
-                                } else {
-                                  isEditingPassword = true;
-                                }
-                              });
-                            },
-                          ),
-                          if (isEditingPassword)
-                            IconButton(
-                              icon: const Icon(
-                                Icons.check,
-                                color: Colors.green,
-                              ),
-                              onPressed:
-                                  isSaving
-                                      ? null
-                                      : () async {
-                                        if (newPassword != null &&
-                                            newPassword!.length >= 6) {
-                                          await _savePassword();
-                                        } else {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Le mot de passe doit contenir au moins 6 caractères.',
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      },
+                              onPressed: isSaving
+                                  ? null
+                                  : () async {
+                                      if ((editedName ?? '').trim().isEmpty ||
+                                          (editedEmail ?? '').trim().isEmpty ||
+                                          (editedPhone ?? '').trim().isEmpty) {
+                                        return;
+                                      }
+                                      setState(() => isSaving = true);
+                                      await _saveProfileField(
+                                        "nom",
+                                        editedName!.trim(),
+                                      );
+                                      await _saveProfileField(
+                                        "email",
+                                        editedEmail!.trim(),
+                                      );
+                                      await _saveProfileField(
+                                        "telephone",
+                                        editedPhone!.trim(),
+                                      );
+                                      setState(() {
+                                        isSaving = false;
+                                        isEditingName = false;
+                                      });
+                                    },
                             ),
                         ],
                       ),
@@ -535,19 +413,19 @@ class _ProfileState extends State<Profile> {
                             context,
                             icon: Icons.person,
                             label: "Nom complet",
-                            value: userData?["nom"] ?? "",
+                            value: "********",
                           ),
                           _buildProfileItem(
                             context,
                             icon: Icons.email,
                             label: "Email",
-                            value: userData?["email"] ?? "",
+                            value: "********",
                           ),
                           _buildProfileItem(
                             context,
                             icon: Icons.phone,
                             label: "Téléphone",
-                            value: userData?["telephone"] ?? "",
+                            value: "********",
                           ),
                         ],
                       ),
@@ -658,7 +536,7 @@ class _ProfileState extends State<Profile> {
       ),
       child: Row(
         children: [
-          Icon(icon, size: iconSize, color: Colors.grey),
+          Icon(icon, size: iconSize, color: Colors.grey[700]),
           SizedBox(width: screenWidth * 0.04),
           Expanded(
             child: Column(
@@ -668,7 +546,7 @@ class _ProfileState extends State<Profile> {
                   label,
                   style: TextStyle(
                     fontSize: fontSize * 0.9,
-                    color: Colors.grey,
+                    color: Colors.grey[600],
                   ),
                 ),
                 Text(
@@ -681,13 +559,7 @@ class _ProfileState extends State<Profile> {
               ],
             ),
           ),
-          if (showEdit)
-            IconButton(
-              icon: Icon(Icons.edit, size: iconSize * 0.8, color: Colors.grey),
-              onPressed: () {
-                // TODO: Implémenter l'édition
-              },
-            ),
+          const Icon(Icons.chevron_right, color: Colors.grey),
         ],
       ),
     );

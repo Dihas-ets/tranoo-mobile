@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tranoo/data/screens/connexion_page.dart';
+import 'package:tranoo/data/screens/inscription_page.dart';
 
 class ThirdPage extends StatelessWidget {
   const ThirdPage({super.key});
@@ -83,7 +83,7 @@ class ThirdPage extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ConnexionPage(),
+                              builder: (context) => const InscriptionPage(),
                             ),
                           );
                         },

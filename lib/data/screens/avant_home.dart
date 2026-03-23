@@ -84,15 +84,17 @@ class _AvantHomeState extends State<AvantHome> {
         backgroundColor: const Color(0xFFF8BF13),
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: Image.asset(
-          'assets/images/tranoo.png',
+        centerTitle: true,
+        title: SizedBox(
           height: 40,
-          errorBuilder: (context, error, stackTrace) => const Text(
-            'TRANOO',
-            style: TextStyle(
-              color: Color(0xFF0A1F44),
-              fontWeight: FontWeight.bold,
-              fontSize: 24,
+          child: Center(
+            child: Image.asset(
+              'assets/images/logo_connexion.png',
+              height: 32,
+              fit: BoxFit.contain,
+              // Aucun texte de fallback pour éviter d'afficher "Tranoo"
+              errorBuilder: (context, error, stackTrace) =>
+                  const SizedBox.shrink(),
             ),
           ),
         ),

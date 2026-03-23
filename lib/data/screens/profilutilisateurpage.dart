@@ -186,11 +186,13 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
       return Center(child: Text("Accès réservé aux vendeurs."));
     }
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text(
-          "Profil utilisateur",
+          "Compte",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
+        backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
       ),
@@ -200,12 +202,19 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 15),
-            // Profile card dynamique
+            // Carte de profil type compte
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8BF13),
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -215,37 +224,45 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
                       clipBehavior: Clip.none,
                       children: [
                         CircleAvatar(
-                          radius: 30,
-                          backgroundColor: Colors.grey[300],
+                          radius: 32,
+                          backgroundColor: Colors.grey[200],
                           backgroundImage: _image != null
                               ? FileImage(_image!) as ImageProvider
                               : (userData != null &&
                                       userData!["photo"] != null &&
                                       userData!["photo"].toString().isNotEmpty)
-                                  ? NetworkImage(userData!["photo"].toString())
-                                      as ImageProvider
+                                  ? NetworkImage(
+                                      userData!["photo"].toString())
                                   : null,
                           child: (_image == null &&
                                   (userData == null ||
                                       userData!["photo"] == null ||
                                       userData!["photo"].toString().isEmpty))
                               ? Icon(Icons.person,
-                                  size: 30, color: Colors.grey[600])
+                                  size: 32, color: Colors.grey[600])
                               : null,
                         ),
                         Positioned(
-                          bottom: 0,
-                          right: -5,
+                          bottom: -2,
+                          right: -4,
                           child: Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: Colors.white,
-                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  blurRadius: 4,
+                                ),
+                              ],
                             ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              color: Colors.black,
-                              size: 20,
+                            child: const Padding(
+                              padding: EdgeInsets.all(4),
+                              child: Icon(
+                                Icons.edit,
+                                size: 16,
+                                color: Color(0xFFF8BF13),
+                              ),
                             ),
                           ),
                         ),
@@ -253,22 +270,30 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        userData?["nom"] ?? "",
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          userData?["nom"] ?? "",
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      Text(
-                        userData?["email"] ?? "",
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          userData?["email"] ?? "",
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

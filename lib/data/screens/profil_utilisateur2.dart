@@ -168,11 +168,13 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
       return Center(child: Text("Accès réservé aux transitaires."));
     }
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text(
-          "Profil utilisateur",
+          "Compte",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
+        backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
       ),
@@ -202,8 +204,15 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF007AFF), // Fond bleu au lieu de jaune
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -237,12 +246,20 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.white,
-                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      color: Colors.black,
-                      size: 20,
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.edit,
+                        color: Color(0xFFF8BF13),
+                        size: 18,
+                      ),
                     ),
                   ),
                 ),
@@ -252,16 +269,19 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
-                "Itunuoluwa Abidoye",
-                style: TextStyle(
-                  color: Colors.white,
+                userData?["nom"] ?? "",
+                style: const TextStyle(
+                  color: Colors.black,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
               ),
-              Text("abidoye@itunuakwa", style: TextStyle(color: Colors.white)),
+              Text(
+                userData?["email"] ?? "",
+                style: TextStyle(color: Colors.grey[700]),
+              ),
             ],
           ),
         ],

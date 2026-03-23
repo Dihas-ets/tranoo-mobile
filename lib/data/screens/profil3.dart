@@ -117,14 +117,20 @@ class Profil3State extends State<Profil3> {
       );
     }
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text(
-      //     "Profil utilisateur",
-      //     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-      //   ),
-      //   foregroundColor: Colors.black,
-      //   elevation: 0,
-      // ),
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        foregroundColor: Colors.black,
+        title: const Text(
+          "Compte",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.black,
+          ),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(10),
         child: Column(
@@ -153,8 +159,15 @@ class Profil3State extends State<Profil3> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8BF13),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -164,28 +177,38 @@ class Profil3State extends State<Profil3> {
               clipBehavior: Clip.none,
               children: [
                 CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.grey[300],
-                  backgroundImage:
-                      _image != null
-                          ? FileImage(_image!)
-                          : hasPhoto
+                  radius: 32,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: _image != null
+                      ? FileImage(_image!)
+                      : hasPhoto
                           ? NetworkImage(userData["photo"]) as ImageProvider
                           : const AssetImage("assets/images/jenifer.jpg"),
+                  child: (!hasPhoto && _image == null)
+                      ? Icon(Icons.person, size: 32, color: Colors.grey[500])
+                      : null,
                 ),
                 Positioned(
-                  bottom: 0,
-                  right: -5,
+                  bottom: -2,
+                  right: -4,
                   child: Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.white,
-                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      color: Colors.black,
-                      size: 20,
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.edit,
+                        size: 16,
+                        color: Color(0xFFF8BF13),
+                      ),
                     ),
                   ),
                 ),
@@ -193,22 +216,36 @@ class Profil3State extends State<Profil3> {
             ),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                userData["nom"] ?? "",
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        userData["nom"] ?? "",
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Text(
-                userData["email"] ?? "",
-                style: const TextStyle(color: Colors.black),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  userData["email"] ?? "",
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 13,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),

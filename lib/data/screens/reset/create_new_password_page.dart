@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/services/push_otp_service.dart';
+import 'package:tranoo/widgets/auth_message_popup.dart';
 
 class CreateNewPasswordPage extends StatefulWidget {
   final String requestId;
@@ -67,13 +68,11 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
     if (!_formKey.currentState!.validate()) return;
 
     if (!_isPasswordValid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Le mot de passe ne respecte pas tous les critères requis',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      AuthMessagePopup.showError(
+        context,
+        title: 'Mot de passe trop faible.',
+        subtitle: 'Vérifiez les critères affichés et réessayez.',
+        buttonText: 'OK',
       );
       return;
     }
@@ -90,29 +89,41 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
       if (!mounted) return;
 
       if (result['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Colors.green,
-          ),
+        AuthMessagePopup.showSuccess(
+          context,
+          title: result['message']?.toString() ??
+              'Mot de passe modifié avec succès.',
         );
         Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Colors.red,
-          ),
+        AuthMessagePopup.showError(
+          context,
+          title: result['message']?.toString() ?? 'Une erreur est survenue.',
+          buttonText: 'Réessayer',
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      final err = e.toString().toLowerCase();
+      final isNetwork = err.contains('network') ||
+          err.contains('socket') ||
+          err.contains('host lookup') ||
+          err.contains('connection');
+      if (isNetwork) {
+        AuthMessagePopup.showError(
+          context,
+          title: 'Impossible de se connecter au serveur.',
+          subtitle: 'Vérifiez votre connexion internet.',
+          buttonText: 'Réessayer',
+        );
+      } else {
+        AuthMessagePopup.showError(
+          context,
+          title: 'Une erreur est survenue.',
+          subtitle: 'Veuillez réessayer.',
+          buttonText: 'Réessayer',
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
