@@ -26,18 +26,25 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
   List<Map<String, dynamic>> _chauffeurs = [];
   String? _pendingChauffeurId;
   String? _pendingContactId;
+  String? _selectedChauffeurId;
   bool _pendingAccepted = false;
   Timer? _pendingStatusTimer;
   DateTime? _lastLocationSentAt;
   Position? _lastLocationSent;
   StreamSubscription<Position>? _posSub;
   StreamSubscription<User?>? _authSub;
+  double _sheetSize = 0.25;
+  Timer? _nearbyTimer;
 
   @override
   void initState() {
     super.initState();
     _requestLocationPermission();
     _init();
+    _nearbyTimer = Timer.periodic(const Duration(seconds: 8), (_) async {
+      if (!mounted) return;
+      await _loadNearby(silent: true);
+    });
     // Écouter les changements d'authentification
     _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
       if (user != null && mounted) {
@@ -58,6 +65,7 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
     _posSub?.cancel();
     _authSub?.cancel();
     _pendingStatusTimer?.cancel();
+    _nearbyTimer?.cancel();
     super.dispose();
   }
 
@@ -393,6 +401,17 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
     }
   }
 
+  Future<void> _submitSelectedChauffeur() async {
+    final selectedId = _selectedChauffeurId;
+    if (selectedId == null) return;
+    final selected = _chauffeurs
+        .where((c) => c['_id']?.toString() == selectedId)
+        .cast<Map<String, dynamic>>()
+        .toList();
+    if (selected.isEmpty) return;
+    await _callChauffeur(selected.first);
+  }
+
   Future<void> _cancelRequest() async {
     final contactId = _pendingContactId;
     if (contactId == null || contactId.isEmpty) return;
@@ -424,17 +443,45 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
           title: 'Votre demande a été annulée.',
         );
       } else if (res.statusCode == 403) {
-        // Annulation impossible uniquement si la demande a été acceptée.
-        setState(() {
-          _pendingChauffeurId = null;
-          _pendingContactId = null;
-          _pendingAccepted = false;
-        });
-        _pendingStatusTimer?.cancel();
+        // On ne bloque l'annulation que si le serveur prouve une acceptation explicite.
+        // Si "accepted" est arrivé par erreur côté backend (ancien bug), on retente.
+        try {
+          final baseUrl2 = getBaseUrl();
+          final details = await http.get(
+            Uri.parse('$baseUrl2/tricycles/contacts/$contactId'),
+            headers: {'Authorization': 'Bearer $token'},
+          );
+          final body = details.statusCode == 200
+              ? (jsonDecode(details.body) as Map<String, dynamic>)
+              : null;
+          final contact = body?['contact'] as Map<String, dynamic>?;
+          final acceptedAt = contact?['acceptedAt'];
+
+          if (acceptedAt == null) {
+            final retry = await http.post(
+              Uri.parse('$baseUrl2/tricycles/contacts/$contactId/close'),
+              headers: {'Authorization': 'Bearer $token'},
+            );
+            if (retry.statusCode == 200) {
+              setState(() {
+                _pendingChauffeurId = null;
+                _pendingContactId = null;
+                _pendingAccepted = false;
+              });
+              _pendingStatusTimer?.cancel();
+              AuthMessagePopup.showSuccess(
+                context,
+                title: 'Votre demande a été annulée.',
+              );
+              return;
+            }
+          }
+        } catch (_) {}
+
         AuthMessagePopup.showWarning(
           context,
           title: 'La demande ne peut plus être annulée.',
-          subtitle: 'Le chauffeur a déjà pris en charge ou clôturé la demande.',
+          subtitle: 'Le chauffeur a déjà accepté la demande.',
         );
       } else {
         AuthMessagePopup.showError(
@@ -483,200 +530,302 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-            AppLocalizations.of(context)?.tricycle_home_title ?? 'Tricycles'),
+            AppLocalizations.of(context)?.tricycle_home_title ?? 'Tricycles',
+            style: const TextStyle(color: Color(0xFF000000)), // Titre en noir
+        ),
+        backgroundColor: const Color(0xFFF8BF13), // Jaune Tranoo
+        foregroundColor: const Color(0xFF000000),
+        elevation: 0,
+        centerTitle: true,
       ),
-      body: Column(
-        children: [
-          // Partie supérieure : Carte Flutter Map
-          Expanded(
-            flex: 1,
-            child: FlutterMap(
-              options: MapOptions(
-                center: LatLng(
-                    _position?.latitude ?? 6.3654, _position?.longitude ?? 2.4183),
-                zoom: 13.0,
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                  userAgentPackageName: 'com.tranoo.tranoo_pro',
-                ),
-                MarkerLayer(
-                  markers: _chauffeurs
-                      .where((c) =>
-                          c['latitude'] != null && c['longitude'] != null)
-                      .map<Marker>((chauffeur) {
-                    return Marker(
-                      point: LatLng(
-                        (chauffeur['latitude'] as num).toDouble(),
-                        (chauffeur['longitude'] as num).toDouble(),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final h = constraints.maxHeight;
+          final sheetH = h * _sheetSize;
+          final mapBottomRadius = sheetH <= (h * 0.26) ? 26.0 : 18.0;
+
+          return Stack(
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: sheetH,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(mapBottomRadius),
+                    ),
+                    child: FlutterMap(
+                      options: MapOptions(
+                        center: LatLng(
+                          _position?.latitude ?? 6.3654,
+                          _position?.longitude ?? 2.4183,
+                        ),
+                        zoom: 13.0,
                       ),
-                      width: 40.0,
-                      height: 40.0,
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 32.0,
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                          userAgentPackageName: 'com.tranoo.tranoo_pro',
+                        ),
+                        MarkerLayer(
+                          markers: _chauffeurs
+                              .where((c) =>
+                                  c['latitude'] != null &&
+                                  c['longitude'] != null)
+                              .map<Marker>((chauffeur) {
+                            return Marker(
+                              point: LatLng(
+                                (chauffeur['latitude'] as num).toDouble(),
+                                (chauffeur['longitude'] as num).toDouble(),
+                              ),
+                              width: 40.0,
+                              height: 40.0,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 32.0,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: sheetH,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  decoration: BoxDecoration(
+                    // Même background que marque.dart pour Services
+                    color: const Color(0xFFF8BF13).withOpacity(0.25),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(28)),
+                    border: Border.all(
+                      color: const Color(0xFFF8BF13).withOpacity(0.35),
+                      width: 1.2,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              NotificationListener<DraggableScrollableNotification>(
+                onNotification: (n) {
+                  final next = n.extent.clamp(0.25, 0.75);
+                  if ((next - _sheetSize).abs() > 0.001) {
+                    setState(() => _sheetSize = next);
+                  }
+                  return false;
+                },
+                child: DraggableScrollableSheet(
+                  initialChildSize: 0.25,
+                  minChildSize: 0.25,
+                  maxChildSize: 0.75,
+                  builder: (context, scrollController) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(28),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 8),
+                          Container(
+                            width: 46,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: Colors.black26,
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Expanded(
+                            child: _buildBottomPanel(scrollController),
+                          ),
+                        ],
                       ),
                     );
-                  }).toList(),
+                  },
                 ),
-              ],
-            ),
-          ),
-          // Partie inférieure : panneau type "bottom sheet" avec les tricycles
-          Expanded(
-            flex: 1,
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, -2),
-                  ),
-                ],
               ),
-              child: _loading
-                  ? const Center(
-                      child:
-                          CircularProgressIndicator(color: Color(0xFFF8BF13)))
-                  : _error != null
-                      ? _buildErrorState(_error!)
-                      : _chauffeurs.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(
-                                    Icons.directions_bike,
-                                    size: 80,
-                                    color: Colors.grey,
-                                  ),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    'Aucun tricycle disponible pour le moment.',
-                                    style: TextStyle(
-                                        fontSize: 16, color: Colors.grey),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            )
-                          : RefreshIndicator(
-                              onRefresh: () async {
-                                await _ensureLocationReady();
-                                await _sendLocationIfNeeded(force: true);
-                                await _loadNearby();
-                              },
-                              child: ListView.builder(
-                                padding: const EdgeInsets.fromLTRB(
-                                    16, 12, 16, 24),
-                                itemCount: _chauffeurs.length,
-                                itemBuilder: (context, index) {
-                                  final chauffeur = _chauffeurs[index];
-                                  return _buildChauffeurCard(chauffeur);
-                                },
-                              ),
-                            ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBottomPanel(ScrollController scrollController) {
+    if (_loading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFF8BF13)),
+      );
+    }
+    if (_error != null) return _buildErrorState(_error!);
+    if (_chauffeurs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.directions_bike, size: 80, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'Aucun tricycle disponible pour le moment.',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _ensureLocationReady();
+        await _sendLocationIfNeeded(force: true);
+        await _loadNearby();
+      },
+      child: ListView.builder(
+        controller: scrollController,
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 80), // Padding bas augmenté pour voir le contenu
+        itemCount: _chauffeurs.length + 1,
+        itemBuilder: (context, index) {
+          if (index == _chauffeurs.length) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 20), // Padding bas pour voir le bouton
+              child: _buildBottomActionButton(),
+            );
+          }
+          final chauffeur = _chauffeurs[index];
+          return _buildChauffeurCard(chauffeur);
+        },
       ),
     );
   }
 
   Widget _buildChauffeurCard(Map<String, dynamic> chauffeur) {
-    final distanceKm = chauffeur['distanceKm'] as num?;
-    final eta = chauffeur['etaMinutes'] as num?;
-    final status = (chauffeur['status'] ?? '') as String;
-    final statusColor = switch (chauffeur['statusColor']) {
-      'green' => Colors.green,
-      'red' => Colors.red,
-      _ => Colors.orange,
-    };
-    final isPending = _pendingChauffeurId != null &&
-        _pendingChauffeurId == chauffeur['_id']?.toString();
+    final chauffeurId = chauffeur['_id'].toString();
+    final isSelected =
+        _selectedChauffeurId != null && _selectedChauffeurId == chauffeurId;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    // Même background que marque.dart pour Services
+    final bg = const Color(0xFFF8BF13).withOpacity(0.25);
+    
+    // Extraire les données du chauffeur
+    final status = chauffeur['status'] as String? ?? 'unknown';
+    final distanceKm = (chauffeur['distanceKm'] as num?)?.toDouble();
+    final eta = (chauffeur['etaMinutes'] as num?)?.toInt();
+    
+    // Couleur du statut
+    Color statusColor;
+    switch (status) {
+      case 'available':
+        statusColor = Colors.green;
+        break;
+      case 'busy':
+        statusColor = Colors.orange;
+        break;
+      case 'out_of_range':
+        statusColor = Colors.red;
+        break;
+      default:
+        statusColor = Colors.grey;
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFFF8BF13).withOpacity(0.35),
+          width: 1.2,
+        ),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        // L'acheteur ne gère pas l'itinéraire, uniquement la commande.
-        onTap: null,
+        onTap: () {
+          setState(() => _selectedChauffeurId = chauffeurId);
+        },
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  // Icône véhicule (image fournie côté app)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      'assets/images/tricycle.png',
-                      width: 52,
-                      height: 52,
-                      fit: BoxFit.cover,
-                    ),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8BF13).withOpacity(0.22),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Image.asset(
+                    'assets/images/tricycle.png',
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
                         Text(
-                          'Tricycle',
+                          distanceKm != null
+                              ? '${distanceKm.toStringAsFixed(2)} Km'
+                              : 'Distance inconnue',
                           style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              distanceKm != null
-                                  ? '${distanceKm.toStringAsFixed(2)} Km'
-                                  : 'Distance inconnue',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                              ),
+                        if (eta != null) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '• ${eta.toInt()} min',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.black54,
+                              fontWeight: FontWeight.w600,
                             ),
-                            const SizedBox(width: 8),
-                            if (eta != null)
-                              Text(
-                                '• ${eta.toInt()} min',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                          ],
-                        ),
+                          ),
+                        ],
+                        const Spacer(),
                       ],
                     ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
+                    const SizedBox(height: 6),
+                    Row(
                       children: [
                         Icon(
                           Icons.circle,
                           size: 10,
                           color: statusColor,
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 6),
                         Text(
                           status == 'available'
                               ? 'Disponible'
@@ -685,142 +834,205 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
                                   : 'Occupé',
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                             color: statusColor,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${chauffeur['prenoms'] ?? ''} ${chauffeur['nom'] ?? ''}'
-                        .trim()
-                        .isEmpty
-                        ? 'Chauffeur tricycle'
-                        : '${chauffeur['prenoms'] ?? ''} ${chauffeur['nom'] ?? ''}'
-                            .trim(),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  Text(
-                    chauffeur['telephone'] ?? '',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black54,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              Icon(
+                isSelected ? Icons.check_circle : Icons.circle_outlined,
+                color: isSelected ? const Color(0xFFB8860B) : Colors.black26,
               ),
-              const SizedBox(height: 12),
-              isPending
-                  ? Row(
-                      children: [
-                        if (_pendingAccepted) ...[
-                          Expanded(
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                side:
-                                    const BorderSide(color: Color(0xFF05C46B)),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                              ),
-                              onPressed: null,
-                              child: const Text(
-                                'Demande acceptée',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF05C46B),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ] else ...[
-                          Expanded(
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                side:
-                                    const BorderSide(color: Color(0xFF05C46B)),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                              ),
-                              onPressed: null,
-                              child: const Text(
-                                'Demande envoyée',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF05C46B),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFFE5E5),
-                                foregroundColor: Colors.red,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                              ),
-                              onPressed: _cancelRequest,
-                              child: const Text(
-                                'Annuler',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    )
-                  : SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF05C46B),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                        ),
-                        onPressed: chauffeur['canContact'] == true
-                            ? () => _callChauffeur(chauffeur)
-                            : null,
-                        child: const Text(
-                          'Commander · Tricycle',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBottomActionButton() {
+    final selectedId = _selectedChauffeurId;
+    if (selectedId == null) {
+      return const SizedBox.shrink();
+    }
+
+    final isSelectedPending = _pendingChauffeurId == selectedId;
+    if (isSelectedPending) {
+      if (_pendingAccepted) {
+        return OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            side: const BorderSide(color: Color(0xFFB8860B)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
+          onPressed: null,
+          child: const Text(
+            'Demande acceptée',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFB8860B),
+            ),
+          ),
+        );
+      }
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                side: const BorderSide(color: Color(0xFFB8860B)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              onPressed: null,
+              child: const Text(
+                'Demande envoyée',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB8860B),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFE5E5),
+                foregroundColor: Colors.red,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              onPressed: _cancelRequest,
+              child: const Text(
+                'Annuler',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final chauffeur = _chauffeurs.firstWhere(
+      (c) => c['_id']?.toString() == selectedId,
+      orElse: () => <String, dynamic>{},
+    );
+    final canContact = chauffeur['canContact'] == true;
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFF8BF13), 
+          foregroundColor: Colors.black,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+        ),
+        onPressed: canContact ? _submitSelectedChauffeur : null,
+        icon: const _PulseCallIcon(),
+        label: const Text(
+          'Commander · Tricycle',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+}
+
+class _PulseCallIcon extends StatefulWidget {
+  const _PulseCallIcon();
+
+  @override
+  State<_PulseCallIcon> createState() => _PulseCallIconState();
+}
+
+class _PulseCallIconState extends State<_PulseCallIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = _controller.value;
+        final scale1 = 1.0 + (t * 0.55);
+        final scale2 = 1.0 + ((1 - t) * 0.75);
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Transform.scale(
+              scale: scale2,
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFF8BF13).withOpacity(0.22 * (t)),
+                ),
+              ),
+            ),
+            Transform.scale(
+              scale: scale1,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFF8BF13).withOpacity(0.28 * (1 - t)),
+                ),
+              ),
+            ),
+            Container(
+              width: 26,
+              height: 26,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFFF8BF13),
+              ),
+              child: Center(
+                child: Image.asset(
+                  'assets/images/tricycle.png',
+                  width: 18,
+                  height: 18,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

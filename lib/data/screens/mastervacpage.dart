@@ -565,33 +565,12 @@ class _MastervacPageState extends State<MastervacPage> {
                 quantity: 1,
               ),
             );
+            
+            // Redirection automatique vers le panier amélioré
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.white),
-                    const SizedBox(width: 8),
-                    const Text('Article ajouté au panier'),
-                  ],
-                ),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 3),
-                action: SnackBarAction(
-                  label: 'Voir le panier',
-                  textColor: Colors.white,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const CartPage()),
-                    );
-                  },
-                ),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const CartPage()),
             );
           },
           child: const Text(
@@ -641,33 +620,12 @@ class _MastervacPageState extends State<MastervacPage> {
                 quantity: 1,
               ),
             );
+            
+            // Redirection automatique vers le panier amélioré
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.white),
-                    const SizedBox(width: 8),
-                    const Text('Article ajouté au panier'),
-                  ],
-                ),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 3),
-                action: SnackBarAction(
-                  label: 'Voir le panier',
-                  textColor: Colors.white,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const CartPage()),
-                    );
-                  },
-                ),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const CartPage()),
             );
           },
           child: const Text(

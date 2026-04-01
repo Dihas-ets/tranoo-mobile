@@ -177,16 +177,18 @@ class CreateSellPage2State extends State<CreateSellPage2> {
     final isLargeScreen = screenWidth >= 800;
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            12,
+            16,
+            20 + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                     // Titre
                     _buildLabel(
                       'Nom de la pièce',
@@ -739,12 +741,10 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                       isMediumScreen: isMediumScreen,
                       isLargeScreen: isLargeScreen,
                     ),
-                  ],
-                ),
-              ),
-            ),
-            _buildVerificationButton(context),
-          ],
+              const SizedBox(height: 20),
+              _buildVerificationButton(context),
+            ],
+          ),
         ),
       ),
     );
@@ -978,7 +978,6 @@ class CreateSellPage2State extends State<CreateSellPage2> {
   Widget _buildVerificationButton(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(top: 16),
       child: ElevatedButton(
         onPressed: _isAnyUploading ? null : _onValidate,
         style: ElevatedButton.styleFrom(

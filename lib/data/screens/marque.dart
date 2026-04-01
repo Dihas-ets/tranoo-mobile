@@ -7,6 +7,7 @@ import 'package:tranoo/data/screens/piece.dart';
 import 'package:tranoo/data/screens/mastervacpage.dart';
 import 'package:tranoo/utils/role_redirect.dart';
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/services/views_service.dart';
 import 'package:tranoo/data/screens/tarif.dart';
 import 'package:tranoo/data/screens/transit.dart';
 import 'package:logging/logging.dart';
@@ -14,11 +15,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/data/screens/movie.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/data/screens/orders_page.dart';
+import 'package:tranoo/data/screens/mes_commandes.dart';
 import 'package:tranoo/data/screens/tricycle/tricycle_home.dart';
 
 class Article {
@@ -36,6 +38,7 @@ class Article {
   final String? video;
   final String? condition;
   final String? statut;
+  final int views;
 
   Article({
     required this.id,
@@ -52,6 +55,7 @@ class Article {
     this.video,
     this.condition,
     this.statut,
+    this.views = 0,
   });
 
   factory Article.fromJson(Map<String, dynamic> json) {
@@ -71,6 +75,7 @@ class Article {
       video: json['video'],
       condition: json['condition'],
       statut: json['statut'],
+      views: (json['views'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -95,6 +100,7 @@ class ArticleVoiture {
   final String? video;
   final String? entreprise;
   final String? statut;
+  final int views;
 
   ArticleVoiture({
     required this.id,
@@ -116,6 +122,7 @@ class ArticleVoiture {
     this.video,
     this.entreprise,
     this.statut,
+    this.views = 0,
   });
 
   factory ArticleVoiture.fromJson(Map<String, dynamic> json) {
@@ -140,6 +147,7 @@ class ArticleVoiture {
       video: json['video'],
       entreprise: json['entreprise'],
       statut: json['statut'],
+      views: (json['views'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -288,8 +296,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   double? _budgetMin;
   double? _budgetMax;
 
-  // Comptage des vues locales par article
-  Map<String, int> _vehicleClickCounts = {};
+  // Vues par article (backend uniquement) — total clicks de tous les users
+  Map<String, int> _backendViews = {};
+  final ViewsService _viewsService = ViewsService();
 
   @override
   void initState() {
@@ -320,7 +329,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     fetchVoituresRecommandees();
     fetchPubs();
     fetchPubsSponsorisees();
-    _loadVehicleClickStats();
   }
 
   void _reloadAll() {
@@ -392,8 +400,12 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
 
           setState(() {
             articlesPieces = piecesFiltered;
+            for (final p in piecesFiltered) {
+              _backendViews[p.id] = p.views;
+            }
             isLoadingPieces = false;
           });
+          _loadBackendViews();
         } catch (e) {
           _logger.info('[DEBUG] Erreur de décodage JSON: $e');
           if (!mounted) return;
@@ -419,45 +431,57 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     }
   }
 
-  Future<void> _loadVehicleClickStats() async {
+  void _recordVehicleInteraction(String articleId) async {
+    if (articleId.isEmpty) return;
+
+    // Optimistic UI: incrémenter localement le compteur backend (puis sync)
+    setState(() {
+      _backendViews[articleId] = (_backendViews[articleId] ?? 0) + 1;
+    });
+
+    // Enregistrer la vue sur le backend (compteur global)
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString('vehicle_click_counts');
-      if (raw == null) return;
-      final parsed = jsonDecode(raw) as Map<String, dynamic>;
+      await _viewsService.recordView(articleId);
+      _logger.info('[VIEWS] Vue enregistrée pour l\'article: $articleId');
+      final viewsData = await _viewsService.getArticleViews(articleId);
+      if (viewsData != null && viewsData['success'] == true && mounted) {
+        setState(() {
+          _backendViews[articleId] = (viewsData['views'] as num?)?.toInt() ?? 0;
+        });
+      }
+    } catch (e) {
+      _logger.warning('[VIEWS] Erreur enregistrement vue backend: $e');
+    }
+  }
+
+  // Charger les vues depuis le backend pour les véhicules recommandés
+  Future<void> _loadBackendViews() async {
+    try {
+      final ids = <String>{
+        ...voituresRecommandees.map((e) => e.id).where((e) => e.isNotEmpty),
+        ...articlesPieces.map((e) => e.id).where((e) => e.isNotEmpty),
+      }.toList();
+      if (ids.isEmpty) return;
+
+      final nextViews = Map<String, int>.from(_backendViews);
+      for (final id in ids) {
+        final viewsData = await _viewsService.getArticleViews(id);
+        if (viewsData != null && viewsData['success'] == true) {
+          nextViews[id] = (viewsData['views'] as num?)?.toInt() ?? (nextViews[id] ?? 0);
+        }
+      }
+      if (!mounted) return;
       setState(() {
-        _vehicleClickCounts = parsed.map(
-          (key, value) => MapEntry(key, (value as num).toInt()),
-        );
+        _backendViews = nextViews;
       });
     } catch (e) {
-      _logger.warning('[STATS] Impossible de charger les clics locaux: $e');
+      _logger.warning('[VIEWS] Erreur chargement vues backend: $e');
     }
-  }
-
-  Future<void> _saveVehicleClickStats() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        'vehicle_click_counts',
-        jsonEncode(_vehicleClickCounts),
-      );
-    } catch (e) {
-      _logger.warning('[STATS] Impossible de sauvegarder les clics: $e');
-    }
-  }
-
-  void _recordVehicleInteraction(String articleId) {
-    if (articleId.isEmpty) return;
-    setState(() {
-      _vehicleClickCounts[articleId] =
-          (_vehicleClickCounts[articleId] ?? 0) + 1;
-    });
-    _saveVehicleClickStats();
   }
 
   Widget _buildViewBadge(String articleId) {
-    final views = _vehicleClickCounts[articleId] ?? 0;
+    final totalViews = _backendViews[articleId] ?? 0;
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -470,7 +494,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           const Icon(Icons.remove_red_eye, size: 14, color: Colors.white),
           const SizedBox(width: 4),
           Text(
-            views.toString(),
+            totalViews.toString(),
             style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
         ],
@@ -559,8 +583,14 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
 
         setState(() {
           voituresRecommandees = voituresFiltered;
+          for (final v in voituresFiltered) {
+            _backendViews[v.id] = v.views;
+          }
           isLoadingVoitures = false;
         });
+        
+        // Charger les vues depuis le backend après avoir récupéré les véhicules
+        _loadBackendViews();
       } else {
         if (!mounted) return;
         setState(() {
@@ -2442,81 +2472,118 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     required bool isPortrait,
   }) {
     final l10n = AppLocalizations.of(context)!;
-    final titleSize = screenWidth * (isPortrait ? 0.045 : 0.03);
-    final iconSize = screenWidth * (isPortrait ? 0.12 : 0.08);
+    final iconSize = screenWidth * (isPortrait ? 0.085 : 0.06);
 
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: screenWidth * 0.04,
         vertical: screenHeight * 0.015,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.services,
-                  style: TextStyle(
-                    fontSize: titleSize,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0A1F44),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8BF13).withOpacity(0.25),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: const Color(0xFFF8BF13).withOpacity(0.35),
+            width: 1.2,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.services,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF040415),
+                    ),
                   ),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Rafraîchir',
-                onPressed: _reloadAll,
-                icon: const Icon(Icons.refresh, color: Color(0xFF0A1F44)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildServiceIcon(
-                label: 'Vente',
-                icon: Icons.directions_car,
-                iconSize: iconSize,
-                imagePath: 'assets/images/icon_vente.png',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => VoituresPage()),
-                  );
-                },
-              ),
-              _buildServiceIcon(
-                label: 'Livraison',
-                icon: Icons.local_shipping,
-                iconSize: iconSize,
-                imagePath: 'assets/images/icon_livraison.png',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Piece()),
-                  );
-                },
-              ),
-              _buildServiceIcon(
-                label: 'Tricycle',
-                icon: Icons.pedal_bike,
-                iconSize: iconSize,
-                imagePath: 'assets/images/icon_tricycle.png',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TricycleHomePage(),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ],
+                IconButton(
+                  tooltip: 'Rafraîchir',
+                  onPressed: _reloadAll,
+                  icon: const Icon(Icons.refresh, color: Color(0xFF0A1F44)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildServiceIcon(
+                    label: 'Véhicules',
+                    icon: Icons.directions_car,
+                    iconSize: iconSize,
+                    //imagePath: 'assets/images/icon_vente.png',
+                    imagePath: 'assets/images/icon_vente2.png',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => VoituresPage()),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildServiceIcon(
+                    label: 'Pièces',
+                    icon: Icons.build_circle,
+                    iconSize: iconSize,
+                    //imagePath: null,
+                    imagePath: 'assets/images/icon_pieces.png',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => Piece()),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildServiceIcon(
+                    label: 'Livraison',
+                    icon: Icons.local_shipping,
+                    iconSize: iconSize,
+                    //imagePath: 'assets/images/icon_livraison.png',
+                    imagePath: 'assets/images/icon_livraison2.png',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                         MaterialPageRoute(builder: (context) => const MesCommandesPage()),
+                        // MaterialPageRoute(builder: (context) => const OrdersPage()),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildServiceIcon(
+                    label: 'Tricycle',
+                    icon: Icons.pedal_bike,
+                    iconSize: iconSize,
+                    //imagePath: 'assets/images/icon_tricycle.png',
+                    imagePath: 'assets/images/icon_tricycle2.png',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TricycleHomePage(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2530,37 +2597,52 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(60),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: iconSize * 1.6,
-            height: iconSize * 1.6,
-            child: Center(
-              child: imagePath != null
-                  ? Image.asset(
-                      imagePath,
-                      width: iconSize,
-                      height: iconSize,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Icon(
+      borderRadius: BorderRadius.circular(26),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: iconSize * 1.9,
+              height: iconSize * 1.9,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFF8BF13).withOpacity(0.22),
+              ),
+              child: Center(
+                child: imagePath != null
+                    ? Image.asset(
+                        imagePath,
+                        width: iconSize,
+                        height: iconSize,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Icon(
+                          icon,
+                          size: iconSize,
+                          color: const Color(0xFF0A1F44),
+                        ),
+                      )
+                    : Icon(
                         icon,
                         size: iconSize,
                         color: const Color(0xFF0A1F44),
                       ),
-                    )
-                  : Icon(
-                      icon,
-                      size: iconSize,
-                      color: const Color(0xFF0A1F44),
-                    ),
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          SizedBox(
-            width: iconSize * 1.8,
-            child: Text(
+            const SizedBox(height: 7),
+            Text(
               label,
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -2571,8 +2653,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 color: Color(0xFF0A1F44),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2819,7 +2901,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   Widget _buildStatistiquesSection() {
     final currentVehicleIds = voituresRecommandees.map((v) => v.id).toSet();
     final totalClicks =
-        _vehicleClickCounts.values.fold<int>(0, (sum, value) => sum + value);
+        _backendViews.values.fold<int>(0, (sum, value) => sum + value);
 
     final statsCards = [
       {
@@ -2841,11 +2923,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     ];
 
     final topVehicles = voituresRecommandees
-        .where((v) => (_vehicleClickCounts[v.id] ?? 0) > 0)
+        .where((v) => (_backendViews[v.id] ?? 0) > 0)
         .toList()
       ..sort((a, b) {
-        final countA = _vehicleClickCounts[a.id] ?? 0;
-        final countB = _vehicleClickCounts[b.id] ?? 0;
+        final countA = _backendViews[a.id] ?? 0;
+        final countB = _backendViews[b.id] ?? 0;
         return countB.compareTo(countA);
       });
 
@@ -2945,7 +3027,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 ),
                 const SizedBox(height: 8),
                 ...topVehicles.take(3).map((vehicle) {
-                  final clicks = _vehicleClickCounts[vehicle.id] ?? 0;
+                  final clicks = _backendViews[vehicle.id] ?? 0;
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),

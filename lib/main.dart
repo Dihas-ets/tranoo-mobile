@@ -32,7 +32,9 @@ import 'services/cart_service.dart';
 import 'package:tranoo/data/screens/reset/forgot_password_page.dart';
 import 'package:tranoo/data/screens/reset/verify_code_page.dart';
 import 'package:tranoo/data/screens/reset/create_new_password_page.dart';
+import 'package:tranoo/data/screens/order_details_page.dart';
 import 'package:tranoo/data/screens/orders_page.dart';
+import 'package:tranoo/data/screens/mes_commandes.dart';
 
 // Gestionnaire pour les notifications en arrière-plan
 @pragma('vm:entry-point')
@@ -156,10 +158,17 @@ class NotificationService {
         }
       }
     } else {
-      LocalNotificationService.showNotification(
-        message.notification?.title ?? 'Tranoo',
-        message.notification?.body ?? '',
-      );
+      if (message.data['type'] == 'tricycle') {
+        LocalNotificationService.showTricycleNotification(
+          message.notification?.title ?? 'Tranoo',
+          message.notification?.body ?? '',
+        );
+      } else {
+        LocalNotificationService.showNotification(
+          message.notification?.title ?? 'Tranoo',
+          message.notification?.body ?? '',
+        );
+      }
     }
   }
 
@@ -281,7 +290,14 @@ class MyApp extends StatelessWidget {
             deviceId: args?['deviceId'] ?? '',
           );
         },
-        '/orders': (context) => const OrdersPage(),
+        '/orders': (context) => const MesCommandesPage(),
+        '/order-details': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          return OrderDetailsPage(
+            order: args?['order'] ?? {},
+            accentColor: args?['accentColor'] ?? const Color(0xFF1F69FF),
+          );
+        },
       },
     );
   }
