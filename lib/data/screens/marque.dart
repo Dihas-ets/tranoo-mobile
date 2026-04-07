@@ -1314,7 +1314,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                       child:
                                           const Icon(Icons.image_not_supported),
                                     ),
-                          // Badge condition (aligné au style voitures) pour les pièces
+                          // Badge condition pour les pièces
                           Positioned(
                             top: 8,
                             left: 8,
