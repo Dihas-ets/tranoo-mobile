@@ -211,6 +211,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   late PageController _pageController;
   late TabController _tabController;
   Timer? _carouselTimer;
+
+  /// Rafraîchissement périodique des données (comme la liste tricycle), sans bloquer l’UI.
+  Timer? _marqueAutoRefreshTimer;
   final UserService _userService = UserService();
   late int _marqueTabIndex;
   late int _modeleTabIndex;
@@ -316,7 +319,10 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       setState(() {});
     });
 
-    _pageController = PageController(initialPage: 0);
+    _pageController = PageController(
+      initialPage: 0,
+      viewportFraction: 0.85, // Pour voir les pubs adjacentes
+    );
     _searchGlobalController.addListener(() {
       setState(() {
         _searchGlobalText = _searchGlobalController.text.trim();
@@ -329,9 +335,24 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     fetchVoituresRecommandees();
     fetchPubs();
     fetchPubsSponsorisees();
+    _marqueAutoRefreshTimer =
+        Timer.periodic(const Duration(seconds: 30), (_) async {
+      if (!mounted) return;
+      await _refreshMarqueDataSilent();
+    });
   }
 
-  void _reloadAll() {
+  /// Recharge listes / pubs sans réinitialiser filtres ni afficher les spinners de chargement.
+  Future<void> _refreshMarqueDataSilent() async {
+    await Future.wait<void>([
+      fetchArticlesPieces(silent: true),
+      fetchVoituresRecommandees(silent: true),
+      fetchPubs(silent: true),
+      fetchPubsSponsorisees(silent: true),
+    ]);
+  }
+
+  Future<void> _reloadAll() async {
     // Réinitialiser la recherche
     _searchGlobalController.clear();
     _searchGlobalText = '';
@@ -343,24 +364,27 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     _budgetMin = null;
     _budgetMax = null;
 
-    // Recharger les données
-    fetchArticlesPieces();
-    fetchVoituresRecommandees();
-    fetchPubs();
-    fetchPubsSponsorisees();
     setState(() {});
+    await Future.wait<void>([
+      fetchArticlesPieces(),
+      fetchVoituresRecommandees(),
+      fetchPubs(),
+      fetchPubsSponsorisees(),
+    ]);
   }
 
-  Future<void> fetchArticlesPieces() async {
-    setState(() {
-      isLoadingPieces = true;
-      errorPieces = null;
-    });
+  Future<void> fetchArticlesPieces({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        isLoadingPieces = true;
+        errorPieces = null;
+      });
+    }
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      String url =
-          getBaseUrl() + '/public/articles?type=piece&statut=en_ligne&vendu=false';
+      String url = getBaseUrl() +
+          '/public/articles?type=piece&statut=en_ligne&vendu=false';
       _logger.info('[DEBUG] URL pièces: $url');
       final headers = <String, String>{
         'Content-Type': 'application/json',
@@ -467,7 +491,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       for (final id in ids) {
         final viewsData = await _viewsService.getArticleViews(id);
         if (viewsData != null && viewsData['success'] == true) {
-          nextViews[id] = (viewsData['views'] as num?)?.toInt() ?? (nextViews[id] ?? 0);
+          nextViews[id] =
+              (viewsData['views'] as num?)?.toInt() ?? (nextViews[id] ?? 0);
         }
       }
       if (!mounted) return;
@@ -481,7 +506,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
 
   Widget _buildViewBadge(String articleId) {
     final totalViews = _backendViews[articleId] ?? 0;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -535,16 +560,18 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     }).toList();
   }
 
-  Future<void> fetchVoituresRecommandees() async {
-    setState(() {
-      isLoadingVoitures = true;
-      errorVoitures = null;
-    });
+  Future<void> fetchVoituresRecommandees({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        isLoadingVoitures = true;
+        errorVoitures = null;
+      });
+    }
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      String url =
-          getBaseUrl() + '/public/articles?type=voiture&statut=en_ligne&vendu=false';
+      String url = getBaseUrl() +
+          '/public/articles?type=voiture&statut=en_ligne&vendu=false';
       _logger.info('[DEBUG] URL voitures: $url');
       final headers = <String, String>{
         'Content-Type': 'application/json',
@@ -588,7 +615,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           }
           isLoadingVoitures = false;
         });
-        
+
         // Charger les vues depuis le backend après avoir récupéré les véhicules
         _loadBackendViews();
       } else {
@@ -608,11 +635,13 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     }
   }
 
-  Future<void> fetchPubs() async {
-    setState(() {
-      isLoadingPubs = true;
-      errorPubs = null;
-    });
+  Future<void> fetchPubs({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        isLoadingPubs = true;
+        errorPubs = null;
+      });
+    }
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
@@ -672,11 +701,13 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     }
   }
 
-  Future<void> fetchPubsSponsorisees() async {
-    setState(() {
-      isLoadingPubs = true;
-      errorPubs = null;
-    });
+  Future<void> fetchPubsSponsorisees({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        isLoadingPubs = true;
+        errorPubs = null;
+      });
+    }
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
@@ -810,6 +841,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     _carouselTimer?.cancel();
+    _marqueAutoRefreshTimer?.cancel();
     _tabController.dispose();
     _pageController.dispose();
     super.dispose();
@@ -1314,7 +1346,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                       child:
                                           const Icon(Icons.image_not_supported),
                                     ),
-                          // Badge condition pour les pièces
+                          // Badge condition (aligné au style voitures) pour les pièces
                           Positioned(
                             top: 8,
                             left: 8,
@@ -2303,125 +2335,107 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     // Affiche le carrousel et l'indicateur uniquement si la liste n'est pas vide
     return Column(
       children: [
-        SizedBox(
-          height: 260,
+        Container(
+          height: 200, // Un peu plus haut pour mieux voir les adjacentes
+          margin: const EdgeInsets.symmetric(horizontal: 8), // Marge extérieure pour voir les adjacents
           child: PageView.builder(
             controller: _pageController,
+            // Afficher une partie des slides adjacents
+            padEnds: true,
             itemCount: pubsALaUne.length,
             itemBuilder: (context, index) {
               final pub = pubsALaUne[index];
               final hasLink = (pub.lien ?? '').trim().isNotEmpty;
               final card = Card(
                 margin: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
+                  horizontal: 8, // Marges pour espacer les cards
+                  vertical: 8,
                 ),
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: pub.media.isNotEmpty
-                          ? Container(
-                              width: double.infinity,
-                              height: 260,
-                              color: Colors.black,
-                              child: Image.network(
-                                pub.media[0],
-                                fit: BoxFit.contain,
-                                alignment: Alignment.center,
-                                filterQuality: FilterQuality.high,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey[300],
-                                    child: const Icon(
-                                      Icons.image_not_supported,
-                                      size: 80,
-                                      color: Colors.black54,
-                                    ),
-                                  );
-                                },
-                              ),
-                            )
-                          : Container(
-                              height: 260,
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.image, size: 120),
-                            ),
-                    ),
-                    Positioned(
-                      left: 8,
-                      bottom: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          pub.description,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    if (hasLink)
-                      Positioned(
-                        right: 12,
-                        bottom: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    height: 180,
+                    color: Colors.black,
+                    child: pub.media.isNotEmpty
+                        ? Stack(
                             children: [
-                              Icon(Icons.link, size: 16, color: Colors.black87),
-                              SizedBox(width: 4),
-                              Text(
-                                'Voir plus',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                              // Image avec ajustement auto
+                              Positioned.fill(
+                                child: Image.network(
+                                  pub.media[0],
+                                  fit: BoxFit.cover,
+                                  alignment: Alignment.center,
+                                  filterQuality: FilterQuality.high,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey[300],
+                                      child: const Icon(
+                                        Icons.image_not_supported,
+                                        size: 60, // Réduit de 80 à 60
+                                        color: Colors.black54,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
+                              // Overlay pour s'assurer que le contenu reste lisible
+                              if (pub.description.isNotEmpty)
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.bottomCenter,
+                                        end: Alignment.topCenter,
+                                        colors: [
+                                          Colors.black.withOpacity(0.7),
+                                          Colors.transparent,
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
+                          )
+                        : Container(
+                            height: 180,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.image, size: 80), // Réduit de 120 à 80
                           ),
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
               );
 
-              if (hasLink) {
-                return InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => _openPubLink(pub.lien!.trim()),
-                  child: card,
-                );
-              }
-              return InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () =>
-                    _openFlyerPreview(pub.media.isNotEmpty ? pub.media[0] : ''),
+              return GestureDetector(
+                onTap: () {
+                  if (hasLink) {
+                    _openPubLink(pub.lien!.trim());
+                  } else {
+                    _openFlyerPreview(pub.media.isNotEmpty ? pub.media[0] : '');
+                  }
+                },
+                onDoubleTap: () {
+                  if (hasLink) {
+                    _openFlyerPreview(pub.media.isNotEmpty ? pub.media[0] : '');
+                  }
+                },
                 child: card,
               );
             },
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6), // Espace réduit
         if (pubsALaUne.length > 1)
           SmoothPageIndicator(
             controller: _pageController,
@@ -2429,8 +2443,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             effect: JumpingDotEffect(
               activeDotColor: Color(0xFFF8BF13),
               dotColor: Colors.grey.shade300,
-              dotHeight: 10,
-              dotWidth: 10,
+              dotHeight: 8, // Points légèrement plus petits
+              dotWidth: 8,
             ),
           ),
       ],
@@ -2446,21 +2460,25 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     const bool isTransitaire = false;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            buildPubsALaUneCarousel(),
-            _buildServicesSummarySection(
-              screenWidth: screenWidth,
-              screenHeight: screenHeight,
-              isPortrait: isPortrait,
-            ),
-            // Section sponsorisée: toujours affichée
-            buildPubsSponsoriseesSection(),
-            buildVoituresRecommandeesSection(),
-            buildPiecesSection(),
-            // Add the new sections here
-          ],
+      body: RefreshIndicator(
+        onRefresh: _reloadAll,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              buildPubsALaUneCarousel(),
+              _buildServicesSummarySection(
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                isPortrait: isPortrait,
+              ),
+              // Section sponsorisée: toujours affichée
+              buildPubsSponsoriseesSection(),
+              buildVoituresRecommandeesSection(),
+              buildPiecesSection(),
+              // Add the new sections here
+            ],
+          ),
         ),
       ),
     );
@@ -2504,11 +2522,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     ),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Rafraîchir',
-                  onPressed: _reloadAll,
-                  icon: const Icon(Icons.refresh, color: Color(0xFF0A1F44)),
-                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -2520,7 +2533,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     icon: Icons.directions_car,
                     iconSize: iconSize,
                     //imagePath: 'assets/images/icon_vente.png',
-                    imagePath: 'assets/images/icon_vente2.png',
+                    imagePath: 'assets/images/icon_vente3.png',
                     onTap: () {
                       Navigator.push(
                         context,
@@ -2536,7 +2549,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     icon: Icons.build_circle,
                     iconSize: iconSize,
                     //imagePath: null,
-                    imagePath: 'assets/images/icon_pieces.png',
+                    imagePath: 'assets/images/icon_pieces2.png',
                     onTap: () {
                       Navigator.push(
                         context,
@@ -2548,15 +2561,16 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildServiceIcon(
-                    label: 'Livraison',
+                    label: 'Livraisons',
                     icon: Icons.local_shipping,
                     iconSize: iconSize,
                     //imagePath: 'assets/images/icon_livraison.png',
-                    imagePath: 'assets/images/icon_livraison2.png',
+                    imagePath: 'assets/images/icon_livraison3.png',
                     onTap: () {
                       Navigator.push(
                         context,
-                         MaterialPageRoute(builder: (context) => const MesCommandesPage()),
+                        MaterialPageRoute(
+                            builder: (context) => const MesCommandesPage()),
                         // MaterialPageRoute(builder: (context) => const OrdersPage()),
                       );
                     },
@@ -2565,11 +2579,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildServiceIcon(
-                    label: 'Tricycle',
+                    label: 'Tricycles',
                     icon: Icons.pedal_bike,
                     iconSize: iconSize,
                     //imagePath: 'assets/images/icon_tricycle.png',
-                    imagePath: 'assets/images/icon_tricycle2.png',
+                    imagePath: 'assets/images/icon_tricycle3.png',
                     onTap: () {
                       Navigator.push(
                         context,
@@ -2595,6 +2609,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     required VoidCallback onTap,
     String? imagePath,
   }) {
+    // Cercle jaune clair : le picto occupe ~82 % du diamètre (lisible, proche du bord du rond).
+    final double circleDiameter = iconSize * 1.9;
+    final double innerIconSize = circleDiameter * 0.82;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(26),
@@ -2614,31 +2631,28 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Rond de fond (services) — bordure légère pour bien voir le rendu sur fond blanc.
             Container(
-              width: iconSize * 1.9,
-              height: iconSize * 1.9,
+              width: circleDiameter,
+              height: circleDiameter,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: const Color(0xFFF8BF13).withOpacity(0.22),
+                border: Border.all(
+                  color: const Color(0xFFF8BF13).withOpacity(0.45),
+                  width: 1,
+                ),
               ),
               child: Center(
                 child: imagePath != null
                     ? Image.asset(
                         imagePath,
-                        width: iconSize,
-                        height: iconSize,
+                        width: innerIconSize,
+                        height: innerIconSize,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Icon(
-                          icon,
-                          size: iconSize,
-                          color: const Color(0xFF0A1F44),
-                        ),
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                       )
-                    : Icon(
-                        icon,
-                        size: iconSize,
-                        color: const Color(0xFF0A1F44),
-                      ),
+                    : const SizedBox.shrink(),
               ),
             ),
             const SizedBox(height: 7),

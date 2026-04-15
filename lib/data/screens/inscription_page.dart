@@ -277,19 +277,26 @@ class _InscriptionPageState extends State<InscriptionPage> {
     final screenWidth = mediaQuery.size.width;
     final screenHeight = mediaQuery.size.height;
     final isPortrait = mediaQuery.orientation == Orientation.portrait;
+    final bottomSafeArea = mediaQuery.padding.bottom;
+    final bottomInset = mediaQuery.viewInsets.bottom;
 
     return Scaffold(
       appBar: null,
       backgroundColor: const Color(0xFFF9FAFB),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * (isPortrait ? 0.05 : 0.1),
-            vertical: screenHeight * (isPortrait ? 0.02 : 0.05),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+      body: SafeArea(
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              screenWidth * (isPortrait ? 0.05 : 0.1),
+              screenHeight * (isPortrait ? 0.02 : 0.05),
+              screenWidth * (isPortrait ? 0.05 : 0.1),
+              (screenHeight * 0.03) + bottomSafeArea + bottomInset,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
               SizedBox(height: screenHeight * (isPortrait ? 0.02 : 0.05)),
               Center(
                 child: Image.asset(
@@ -307,7 +314,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
                 ),
               ),
-              SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
+              SizedBox(height: screenHeight * (isPortrait ? 0.03 : 0.06)),
 
               // Champs du formulaire avec les contrôleurs
               if (_currentStep == 0) ...[
@@ -470,6 +477,37 @@ class _InscriptionPageState extends State<InscriptionPage> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
+                ),
+                SizedBox(height: screenHeight * 0.03),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Vous avez déjà un compte ? ",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ConnexionPage(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "Se connecter",
+                        style: TextStyle(
+                          color: const Color(0xFF0461B6),
+                          fontWeight: FontWeight.bold,
+                          fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
 
@@ -868,7 +906,8 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 ),
               ),
               ],
-            ],
+              ],
+            ),
           ),
         ),
       ),
