@@ -24,6 +24,8 @@ class _VoituresPageState extends State<VoituresPage>
   List<bool> _isVisible = [];
   final TextEditingController _searchController = TextEditingController();
   String _searchText = "";
+  String _lastNoResultQuery = '';
+  bool _searchRequestDialogOpen = false;
 
   // Filtres
   String? _selectedBrand;
@@ -60,6 +62,219 @@ class _VoituresPageState extends State<VoituresPage>
         _searchText = _searchController.text.toLowerCase();
       });
     });
+  }
+
+  Future<void> _openVehicleSearchRequestDialog() async {
+    if (_searchRequestDialogOpen) return;
+    _searchRequestDialogOpen = true;
+    final marqueController = TextEditingController();
+    final modeleController = TextEditingController();
+    final anneeMinController = TextEditingController();
+    final anneeMaxController = TextEditingController();
+    final budgetMaxController = TextEditingController();
+    final localisationController = TextEditingController();
+    final telephoneController = TextEditingController();
+    final detailsController = TextEditingController();
+    bool sending = false;
+
+    try {
+      await showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (ctx) {
+          return StatefulBuilder(
+            builder: (ctx, setModal) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text('Aucun vehicule trouve'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Envoyez votre besoin aux vendeurs de la plateforme.',
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: marqueController,
+                      decoration: const InputDecoration(
+                        labelText: 'Marque *',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: modeleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Modele *',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: anneeMinController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Annee min',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: anneeMaxController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Annee max',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: budgetMaxController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Budget max (FCFA)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: localisationController,
+                      decoration: const InputDecoration(
+                        labelText: 'Localisation',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: telephoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Telephone',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: detailsController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Details supplementaires',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: sending ? null : () => Navigator.pop(ctx),
+                  child: const Text('Annuler'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF8BF13),
+                    foregroundColor: Colors.black,
+                  ),
+                  onPressed: sending
+                      ? null
+                      : () async {
+                          if (marqueController.text.trim().isEmpty ||
+                              modeleController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Marque et modele sont requis.'),
+                              ),
+                            );
+                            return;
+                          }
+                          setModal(() => sending = true);
+                          try {
+                            final user = FirebaseAuth.instance.currentUser;
+                            final idToken = await user?.getIdToken();
+                            if (idToken == null || idToken.isEmpty) {
+                              throw Exception('Utilisateur non connecte');
+                            }
+                            final res = await http.post(
+                              Uri.parse('${getBaseUrl()}/notifications/search-request'),
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer $idToken',
+                              },
+                              body: jsonEncode({
+                                'marque': marqueController.text.trim(),
+                                'modele': modeleController.text.trim(),
+                                'anneeMin': anneeMinController.text.trim(),
+                                'anneeMax': anneeMaxController.text.trim(),
+                                'budgetMax': budgetMaxController.text.trim(),
+                                'localisation': localisationController.text.trim(),
+                                'telephone': telephoneController.text.trim(),
+                                'description': detailsController.text.trim(),
+                              }),
+                            );
+                            if (res.statusCode >= 200 && res.statusCode < 300) {
+                              if (!mounted) return;
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Demande envoyee aux vendeurs avec succes.',
+                                  ),
+                                  backgroundColor: Color(0xFF0461B6),
+                                ),
+                              );
+                            } else {
+                              throw Exception('Erreur envoi demande');
+                            }
+                          } catch (_) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Impossible denvoyer la demande pour le moment.',
+                                ),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                          } finally {
+                            if (ctx.mounted) {
+                              setModal(() => sending = false);
+                            }
+                          }
+                        },
+                  child: sending
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Envoyer'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } finally {
+      _searchRequestDialogOpen = false;
+      marqueController.dispose();
+      modeleController.dispose();
+      anneeMinController.dispose();
+      anneeMaxController.dispose();
+      budgetMaxController.dispose();
+      localisationController.dispose();
+      telephoneController.dispose();
+      detailsController.dispose();
+    }
   }
 
   @override
@@ -705,6 +920,18 @@ class _VoituresPageState extends State<VoituresPage>
       if (_searchText.isEmpty) return true;
       return titre.contains(_searchText) || alt.contains(_searchText);
     }).toList();
+    final shouldPromptNoResult =
+        _searchText.trim().isNotEmpty &&
+        filteredVoitures.isEmpty &&
+        _lastNoResultQuery != _searchText.trim();
+    if (shouldPromptNoResult) {
+      _lastNoResultQuery = _searchText.trim();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _openVehicleSearchRequestDialog();
+        }
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(

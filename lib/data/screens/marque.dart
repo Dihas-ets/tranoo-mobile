@@ -234,6 +234,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   // Recherche globale (barre en haut)
   final TextEditingController _searchGlobalController = TextEditingController();
   String _searchGlobalText = '';
+  String _lastNoResultQuery = '';
+  bool _searchRequestDialogOpen = false;
 
   final _logger = Logger('MarquePage');
 
@@ -371,6 +373,216 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       fetchPubs(),
       fetchPubsSponsorisees(),
     ]);
+  }
+
+  Future<void> _openVehicleSearchRequestDialog() async {
+    if (_searchRequestDialogOpen) return;
+    _searchRequestDialogOpen = true;
+    final marqueController = TextEditingController();
+    final modeleController = TextEditingController();
+    final anneeMinController = TextEditingController();
+    final anneeMaxController = TextEditingController();
+    final budgetMaxController = TextEditingController();
+    final localisationController = TextEditingController();
+    final telephoneController = TextEditingController();
+    final detailsController = TextEditingController();
+    bool sending = false;
+
+    try {
+      await showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (ctx) {
+          return StatefulBuilder(
+            builder: (ctx, setModal) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text('Aucun vehicule trouve'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Envoyez votre besoin aux vendeurs.'),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: marqueController,
+                      decoration: const InputDecoration(
+                        labelText: 'Marque *',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: modeleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Modele *',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: anneeMinController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Annee min',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: anneeMaxController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Annee max',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: budgetMaxController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Budget max (FCFA)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: localisationController,
+                      decoration: const InputDecoration(
+                        labelText: 'Localisation',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: telephoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Telephone',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: detailsController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Details supplementaires',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: sending ? null : () => Navigator.pop(ctx),
+                  child: const Text('Annuler'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF8BF13),
+                    foregroundColor: Colors.black,
+                  ),
+                  onPressed: sending
+                      ? null
+                      : () async {
+                          if (marqueController.text.trim().isEmpty ||
+                              modeleController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Marque et modele sont requis.'),
+                              ),
+                            );
+                            return;
+                          }
+                          setModal(() => sending = true);
+                          try {
+                            final user = FirebaseAuth.instance.currentUser;
+                            final idToken = await user?.getIdToken();
+                            if (idToken == null || idToken.isEmpty) {
+                              throw Exception('Utilisateur non connecte');
+                            }
+                            final res = await http.post(
+                              Uri.parse(
+                                  '${getBaseUrl()}/notifications/search-request'),
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer $idToken',
+                              },
+                              body: jsonEncode({
+                                'marque': marqueController.text.trim(),
+                                'modele': modeleController.text.trim(),
+                                'anneeMin': anneeMinController.text.trim(),
+                                'anneeMax': anneeMaxController.text.trim(),
+                                'budgetMax': budgetMaxController.text.trim(),
+                                'localisation': localisationController.text.trim(),
+                                'telephone': telephoneController.text.trim(),
+                                'description': detailsController.text.trim(),
+                              }),
+                            );
+                            if (res.statusCode >= 200 && res.statusCode < 300) {
+                              if (!mounted) return;
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Demande envoyee aux vendeurs avec succes.'),
+                                  backgroundColor: Color(0xFF0461B6),
+                                ),
+                              );
+                            } else {
+                              throw Exception('Erreur envoi demande');
+                            }
+                          } catch (_) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Impossible denvoyer la demande pour le moment.'),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                          } finally {
+                            if (ctx.mounted) {
+                              setModal(() => sending = false);
+                            }
+                          }
+                        },
+                  child: sending
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Envoyer'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } finally {
+      _searchRequestDialogOpen = false;
+      marqueController.dispose();
+      modeleController.dispose();
+      anneeMinController.dispose();
+      anneeMaxController.dispose();
+      budgetMaxController.dispose();
+      localisationController.dispose();
+      telephoneController.dispose();
+      detailsController.dispose();
+    }
   }
 
   Future<void> fetchArticlesPieces({bool silent = false}) async {
@@ -844,6 +1056,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     _marqueAutoRefreshTimer?.cancel();
     _tabController.dispose();
     _pageController.dispose();
+    _searchPieceController.dispose();
+    _searchGlobalController.dispose();
     super.dispose();
   }
 
@@ -923,6 +1137,18 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           .toLowerCase();
       return hay.contains(_searchGlobalText.toLowerCase());
     }).toList();
+    final shouldPromptNoResult =
+        _searchGlobalText.trim().isNotEmpty &&
+        filtered.isEmpty &&
+        _lastNoResultQuery != _searchGlobalText.trim();
+    if (shouldPromptNoResult) {
+      _lastNoResultQuery = _searchGlobalText.trim();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _openVehicleSearchRequestDialog();
+        }
+      });
+    }
     final screenWidth = MediaQuery.of(context).size.width;
     final cardAspectRatio = screenWidth < 360
         ? 0.68
@@ -930,6 +1156,45 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             ? 0.6
             : 0.55;
 
+    if (filtered.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFEDEDED)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Aucun vehicule ne correspond a votre recherche.',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Envoyez votre besoin aux vendeurs pour etre contacte rapidement.',
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ElevatedButton(
+                  onPressed: _openVehicleSearchRequestDialog,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF8BF13),
+                    foregroundColor: Colors.black,
+                  ),
+                  child: const Text('Envoyer une demande'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: GridView.builder(
@@ -2466,6 +2731,26 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                child: TextField(
+                  controller: _searchGlobalController,
+                  decoration: InputDecoration(
+                    hintText: 'Rechercher un vehicule (marque, modele, titre)...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.refresh, color: Color(0xFF8C9199)),
+                      onPressed: _reloadAll,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[200],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
               buildPubsALaUneCarousel(),
               _buildServicesSummarySection(
                 screenWidth: screenWidth,
