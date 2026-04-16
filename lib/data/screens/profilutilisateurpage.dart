@@ -126,6 +126,109 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
     }
   }
 
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Expanded(child: Text('Suppression du compte')),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Cette action est irreversible.',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Votre compte, votre acces a l\'application et vos donnees liees seront supprimes.',
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Assurez-vous de ne plus avoir besoin de ce compte avant de confirmer.',
+              style: TextStyle(color: Colors.black54),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const AlertDialog(
+        content: SizedBox(
+          height: 40,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+    );
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      if (idToken == null) {
+        if (context.mounted) Navigator.of(context).pop(); // close progress
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Session invalide. Reconnectez-vous.')),
+          );
+        }
+        return;
+      }
+
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: getBaseUrl(),
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+
+      await dio.delete('/users/me');
+
+      if (context.mounted) Navigator.of(context).pop(); // close progress
+      await Provider.of<local_auth.AuthProvider>(context, listen: false)
+          .logout();
+
+      if (!context.mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => ConnexionPage()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (context.mounted) Navigator.of(context).pop(); // close progress
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur suppression: ${e.toString()}')),
+      );
+    }
+  }
+
   Future<void> _pickImage() async {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -165,9 +268,9 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
         await local_auth.AuthProvider.saveUserToPrefs(idToken, refreshedUser);
         if (mounted) {
           context.read<local_auth.AuthProvider>().reloadUser();
-        setState(() {
-          userData?["photo"] = url;
-        });
+          setState(() {
+            userData?["photo"] = url;
+          });
         }
       }
     } catch (e) {
@@ -231,8 +334,7 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
                               : (userData != null &&
                                       userData!["photo"] != null &&
                                       userData!["photo"].toString().isNotEmpty)
-                                  ? NetworkImage(
-                                      userData!["photo"].toString())
+                                  ? NetworkImage(userData!["photo"].toString())
                                   : null,
                           child: (_image == null &&
                                   (userData == null ||
@@ -401,6 +503,12 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
                 MaterialPageRoute(builder: (context) => const WalletScreen()),
               );
             },
+          ),
+          _buildListTile(
+            title: "Suppression de compte",
+            icon: Icons.delete_forever,
+            color: Colors.red,
+            onTap: () => _deleteAccount(),
           ),
           _buildListTile(
             title: "Déconnexion",

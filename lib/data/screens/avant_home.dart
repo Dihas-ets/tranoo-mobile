@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/cart_service.dart';
 import '../../providers/counter_provider.dart';
@@ -8,10 +7,11 @@ import 'marque.dart';
 import 'voitures.dart';
 import 'piece.dart';
 import 'profil3.dart';
+import 'profilutilisateurpage.dart';
+import 'profil_utilisateur2.dart';
 import 'cart_page.dart';
 import 'notifications.dart';
 import 'connexion_page.dart';
-import 'profile.dart';
 import 'mesfactures.dart';
 import 'second_page.dart';
 import '../../providers/auth_provider.dart' as myauth;
@@ -249,21 +249,38 @@ class _AvantHomeState extends State<AvantHome> {
                       );
                     },
                   ),
+                  if (user != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                      child: Text(
+                        'Compte',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ListTile(
                     leading: const Icon(Icons.person),
                     title: const Text('Profil'),
                     onTap: () {
                       Navigator.pop(context);
-                      if (FirebaseAuth.instance.currentUser != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const Profile()),
-                        );
-                      } else {
+                      if (user == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Veuillez vous connecter')),
                         );
+                        return;
                       }
+                      final role = user['role'] as String?;
+                      final Widget page = role == 'vendeur'
+                          ? const ProfilUtilisateurPage()
+                          : role == 'transitaire'
+                              ? const ProfilUtilisateur2()
+                              : const Profil3();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => page),
+                      );
                     },
                   ),
                   if (user != null)
