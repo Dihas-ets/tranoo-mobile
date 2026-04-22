@@ -7,7 +7,6 @@ import 'package:tranoo/services/user_service.dart';
 import 'package:feexpay_flutter/feexpay_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
-import 'package:tranoo/data/screens/succes6.dart';
 import 'package:tranoo/data/screens/payment_success.dart';
 import 'package:tranoo/data/screens/payment_error.dart';
 

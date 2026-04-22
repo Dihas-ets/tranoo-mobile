@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:tranoo/services/user_service.dart';
 import 'subscription_payment.dart';
 
@@ -74,19 +73,22 @@ class _TarifState extends State<Tarif> {
 
   Future<void> _loadSubscriptionPricing() async {
     try {
-      final url =
-          '${UserService().dio.options.baseUrl}/admin/subscription-pricing';
-      final response = await http.get(Uri.parse(url));
+      final url = '${UserService().dio.options.baseUrl}/admin/subscription-pricing';
+      developer.log('[TARIF] GET $url');
+      final response = await Dio().get(url);
+      developer.log('[TARIF] status=${response.statusCode} data=${response.data}');
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = response.data;
+        final price = _extractSubscriptionPrice(data);
         if (mounted) {
           setState(() {
-            _prixMensuel = (data['prixMensuel'] ?? 5000.0).toDouble();
+            _prixMensuel = price;
           });
         }
       }
     } catch (e) {
+      developer.log('[TARIF] pricing error=$e');
       // Garder le prix par défaut en cas d'erreur
       if (mounted) {
         setState(() {
@@ -94,6 +96,20 @@ class _TarifState extends State<Tarif> {
         });
       }
     }
+  }
+
+  double _extractSubscriptionPrice(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final direct = data['prixMensuel'];
+      if (direct is num) return direct.toDouble();
+
+      final nested = data['pricing'];
+      if (nested is Map<String, dynamic>) {
+        final nestedValue = nested['prixMensuel'];
+        if (nestedValue is num) return nestedValue.toDouble();
+      }
+    }
+    return 5000.0;
   }
 
   Future<void> _loadSubscription() async {

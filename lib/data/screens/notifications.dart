@@ -8,6 +8,7 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/user_service.dart';
+import '../../providers/counter_provider.dart';
 
 // --------- HELPERS SÉCURISÉS ----------
 List<String> getNotifImages(Map notif) {
@@ -214,11 +215,13 @@ class VerificationDetailPage extends StatelessWidget {
                         try {
                           final uri = Uri.parse(url);
                           if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            await launchUrl(uri,
+                                mode: LaunchMode.externalApplication);
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Impossible d\'ouvrir le document'),
+                                content:
+                                    Text('Impossible d\'ouvrir le document'),
                               ),
                             );
                           }
@@ -299,7 +302,8 @@ class VerificationDetailPage extends StatelessWidget {
                         // ignore: use_build_context_synchronously
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Cette fonctionnalité n\'est plus disponible'),
+                            content: Text(
+                                'Cette fonctionnalité n\'est plus disponible'),
                           ),
                         );
                         Navigator.pop(context);
@@ -522,6 +526,15 @@ class NotificationsBody extends StatefulWidget {
 }
 
 class _NotificationsBodyState extends State<NotificationsBody> {
+  void _syncUnreadCountWithHeader(NotificationProvider provider) {
+    final unreadCount =
+        provider.notifications.where((n) => !(n['isRead'] ?? false)).length;
+    Provider.of<CounterProvider>(
+      context,
+      listen: false,
+    ).updateNotificationsCount(unreadCount);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -534,7 +547,10 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     if (user != null) {
       user.getIdToken().then((token) {
         if (token != null) {
-          provider.loadNotificationsFromAPI(token);
+          provider.loadNotificationsFromAPI(token).then((_) {
+            if (!mounted) return;
+            _syncUnreadCountWithHeader(provider);
+          });
         }
       });
     } else {
@@ -571,6 +587,9 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                       final token = await user.getIdToken();
                       if (token != null) {
                         await provider.loadNotificationsFromAPI(token);
+                        if (mounted) {
+                          _syncUnreadCountWithHeader(provider);
+                        }
                       }
                     }
                   },
@@ -602,6 +621,9 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                 final notificationId = _safeGetString(notif, '_id');
                 if (token != null && notificationId != null) {
                   await provider.markNotificationAsRead(notificationId, token);
+                  if (mounted) {
+                    _syncUnreadCountWithHeader(provider);
+                  }
                 }
                 Navigator.push(
                   context,
@@ -614,6 +636,9 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                 final token = await user?.getIdToken();
                 if (token != null) {
                   _showNotificationDetail(context, notif, provider, token);
+                  if (mounted) {
+                    _syncUnreadCountWithHeader(provider);
+                  }
                 }
               }
             },
@@ -733,6 +758,9 @@ class _NotificationsBodyState extends State<NotificationsBody> {
         final notificationId = _safeGetString(notification, '_id');
         if (notificationId != null) {
           await provider.markNotificationAsRead(notificationId, token);
+          if (mounted) {
+            _syncUnreadCountWithHeader(provider);
+          }
         }
       }
 
@@ -895,7 +923,8 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                     // ignore: use_build_context_synchronously
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Cette fonctionnalité n\'est plus disponible'),
+                        content:
+                            Text('Cette fonctionnalité n\'est plus disponible'),
                       ),
                     );
                     Navigator.pop(context);
@@ -945,33 +974,92 @@ class _NotificationsBodyState extends State<NotificationsBody> {
 
   Widget _buildAlertContent(
       Map<String, dynamic> notification, String bodyHtml) {
+    final dataMap = (notification['data'] is Map)
+        ? Map<String, dynamic>.from(notification['data'])
+        : <String, dynamic>{};
+    final requestType = (dataMap['requestType'] ?? '').toString();
+    final isPiece = requestType == 'piece_search';
+    final details = <String>[
+      if ((dataMap['marque'] ?? '').toString().isNotEmpty)
+        'Marque: ${dataMap['marque']}',
+      if ((dataMap['modele'] ?? '').toString().isNotEmpty)
+        'Modele: ${dataMap['modele']}',
+      if ((dataMap['etat'] ?? '').toString().isNotEmpty && !isPiece)
+        'Etat: ${dataMap['etat']}',
+      if ((dataMap['annee'] ?? '').toString().isNotEmpty && isPiece)
+        'Annee: ${dataMap['annee']}',
+      if ((dataMap['anneeMin'] ?? '').toString().isNotEmpty && !isPiece)
+        'Annee min: ${dataMap['anneeMin']}',
+      if ((dataMap['anneeMax'] ?? '').toString().isNotEmpty && !isPiece)
+        'Annee max: ${dataMap['anneeMax']}',
+      if ((dataMap['budgetMax'] ?? '').toString().isNotEmpty)
+        'Budget max: ${dataMap['budgetMax']} FCFA',
+      if ((dataMap['pieceName'] ?? '').toString().isNotEmpty)
+        'Piece: ${dataMap['pieceName']}',
+      if ((dataMap['urgence'] ?? '').toString().isNotEmpty)
+        'Urgence: ${dataMap['urgence']}',
+      if ((dataMap['localisation'] ?? '').toString().isNotEmpty)
+        'Localisation: ${dataMap['localisation']}',
+      if ((dataMap['description'] ?? '').toString().isNotEmpty)
+        'Details: ${dataMap['description']}',
+    ];
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.red[600],
+        color: const Color(0xFFFFFBEB),
+        border: Border.all(color: const Color(0xFFFDE68A)),
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(17),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.warning, color: Colors.white, size: 46),
-          const SizedBox(height: 10),
+          const Row(
+            children: [
+              Icon(Icons.notifications_active_outlined,
+                  color: Color(0xFFD97706), size: 28),
+              SizedBox(width: 8),
+              Text(
+                'Nouvelle alerte',
+                style: TextStyle(
+                  color: Color(0xFF92400E),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Text(
-            _safeGetString(notification, 'title') ?? '-',
+            isPiece
+                ? "Un acheteur est a la recherche d'une piece."
+                : "Un acheteur est a la recherche d'un vehicule.",
             style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 19,
+              color: Color(0xFF1F2937),
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
             ),
           ),
-          const SizedBox(height: 15),
-          Html(
-            data: bodyHtml,
-            style: {
-              '.': Style(color: Colors.white, fontSize: FontSize(16)),
-            },
+          const SizedBox(height: 10),
+          const Text(
+            'Caracteristiques:',
+            style: TextStyle(
+              color: Color(0xFF92400E),
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
           ),
+          const SizedBox(height: 4),
+          if (details.isEmpty)
+            const Text('- Aucune caracteristique fournie')
+          else
+            ...details.map((d) => Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text('• $d'),
+                )),
+          const SizedBox(height: 8),
+          Html(data: bodyHtml),
         ],
       ),
     );

@@ -1,4 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tranoo/config/backend_config.dart';
+import 'package:tranoo/utils/auth_dialog.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:permission_handler/permission_handler.dart';
 
 class MesFacturesPage extends StatefulWidget {
   const MesFacturesPage({super.key});
@@ -9,73 +18,191 @@ class MesFacturesPage extends StatefulWidget {
 
 class _MesFacturesPageState extends State<MesFacturesPage> {
   final Color primaryColor = const Color(0xFFF8BF13);
-
-  final List<Map<String, String>> factures = [
-    {
-      "numero": "FAC-2026-001",
-      "date": "15 MAR 2026",
-      "produit": "Toyota Land Cruiser 2022",
-      "montant": "850 000 FCFA",
-      "statut": "Payée",
-      "vendeur": "Auto Plus Bénin",
-      "boutique": "Auto Plus Store",
-      "prixProduit": "800 000 FCFA",
-      "livraison": "50 000 FCFA",
-      "tva": "16% (128 000 FCFA)",
-      "reference": "TRN-2026-03-001",
-      "adresse": "Abomey-Calavi, Benin",
-      "paiement": "Mobile Money"
-    },
-    {
-      "numero": "FAC-2026-002",
-      "date": "20 MAR 2026",
-      "produit": "Kit de réparation moteur",
-      "montant": "450 000 FCFA",
-      "statut": "Payée",
-      "vendeur": "Mécanique Express",
-      "boutique": "Mécanique Pro",
-      "prixProduit": "400 000 FCFA",
-      "livraison": "50 000 FCFA",
-      "tva": "18% (72 000 FCFA)",
-      "reference": "TRN-2026-03-002",
-      "adresse": "Cotonou, Benin",
-      "paiement": "Carte Bancaire"
-    },
-    {
-      "numero": "FAC-2026-003",
-      "date": "25 MAR 2026",
-      "produit": "Nissan Patrol 2023",
-      "montant": "1 200 000 FCFA",
-      "statut": "En attente",
-      "vendeur": "Véhicules du Bénin",
-      "boutique": "Auto Premium",
-      "prixProduit": "1 150 000 FCFA",
-      "livraison": "50 000 FCFA",
-      "tva": "18% (207 000 FCFA)",
-      "reference": "TRN-2026-03-003",
-      "adresse": "Parakou, Benin",
-      "paiement": "Espèces"
-    },
-    {
-      "numero": "FAC-2026-004",
-      "date": "30 MAR 2026",
-      "produit": "Batterie automobile",
-      "montant": "120 000 FCFA",
-      "statut": "Payée",
-      "vendeur": "Pièces Auto Market",
-      "boutique": "Auto Parts Store",
-      "prixProduit": "120 000 FCFA",
-      "livraison": "0 FCFA",
-      "tva": "18% (21 600 FCFA)",
-      "reference": "TRN-2026-03-004",
-      "adresse": "Porto-Novo, Benin",
-      "paiement": "Carte Bancaire"
-    },
-  ];
+  List<Map<String, String>> factures = [];
+  bool _isLoading = true;
+  String? _loadError;
+  int _unreadCount = 0;
 
   int selectedTab = 1; // 0 = pending, 1 = completed, 2 = canceled
   DateTime? selectedDate;
   String selectedFilter = 'Toutes';
+  bool _authDialogShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFactures();
+  }
+
+  String _formatAmount(dynamic value) {
+    final amount = (value as num?)?.toDouble() ?? 0;
+    return '${amount.toStringAsFixed(0)} FCFA';
+  }
+
+  String _formatDate(dynamic raw) {
+    final dt = DateTime.tryParse(raw?.toString() ?? '');
+    if (dt == null) return '--';
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  }
+
+  List<Map<String, String>> _mapInvoicesToUi(List<Map<String, dynamic>> invoices) {
+    return invoices.map((inv) {
+      final items = (inv['items'] as List?) ?? const [];
+      final firstTitle = items.isNotEmpty
+          ? (items.first as Map)['title']?.toString() ?? 'Article'
+          : 'Article';
+      final subtotal = (inv['subtotal'] as num?)?.toDouble() ?? 0;
+      final deliveryFee = (inv['deliveryFee'] as num?)?.toDouble() ?? 0;
+      final total = (inv['total'] as num?)?.toDouble() ?? 0;
+      return {
+        "id": (inv['_id'] ?? '').toString(),
+        "numero": (inv['invoiceNumber'] ?? '--').toString(),
+        "date": _formatDate(inv['issueDate'] ?? inv['createdAt']),
+        "produit": firstTitle,
+        "montant": _formatAmount(total),
+        "statut": (inv['paymentStatus'] == 'paid') ? 'Payée' : 'En attente',
+        "vendeur": (inv['sellerName'] ?? 'Vendeur').toString(),
+        "boutique": (inv['shopName'] ?? inv['company'] ?? 'Boutique').toString(),
+        "entreprise": (inv['shopName'] ?? inv['company'] ?? 'Tranoo').toString(),
+        "prixProduit": _formatAmount(subtotal),
+        "livraison": _formatAmount(deliveryFee),
+        "tva": "0% (0 FCFA)",
+        "reference": (inv['reference'] ?? '--').toString(),
+        "adresse": (inv['deliveryAddress'] ?? '--').toString(),
+        "paiement": ((inv['paymentMethod'] ?? 'online').toString()),
+        "isRead": ((inv['isRead'] == true) ? 'true' : 'false'),
+      };
+    }).toList();
+  }
+
+  Future<void> _loadFactures() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        _showAuthPopupIfNeeded();
+        throw Exception('Utilisateur non connecté');
+      }
+      final token = await user.getIdToken();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: getApiBaseUrl(),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+      debugPrint('[FACTURES] BaseURL: ${getApiBaseUrl()}');
+      debugPrint('[FACTURES] GET /invoices/my');
+      final response = await dio.get('/invoices/my');
+      debugPrint('[FACTURES] Status: ${response.statusCode}');
+      debugPrint('[FACTURES] Body type: ${response.data.runtimeType}');
+      final data = response.data;
+      final invoices = (data is Map<String, dynamic> && data['invoices'] is List)
+          ? List<Map<String, dynamic>>.from(
+              (data['invoices'] as List).whereType<Map>(),
+            )
+          : <Map<String, dynamic>>[];
+      final mapped = _mapInvoicesToUi(invoices);
+      if (!mounted) return;
+      setState(() {
+        factures = mapped;
+        _unreadCount = (data is Map<String, dynamic>)
+            ? ((data['unreadCount'] as num?)?.toInt() ?? 0)
+            : 0;
+      });
+    } catch (e) {
+      debugPrint('[FACTURES] Exception: $e');
+      if (!mounted) return;
+      setState(() {
+        if (e is DioException) {
+          final status = e.response?.statusCode;
+          debugPrint('[FACTURES] DioException status: $status');
+          debugPrint('[FACTURES] DioException body: ${e.response?.data}');
+          final code = (e.response?.data is Map<String, dynamic>)
+              ? e.response?.data['code']?.toString()
+              : null;
+          if (status == 401 &&
+              (code == 'USER_NOT_FOUND' || FirebaseAuth.instance.currentUser == null)) {
+            _showAuthPopupIfNeeded();
+          }
+          if (status == 404) {
+            factures = [];
+            _unreadCount = 0;
+            _loadError = null;
+            return;
+          }
+          final message = (e.response?.data is Map<String, dynamic>)
+              ? (e.response?.data['message']?.toString() ?? '')
+              : '';
+          _loadError = 'Impossible de charger les factures'
+              '${status != null ? ' ($status)' : ''}'
+              '${message.isNotEmpty ? ': $message' : '.'}';
+        } else {
+          _loadError = 'Impossible de charger les factures.';
+        }
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showAuthPopupIfNeeded() {
+    if (_authDialogShown || !mounted) return;
+    _authDialogShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showAuthDialog(
+        context,
+        message: 'Connectez-vous pour accéder à vos factures',
+      );
+    });
+  }
+
+  Future<Dio> _authorizedDio() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('Utilisateur non connecté');
+    final token = await user.getIdToken();
+    return Dio(
+      BaseOptions(
+        baseUrl: getApiBaseUrl(),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
+  }
+
+  Future<void> _markInvoiceAsRead(String? invoiceId) async {
+    if (invoiceId == null || invoiceId.isEmpty) return;
+    try {
+      final dio = await _authorizedDio();
+      await dio.patch('/invoices/$invoiceId/read');
+    } catch (_) {}
+  }
+
+  Future<void> _markAllInvoicesAsRead() async {
+    try {
+      final dio = await _authorizedDio();
+      await dio.patch('/invoices/my/read-all');
+      if (!mounted) return;
+      setState(() {
+        for (final f in factures) {
+          f['isRead'] = 'true';
+        }
+        _unreadCount = 0;
+      });
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +212,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
         backgroundColor: primaryColor,
         elevation: 0,
         automaticallyImplyLeading: false, // Pas de flèche back
-        title: const Center(
+        title: Center(
           child: Text(
             "Mes Factures",
             style: TextStyle(
@@ -94,6 +221,33 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
             ),
           ),
         ),
+        actions: [
+          if (_unreadCount > 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    '$_unreadCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          IconButton(
+            tooltip: 'Tout marquer lu',
+            onPressed: _unreadCount > 0 ? _markAllInvoicesAsRead : null,
+            icon: const Icon(Icons.done_all, color: Colors.black),
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -111,7 +265,22 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
 
             /// 📄 LISTE FACTURES
             Expanded(
-              child: ListView.builder(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _loadError != null
+                      ? Center(child: Text(_loadError!))
+                      : factures.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Vous n\'avez aucune facture pour le moment.',
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                      : ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: factures.length,
                 itemBuilder: (context, index) {
@@ -120,6 +289,11 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
                   return InkWell(
                     borderRadius: BorderRadius.circular(20),
                     onTap: () {
+                      _markInvoiceAsRead(f["id"]);
+                      f["isRead"] = 'true';
+                      if (_unreadCount > 0) {
+                        setState(() => _unreadCount -= 1);
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -182,6 +356,23 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
+                                if ((f["isRead"] ?? 'true') == 'false')
+                                  Container(
+                                    margin: const EdgeInsets.only(bottom: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.redAccent,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Text(
+                                      'Non lue',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
                                 Text(
                                   f["montant"] ?? "",
                                   style: TextStyle(
@@ -403,7 +594,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
                 Navigator.of(context).pop();
                 _downloadInvoiceAsPDF(facture);
               },
-              child: const Text('PDF'),
+              child: const Text('Document'),
             ),
           ],
         );
@@ -411,281 +602,106 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
     );
   }
 
-  void _downloadInvoiceAsImage(Map<String, String> facture) async {
-    // Afficher un message stylisé
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        content: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF10B981),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF10B981).withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.image,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "Téléchargement en cours",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      "Génération de l'image...",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  Future<Uint8List> _buildInvoiceImageBytes(Map<String, String> facture) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    const width = 1080.0;
+    const height = 1350.0;
+    final paint = Paint()..color = Colors.white;
+    canvas.drawRect(const Rect.fromLTWH(0, 0, width, height), paint);
 
-    // Simuler le téléchargement
-    await Future.delayed(const Duration(seconds: 2));
+    final headerPaint = Paint()..color = const Color(0xFFF8BF13);
+    canvas.drawRect(const Rect.fromLTWH(0, 0, width, 160), headerPaint);
+    final tp = TextPainter(textDirection: TextDirection.ltr);
 
-    if (mounted) {
-      // Message de succès stylisé
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          content: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF10B981),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF10B981).withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.check_circle,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "Succès !",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        "Image sauvegardée dans la galerie",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 3),
-        ),
+    void draw(String text, double x, double y,
+        {double size = 36, FontWeight w = FontWeight.w500, Color c = Colors.black}) {
+      tp.text = TextSpan(
+        text: text,
+        style: TextStyle(fontSize: size, fontWeight: w, color: c),
       );
+      tp.layout(maxWidth: width - 80);
+      tp.paint(canvas, Offset(x, y));
+    }
+
+    draw('FACTURE ${facture["numero"] ?? "--"}', 40, 52, size: 42, w: FontWeight.bold);
+    draw('Date: ${facture["date"] ?? "--"}', 40, 190);
+    draw('Produit: ${facture["produit"] ?? "--"}', 40, 260);
+    draw('Vendeur: ${facture["vendeur"] ?? "--"}', 40, 330);
+    draw('Boutique: ${facture["boutique"] ?? "--"}', 40, 400);
+    draw('Adresse: ${facture["adresse"] ?? "--"}', 40, 470, size: 30);
+    draw('Sous-total: ${facture["prixProduit"] ?? "--"}', 40, 560);
+    draw('Livraison: ${facture["livraison"] ?? "--"}', 40, 630);
+    draw('TVA: ${facture["tva"] ?? "--"}', 40, 700);
+    draw('Total: ${facture["montant"] ?? "--"}', 40, 790, size: 44, w: FontWeight.w800);
+    draw('Référence: ${facture["reference"] ?? "--"}', 40, 880, size: 28, c: Colors.black54);
+
+    final image = await recorder.endRecording().toImage(width.toInt(), height.toInt());
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
+  Future<void> _downloadInvoiceAsImage(Map<String, String> facture) async {
+    try {
+      await Permission.storage.request();
+      final bytes = await _buildInvoiceImageBytes(facture);
+      final base = Directory('/storage/emulated/0/Pictures/TranooFactures');
+      if (!await base.exists()) {
+        await base.create(recursive: true);
+      }
+      final file = File(
+        '${base.path}/facture_${facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      await file.writeAsBytes(bytes, flush: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image sauvegardée: ${file.path}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur image: $e')),
+        );
+      }
     }
   }
 
-  void _downloadInvoiceAsPDF(Map<String, String> facture) async {
-    // Afficher un message stylisé
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        content: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF10B981),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF10B981).withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.picture_as_pdf,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "Téléchargement en cours",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      "Génération du PDF...",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    // Simuler le téléchargement
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      // Message de succès stylisé
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          content: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF10B981),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF10B981).withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.check_circle,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "Succès !",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        "PDF sauvegardé dans Documents",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 3),
-        ),
+  Future<void> _downloadInvoiceAsPDF(Map<String, String> facture) async {
+    try {
+      await Permission.storage.request();
+      final dir = Directory('/storage/emulated/0/Download/TranooFactures');
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      final file = File(
+        '${dir.path}/facture_${facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.txt',
       );
+      final content = '''
+FACTURE ${facture["numero"] ?? "--"}
+Date: ${facture["date"] ?? "--"}
+Produit: ${facture["produit"] ?? "--"}
+Vendeur: ${facture["vendeur"] ?? "--"}
+Boutique: ${facture["boutique"] ?? "--"}
+Adresse: ${facture["adresse"] ?? "--"}
+Sous-total: ${facture["prixProduit"] ?? "--"}
+Livraison: ${facture["livraison"] ?? "--"}
+TVA: ${facture["tva"] ?? "--"}
+Total: ${facture["montant"] ?? "--"}
+Référence: ${facture["reference"] ?? "--"}
+''';
+      await file.writeAsString(content, flush: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Document sauvegardé: ${file.path}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur PDF: $e')),
+        );
+      }
     }
   }
 }
@@ -1171,7 +1187,7 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
                 Navigator.of(context).pop();
                 _downloadInvoiceAsPDF();
               },
-              child: const Text('Document (PDF)'),
+              child: const Text('Document'),
             ),
             TextButton(
               onPressed: () {
@@ -1240,43 +1256,61 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
   }
 
   // Fonction pour télécharger en image
+  Future<Uint8List> _buildInvoiceImageBytes(Map<String, String> facture) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    const width = 1080.0;
+    const height = 1350.0;
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 0, width, height),
+      Paint()..color = Colors.white,
+    );
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 0, width, 160),
+      Paint()..color = const Color(0xFFF8BF13),
+    );
+    final tp = TextPainter(textDirection: TextDirection.ltr);
+    void draw(String text, double x, double y,
+        {double size = 36, FontWeight w = FontWeight.w500, Color c = Colors.black}) {
+      tp.text = TextSpan(
+        text: text,
+        style: TextStyle(fontSize: size, fontWeight: w, color: c),
+      );
+      tp.layout(maxWidth: width - 80);
+      tp.paint(canvas, Offset(x, y));
+    }
+    draw('FACTURE ${facture["numero"] ?? "--"}', 40, 52, size: 42, w: FontWeight.bold);
+    draw('Date: ${facture["date"] ?? "--"}', 40, 190);
+    draw('Produit: ${facture["produit"] ?? "--"}', 40, 260);
+    draw('Vendeur: ${facture["vendeur"] ?? "--"}', 40, 330);
+    draw('Boutique: ${facture["boutique"] ?? "--"}', 40, 400);
+    draw('Adresse: ${facture["adresse"] ?? "--"}', 40, 470, size: 30);
+    draw('Sous-total: ${facture["prixProduit"] ?? "--"}', 40, 560);
+    draw('Livraison: ${facture["livraison"] ?? "--"}', 40, 630);
+    draw('TVA: ${facture["tva"] ?? "--"}', 40, 700);
+    draw('Total: ${facture["montant"] ?? "--"}', 40, 790, size: 44, w: FontWeight.w800);
+    draw('Référence: ${facture["reference"] ?? "--"}', 40, 880, size: 28, c: Colors.black54);
+    final image = await recorder.endRecording().toImage(width.toInt(), height.toInt());
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
   void _downloadInvoiceAsImage() async {
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.image, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Génération de l\'image en cours...'),
-            ],
-          ),
-          backgroundColor: Color(0xFF10B981),
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      // Simuler la génération de l'image
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Simuler la sauvegarde dans la galerie
-      // En réalité, vous utiliseriez un package comme 'screenshot' ou 'flutter_to_pdf'
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Text('Image sauvegardée dans la galerie !'),
-              ],
-            ),
-            backgroundColor: Color(0xFF10B981),
-            duration: Duration(seconds: 3),
-          ),
-        );
+      await Permission.storage.request();
+      final bytes = await _buildInvoiceImageBytes(widget.facture);
+      final base = Directory('/storage/emulated/0/Pictures/TranooFactures');
+      if (!await base.exists()) {
+        await base.create(recursive: true);
       }
+      final file = File(
+        '${base.path}/facture_${widget.facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      await file.writeAsBytes(bytes, flush: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Image sauvegardée: ${file.path}')),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1299,41 +1333,32 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
   // Fonction pour télécharger en PDF
   void _downloadInvoiceAsPDF() async {
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.picture_as_pdf, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Génération du PDF en cours...'),
-            ],
-          ),
-          backgroundColor: Color(0xFF10B981),
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      // Simuler la génération du PDF
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Simuler la sauvegarde dans les documents locaux
-      // En réalité, vous utiliseriez un package comme 'pdf' ou 'flutter_to_pdf'
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Text('PDF sauvegardé dans Documents !'),
-              ],
-            ),
-            backgroundColor: Color(0xFF10B981),
-            duration: Duration(seconds: 3),
-          ),
-        );
+      await Permission.storage.request();
+      final dir = Directory('/storage/emulated/0/Download/TranooFactures');
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
       }
+      final file = File(
+        '${dir.path}/facture_${widget.facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.txt',
+      );
+      final content = '''
+FACTURE ${widget.facture["numero"] ?? "--"}
+Date: ${widget.facture["date"] ?? "--"}
+Produit: ${widget.facture["produit"] ?? "--"}
+Vendeur: ${widget.facture["vendeur"] ?? "--"}
+Boutique: ${widget.facture["boutique"] ?? "--"}
+Adresse: ${widget.facture["adresse"] ?? "--"}
+Sous-total: ${widget.facture["prixProduit"] ?? "--"}
+Livraison: ${widget.facture["livraison"] ?? "--"}
+TVA: ${widget.facture["tva"] ?? "--"}
+Total: ${widget.facture["montant"] ?? "--"}
+Référence: ${widget.facture["reference"] ?? "--"}
+''';
+      await file.writeAsString(content, flush: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Document sauvegardé: ${file.path}')),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

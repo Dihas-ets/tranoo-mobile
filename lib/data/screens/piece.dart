@@ -6,6 +6,7 @@ import 'package:tranoo/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'mastervacpage.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
+import 'package:tranoo/services/alert_service.dart';
 
 class Piece extends StatefulWidget {
   const Piece({super.key});
@@ -35,6 +36,8 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
   late int _modeleTabIndex;
   late int _localisationTabIndex;
   late int _budgetTabIndex;
+  Timer? _autoRefreshTimer;
+  bool _noResultDialogShown = false;
 
   @override
   void initState() {
@@ -52,21 +55,26 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
     });
 
     fetchPieces();
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) fetchPieces(silent: true);
+    });
     _searchController.addListener(() {
       setState(() {
         _searchText = _searchController.text.toLowerCase();
+        _noResultDialogShown = false;
       });
     });
   }
 
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  void _reloadAll() {
+  Future<void> _reloadAll() async {
     // Réinitialiser la recherche
     _searchController.clear();
     _searchText = '';
@@ -78,16 +86,17 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
     _budgetMin = null;
     _budgetMax = null;
 
-    // Recharger les données
-    fetchPieces();
     setState(() {});
+    await fetchPieces();
   }
 
-  Future<void> fetchPieces() async {
-    setState(() {
-      isLoading = true;
-      error = null;
-    });
+  Future<void> fetchPieces({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        isLoading = true;
+        error = null;
+      });
+    }
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
@@ -546,6 +555,7 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -553,111 +563,115 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final disponibles = compterDansIntervalle(currentMin, currentMax);
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-                top: 8,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+            return SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16 + 12,
+                  top: 8,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  const Text(
-                    'Prix (FCFA)',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: minCtl,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'Min.',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
+                    const Text(
+                      'Prix (FCFA)',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: minCtl,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Min.',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
+                            onChanged: (val) {
+                              final v = double.tryParse(val) ?? currentMin;
+                              setModalState(() {
+                                currentMin = v.clamp(minPrice, currentMax);
+                              });
+                            },
                           ),
-                          onChanged: (val) {
-                            final v = double.tryParse(val) ?? currentMin;
-                            setModalState(() {
-                              currentMin = v.clamp(minPrice, currentMax);
-                            });
-                          },
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: maxCtl,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'Max.',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: maxCtl,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Max.',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
+                            onChanged: (val) {
+                              final v = double.tryParse(val) ?? currentMax;
+                              setModalState(() {
+                                currentMax = v.clamp(currentMin, maxPrice);
+                              });
+                            },
                           ),
-                          onChanged: (val) {
-                            final v = double.tryParse(val) ?? currentMax;
-                            setModalState(() {
-                              currentMax = v.clamp(currentMin, maxPrice);
-                            });
-                          },
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text('$disponibles pièce(s) disponible(s)'),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              _budgetMin = null;
-                              _budgetMax = null;
-                            });
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Réinitialiser'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF8BF13),
-                            foregroundColor: Colors.black,
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text('$disponibles pièce(s) disponible(s)'),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setState(() {
+                                _budgetMin = null;
+                                _budgetMax = null;
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Réinitialiser'),
                           ),
-                          onPressed: () {
-                            setState(() {
-                              _budgetMin = currentMin;
-                              _budgetMax = currentMax;
-                            });
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Appliquer'),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF8BF13),
+                              foregroundColor: Colors.black,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _budgetMin = currentMin;
+                                _budgetMax = currentMax;
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Appliquer'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -666,12 +680,284 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
     );
   }
 
+  Future<void> _showPieceMiniForm() async {
+    final formKey = GlobalKey<FormState>();
+    final marqueController = TextEditingController();
+    final modeleController = TextEditingController();
+    final anneeController = TextEditingController();
+    final pieceNameController = TextEditingController();
+    String urgence = 'normale';
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return SafeArea(
+              top: false,
+              child: SizedBox(
+                height: MediaQuery.of(ctx).size.height * 0.78,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    16,
+                    16,
+                    MediaQuery.of(ctx).viewInsets.bottom + 16,
+                  ),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Center(
+                                  child: Container(
+                                    width: 42,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade300,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                const Text(
+                                  'Alerte piece',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: marqueController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Marque du vehicule',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  validator: (v) =>
+                                      (v == null || v.trim().isEmpty)
+                                          ? 'Marque requise'
+                                          : null,
+                                ),
+                                const SizedBox(height: 10),
+                                TextFormField(
+                                  controller: modeleController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Modele',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  validator: (v) =>
+                                      (v == null || v.trim().isEmpty)
+                                          ? 'Modele requis'
+                                          : null,
+                                ),
+                                const SizedBox(height: 10),
+                                TextFormField(
+                                  controller: anneeController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Annee',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  validator: (v) =>
+                                      (v == null || v.trim().isEmpty)
+                                          ? 'Annee requise'
+                                          : null,
+                                ),
+                                const SizedBox(height: 10),
+                                TextFormField(
+                                  controller: pieceNameController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Nom de la piece',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  validator: (v) =>
+                                      (v == null || v.trim().isEmpty)
+                                          ? 'Nom de la piece requis'
+                                          : null,
+                                ),
+                                const SizedBox(height: 10),
+                                const Text(
+                                  'Niveau d\'urgence',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                RadioListTile<String>(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: const Text('Faible'),
+                                  value: 'faible',
+                                  groupValue: urgence,
+                                  onChanged: (value) => setSheetState(
+                                      () => urgence = value ?? 'faible'),
+                                ),
+                                RadioListTile<String>(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: const Text('Normale'),
+                                  value: 'normale',
+                                  groupValue: urgence,
+                                  onChanged: (value) => setSheetState(
+                                      () => urgence = value ?? 'normale'),
+                                ),
+                                RadioListTile<String>(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: const Text('Urgente'),
+                                  value: 'urgente',
+                                  groupValue: urgence,
+                                  onChanged: (value) => setSheetState(
+                                      () => urgence = value ?? 'urgente'),
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SafeArea(
+                          top: false,
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFF8BF13),
+                                foregroundColor: Colors.black,
+                              ),
+                              onPressed: () {
+                                if (!(formKey.currentState?.validate() ??
+                                    false)) {
+                                  return;
+                                }
+                                () async {
+                                  try {
+                                    await AlertService().createPieceAlert(
+                                      marque: marqueController.text,
+                                      modele: modeleController.text,
+                                      annee: anneeController.text,
+                                      pieceName: pieceNameController.text,
+                                      urgence: urgence,
+                                    );
+                                    if (!context.mounted) return;
+                                    Navigator.pop(ctx);
+                                    await showDialog(
+                                      context: context,
+                                      barrierDismissible: true,
+                                      builder: (_) => AlertDialog(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                        title: const Row(
+                                          children: [
+                                            Icon(
+                                              Icons.check_circle,
+                                              color: Color(0xFF16A34A),
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text('Alerte envoyée'),
+                                          ],
+                                        ),
+                                        content: const Text(
+                                          'Votre demande a bien ete enregistree. Vous recevrez les retours des vendeurs tres bientot.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(context).pop(),
+                                            child: const Text('OK'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Erreur envoi alerte: $e'),
+                                      ),
+                                    );
+                                  }
+                                }();
+                              },
+                              child: const Text('Envoyer l\'alerte'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showNoResultDialog() {
+    if (!mounted || _noResultDialogShown) return;
+    _noResultDialogShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Row(
+            children: [
+              Icon(Icons.search_off, color: Color(0xFFB45309)),
+              SizedBox(width: 8),
+              Text('Aucun resultat'),
+            ],
+          ),
+          content: const Text(
+            'Aucune piece ne correspond a votre recherche.\nCreez une mini alerte ciblee pour les vendeurs.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Plus tard'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _showPieceMiniForm();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF8BF13),
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('Remplir mini form'),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasActiveCriteria = _searchText.trim().isNotEmpty ||
+        _selectedBrand != null ||
+        _selectedModel != null ||
+        _selectedLocation != null ||
+        _budgetMin != null ||
+        _budgetMax != null;
     final filteredPieces = _applyFilters(pieces).where((p) {
       final title = (p['titre'] ?? '').toString().toLowerCase();
       return _searchText.isEmpty || title.contains(_searchText);
     }).toList();
+    if (filteredPieces.isNotEmpty) {
+      _noResultDialogShown = false;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -692,11 +978,6 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                         decoration: InputDecoration(
                           hintText: 'Rechercher une pièce...',
                           prefixIcon: const Icon(Icons.search),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.refresh,
-                                color: Color(0xFF8C9199)),
-                            onPressed: _reloadAll,
-                          ),
                           filled: true,
                           fillColor: Colors.grey[200],
                           border: OutlineInputBorder(
@@ -742,201 +1023,234 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                       _buildBudgetSection(),
                     // Liste des pièces
                     Expanded(
-                      child: filteredPieces.isEmpty
-                          ? Center(
-                              child: const Text(
-                                "Aucune pièce en ligne actuellement",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            )
-                          : Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8.0),
-                              child: GridView.builder(
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 0.78,
-                                ),
-                                itemCount: filteredPieces.length,
-                                itemBuilder: (context, index) {
-                                  final piece = filteredPieces[index];
-                                  final pieceId = piece['_id'] ?? '';
-                                  return AnimatedOpacity(
-                                    opacity: _isVisible.length > index &&
-                                            _isVisible[index]
-                                        ? 1.0
-                                        : 0.0,
-                                    duration: const Duration(milliseconds: 400),
-                                    child: Stack(
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    MastervacPage(
-                                                  id: (piece['_id'] ??
-                                                          piece['id'] ??
-                                                          piece['articleId'] ??
-                                                          piece['Id'] ??
-                                                          piece['article'])
-                                                      ?.toString(),
-                                                  isAcheteur: true,
-                                                  title: piece['titre'] ?? '',
-                                                  year: piece['annee'] ?? '',
-                                                  description:
-                                                      piece['description'] ??
-                                                          '',
-                                                  company:
-                                                      piece['entreprise'] ?? '',
-                                                  location:
-                                                      piece['localisation'] ??
-                                                          '',
-                                                  price: piece['prix']
-                                                          ?.toString() ??
-                                                      '',
-                                                  images:
-                                                      (piece['photos'] as List?)
-                                                              ?.map((e) =>
-                                                                  e.toString())
-                                                              .toList() ??
-                                                          [],
-                                                  fuelType: piece['typeMoteur'],
-                                                  model: piece['modele']
-                                                      ?.toString(),
-                                                  pieceType: piece['pieceType'],
-                                                  video: piece['video'],
+                      child: RefreshIndicator(
+                        onRefresh: _reloadAll,
+                        child: filteredPieces.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  Builder(
+                                    builder: (_) {
+                                      if (hasActiveCriteria) {
+                                        _showNoResultDialog();
+                                      }
+                                      return const SizedBox.shrink();
+                                    },
+                                  ),
+                                  SizedBox(
+                                    height: MediaQuery.of(context).size.height *
+                                        0.22,
+                                  ),
+                                  const Center(
+                                    child: Text(
+                                      "Aucune pièce en ligne actuellement",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8.0),
+                                child: GridView.builder(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    childAspectRatio: 0.78,
+                                  ),
+                                  itemCount: filteredPieces.length,
+                                  itemBuilder: (context, index) {
+                                    final piece = filteredPieces[index];
+                                    final pieceId = piece['_id'] ?? '';
+                                    return AnimatedOpacity(
+                                      opacity: _isVisible.length > index &&
+                                              _isVisible[index]
+                                          ? 1.0
+                                          : 0.0,
+                                      duration:
+                                          const Duration(milliseconds: 400),
+                                      child: Stack(
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      MastervacPage(
+                                                    id: (piece['_id'] ??
+                                                            piece['id'] ??
+                                                            piece[
+                                                                'articleId'] ??
+                                                            piece['Id'] ??
+                                                            piece['article'])
+                                                        ?.toString(),
+                                                    isAcheteur: true,
+                                                    title: piece['titre'] ?? '',
+                                                    year: piece['annee'] ?? '',
+                                                    description:
+                                                        piece['description'] ??
+                                                            '',
+                                                    company:
+                                                        piece['entreprise'] ??
+                                                            '',
+                                                    location:
+                                                        piece['localisation'] ??
+                                                            '',
+                                                    price: piece['prix']
+                                                            ?.toString() ??
+                                                        '',
+                                                    images: (piece['photos']
+                                                                as List?)
+                                                            ?.map((e) =>
+                                                                e.toString())
+                                                            .toList() ??
+                                                        [],
+                                                    fuelType:
+                                                        piece['typeMoteur'],
+                                                    model: piece['modele']
+                                                        ?.toString(),
+                                                    pieceType:
+                                                        piece['pieceType'],
+                                                    video: piece['video'],
+                                                  ),
                                                 ),
+                                              ).then((_) => fetchPieces());
+                                            },
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black12
+                                                        .withOpacity(0.08),
+                                                    blurRadius: 12,
+                                                    offset: const Offset(0, 6),
+                                                  ),
+                                                ],
                                               ),
-                                            ).then((_) => fetchPieces());
-                                          },
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black12
-                                                      .withOpacity(0.08),
-                                                  blurRadius: 12,
-                                                  offset: const Offset(0, 6),
-                                                ),
-                                              ],
-                                            ),
-                                            padding: const EdgeInsets.all(10),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                  child: SizedBox(
-                                                    height: 100,
-                                                    width: double.infinity,
-                                                    child: (piece['photos']
-                                                                    as List?)
-                                                                ?.isNotEmpty ==
-                                                            true
-                                                        ? Image.network(
-                                                            piece['photos'][0],
-                                                            fit: BoxFit.cover,
-                                                          )
-                                                        : (piece['video'] !=
-                                                                    null &&
-                                                                (piece['video']
-                                                                        ?.toString()
-                                                                        .isNotEmpty ??
-                                                                    false))
-                                                            ? VideoPreviewPlaceholder(
-                                                                videoUrl: piece[
-                                                                        'video']
-                                                                    ?.toString(),
-                                                                iconSize: 36,
-                                                              )
-                                                            : Container(
-                                                                color: Colors
-                                                                    .grey[200],
-                                                                child:
-                                                                    const Icon(
-                                                                  Icons
-                                                                      .image_not_supported,
-                                                                  size: 30,
-                                                                  color: Colors
-                                                                      .black26,
-                                                                ),
-                                                              ),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 8),
-                                                Text(
-                                                  piece['titre'] ??
-                                                      'Sans titre',
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  piece['entreprise'] ??
-                                                      'Entreprise inconnue',
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                    color: Colors.black54,
-                                                    fontSize: 11,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 10),
-                                                Container(
-                                                  width: double.infinity,
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 5),
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        const Color(0xFFFFF5E5),
+                                              padding: const EdgeInsets.all(10),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  ClipRRect(
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                            14),
+                                                            16),
+                                                    child: SizedBox(
+                                                      height: 100,
+                                                      width: double.infinity,
+                                                      child: (piece['photos']
+                                                                      as List?)
+                                                                  ?.isNotEmpty ==
+                                                              true
+                                                          ? Image.network(
+                                                              piece['photos']
+                                                                  [0],
+                                                              fit: BoxFit.cover,
+                                                            )
+                                                          : (piece['video'] !=
+                                                                      null &&
+                                                                  (piece['video']
+                                                                          ?.toString()
+                                                                          .isNotEmpty ??
+                                                                      false))
+                                                              ? VideoPreviewPlaceholder(
+                                                                  videoUrl: piece[
+                                                                          'video']
+                                                                      ?.toString(),
+                                                                  iconSize: 36,
+                                                                )
+                                                              : Container(
+                                                                  color: Colors
+                                                                          .grey[
+                                                                      200],
+                                                                  child:
+                                                                      const Icon(
+                                                                    Icons
+                                                                        .image_not_supported,
+                                                                    size: 30,
+                                                                    color: Colors
+                                                                        .black26,
+                                                                  ),
+                                                                ),
+                                                    ),
                                                   ),
-                                                  child: Text(
-                                                    piece['prix'] != null
-                                                        ? "${piece['prix']} FCFA"
-                                                        : 'Prix non communiqué',
-                                                    textAlign: TextAlign.center,
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    piece['titre'] ??
+                                                        'Sans titre',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                     style: const TextStyle(
-                                                      color: Color(0xFFB45309),
                                                       fontWeight:
                                                           FontWeight.w600,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    piece['entreprise'] ??
+                                                        'Entreprise inconnue',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      color: Colors.black54,
                                                       fontSize: 11,
                                                     ),
                                                   ),
-                                                ),
-                                              ],
+                                                  const SizedBox(height: 10),
+                                                  Container(
+                                                    width: double.infinity,
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 5),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFFFFF5E5),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              14),
+                                                    ),
+                                                    child: Text(
+                                                      piece['prix'] != null
+                                                          ? "${piece['prix']} FCFA"
+                                                          : 'Prix non communiqué',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: const TextStyle(
+                                                        color:
+                                                            Color(0xFFB45309),
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        fontSize: 11,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
+                      ),
                     ),
                   ],
                 ),

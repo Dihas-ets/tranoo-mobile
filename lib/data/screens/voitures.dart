@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'cars_info.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
+import 'package:tranoo/services/alert_service.dart';
 
 class VoituresPage extends StatefulWidget {
   const VoituresPage({super.key});
@@ -24,8 +25,6 @@ class _VoituresPageState extends State<VoituresPage>
   List<bool> _isVisible = [];
   final TextEditingController _searchController = TextEditingController();
   String _searchText = "";
-  String _lastNoResultQuery = '';
-  bool _searchRequestDialogOpen = false;
 
   // Filtres
   String? _selectedBrand;
@@ -40,6 +39,8 @@ class _VoituresPageState extends State<VoituresPage>
   late int _modeleTabIndex;
   late int _localisationTabIndex;
   late int _budgetTabIndex;
+  Timer? _autoRefreshTimer;
+  bool _noResultDialogShown = false;
 
   @override
   void initState() {
@@ -57,228 +58,21 @@ class _VoituresPageState extends State<VoituresPage>
     });
 
     fetchVoitures();
+    _autoRefreshTimer =
+        Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) fetchVoitures(silent: true);
+    });
     _searchController.addListener(() {
       setState(() {
         _searchText = _searchController.text.toLowerCase();
+        _noResultDialogShown = false;
       });
     });
   }
 
-  Future<void> _openVehicleSearchRequestDialog() async {
-    if (_searchRequestDialogOpen) return;
-    _searchRequestDialogOpen = true;
-    final marqueController = TextEditingController();
-    final modeleController = TextEditingController();
-    final anneeMinController = TextEditingController();
-    final anneeMaxController = TextEditingController();
-    final budgetMaxController = TextEditingController();
-    final localisationController = TextEditingController();
-    final telephoneController = TextEditingController();
-    final detailsController = TextEditingController();
-    bool sending = false;
-
-    try {
-      await showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (ctx) {
-          return StatefulBuilder(
-            builder: (ctx, setModal) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: const Text('Aucun vehicule trouve'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Envoyez votre besoin aux vendeurs de la plateforme.',
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: marqueController,
-                      decoration: const InputDecoration(
-                        labelText: 'Marque *',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: modeleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Modele *',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: anneeMinController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Annee min',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: anneeMaxController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Annee max',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: budgetMaxController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Budget max (FCFA)',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: localisationController,
-                      decoration: const InputDecoration(
-                        labelText: 'Localisation',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: telephoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Telephone',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: detailsController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Details supplementaires',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: sending ? null : () => Navigator.pop(ctx),
-                  child: const Text('Annuler'),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF8BF13),
-                    foregroundColor: Colors.black,
-                  ),
-                  onPressed: sending
-                      ? null
-                      : () async {
-                          if (marqueController.text.trim().isEmpty ||
-                              modeleController.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Marque et modele sont requis.'),
-                              ),
-                            );
-                            return;
-                          }
-                          setModal(() => sending = true);
-                          try {
-                            final user = FirebaseAuth.instance.currentUser;
-                            final idToken = await user?.getIdToken();
-                            if (idToken == null || idToken.isEmpty) {
-                              throw Exception('Utilisateur non connecte');
-                            }
-                            final res = await http.post(
-                              Uri.parse('${getBaseUrl()}/notifications/search-request'),
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': 'Bearer $idToken',
-                              },
-                              body: jsonEncode({
-                                'marque': marqueController.text.trim(),
-                                'modele': modeleController.text.trim(),
-                                'anneeMin': anneeMinController.text.trim(),
-                                'anneeMax': anneeMaxController.text.trim(),
-                                'budgetMax': budgetMaxController.text.trim(),
-                                'localisation': localisationController.text.trim(),
-                                'telephone': telephoneController.text.trim(),
-                                'description': detailsController.text.trim(),
-                              }),
-                            );
-                            if (res.statusCode >= 200 && res.statusCode < 300) {
-                              if (!mounted) return;
-                              Navigator.pop(ctx);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Demande envoyee aux vendeurs avec succes.',
-                                  ),
-                                  backgroundColor: Color(0xFF0461B6),
-                                ),
-                              );
-                            } else {
-                              throw Exception('Erreur envoi demande');
-                            }
-                          } catch (_) {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Impossible denvoyer la demande pour le moment.',
-                                ),
-                                backgroundColor: Colors.redAccent,
-                              ),
-                            );
-                          } finally {
-                            if (ctx.mounted) {
-                              setModal(() => sending = false);
-                            }
-                          }
-                        },
-                  child: sending
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Envoyer'),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    } finally {
-      _searchRequestDialogOpen = false;
-      marqueController.dispose();
-      modeleController.dispose();
-      anneeMinController.dispose();
-      anneeMaxController.dispose();
-      budgetMaxController.dispose();
-      localisationController.dispose();
-      telephoneController.dispose();
-      detailsController.dispose();
-    }
-  }
-
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -292,7 +86,7 @@ class _VoituresPageState extends State<VoituresPage>
     return 0.78;
   }
 
-  void _reloadAll() {
+  Future<void> _reloadAll() async {
     // Réinitialiser la recherche
     _searchController.clear();
     _searchText = '';
@@ -304,16 +98,17 @@ class _VoituresPageState extends State<VoituresPage>
     _budgetMin = null;
     _budgetMax = null;
 
-    // Recharger les données
-    fetchVoitures();
     setState(() {});
+    await fetchVoitures();
   }
 
-  Future<void> fetchVoitures() async {
-    setState(() {
-      isLoading = true;
-      error = null;
-    });
+  Future<void> fetchVoitures({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        isLoading = true;
+        error = null;
+      });
+    }
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
@@ -789,6 +584,7 @@ class _VoituresPageState extends State<VoituresPage>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -796,11 +592,14 @@ class _VoituresPageState extends State<VoituresPage>
         return StatefulBuilder(
           builder: (context, setModalState) {
             final disponibles = compterDansIntervalle(currentMin, currentMax);
-            return Padding(
+            return SafeArea(
+              top: false,
+              child: Padding(
               padding: EdgeInsets.only(
                 left: 16,
                 right: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                bottom:
+                    MediaQuery.of(context).viewInsets.bottom + 16 + 12,
                 top: 8,
               ),
               child: Column(
@@ -902,6 +701,7 @@ class _VoituresPageState extends State<VoituresPage>
                   ),
                 ],
               ),
+              ),
             );
           },
         );
@@ -909,8 +709,259 @@ class _VoituresPageState extends State<VoituresPage>
     );
   }
 
+  Future<void> _showVehicleMiniForm() async {
+    final formKey = GlobalKey<FormState>();
+    final marqueController = TextEditingController();
+    final modeleController = TextEditingController();
+    final anneeController = TextEditingController();
+    final budgetController = TextEditingController();
+    String etat = 'occasion';
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return SafeArea(
+              top: false,
+              child: SizedBox(
+                height: MediaQuery.of(ctx).size.height * 0.78,
+                child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                MediaQuery.of(ctx).viewInsets.bottom + 16,
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                      Center(
+                        child: Container(
+                          width: 42,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Alerte vehicule',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: marqueController,
+                        decoration: const InputDecoration(
+                          labelText: 'Marque',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Marque requise'
+                            : null,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: modeleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Modele',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Modele requis'
+                            : null,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: anneeController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Annee',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Annee requise'
+                            : null,
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Etat du vehicule',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Neuf'),
+                        value: 'neuf',
+                        groupValue: etat,
+                        onChanged: (value) =>
+                            setSheetState(() => etat = value ?? 'neuf'),
+                      ),
+                      RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Occasion'),
+                        value: 'occasion',
+                        groupValue: etat,
+                        onChanged: (value) =>
+                            setSheetState(() => etat = value ?? 'occasion'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: budgetController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Budget (FCFA)',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Budget requis'
+                            : null,
+                      ),
+                            const SizedBox(height: 10),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SafeArea(
+                      top: false,
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF8BF13),
+                            foregroundColor: Colors.black,
+                          ),
+                          onPressed: () {
+                            if (!(formKey.currentState?.validate() ?? false)) {
+                              return;
+                            }
+                            () async {
+                              try {
+                                await AlertService().createVehicleAlert(
+                                  marque: marqueController.text,
+                                  modele: modeleController.text,
+                                  annee: anneeController.text,
+                                  etat: etat,
+                                  budgetMax: budgetController.text,
+                                );
+                                if (!context.mounted) return;
+                                Navigator.pop(ctx);
+                                await showDialog(
+                                  context: context,
+                                  barrierDismissible: true,
+                                  builder: (_) => AlertDialog(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    title: const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.check_circle,
+                                          color: Color(0xFF16A34A),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text('Alerte envoyée'),
+                                      ],
+                                    ),
+                                    content: const Text(
+                                      'Votre demande a bien ete enregistree. Vous recevrez les retours des vendeurs tres bientot.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(),
+                                        child: const Text('OK'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Erreur envoi alerte: $e'),
+                                  ),
+                                );
+                              }
+                            }();
+                          },
+                          child: const Text('Envoyer l\'alerte'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showNoResultDialog() {
+    if (!mounted || _noResultDialogShown) return;
+    _noResultDialogShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Row(
+            children: [
+              Icon(Icons.search_off, color: Color(0xFFB45309)),
+              SizedBox(width: 8),
+              Text('Aucun resultat'),
+            ],
+          ),
+          content: const Text(
+            'Aucune voiture ne correspond a votre recherche.\nCreez une mini alerte pour etre contacte rapidement.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Plus tard'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _showVehicleMiniForm();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF8BF13),
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('Remplir mini form'),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasActiveCriteria = _searchText.trim().isNotEmpty ||
+        _selectedBrand != null ||
+        _selectedModel != null ||
+        _selectedLocation != null ||
+        _budgetMin != null ||
+        _budgetMax != null;
     final filteredVoitures = _applyFilters(voitures).where((v) {
       final titre = ((v['marque'] ?? '').toString() +
               ' ' +
@@ -920,17 +971,8 @@ class _VoituresPageState extends State<VoituresPage>
       if (_searchText.isEmpty) return true;
       return titre.contains(_searchText) || alt.contains(_searchText);
     }).toList();
-    final shouldPromptNoResult =
-        _searchText.trim().isNotEmpty &&
-        filteredVoitures.isEmpty &&
-        _lastNoResultQuery != _searchText.trim();
-    if (shouldPromptNoResult) {
-      _lastNoResultQuery = _searchText.trim();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _openVehicleSearchRequestDialog();
-        }
-      });
+    if (filteredVoitures.isNotEmpty) {
+      _noResultDialogShown = false;
     }
 
     return Scaffold(
@@ -954,11 +996,6 @@ class _VoituresPageState extends State<VoituresPage>
                           hintText:
                               'Rechercher une voiture (marque, modèle, titre)...',
                           prefixIcon: const Icon(Icons.search),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.refresh,
-                                color: Color(0xFF8C9199)),
-                            onPressed: _reloadAll,
-                          ),
                           filled: true,
                           fillColor: Colors.grey[200],
                           border: OutlineInputBorder(
@@ -1004,22 +1041,42 @@ class _VoituresPageState extends State<VoituresPage>
                       _buildBudgetSection(),
                     // Liste des voitures
                     Expanded(
-                      child: filteredVoitures.isEmpty
-                          ? Center(
-                              child: Text(
-                                "Aucune voiture disponible pour le moment.",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            )
-                          : Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 13.0),
-                              child: GridView.builder(
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
+                      child: RefreshIndicator(
+                        onRefresh: _reloadAll,
+                        child: filteredVoitures.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  Builder(
+                                    builder: (_) {
+                                      if (hasActiveCriteria) {
+                                        _showNoResultDialog();
+                                      }
+                                      return const SizedBox.shrink();
+                                    },
+                                  ),
+                                  SizedBox(
+                                    height: MediaQuery.of(context).size.height *
+                                        0.22,
+                                  ),
+                                  const Center(
+                                    child: Text(
+                                      "Aucune voiture disponible pour le moment.",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 13.0),
+                                child: GridView.builder(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 2,
                                   crossAxisSpacing: 10,
                                   mainAxisSpacing: 10,
@@ -1412,6 +1469,7 @@ class _VoituresPageState extends State<VoituresPage>
                                 },
                               ),
                             ),
+                        ),
                     ),
                   ],
                 ),

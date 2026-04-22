@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'order_tracking_page_modern.dart';
+import '../../config/backend_config.dart';
 
-class OrderDetailsPage extends StatelessWidget {
+class OrderDetailsPage extends StatefulWidget {
   final Map<String, dynamic> order;
   final Color accentColor;
 
@@ -10,6 +14,15 @@ class OrderDetailsPage extends StatelessWidget {
     required this.order,
     this.accentColor = const Color(0xFF1F69FF),
   });
+
+  @override
+  State<OrderDetailsPage> createState() => _OrderDetailsPageState();
+}
+
+class _OrderDetailsPageState extends State<OrderDetailsPage> {
+  Map<String, dynamic>? _order;
+  Map<String, dynamic>? _delivery;
+  bool _loading = false;
 
   String _statusText(String status) {
     switch (status.toLowerCase()) {
@@ -36,15 +49,77 @@ class OrderDetailsPage extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _order = widget.order;
+    _reload();
+  }
+
+  Future<void> _reload() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      final current = FirebaseAuth.instance.currentUser;
+      final token = await current?.getIdToken();
+      if (token == null) return;
+
+      final base = getApiBaseUrl();
+      final id = (_order?['_id']?.toString() ?? _order?['id']?.toString() ?? '')
+          .trim();
+      if (id.isNotEmpty) {
+        final res = await http.get(
+          Uri.parse('$base/orders/$id'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body);
+          final o =
+              (data is Map<String, dynamic>) ? (data['order'] ?? data) : null;
+          if (o is Map) _order = Map<String, dynamic>.from(o);
+        }
+      }
+
+      final orderId =
+          (_order?['_id']?.toString() ?? _order?['id']?.toString() ?? '')
+              .trim();
+      if (orderId.isNotEmpty) {
+        final dRes = await http.get(
+          Uri.parse('$base/deliveries/order/$orderId'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        if (dRes.statusCode == 200) {
+          final data = jsonDecode(dRes.body);
+          final d = (data is Map<String, dynamic>)
+              ? (data['delivery'] ?? data)
+              : null;
+          if (d is Map) _delivery = Map<String, dynamic>.from(d);
+        }
+      }
+    } catch (_) {
+      // silent: page must remain usable offline
+    } finally {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final status = order['status']?.toString() ?? 'pending';
+    final accentColor = widget.accentColor;
+    final status = _delivery?['statut']?.toString() ??
+        _order?['status']?.toString() ??
+        'pending';
     final orderId =
-        (order['_id']?.toString() ?? order['id']?.toString() ?? 'N/A').trim();
-    final deliveryId = order['deliveryId']?.toString() ?? '';
-    final total = (order['total'] as num?)?.toDouble() ?? 0;
-    final createdAt = order['createdAt']?.toString();
-    final deliveryAddress = order['deliveryAddress']?.toString() ?? 'Adresse non spécifiée';
-    final items = (order['items'] as List<dynamic>? ?? []);
+        (_order?['_id']?.toString() ?? _order?['id']?.toString() ?? 'N/A')
+            .trim();
+    final deliveryId = _delivery?['_id']?.toString() ??
+        _order?['deliveryId']?.toString() ??
+        '';
+    final total = (_order?['total'] as num?)?.toDouble() ?? 0;
+    final createdAt = _order?['createdAt']?.toString();
+    final deliveryAddress =
+        _order?['deliveryAddress']?.toString() ?? 'Adresse non spécifiée';
+    final items = (_order?['items'] as List<dynamic>? ?? []);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
@@ -53,6 +128,18 @@ class OrderDetailsPage extends StatelessWidget {
         foregroundColor: const Color(0xFF0A1F44),
         elevation: 0,
         title: const Text('Détails de commande'),
+        actions: [
+          IconButton(
+            onPressed: _reload,
+            icon: _loading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
@@ -92,7 +179,8 @@ class OrderDetailsPage extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         _statusText(status),
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
                       ),
                       const SizedBox(height: 10),
                       Text(
@@ -189,11 +277,25 @@ class OrderDetailsPage extends StatelessWidget {
                   // Ligne de progression (package -> truck -> home)
                   Row(
                     children: [
-                      _stepDot(icon: Icons.inventory_2_outlined, color: accentColor, filled: true),
-                      Expanded(child: _stepLine(color: accentColor.withOpacity(0.35))),
-                      _stepDot(icon: Icons.local_shipping_outlined, color: accentColor, filled: true),
-                      Expanded(child: _stepLine(color: accentColor.withOpacity(0.20), dashed: true)),
-                      _stepDot(icon: Icons.home_outlined, color: accentColor, filled: false),
+                      _stepDot(
+                          icon: Icons.inventory_2_outlined,
+                          color: accentColor,
+                          filled: true),
+                      Expanded(
+                          child:
+                              _stepLine(color: accentColor.withOpacity(0.35))),
+                      _stepDot(
+                          icon: Icons.local_shipping_outlined,
+                          color: accentColor,
+                          filled: true),
+                      Expanded(
+                          child: _stepLine(
+                              color: accentColor.withOpacity(0.20),
+                              dashed: true)),
+                      _stepDot(
+                          icon: Icons.home_outlined,
+                          color: accentColor,
+                          filled: false),
                     ],
                   ),
 
@@ -213,7 +315,8 @@ class OrderDetailsPage extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: accentColor.withOpacity(0.12)),
+                        border:
+                            Border.all(color: accentColor.withOpacity(0.12)),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.04),
@@ -260,7 +363,8 @@ class OrderDetailsPage extends StatelessWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
                               color: accentColor.withOpacity(0.10),
                               borderRadius: BorderRadius.circular(999),
@@ -316,7 +420,8 @@ class OrderDetailsPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => OrderTrackingPageModern(orderId: orderId),
+                          builder: (_) =>
+                              OrderTrackingPageModern(orderId: orderId),
                         ),
                       );
                     },
@@ -326,12 +431,14 @@ class OrderDetailsPage extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: accentColor),
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: accentColor),
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => OrderTrackingPageModern(orderId: orderId),
+                          builder: (_) =>
+                              OrderTrackingPageModern(orderId: orderId),
                         ),
                       );
                     },
@@ -351,13 +458,15 @@ class OrderDetailsPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+          Text(title,
+              style: const TextStyle(fontSize: 12, color: Colors.black54)),
           const SizedBox(height: 2),
           Text(
             value,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontWeight: FontWeight.w700, color: color ?? Colors.black87),
+            style: TextStyle(
+                fontWeight: FontWeight.w700, color: color ?? Colors.black87),
           ),
         ],
       ),
@@ -412,7 +521,8 @@ class QrImageView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final encoded = Uri.encodeComponent(data);
-    final qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=$encoded';
+    final qrUrl =
+        'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=$encoded';
     return Image.network(
       qrUrl,
       fit: BoxFit.contain,
@@ -420,4 +530,3 @@ class QrImageView extends StatelessWidget {
     );
   }
 }
-

@@ -530,17 +530,14 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
                       child: ElevatedButton(
                         onPressed: () async {
                           Navigator.pop(ctx);
-                          await _startFeexpayPayment(
-                            amount: totalCommande,
-                            description: 'Paiement commande pièces',
-                          );
+                          await _confirmReception();
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Payer ma commande'),
+                        child: const Text('Récupérer ma commande'),
                       ),
                     ),
                   ],
@@ -552,6 +549,49 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
         );
       },
     );
+  }
+
+  Future<void> _confirmReception() async {
+    final deliveryId = _deliveryId;
+    if (deliveryId == null || deliveryId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Livraison introuvable.')),
+      );
+      return;
+    }
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+      if (token == null) throw Exception('Token manquant');
+
+      final res = await Dio().post(
+        '${getApiBaseUrl()}/deliveries/$deliveryId/confirm',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Commande récupérée avec succès.')),
+          );
+        }
+        await _refreshDelivery();
+        await _loadOrderData(silent: true);
+      } else {
+        throw Exception('Erreur serveur (${res.statusCode})');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur récupération: $e')),
+      );
+    }
   }
 
   Widget _amountRow(String label, String value) {
@@ -955,6 +995,7 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
   }
 
   Widget _buildMapWidget() {
+    final status = (_orderData?['status'] as String?)?.toLowerCase();
     // Utiliser la logique de carte existante
     return FlutterMap(
       options: MapOptions(
@@ -1040,39 +1081,6 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildErrorWidget() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _error!,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadOrderData,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF8BF13),
-              foregroundColor: Colors.black,
-            ),
-            child: const Text('Réessayer'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -1174,348 +1182,6 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
         return 'Statut inconnu.';
     }
   }
-
-  String _getDriverStatusText(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'assigné':
-        return 'Livreur accepté - En route pour récupération';
-      case 'en_cours':
-        return 'Livreur en route vers vous';
-      case 'delivering':
-        return 'Livraison en cours';
-      default:
-        return 'Suivi en temps réel';
-    }
-  }
-
-  // Nouvelles méthodes pour l'UI moderne
-  String _formatStatus(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return 'En attente';
-      case 'confirmed':
-        return 'Confirmée';
-      case 'preparing':
-        return 'En préparation';
-      case 'ready':
-        return 'Prête';
-      case 'delivering':
-        return 'En livraison';
-      case 'delivered':
-        return 'Livrée';
-      case 'cancelled':
-        return 'Annulée';
-      default:
-        return status ?? 'Inconnu';
-    }
-  }
-
-  Widget _buildStatusTimeline(String? status) {
-    final steps = [
-      {'title': 'Commande confirmée', 'icon': Icons.check_circle, 'status': 'confirmed'},
-      {'title': 'En préparation', 'icon': Icons.restaurant, 'status': 'preparing'},
-      {'title': 'Prête', 'icon': Icons.inventory, 'status': 'ready'},
-      {'title': 'En livraison', 'icon': Icons.local_shipping, 'status': 'delivering'},
-      {'title': 'Livrée', 'icon': Icons.home, 'status': 'delivered'},
-    ];
-
-    return Column(
-      children: steps.asMap().entries.map((entry) {
-        final index = entry.key;
-        final step = entry.value;
-        final isCompleted = _isStepCompleted(status, step['status'] as String);
-
-        return Row(
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: isCompleted ? Colors.white : Colors.white.withOpacity(0.3),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white,
-                  width: 2,
-                ),
-              ),
-              child: Icon(
-                step['icon'] as IconData,
-                size: 14,
-                color: isCompleted ? const Color(0xFFF8BF13) : Colors.white.withOpacity(0.7),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                step['title'] as String,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isCompleted ? Colors.white : Colors.white.withOpacity(0.7),
-                  fontWeight: isCompleted ? FontWeight.w600 : FontWeight.w400,
-                ),
-              ),
-            ),
-          ],
-        );
-      }).toList(),
-    );
-  }
-
-  bool _isStepCompleted(String? currentStatus, String stepStatus) {
-    final statusOrder = ['pending', 'confirmed', 'preparing', 'ready', 'delivering', 'delivered'];
-    final currentIndex = statusOrder.indexOf(currentStatus?.toLowerCase() ?? 'pending');
-    final stepIndex = statusOrder.indexOf(stepStatus.toLowerCase());
-    return stepIndex < currentIndex;
-  }
-
-  Widget _buildJourneyPoints() {
-    return Column(
-      children: [
-        // Point de départ - Fournisseur
-        _buildJourneyPoint(
-          icon: Icons.store,
-          title: 'Point de départ',
-          subtitle: 'Fournisseur',
-          isCompleted: true,
-          isFirst: true,
-        ),
-        
-        // Ligne pointillée
-        Container(
-          height: 30,
-          margin: const EdgeInsets.only(left: 20),
-          child: CustomPaint(
-            painter: DashedLinePainter(
-              color: const Color(0xFFF8BF13).withOpacity(0.5),
-              dashWidth: 5,
-              dashSpace: 5,
-            ),
-          ),
-        ),
-        
-        // Point de livraison - Client
-        _buildJourneyPoint(
-          icon: Icons.home,
-          title: 'Destination',
-          subtitle: 'Domicile client',
-          isCompleted: false,
-          isLast: true,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildJourneyPoint({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool isCompleted,
-    bool isFirst = false,
-    bool isLast = false,
-  }) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: isCompleted ? const Color(0xFFF8BF13) : Colors.grey.withOpacity(0.3),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isCompleted ? const Color(0xFFF8BF13) : Colors.grey.withOpacity(0.5),
-              width: 2,
-            ),
-          ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: isCompleted ? Colors.white : Colors.grey,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isCompleted ? Colors.black87 : Colors.grey,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isCompleted ? Colors.black54 : Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDriverInfo() {
-    final livreur = _deliveryData?['livreur'];
-    if (livreur == null) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8BF13).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: const Color(0xFFF8BF13),
-            child: Text(
-              (livreur['name'] as String? ?? 'L')[0].toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  livreur['name'] as String? ?? 'Livreur',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  livreur['phone'] as String? ?? '',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8BF13),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'En route',
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8BF13).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFF8BF13).withOpacity(0.3),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: const Color(0xFFF8BF13),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFFF8BF13),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _callDriver() {
-    final livreur = _deliveryData?['livreur'];
-    if (livreur?['phone'] != null) {
-      // Implémenter l'appel téléphonique
-      print('Appeler: ${livreur['phone']}');
-    }
-  }
-
-  void _messageDriver() {
-    final livreur = _deliveryData?['livreur'];
-    if (livreur?['phone'] != null) {
-      // Implémenter l'envoi de message
-      print('Message: ${livreur['phone']}');
-    }
-  }
-
-  void _openRoute() {
-    // Implémenter l'ouverture de l'itinéraire
-    print('Ouvrir itinéraire');
-  }
-}
-
-// Custom painter pour les lignes pointillées
-class DashedLinePainter extends CustomPainter {
-  final Color color;
-  final double dashWidth;
-  final double dashSpace;
-
-  DashedLinePainter({
-    required this.color,
-    required this.dashWidth,
-    required this.dashSpace,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2;
-
-    double startX = 0;
-    while (startX < size.width) {
-      canvas.drawLine(
-        Offset(startX, size.height / 2),
-        Offset(startX + dashWidth, size.height / 2),
-        paint,
-      );
-      startX += dashWidth + dashSpace;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
 
   String _getDriverStatusText(String? status) {
     switch (status?.toLowerCase()) {

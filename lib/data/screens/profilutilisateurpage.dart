@@ -175,8 +175,8 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
     );
 
     if (confirmed != true) return;
-
     if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -192,11 +192,10 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
       if (idToken == null) {
-        if (context.mounted) Navigator.of(context).pop(); // close progress
+        if (context.mounted) Navigator.of(context).pop();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Session invalide. Reconnectez-vous.')),
+            const SnackBar(content: Text('Session invalide. Reconnectez-vous.')),
           );
         }
         return;
@@ -208,21 +207,19 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
           headers: {'Authorization': 'Bearer $idToken'},
         ),
       );
-
       await dio.delete('/users/me');
 
-      if (context.mounted) Navigator.of(context).pop(); // close progress
-      await Provider.of<local_auth.AuthProvider>(context, listen: false)
-          .logout();
+      if (context.mounted) Navigator.of(context).pop();
+      await Provider.of<local_auth.AuthProvider>(context, listen: false).logout();
 
       if (!context.mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => ConnexionPage()),
+        MaterialPageRoute(builder: (context) => const ConnexionPage()),
         (route) => false,
       );
     } catch (e) {
-      if (context.mounted) Navigator.of(context).pop(); // close progress
+      if (context.mounted) Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur suppression: ${e.toString()}')),
       );
@@ -268,9 +265,9 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
         await local_auth.AuthProvider.saveUserToPrefs(idToken, refreshedUser);
         if (mounted) {
           context.read<local_auth.AuthProvider>().reloadUser();
-          setState(() {
-            userData?["photo"] = url;
-          });
+        setState(() {
+          userData?["photo"] = url;
+        });
         }
       }
     } catch (e) {
@@ -334,7 +331,8 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
                               : (userData != null &&
                                       userData!["photo"] != null &&
                                       userData!["photo"].toString().isNotEmpty)
-                                  ? NetworkImage(userData!["photo"].toString())
+                                  ? NetworkImage(
+                                      userData!["photo"].toString())
                                   : null,
                           child: (_image == null &&
                                   (userData == null ||

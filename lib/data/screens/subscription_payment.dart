@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import '../../services/user_service.dart';
 import 'package:feexpay_flutter/feexpay_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
+import 'dart:developer' as developer;
 
 final fpToken = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
 final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
@@ -34,19 +33,24 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
 
   Future<void> _loadSubscriptionPricing() async {
     try {
-      final url =
-          '${UserService().dio.options.baseUrl}/admin/subscription-pricing';
-      final response = await http.get(Uri.parse(url));
+      final url = '${UserService().dio.options.baseUrl}/admin/subscription-pricing';
+      developer.log('[SUBSCRIPTION_PAYMENT] GET $url');
+      final response = await Dio().get(url);
+      developer.log(
+        '[SUBSCRIPTION_PAYMENT] status=${response.statusCode} data=${response.data}',
+      );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = response.data;
+        final price = _extractSubscriptionPrice(data);
         if (mounted) {
           setState(() {
-            _prixMensuel = (data['prixMensuel'] ?? 5000.0).toDouble();
+            _prixMensuel = price;
           });
         }
       }
     } catch (e) {
+      developer.log('[SUBSCRIPTION_PAYMENT] pricing error=$e');
       // Garder le prix par défaut en cas d'erreur
       if (mounted) {
         setState(() {
@@ -54,6 +58,20 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
         });
       }
     }
+  }
+
+  double _extractSubscriptionPrice(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final direct = data['prixMensuel'];
+      if (direct is num) return direct.toDouble();
+
+      final nested = data['pricing'];
+      if (nested is Map<String, dynamic>) {
+        final nestedValue = nested['prixMensuel'];
+        if (nestedValue is num) return nestedValue.toDouble();
+      }
+    }
+    return 5000.0;
   }
 
   @override
@@ -236,8 +254,8 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                         color: Colors.black,
                         strokeWidth: 2,
                       )
-                    : const Text(
-                        'Souscrire maintenant - 5 000 FCFA',
+                    : Text(
+                        'Souscrire maintenant - ${_prixMensuel.toInt()} FCFA',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,

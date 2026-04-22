@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/cart_service.dart';
 import '../../providers/counter_provider.dart';
+import '../../config/backend_config.dart';
 import 'marque.dart';
 import 'voitures.dart';
 import 'piece.dart';
@@ -15,6 +18,9 @@ import 'connexion_page.dart';
 import 'mesfactures.dart';
 import 'second_page.dart';
 import '../../providers/auth_provider.dart' as myauth;
+import '../../services/notification_service.dart';
+import 'create_sell.dart';
+import 'create_sell2.dart';
 
 class AvantHome extends StatefulWidget {
   const AvantHome({super.key});
@@ -27,12 +33,46 @@ class _AvantHomeState extends State<AvantHome> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _didCheckOnboarding = false;
+  int _invoiceUnreadCount = 0;
+  bool _didShowSellerAlertPopup = false;
+
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
     super.initState();
     _checkOnboardingAndInactivity();
     _updateLastLoginTime();
+    _loadUnreadInvoicesCount();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Provider.of<CounterProvider>(context, listen: false).loadCounters();
+    });
+  }
+
+  Future<void> _loadUnreadInvoicesCount() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final token = await user.getIdToken();
+      final resp = await Dio().get(
+        '${getApiBaseUrl()}/invoices/my',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+      final data = resp.data;
+      final count = (data is Map<String, dynamic>)
+          ? ((data['unreadCount'] as num?)?.toInt() ?? 0)
+          : 0;
+      if (!mounted) return;
+      setState(() {
+        _invoiceUnreadCount = count;
+      });
+    } catch (_) {}
   }
 
   Future<void> _checkOnboardingAndInactivity() async {
@@ -65,17 +105,40 @@ class _AvantHomeState extends State<AvantHome> {
     });
   }
 
-  final List<Widget> _pages = [
-    const Marque(),
-    const VoituresPage(),
-    const Piece(),
-    const Profil3(),
-  ];
+  Widget _profilePageForUser(Map<String, dynamic>? user) {
+    final role = (user?['role'] ?? user?['typeUtilisateur'] ?? user?['type'])
+        ?.toString()
+        .toLowerCase();
+    if (role == 'vendeur') return const ProfilUtilisateurPage();
+    if (role == 'transitaire') return const ProfilUtilisateur2();
+    return const Profil3();
+  }
+
+  List<Widget> _pagesForUser(Map<String, dynamic>? user) {
+    return [
+      const Marque(),
+      const VoituresPage(),
+      const Piece(),
+      _profilePageForUser(user),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<myauth.AuthProvider>(context).user;
-    
+    final pages = _pagesForUser(user);
+    final role = (user?['role'] ?? user?['typeUtilisateur'] ?? user?['type'])
+        ?.toString()
+        .toLowerCase();
+
+    if (!_didShowSellerAlertPopup && role == 'vendeur') {
+      _didShowSellerAlertPopup = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _maybeShowSellerAlertPopup();
+      });
+    }
+
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
@@ -98,12 +161,43 @@ class _AvantHomeState extends State<AvantHome> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.receipt_long_outlined, color: Colors.black),
-            onPressed: () {
-              Navigator.push(
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.receipt_long_outlined, color: Colors.black),
+                if (_invoiceUnreadCount > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        _invoiceUnreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            onPressed: () async {
+              await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => MesFacturesPage()),
+                MaterialPageRoute(
+                    builder: (context) => const MesFacturesPage()),
               );
+              await _loadUnreadInvoicesCount();
             },
           ),
           Consumer<CartService>(
@@ -112,7 +206,8 @@ class _AvantHomeState extends State<AvantHome> {
                 icon: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    const Icon(Icons.shopping_cart_outlined, color: Colors.black),
+                    const Icon(Icons.shopping_cart_outlined,
+                        color: Colors.black),
                     if (cart.totalQuantity > 0)
                       Positioned(
                         right: 4,
@@ -154,7 +249,8 @@ class _AvantHomeState extends State<AvantHome> {
                 icon: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    const Icon(Icons.notifications_none_outlined, color: Colors.black),
+                    const Icon(Icons.notifications_none_outlined,
+                        color: Colors.black),
                     if (counter.unreadNotificationsCount > 0)
                       Positioned(
                         right: 4,
@@ -182,10 +278,19 @@ class _AvantHomeState extends State<AvantHome> {
                   ],
                 ),
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const Notifications()),
-                  );
+                  () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const Notifications(),
+                      ),
+                    );
+                    if (!context.mounted) return;
+                    await Provider.of<CounterProvider>(
+                      context,
+                      listen: false,
+                    ).loadCounters();
+                  }();
                 },
               );
             },
@@ -198,7 +303,7 @@ class _AvantHomeState extends State<AvantHome> {
           },
         ),
       ),
-      body: _pages[_selectedIndex],
+      body: pages[_selectedIndex],
       drawer: Drawer(
         child: Column(
           children: [
@@ -219,7 +324,9 @@ class _AvantHomeState extends State<AvantHome> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    user != null ? (user['nom'] ?? "Utilisateur") : "Utilisateur non connecté",
+                    user != null
+                        ? (user['nom'] ?? "Utilisateur")
+                        : "Utilisateur non connecté",
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 16,
@@ -245,7 +352,8 @@ class _AvantHomeState extends State<AvantHome> {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const AvantHome()),
+                        MaterialPageRoute(
+                            builder: (context) => const AvantHome()),
                       );
                     },
                   ),
@@ -267,16 +375,12 @@ class _AvantHomeState extends State<AvantHome> {
                       Navigator.pop(context);
                       if (user == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Veuillez vous connecter')),
+                          const SnackBar(
+                              content: Text('Veuillez vous connecter')),
                         );
                         return;
                       }
-                      final role = user['role'] as String?;
-                      final Widget page = role == 'vendeur'
-                          ? const ProfilUtilisateurPage()
-                          : role == 'transitaire'
-                              ? const ProfilUtilisateur2()
-                              : const Profil3();
+                      final Widget page = _profilePageForUser(user);
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => page),
@@ -289,7 +393,9 @@ class _AvantHomeState extends State<AvantHome> {
                       title: const Text('Déconnexion'),
                       onTap: () async {
                         Navigator.pop(context);
-                        await Provider.of<myauth.AuthProvider>(context, listen: false).logout();
+                        await Provider.of<myauth.AuthProvider>(context,
+                                listen: false)
+                            .logout();
                       },
                     ),
                   if (user == null)
@@ -300,7 +406,8 @@ class _AvantHomeState extends State<AvantHome> {
                         Navigator.pop(context);
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const ConnexionPage()),
+                          MaterialPageRoute(
+                              builder: (context) => const ConnexionPage()),
                         );
                       },
                     ),
@@ -319,11 +426,195 @@ class _AvantHomeState extends State<AvantHome> {
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
-          BottomNavigationBarItem(icon: Icon(Icons.directions_car), label: 'Voitures'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.directions_car), label: 'Voitures'),
           BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Pièces'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
         ],
       ),
     );
+  }
+
+  Future<void> _maybeShowSellerAlertPopup() async {
+    try {
+      final data = await _notificationService.getUserNotifications(
+        page: 1,
+        limit: 10,
+        unreadOnly: true,
+      );
+      final notifsRaw = data['notifications'];
+      if (notifsRaw is! List) return;
+
+      final unreadAlerts = notifsRaw
+          .whereType<Map>()
+          .where((n) => (n['type']?.toString() ?? '') == 'alerte')
+          .toList();
+      if (unreadAlerts.isEmpty) return;
+
+      final notif = Map<String, dynamic>.from(unreadAlerts.first);
+      final id = (notif['_id'] ?? '').toString();
+      final title = (notif['title'] ?? 'Nouvelle alerte').toString();
+      final dataMap = (notif['data'] is Map)
+          ? Map<String, dynamic>.from(notif['data'])
+          : {};
+      final requestType = (dataMap['requestType'] ?? '').toString();
+      final isPieceAlert = requestType == 'piece_search';
+
+      final List<String> details = [
+        if ((dataMap['marque'] ?? '').toString().isNotEmpty)
+          'Marque: ${dataMap['marque']}',
+        if ((dataMap['modele'] ?? '').toString().isNotEmpty)
+          'Modele: ${dataMap['modele']}',
+        if ((dataMap['etat'] ?? '').toString().isNotEmpty && !isPieceAlert)
+          'Etat: ${dataMap['etat']}',
+        if ((dataMap['annee'] ?? '').toString().isNotEmpty && isPieceAlert)
+          'Annee: ${dataMap['annee']}',
+        if ((dataMap['anneeMin'] ?? '').toString().isNotEmpty && !isPieceAlert)
+          'Annee min: ${dataMap['anneeMin']}',
+        if ((dataMap['anneeMax'] ?? '').toString().isNotEmpty && !isPieceAlert)
+          'Annee max: ${dataMap['anneeMax']}',
+        if ((dataMap['budgetMax'] ?? '').toString().isNotEmpty)
+          'Budget max: ${dataMap['budgetMax']} FCFA',
+        if ((dataMap['pieceName'] ?? '').toString().isNotEmpty)
+          'Piece: ${dataMap['pieceName']}',
+        if ((dataMap['urgence'] ?? '').toString().isNotEmpty)
+          'Urgence: ${dataMap['urgence']}',
+        if ((dataMap['localisation'] ?? '').toString().isNotEmpty)
+          'Localisation: ${dataMap['localisation']}',
+        if ((dataMap['description'] ?? '').toString().isNotEmpty)
+          'Details: ${dataMap['description']}',
+      ];
+
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) {
+          return Dialog(
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.notifications_active_outlined,
+                          color: Color(0xFFB45309)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Fermer',
+                        onPressed: () async {
+                          if (id.isNotEmpty) {
+                            await _notificationService.markAsRead(id);
+                          }
+                          if (ctx.mounted) Navigator.pop(ctx);
+                        },
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isPieceAlert
+                              ? "Un acheteur est a la recherche d'une piece."
+                              : "Un acheteur est a la recherche d'un vehicule.",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Caracteristiques:',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF92400E),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        if (details.isEmpty)
+                          const Text(
+                            '- Aucune caracteristique fournie',
+                            style: TextStyle(fontSize: 13),
+                          )
+                        else
+                          ...details.map(
+                            (item) => Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: Text('• $item',
+                                  style: const TextStyle(fontSize: 13)),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF8BF13),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      if (id.isNotEmpty) {
+                        await _notificationService.markAsRead(id);
+                      }
+                      if (!ctx.mounted) return;
+                      Navigator.pop(ctx);
+                      if (!mounted) return;
+                      if (isPieceAlert) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const CreateSellPage2()),
+                        );
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const CreateSellPage()),
+                        );
+                      }
+                    },
+                    child: const Text('Proposez une offre'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } catch (_) {
+      // Silencieux: on ne bloque pas l'appbar si erreur réseau.
+    }
   }
 }

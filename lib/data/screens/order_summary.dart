@@ -12,6 +12,7 @@ import '../../config/backend_config.dart';
 import 'package:tranoo/providers/counter_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:tranoo/data/screens/map_picker_screen.dart';
+import 'package:tranoo/data/screens/order_payment_screen.dart';
 
 enum PaymentMethod { cash, online }
 
@@ -671,6 +672,21 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   // Confirmer la commande
                                   final confirmed = await _confirmOrder(total);
                                   if (confirmed && mounted) {
+                                    developer.log('ÉTAPE Paiement: redirection vers OrderPaymentScreen...');
+                                    final paid = await Navigator.push<bool>(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => OrderPaymentScreen(
+                                          amount: total,
+                                          description: 'Paiement commande Tranoo',
+                                        ),
+                                      ),
+                                    );
+                                    developer.log('ÉTAPE Paiement: résultat paid=$paid');
+                                    if (paid != true) {
+                                      _showMessage('Paiement non confirmé. Commande non enregistrée.');
+                                      return;
+                                    }
                                     await _processOrder(total, cart);
                                   }
                                 },
@@ -908,10 +924,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     try {
       developer.log('ÉTAPE 1: Sauvegarde commande en base de données...');
       
-      // Le paiement est toujours en ligne mais se fait après réception du colis
-      // Donc paymentMethod = 'online' et status = 'pending'
+      // Paiement validé avant création commande (via OrderPaymentScreen)
+      // On garde paymentMethod online.
       const paymentMethodStr = 'online';
-      developer.log('Méthode de paiement: $paymentMethodStr (paiement après réception)');
+      developer.log('Méthode de paiement: $paymentMethodStr (paiement validé)');
       
       // Sauvegarder la commande en base de données
       await _saveOrderToDatabase(total, cart, paymentMethodStr);
@@ -961,47 +977,6 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             content: Text('Erreur: ${e.toString()}'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
-    }
-  }
-
-  Future<void> _processOnlinePayment(double total) async {
-    setState(() => _isProcessing = true);
-
-    try {
-      final token = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
-      final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
-
-      if (token.isEmpty || idUser.isEmpty) {
-        throw Exception('Configuration FeexPay manquante');
-      }
-
-      // Redirection directe vers FeexPay
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ChoicePage(
-            token: token,
-            id: idUser,
-            amount: total.toStringAsFixed(0),
-            redirecturl: '/cart-payment-success',
-            errorredirecturl: '/cart-payment-error',
-            trans_key: _transKey,
-          ),
-        ),
-      );
-
-      if (mounted) Navigator.pop(context, true);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur de paiement: $e'),
-            backgroundColor: Colors.red,
           ),
         );
       }
@@ -1109,6 +1084,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           'disponibilite': _selectedDisponibilite,
         },
         'conditionsAffichee': true,
+        'paymentConfirmed': true,
       };
 
       developer.log('Données commande préparées - ${orderData.keys.length} champs');

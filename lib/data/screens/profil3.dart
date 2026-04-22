@@ -139,8 +139,8 @@ class Profil3State extends State<Profil3> {
     );
 
     if (confirmed != true) return;
-
     if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -156,10 +156,11 @@ class Profil3State extends State<Profil3> {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
       if (idToken == null) {
-        if (context.mounted) Navigator.of(context).pop(); // close progress
+        if (context.mounted) Navigator.of(context).pop();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Session invalide. Reconnectez-vous.')),
+            const SnackBar(
+                content: Text('Session invalide. Reconnectez-vous.')),
           );
         }
         return;
@@ -171,10 +172,9 @@ class Profil3State extends State<Profil3> {
           headers: {'Authorization': 'Bearer $idToken'},
         ),
       );
-
       await dio.delete('/users/me');
 
-      if (context.mounted) Navigator.of(context).pop(); // close progress
+      if (context.mounted) Navigator.of(context).pop();
       await Provider.of<myauth.AuthProvider>(context, listen: false).logout();
 
       if (!context.mounted) return;
@@ -184,7 +184,7 @@ class Profil3State extends State<Profil3> {
         (route) => false,
       );
     } catch (e) {
-      if (context.mounted) Navigator.of(context).pop(); // close progress
+      if (context.mounted) Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur suppression: ${e.toString()}')),
       );
@@ -198,11 +198,12 @@ class Profil3State extends State<Profil3> {
     final loading = authProvider.loading;
 
     if (loading) return const Center(child: CircularProgressIndicator());
-    
+
     // Si l'utilisateur n'est pas connecté, afficher le popup d'authentification
     if (userData == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        showAuthDialog(context, message: 'Connectez-vous pour accéder à votre profil');
+        showAuthDialog(context,
+            message: 'Connectez-vous pour accéder à votre profil');
       });
       return Scaffold(
         appBar: AppBar(
@@ -375,13 +376,12 @@ class Profil3State extends State<Profil3> {
     return ListTile(
       leading: Icon(icon, color: color ?? Color(0xFFFFCE31)),
       title: Text(title, style: const TextStyle()),
-      subtitle:
-          subtitle != null
-              ? Text(
-                subtitle,
-                style: const TextStyle(color: Colors.grey, fontSize: 10),
-              )
-              : null,
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              style: const TextStyle(color: Colors.grey, fontSize: 10),
+            )
+          : null,
       trailing: trailing,
       onTap: onTap,
     );
@@ -568,15 +568,14 @@ class Profil3State extends State<Profil3> {
           ),
         ],
       ),
-      trailing:
-          trailing ??
+      trailing: trailing ??
           (badge
               ? const Icon(Icons.circle, size: 12, color: Colors.red)
               : const Icon(
-                Icons.arrow_forward_ios,
-                size: 14,
-                color: Colors.black,
-              )),
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: Colors.black,
+                )),
       onTap: onTap,
     );
   }

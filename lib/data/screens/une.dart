@@ -780,7 +780,9 @@ class _UneState extends State<Une> {
 
         // Préparation des données de publicité pour standalone
         final pubData = {
-          'description': _descriptionController.text.trim(),
+          'description': _descriptionController.text.trim().isEmpty
+              ? 'Publicité sans description'
+              : _descriptionController.text.trim(),
           'typePub': currentType,
           'duree': _selectedDuree,
           'prix': int.tryParse(_prixController.text) ?? 0,
@@ -923,7 +925,9 @@ class _UneState extends State<Une> {
 
       // Préparation des données de publicité
       final pubData = {
-        'description': _descriptionController.text.trim(),
+        'description': _descriptionController.text.trim().isEmpty
+            ? 'Publicité sans description'
+            : _descriptionController.text.trim(),
         'typePub': currentType,
         'duree': _selectedDuree,
         'prix': int.tryParse(_prixController.text) ?? 0,
@@ -1210,12 +1214,7 @@ class _UneState extends State<Une> {
                         labelText: 'Description',
                         border: OutlineInputBorder(),
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Veuillez entrer une description';
-                        }
-                        return null;
-                      },
+                      // Optionnel
                     ),
                     const SizedBox(height: 20),
 
