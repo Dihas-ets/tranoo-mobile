@@ -13,6 +13,7 @@ import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
+import 'dart:developer' as developer;
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
 import 'package:tranoo/services/user_service.dart';
@@ -21,6 +22,7 @@ import 'package:tranoo/services/push_otp_service.dart';
 import 'package:tranoo/utils/local_notification_service.dart';
 import 'package:tranoo/utils/in_app_delivery_popup.dart';
 import 'package:tranoo/providers/locale_provider.dart';
+import 'package:tranoo/utils/feexpay_callback_state.dart';
 
 // import 'package:flutter/services.dart';
 import 'data/screens/marque.dart';
@@ -33,7 +35,6 @@ import 'package:tranoo/data/screens/reset/forgot_password_page.dart';
 import 'package:tranoo/data/screens/reset/verify_code_page.dart';
 import 'package:tranoo/data/screens/reset/create_new_password_page.dart';
 import 'package:tranoo/data/screens/order_details_page.dart';
-import 'package:tranoo/data/screens/orders_page.dart';
 import 'package:tranoo/data/screens/mes_commandes.dart';
 
 // Gestionnaire pour les notifications en arrière-plan
@@ -298,7 +299,60 @@ class MyApp extends StatelessWidget {
             accentColor: args?['accentColor'] ?? const Color(0xFF1F69FF),
           );
         },
+        '/cart-payment-success': (context) =>
+            const _CartPaymentCallbackPage(success: true),
+        '/cart-payment-error': (context) =>
+            const _CartPaymentCallbackPage(success: false),
       },
+    );
+  }
+}
+
+class _CartPaymentCallbackPage extends StatefulWidget {
+  final bool success;
+  const _CartPaymentCallbackPage({required this.success});
+
+  @override
+  State<_CartPaymentCallbackPage> createState() => _CartPaymentCallbackPageState();
+}
+
+class _CartPaymentCallbackPageState extends State<_CartPaymentCallbackPage> {
+  bool _handled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_handled) return;
+    _handled = true;
+    developer.log(
+      '[FEEPAY_CALLBACK] route hit success=${widget.success} args=${ModalRoute.of(context)?.settings.arguments}',
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // Retourner le résultat au ChoicePage qui a pushNamed ce callback.
+      final args = ModalRoute.of(context)?.settings.arguments;
+      FeexPayCallbackState.report(
+        success: widget.success,
+        args: args?.toString(),
+      );
+      final payload = {
+        'successHint': widget.success,
+        'routeName': ModalRoute.of(context)?.settings.name,
+        'callbackArgs': args?.toString(),
+      };
+      developer.log('[FEEPAY_CALLBACK] pop callback payload=$payload');
+      Navigator.of(context).pop(payload);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(
+          color: widget.success ? Colors.green : Colors.red,
+        ),
+      ),
     );
   }
 }

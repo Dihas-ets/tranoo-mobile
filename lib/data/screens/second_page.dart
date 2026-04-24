@@ -15,8 +15,8 @@ class SecondPageState extends State<SecondPage>
   late final AnimationController _animationController;
   int _currentImageIndex = 0;
   final List<String> _images = [
-    'assets/images/voiture_deuxieme_page.png',
     'assets/images/image_background.png',
+    'assets/images/voiture_deuxieme_page.png',
   ];
 
   @override
@@ -42,7 +42,7 @@ class SecondPageState extends State<SecondPage>
     setState(() {
       _currentImageIndex = (_currentImageIndex + 1) % _images.length;
     });
-    
+
     // Continuer le défilement
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) _nextImage();
@@ -69,12 +69,7 @@ class SecondPageState extends State<SecondPage>
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage(_images[_currentImageIndex]),
-                  fit: _images[_currentImageIndex].contains('voiture_deuxieme_page') 
-                      ? BoxFit.contain 
-                      : BoxFit.cover,
-                  scale: _images[_currentImageIndex].contains('voiture_deuxieme_page') 
-                      ? 1.2 
-                      : 1.0,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
@@ -105,7 +100,7 @@ class SecondPageState extends State<SecondPage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Découvrez votre\nvéhicule idéal en\nquelques clics',
+                      'Tranoo \nTrouvez vos pièces et\nvéhicules rapidement',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -162,5 +157,3 @@ class SecondPageState extends State<SecondPage>
     );
   }
 }
-
-

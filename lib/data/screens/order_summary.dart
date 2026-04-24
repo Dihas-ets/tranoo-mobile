@@ -13,6 +13,7 @@ import 'package:tranoo/providers/counter_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:tranoo/data/screens/map_picker_screen.dart';
 import 'package:tranoo/data/screens/order_payment_screen.dart';
+import 'package:tranoo/data/screens/avant_home.dart';
 
 enum PaymentMethod { cash, online }
 
@@ -27,7 +28,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   PaymentMethod _method = PaymentMethod.cash;
-  double _deliveryFee = 720; // Calculé automatiquement
+  double _deliveryFee = 0; // Calculé automatiquement
+  double _pricePerKm = 0;
+  double? _deliveryDistanceKm;
   bool _isProcessing = false;
   final String _transKey = randomAlphaNumeric(15);
   
@@ -74,6 +77,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   @override
   void initState() {
     super.initState();
+    _loadDeliveryPricing();
   }
 
   @override
@@ -81,6 +85,91 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     _addressController.dispose();
     _noteController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadDeliveryPricing() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: getApiBaseUrl(),
+          headers: {
+            if (token != null) 'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+      final response = await dio.get('/deliveries/settings');
+      final root = response.data is Map<String, dynamic>
+          ? response.data as Map<String, dynamic>
+          : <String, dynamic>{};
+      final settings = root['settings'] is Map<String, dynamic>
+          ? root['settings'] as Map<String, dynamic>
+          : root;
+      final raw = settings['pricePerKm'];
+      final parsed = raw is num ? raw.toDouble() : double.tryParse('$raw');
+      if (parsed != null && parsed >= 0 && mounted) {
+        setState(() => _pricePerKm = parsed);
+      }
+      developer.log('[ORDER_SUMMARY] pricePerKm loaded=$_pricePerKm');
+    } catch (e) {
+      developer.log('[ORDER_SUMMARY] pricePerKm load error=$e');
+    }
+  }
+
+  Future<void> _loadSupplierCoordsIfNeeded(CartService cart) async {
+    if (_supplierLatitude != null && _supplierLongitude != null) return;
+    if (cart.items.isEmpty) return;
+
+    final firstItem = cart.items.first;
+    if (firstItem.supplierLatitude != null && firstItem.supplierLongitude != null) {
+      _supplierLatitude = firstItem.supplierLatitude?.toDouble();
+      _supplierLongitude = firstItem.supplierLongitude?.toDouble();
+      developer.log(
+        '[ORDER_SUMMARY] supplier coords from cart=($_supplierLatitude,$_supplierLongitude)',
+      );
+      return;
+    }
+
+    final articleId = firstItem.articleId;
+    if (articleId.isEmpty) return;
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: getApiBaseUrl(),
+          headers: {
+            if (token != null) 'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+      final response = await dio.get('/articles/$articleId');
+      final root = response.data is Map<String, dynamic>
+          ? response.data as Map<String, dynamic>
+          : <String, dynamic>{};
+      final article = root['article'] is Map<String, dynamic>
+          ? root['article'] as Map<String, dynamic>
+          : root;
+      final fournisseur = article['fournisseur'] is Map<String, dynamic>
+          ? article['fournisseur'] as Map<String, dynamic>
+          : <String, dynamic>{};
+      final lat = fournisseur['latitude'];
+      final lng = fournisseur['longitude'];
+      final parsedLat = lat is num ? lat.toDouble() : double.tryParse('$lat');
+      final parsedLng = lng is num ? lng.toDouble() : double.tryParse('$lng');
+      if (parsedLat != null && parsedLng != null) {
+        _supplierLatitude = parsedLat;
+        _supplierLongitude = parsedLng;
+      }
+      developer.log(
+        '[ORDER_SUMMARY] supplier coords from article=($_supplierLatitude,$_supplierLongitude)',
+      );
+    } catch (e) {
+      developer.log('[ORDER_SUMMARY] supplier coords load error=$e');
+    }
   }
 
   // Méthode pour obtenir la position actuelle de l'utilisateur
@@ -255,6 +344,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     );
   }
 
+
   InputDecoration _inputDecoration(String hint, {bool isRequired = false}) {
     return InputDecoration(
       hintText: hint,
@@ -287,31 +377,40 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   Future<void> _calculateDeliveryFeeFromLocation() async {
     if (_deliveryLatitude != null && _deliveryLongitude != null) {
       try {
-        // Sync coords fournisseur depuis le panier (si disponible) pour éviter le fallback 720.
-        try {
-          final cart = Provider.of<CartService>(context, listen: false);
-          if (cart.items.isNotEmpty) {
-            final firstItem = cart.items.first;
-            if (firstItem.supplierLatitude != null &&
-                firstItem.supplierLongitude != null) {
-              _supplierLatitude = firstItem.supplierLatitude?.toDouble();
-              _supplierLongitude = firstItem.supplierLongitude?.toDouble();
-            }
+        final cart = Provider.of<CartService>(context, listen: false);
+        await _loadDeliveryPricing();
+        await _loadSupplierCoordsIfNeeded(cart);
+
+        // Coordonnées fournisseur depuis les articles (priorité) sinon arrêt (pas de fallback magique).
+        final supplierLat = _supplierLatitude;
+        final supplierLng = _supplierLongitude;
+        if (supplierLat == null || supplierLng == null) {
+          if (mounted) {
+            setState(() {
+              _deliveryFee = 0;
+              _deliveryDistanceKm = null;
+            });
           }
-        } catch (_) {}
+          _showMessage('Coordonnées fournisseur indisponibles pour calculer la livraison.');
+          developer.log('[ORDER_SUMMARY] calc skipped: missing supplier coords');
+          return;
+        }
 
-        // Coordonnées fournisseur depuis les articles (priorité) sinon fallback
-        final supplierLat = _supplierLatitude ?? 6.3654;
-        final supplierLng = _supplierLongitude ?? 2.4183;
-
-        // Fallback local (si API indisponible): 75 FCFA/km sur fournisseur->acheteur.
+        // Fallback local (si API indisponible): utiliser le tarif/km admin.
         final km = _haversineKm(
           supplierLat,
           supplierLng,
           _deliveryLatitude!,
           _deliveryLongitude!,
         );
-        final localFee = (km * 75).round().clamp(0, 1000000000).toDouble();
+        final billedKm = km > 0 && km < 1 ? 1.0 : km;
+        final localFee = (billedKm * _pricePerKm)
+            .round()
+            .clamp(0, 1000000000)
+            .toDouble();
+        developer.log(
+          '[ORDER_SUMMARY] local calc supplier=($supplierLat,$supplierLng) delivery=($_deliveryLatitude,$_deliveryLongitude) km=$km pricePerKm=$_pricePerKm localFee=$localFee',
+        );
         
         final response = await Dio().post(
           '${getApiBaseUrl()}/delivery-zones/calculate-fee',
@@ -325,31 +424,52 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         
         if (response.statusCode == 200) {
           // backend: { deliveryFee } (camelCase) — tolère anciennes clés
-          final fee = (response.data['deliveryFee'] as num?)?.toDouble() ??
+          final backendFee = (response.data['deliveryFee'] as num?)?.toDouble() ??
               (response.data['delivery_fee'] as num?)?.toDouble() ??
               localFee;
+          final fee = (km > 0 && backendFee < _pricePerKm)
+              ? _pricePerKm
+              : backendFee;
+          final backendPricePerKm =
+              (response.data['pricePerKm'] as num?)?.toDouble() ??
+              (response.data['zoneInfo'] is Map
+                  ? (response.data['zoneInfo']['pricePerKm'] as num?)?.toDouble()
+                  : null);
           setState(() {
             _deliveryFee = fee;
+            if (backendPricePerKm != null && backendPricePerKm >= 0) {
+              _pricePerKm = backendPricePerKm;
+            }
           });
-          developer.log('Frais de livraison calculés: $_deliveryFee F');
+          developer.log(
+            '[ORDER_SUMMARY] backend calc ok fee=$_deliveryFee pricePerKm=$_pricePerKm',
+          );
         } else {
           setState(() {
             _deliveryFee = localFee;
           });
+          developer.log('[ORDER_SUMMARY] backend non-200 => localFee=$_deliveryFee');
         }
       } catch (e) {
-        developer.log('Error calculating delivery fee: $e');
-        // Fallback local (75 FCFA/km)
-        final supplierLat = _supplierLatitude ?? 6.3654;
-        final supplierLng = _supplierLongitude ?? 2.4183;
+        developer.log('[ORDER_SUMMARY] Error calculating delivery fee: $e');
+        // Fallback local (tarif/km admin récupéré)
+        final supplierLat = _supplierLatitude;
+        final supplierLng = _supplierLongitude;
+        if (supplierLat == null || supplierLng == null) {
+          if (mounted) {
+            setState(() => _deliveryFee = 0);
+          }
+          return;
+        }
         final km = _haversineKm(
           supplierLat,
           supplierLng,
           _deliveryLatitude!,
           _deliveryLongitude!,
         );
+        final billedKm = km > 0 && km < 1 ? 1.0 : km;
         if (mounted) {
-          setState(() => _deliveryFee = (km * 75).round().toDouble());
+          setState(() => _deliveryFee = (billedKm * _pricePerKm).round().toDouble());
         }
       }
     }
@@ -673,7 +793,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   final confirmed = await _confirmOrder(total);
                                   if (confirmed && mounted) {
                                     developer.log('ÉTAPE Paiement: redirection vers OrderPaymentScreen...');
-                                    final paid = await Navigator.push<bool>(
+                                    final paymentResult = await Navigator.push<dynamic>(
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) => OrderPaymentScreen(
@@ -682,9 +802,16 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         ),
                                       ),
                                     );
-                                    developer.log('ÉTAPE Paiement: résultat paid=$paid');
+                                    final paid = paymentResult is Map
+                                        ? paymentResult['paid'] == true
+                                        : paymentResult == true;
+                                    developer.log(
+                                      'ÉTAPE Paiement: résultat raw=$paymentResult resolvedPaid=$paid',
+                                    );
                                     if (paid != true) {
-                                      _showMessage('Paiement non confirmé. Commande non enregistrée.');
+                                      _showMessage(
+                                        'Transaction échouée/annulée. Commande non enregistrée.',
+                                      );
                                       return;
                                     }
                                     await _processOrder(total, cart);
@@ -949,20 +1076,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           developer.log('ERREUR CounterProvider: $e');
         }
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Commande confirmée avec succès!'),
-            backgroundColor: Color(0xFFF8BF13), // Jaune Tranoo
-            duration: Duration(seconds: 2),
-          ),
-        );
-        
-        // Attendre un peu avant de rediriger
-        await Future.delayed(const Duration(milliseconds: 1500));
-        
-        developer.log('ÉTAPE 4: Redirection vers page commandes...');
-        // Rediriger vers la page des commandes
-        Navigator.pushReplacementNamed(context, '/orders');
+        developer.log('ÉTAPE 4: Affichage popup succès commande...');
+        await _showSuccessModal();
         developer.log('=== FIN PROCESSUS COMMANDE - SUCCÈS ===');
       }
     } catch (e) {
@@ -1051,13 +1166,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         }
       }
 
-      // Si pas de fournisseur trouvé, utiliser Cotonou par défaut
-      lieuDepart ??= {
-        'nom': 'Cotonou',
-        'adresse': 'Cotonou, Bénin',
-        'latitude': 6.3654,
-        'longitude': 2.4183,
-      };
+      // Ne plus injecter un faux fallback Cotonou: garder null si inconnu.
 
       final orderData = {
         'items': itemsData,
@@ -1214,7 +1323,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.of(this.context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const AvantHome()),
+                    (route) => false,
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1223,7 +1338,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   ),
                 ),
                 child: const Text(
-                  'Parfait !',
+                  'Revenir à l\'accueil',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

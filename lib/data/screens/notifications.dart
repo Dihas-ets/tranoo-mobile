@@ -490,6 +490,24 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> deleteNotification(String id, String token) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${getBaseUrl()}/notifications/$id'),
+        headers: {"Authorization": "Bearer $token"},
+      );
+      if (response.statusCode == 200) {
+        _notifications.removeWhere((n) => (n['_id'] ?? '').toString() == id);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Erreur suppression notification: $e');
+      return false;
+    }
+  }
+
   void _initFCMListener() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notif = {
@@ -528,6 +546,38 @@ class NotificationsBody extends StatefulWidget {
 }
 
 class _NotificationsBodyState extends State<NotificationsBody> {
+  final Set<String> _selectedNotificationIds = <String>{};
+
+  bool get _selectionMode => _selectedNotificationIds.isNotEmpty;
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedNotificationIds.contains(id)) {
+        _selectedNotificationIds.remove(id);
+      } else {
+        _selectedNotificationIds.add(id);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    if (!_selectionMode) return;
+    setState(() => _selectedNotificationIds.clear());
+  }
+
+  Future<void> _deleteSelected(NotificationProvider provider) async {
+    final user = FirebaseAuth.instance.currentUser;
+    final token = await user?.getIdToken();
+    if (token == null) return;
+    final ids = _selectedNotificationIds.toList();
+    for (final id in ids) {
+      await provider.deleteNotification(id, token);
+    }
+    if (!mounted) return;
+    _clearSelection();
+    _syncUnreadCountWithHeader(provider);
+  }
+
   void _syncUnreadCountWithHeader(NotificationProvider provider) {
     final unreadCount =
         provider.notifications.where((n) => !(n['isRead'] ?? false)).length;
@@ -568,10 +618,56 @@ class _NotificationsBodyState extends State<NotificationsBody> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        leading: _selectionMode
+            ? IconButton(
+                tooltip: 'Annuler',
+                icon: const Icon(Icons.close),
+                onPressed: _clearSelection,
+              )
+            : null,
+        title: Text(
+          _selectionMode
+              ? '${_selectedNotificationIds.length} sélectionnée(s)'
+              : 'Notifications',
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0.4,
+        actions: [
+          if (_selectionMode)
+            IconButton(
+              tooltip: 'Supprimer',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () async {
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Supprimer'),
+                    content: Text(
+                      'Supprimer ${_selectedNotificationIds.length} notification(s) ?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Annuler'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE57373),
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Supprimer'),
+                      ),
+                    ],
+                  ),
+                );
+                if (ok == true) {
+                  await _deleteSelected(provider);
+                }
+              },
+            ),
+        ],
       ),
       body: provider.loading
           ? const Center(child: CircularProgressIndicator())
@@ -603,6 +699,10 @@ class _NotificationsBodyState extends State<NotificationsBody> {
   Widget _buildNotificationsList(NotificationProvider provider, User? user) {
     try {
       return ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.only(top: 10, bottom: 10),
         itemCount: provider.notifications.length,
         itemBuilder: (ctx, index) {
@@ -615,9 +715,16 @@ class _NotificationsBodyState extends State<NotificationsBody> {
           final isVerification =
               _safeGetString(notif, 'type') == 'verification';
           final isUnread = !(notif['isRead'] ?? false);
+          final notifId = (_safeGetString(notif, '_id') ?? '').toString();
+          final isSelected =
+              notifId.isNotEmpty && _selectedNotificationIds.contains(notifId);
 
           return GestureDetector(
             onTap: () async {
+              if (_selectionMode) {
+                if (notifId.isNotEmpty) _toggleSelection(notifId);
+                return;
+              }
               if (isVerification) {
                 final token = await user?.getIdToken();
                 final notificationId = _safeGetString(notif, '_id');
@@ -644,11 +751,19 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                 }
               }
             },
+            onLongPress: () {
+              if (notifId.isEmpty) return;
+              _toggleSelection(notifId);
+            },
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               decoration: BoxDecoration(
                 color: isVerification ? Colors.amber[50] : Colors.blue[50],
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? const Color(0xFF111827) : Colors.transparent,
+                  width: isSelected ? 1.2 : 1.0,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black12,
