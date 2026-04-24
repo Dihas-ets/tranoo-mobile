@@ -684,8 +684,8 @@ class _VoituresPageState extends State<VoituresPage>
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF8BF13),
-                            foregroundColor: Colors.black,
+                            backgroundColor: const Color(0xFFE57373),
+                            foregroundColor: Colors.white,
                           ),
                           onPressed: () {
                             setState(() {

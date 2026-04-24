@@ -9,6 +9,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/user_service.dart';
 import '../../providers/counter_provider.dart';
+import 'cars_info.dart';
+import 'mastervacpage.dart';
 
 // --------- HELPERS SÉCURISÉS ----------
 List<String> getNotifImages(Map notif) {
@@ -746,6 +748,95 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     }
   }
 
+  Future<void> _openProposalArticle(
+    BuildContext context, {
+    required String articleId,
+    String? typeHint,
+  }) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+      if (token == null) return;
+      final response = await http.get(
+        Uri.parse('${getBaseUrl()}/articles/$articleId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode != 200) return;
+      final article = jsonDecode(response.body);
+      final articleType = (article['type'] ?? typeHint ?? '').toString().toLowerCase();
+
+      if (!mounted) return;
+      if (articleType == 'piece') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MastervacPage(
+              id: article['_id']?.toString(),
+              isAcheteur: true,
+              title: (article['titre'] ?? '').toString(),
+              year: (article['annee'] ?? '').toString(),
+              description: (article['description'] ?? '').toString(),
+              company: (article['entreprise'] ?? '').toString(),
+              location: (article['lieu'] ?? article['localisation'] ?? '').toString(),
+              price: (article['prix'] ?? '').toString(),
+              fuelType: article['typeMoteur']?.toString(),
+              model: article['modele']?.toString(),
+              pieceType: (article['pieceType'] ?? article['condition'])?.toString(),
+              images: (article['photos'] is List)
+                  ? (article['photos'] as List).map((e) => e?.toString()).toList()
+                  : const [],
+              video: article['video']?.toString(),
+            ),
+          ),
+        );
+      } else {
+        final photos = (article['photos'] is List)
+            ? (article['photos'] as List)
+                .map((e) => e?.toString() ?? '')
+                .where((e) => e.isNotEmpty)
+                .toList()
+            : <String>[];
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CarsInfo(
+              id: article['_id']?.toString(),
+              titre: article['titre']?.toString(),
+              description: article['description']?.toString(),
+              marque: article['marque']?.toString(),
+              modele: article['modele']?.toString(),
+              annee: article['annee']?.toString(),
+              prix: article['prix']?.toString(),
+              condition: article['condition']?.toString(),
+              boiteVitesse: article['boiteVitesse']?.toString(),
+              carburant: article['carburant']?.toString(),
+              climatiseur: article['climatiseur']?.toString(),
+              distance: article['distance']?.toString(),
+              sieges: article['sieges']?.toString(),
+              portes: article['portes']?.toString(),
+              cylindre: article['cylindre']?.toString(),
+              couleur: article['couleur']?.toString(),
+              dedouanement: article['dedouanement'] == true,
+              lieu: (article['lieu'] ?? article['localisation'])?.toString(),
+              images: photos,
+              videos: const [],
+              video: article['video']?.toString(),
+              entreprise: article['entreprise']?.toString(),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de l\'ouverture: $e')),
+      );
+    }
+  }
+
   void _showNotificationDetail(
     BuildContext context,
     Map<String, dynamic> notification,
@@ -1143,6 +1234,14 @@ class _NotificationsBodyState extends State<NotificationsBody> {
 
   Widget _buildStandardContent(
       Map<String, dynamic> notification, String bodyHtml) {
+    final dataMap = (notification['data'] is Map)
+        ? Map<String, dynamic>.from(notification['data'])
+        : <String, dynamic>{};
+    final action = (dataMap['action'] ?? '').toString();
+    final targetArticleId =
+        (dataMap['targetArticleId'] ?? _safeGetString(notification, 'relatedId') ?? '')
+            .toString();
+    final targetType = (dataMap['targetType'] ?? '').toString();
     return Container(
       decoration: BoxDecoration(
         color: Colors.blue[50],
@@ -1168,6 +1267,21 @@ class _NotificationsBodyState extends State<NotificationsBody> {
               '.': Style(color: Colors.blue[900], fontSize: FontSize(15)),
             },
           ),
+          if (action == 'view_proposal' && targetArticleId.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _openProposalArticle(
+                  context,
+                  articleId: targetArticleId,
+                  typeHint: targetType,
+                );
+              },
+              icon: const Icon(Icons.visibility),
+              label: const Text('Voir la proposition'),
+            ),
+          ],
         ],
       ),
     );

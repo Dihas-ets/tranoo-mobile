@@ -991,8 +991,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                             width: double.infinity,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFF8BF13),
-                                foregroundColor: Colors.black,
+                                backgroundColor: const Color(0xFFE57373),
+                                foregroundColor: Colors.white,
                               ),
                               onPressed: () {
                                 if (!(formKey.currentState?.validate() ??
@@ -1183,8 +1183,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                             width: double.infinity,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFF8BF13),
-                                foregroundColor: Colors.black,
+                                backgroundColor: const Color(0xFFE57373),
+                                foregroundColor: Colors.white,
                               ),
                               onPressed: () {
                                 if (!(formKey.currentState?.validate() ??
