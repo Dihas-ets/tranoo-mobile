@@ -26,7 +26,9 @@ class AlertService {
     required String modele,
     String? annee,
     String? etat,
+    String? urgence,
     String? budgetMax,
+    int quantity = 1,
   }) async {
     final token = await _getAuthToken();
     if (token == null) {
@@ -46,9 +48,11 @@ class AlertService {
         'marque': marque.trim(),
         'modele': modele.trim(),
         'etat': (etat ?? '').trim(),
+        'urgence': (urgence ?? '').trim(),
         'anneeMin': (annee ?? '').trim(),
         'anneeMax': (annee ?? '').trim(),
         'budgetMax': (budgetMax ?? '').trim(),
+        'quantity': quantity,
       }),
     );
 
@@ -64,6 +68,7 @@ class AlertService {
     required String pieceName,
     String? annee,
     String? urgence,
+    int quantity = 1,
   }) async {
     final token = await _getAuthToken();
     if (token == null) {
@@ -85,6 +90,7 @@ class AlertService {
         'annee': (annee ?? '').trim(),
         'pieceName': pieceName.trim(),
         'urgence': (urgence ?? '').trim(),
+        'quantity': quantity,
       }),
     );
 

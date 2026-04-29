@@ -321,7 +321,12 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       setState(() {});
     });
 
-    _pageController = PageController(initialPage: 0);
+    // Aligner l'affichage "À la une" sur Tranoo Pro:
+    // - viewportFraction pour voir les pubs adjacentes
+    _pageController = PageController(
+      initialPage: 0,
+      viewportFraction: 0.85,
+    );
     _searchGlobalController.addListener(() {
       setState(() {
         _searchGlobalText = _searchGlobalController.text.trim();
@@ -886,6 +891,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     final anneeController = TextEditingController();
     final budgetController = TextEditingController();
     String etat = 'occasion';
+    String urgence = 'normale';
+    int quantity = 1;
+    bool isSubmitting = false;
 
     await showModalBottomSheet(
       context: context,
@@ -970,6 +978,29 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         onChanged: (value) => setSheetState(() => etat = value ?? 'occasion'),
                       ),
                       const SizedBox(height: 10),
+                      const Text('Niveau d\'urgence', style: TextStyle(fontWeight: FontWeight.w600)),
+                      RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Faible'),
+                        value: 'faible',
+                        groupValue: urgence,
+                        onChanged: (value) => setSheetState(() => urgence = value ?? 'faible'),
+                      ),
+                      RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Normale'),
+                        value: 'normale',
+                        groupValue: urgence,
+                        onChanged: (value) => setSheetState(() => urgence = value ?? 'normale'),
+                      ),
+                      RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Urgente'),
+                        value: 'urgente',
+                        groupValue: urgence,
+                        onChanged: (value) => setSheetState(() => urgence = value ?? 'urgente'),
+                      ),
+                      const SizedBox(height: 10),
                       TextFormField(
                         controller: budgetController,
                         keyboardType: TextInputType.number,
@@ -981,6 +1012,33 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                             (v == null || v.trim().isEmpty) ? 'Budget requis' : null,
                       ),
                       const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Nombre de véhicules',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: quantity > 1
+                                ? () => setSheetState(() => quantity--)
+                                : null,
+                            icon: const Icon(Icons.remove_circle_outline),
+                          ),
+                          Text(
+                            '$quantity',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => setSheetState(() => quantity++),
+                            icon: const Icon(Icons.add_circle_outline),
+                          ),
+                        ],
+                      ),
                               ],
                             ),
                           ),
@@ -995,18 +1053,28 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                 foregroundColor: Colors.white,
                               ),
                               onPressed: () {
+                                if (isSubmitting) return;
                                 if (!(formKey.currentState?.validate() ??
                                     false)) return;
                                 () async {
+                                  setSheetState(() => isSubmitting = true);
                                   try {
                                     await AlertService().createVehicleAlert(
                                       marque: marqueController.text,
                                       modele: modeleController.text,
                                       annee: anneeController.text,
                                       etat: etat,
+                                      urgence: urgence,
                                       budgetMax: budgetController.text,
+                                      quantity: quantity,
                                     );
                                     if (!context.mounted) return;
+                                    FocusScope.of(context).unfocus();
+                                    _searchGlobalController.clear();
+                                    setState(() {
+                                      _searchGlobalText = '';
+                                      _vehicleNoResultDialogShown = false;
+                                    });
                                     Navigator.pop(ctx);
                                     await showDialog(
                                       context: context,
@@ -1046,10 +1114,26 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                             Text('Erreur envoi alerte: $e'),
                                       ),
                                     );
+                                  } finally {
+                                    if (ctx.mounted) {
+                                      setSheetState(() => isSubmitting = false);
+                                    }
                                   }
                                 }();
                               },
-                              child: const Text('Envoyer l\'alerte'),
+                              child: isSubmitting
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                  : const Text('Envoyer l\'alerte'),
                             ),
                           ),
                         ),
@@ -1072,6 +1156,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     final anneeController = TextEditingController();
     final pieceController = TextEditingController();
     String urgence = 'normale';
+    int quantity = 1;
+    bool isSubmitting = false;
 
     await showModalBottomSheet(
       context: context,
@@ -1173,6 +1259,33 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                         onChanged: (value) => setSheetState(() => urgence = value ?? 'urgente'),
                       ),
                       const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Nombre de pièces',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: quantity > 1
+                                ? () => setSheetState(() => quantity--)
+                                : null,
+                            icon: const Icon(Icons.remove_circle_outline),
+                          ),
+                          Text(
+                            '$quantity',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => setSheetState(() => quantity++),
+                            icon: const Icon(Icons.add_circle_outline),
+                          ),
+                        ],
+                      ),
                               ],
                             ),
                           ),
@@ -1187,9 +1300,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                 foregroundColor: Colors.white,
                               ),
                               onPressed: () {
+                                if (isSubmitting) return;
                                 if (!(formKey.currentState?.validate() ??
                                     false)) return;
                                 () async {
+                                  setSheetState(() => isSubmitting = true);
                                   try {
                                     await AlertService().createPieceAlert(
                                       marque: marqueController.text,
@@ -1197,8 +1312,15 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                       annee: anneeController.text,
                                       pieceName: pieceController.text,
                                       urgence: urgence,
+                                      quantity: quantity,
                                     );
                                     if (!context.mounted) return;
+                                    FocusScope.of(context).unfocus();
+                                    _searchPieceController.clear();
+                                    setState(() {
+                                      _searchPieceText = '';
+                                      _pieceNoResultDialogShown = false;
+                                    });
                                     Navigator.pop(ctx);
                                     await showDialog(
                                       context: context,
@@ -1238,10 +1360,26 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                             Text('Erreur envoi alerte: $e'),
                                       ),
                                     );
+                                  } finally {
+                                    if (ctx.mounted) {
+                                      setSheetState(() => isSubmitting = false);
+                                    }
                                   }
                                 }();
                               },
-                              child: const Text('Envoyer l\'alerte'),
+                              child: isSubmitting
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                  : const Text('Envoyer l\'alerte'),
                             ),
                           ),
                         ),
@@ -1284,6 +1422,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
+                _searchGlobalController.clear();
+                setState(() {
+                  _searchGlobalText = '';
+                  _vehicleNoResultDialogShown = false;
+                });
                 _showVehicleMiniForm();
               },
               style: ElevatedButton.styleFrom(
@@ -1325,6 +1468,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
+                _searchPieceController.clear();
+                setState(() {
+                  _searchPieceText = '';
+                  _pieceNoResultDialogShown = false;
+                });
                 _showPieceMiniForm();
               },
               style: ElevatedButton.styleFrom(
@@ -2789,7 +2937,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     );
   }
 
-  // SECTION À LA UNE (carrousel)
+  // SECTION À LA UNE (carrousel) — aligné sur Tranoo Pro
   Widget buildPubsALaUneCarousel() {
     if (isLoadingPubs) {
       return const Center(child: CircularProgressIndicator());
@@ -2803,125 +2951,109 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     // Affiche le carrousel et l'indicateur uniquement si la liste n'est pas vide
     return Column(
       children: [
-        SizedBox(
-          height: 260,
+        Container(
+          height: 200, // Un peu plus haut pour mieux voir les adjacentes
+          margin: const EdgeInsets.symmetric(
+            horizontal: 8,
+          ), // Marge extérieure pour voir les adjacents
           child: PageView.builder(
             controller: _pageController,
+            // Afficher une partie des slides adjacents
+            padEnds: true,
             itemCount: pubsALaUne.length,
             itemBuilder: (context, index) {
               final pub = pubsALaUne[index];
               final hasLink = (pub.lien ?? '').trim().isNotEmpty;
               final card = Card(
                 margin: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
+                  horizontal: 8, // Marges pour espacer les cards
+                  vertical: 8,
                 ),
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: pub.media.isNotEmpty
-                          ? Container(
-                              width: double.infinity,
-                              height: 260,
-                              color: Colors.black,
-                              child: Image.network(
-                                pub.media[0],
-                                fit: BoxFit.contain,
-                                alignment: Alignment.center,
-                                filterQuality: FilterQuality.high,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey[300],
-                                    child: const Icon(
-                                      Icons.image_not_supported,
-                                      size: 80,
-                                      color: Colors.black54,
-                                    ),
-                                  );
-                                },
-                              ),
-                            )
-                          : Container(
-                              height: 260,
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.image, size: 120),
-                            ),
-                    ),
-                    Positioned(
-                      left: 8,
-                      bottom: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          pub.description,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    if (hasLink)
-                      Positioned(
-                        right: 12,
-                        bottom: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    height: 180,
+                    color: Colors.black,
+                    child: pub.media.isNotEmpty
+                        ? Stack(
                             children: [
-                              Icon(Icons.link, size: 16, color: Colors.black87),
-                              SizedBox(width: 4),
-                              Text(
-                                'Voir plus',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                              // Image avec ajustement auto
+                              Positioned.fill(
+                                child: Image.network(
+                                  pub.media[0],
+                                  fit: BoxFit.cover,
+                                  alignment: Alignment.center,
+                                  filterQuality: FilterQuality.high,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey[300],
+                                      child: const Icon(
+                                        Icons.image_not_supported,
+                                        size: 60,
+                                        color: Colors.black54,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
+                              // Overlay pour s'assurer que le contenu reste lisible
+                              if (pub.description.isNotEmpty)
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.bottomCenter,
+                                        end: Alignment.topCenter,
+                                        colors: [
+                                          Colors.black.withOpacity(0.7),
+                                          Colors.transparent,
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
+                          )
+                        : Container(
+                            height: 180,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.image, size: 80),
                           ),
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
               );
 
-              if (hasLink) {
-                return InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => _openPubLink(pub.lien!.trim()),
-                  child: card,
-                );
-              }
-              return InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () =>
-                    _openFlyerPreview(pub.media.isNotEmpty ? pub.media[0] : ''),
+              return GestureDetector(
+                onTap: () {
+                  if (hasLink) {
+                    _openPubLink(pub.lien!.trim());
+                  } else {
+                    _openFlyerPreview(pub.media.isNotEmpty ? pub.media[0] : '');
+                  }
+                },
+                onDoubleTap: () {
+                  if (hasLink) {
+                    _openFlyerPreview(pub.media.isNotEmpty ? pub.media[0] : '');
+                  }
+                },
                 child: card,
               );
             },
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6), // Espace réduit
         if (pubsALaUne.length > 1)
           SmoothPageIndicator(
             controller: _pageController,
@@ -2929,8 +3061,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             effect: JumpingDotEffect(
               activeDotColor: Color(0xFFF8BF13),
               dotColor: Colors.grey.shade300,
-              dotHeight: 10,
-              dotWidth: 10,
+              dotHeight: 8,
+              dotWidth: 8,
             ),
           ),
       ],
@@ -2952,7 +3084,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
-              buildPubsALaUneCarousel(),
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: screenWidth * 0.04,
@@ -2972,6 +3103,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                   ),
                 ),
               ),
+              buildPubsALaUneCarousel(),
               _buildServicesSummarySection(
                 screenWidth: screenWidth,
                 screenHeight: screenHeight,

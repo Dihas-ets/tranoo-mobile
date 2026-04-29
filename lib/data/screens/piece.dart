@@ -687,6 +687,8 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
     final anneeController = TextEditingController();
     final pieceNameController = TextEditingController();
     String urgence = 'normale';
+    int quantity = 1;
+    bool isSubmitting = false;
 
     await showModalBottomSheet(
       context: context,
@@ -815,6 +817,41 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                       () => urgence = value ?? 'urgente'),
                                 ),
                                 const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    const Expanded(
+                                      child: Text(
+                                        'Nombre de pièces',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: quantity > 1
+                                          ? () =>
+                                              setSheetState(() => quantity--)
+                                          : null,
+                                      icon: const Icon(
+                                        Icons.remove_circle_outline,
+                                      ),
+                                    ),
+                                    Text(
+                                      '$quantity',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: () =>
+                                          setSheetState(() => quantity++),
+                                      icon: const Icon(
+                                        Icons.add_circle_outline,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
@@ -829,11 +866,13 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                 foregroundColor: Colors.white,
                               ),
                               onPressed: () {
+                                if (isSubmitting) return;
                                 if (!(formKey.currentState?.validate() ??
                                     false)) {
                                   return;
                                 }
                                 () async {
+                                  setSheetState(() => isSubmitting = true);
                                   try {
                                     await AlertService().createPieceAlert(
                                       marque: marqueController.text,
@@ -841,8 +880,20 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                       annee: anneeController.text,
                                       pieceName: pieceNameController.text,
                                       urgence: urgence,
+                                      quantity: quantity,
                                     );
                                     if (!context.mounted) return;
+                                    FocusScope.of(context).unfocus();
+                                    _searchController.clear();
+                                    setState(() {
+                                      _searchText = '';
+                                      _selectedBrand = null;
+                                      _selectedModel = null;
+                                      _selectedLocation = null;
+                                      _budgetMin = null;
+                                      _budgetMax = null;
+                                      _noResultDialogShown = false;
+                                    });
                                     Navigator.pop(ctx);
                                     await showDialog(
                                       context: context,
@@ -882,10 +933,26 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                             Text('Erreur envoi alerte: $e'),
                                       ),
                                     );
+                                  } finally {
+                                    if (ctx.mounted) {
+                                      setSheetState(() => isSubmitting = false);
+                                    }
                                   }
                                 }();
                               },
-                              child: const Text('Envoyer l\'alerte'),
+                              child: isSubmitting
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                  : const Text('Envoyer l\'alerte'),
                             ),
                           ),
                         ),
@@ -929,6 +996,16 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
+                _searchController.clear();
+                setState(() {
+                  _searchText = '';
+                  _selectedBrand = null;
+                  _selectedModel = null;
+                  _selectedLocation = null;
+                  _budgetMin = null;
+                  _budgetMax = null;
+                  _noResultDialogShown = false;
+                });
                 _showPieceMiniForm();
               },
               style: ElevatedButton.styleFrom(

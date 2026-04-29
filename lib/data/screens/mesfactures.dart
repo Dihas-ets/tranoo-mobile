@@ -4,10 +4,43 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tranoo/config/backend_config.dart';
 import 'package:tranoo/utils/auth_dialog.dart';
-import 'dart:io';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
-import 'package:permission_handler/permission_handler.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
+import 'package:flutter/rendering.dart';
+
+void _showInvoiceToast(
+  BuildContext context, {
+  required String message,
+  required bool success,
+}) {
+  final color = success ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+  final icon = success ? Icons.check_circle : Icons.error;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 22),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: color,
+      content: Row(
+        children: [
+          Icon(icon, color: Colors.white),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+      duration: const Duration(seconds: 3),
+    ),
+  );
+}
 
 class MesFacturesPage extends StatefulWidget {
   const MesFacturesPage({super.key});
@@ -643,25 +676,27 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
 
   Future<void> _downloadInvoiceAsImage(Map<String, String> facture) async {
     try {
-      await Permission.storage.request();
       final bytes = await _buildInvoiceImageBytes(facture);
-      final base = Directory('/storage/emulated/0/Pictures/TranooFactures');
-      if (!await base.exists()) {
-        await base.create(recursive: true);
-      }
-      final file = File(
-        '${base.path}/facture_${facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.png',
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Enregistrer la facture (image)',
+        fileName:
+            'facture_${facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.png',
+        bytes: bytes,
       );
-      await file.writeAsBytes(bytes, flush: true);
+      if (path == null) return;
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Image sauvegardée: ${file.path}')),
+        _showInvoiceToast(
+          context,
+          message: 'Image sauvegardée avec succès',
+          success: true,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur image: $e')),
+        _showInvoiceToast(
+          context,
+          message: 'Échec de sauvegarde de l\'image',
+          success: false,
         );
       }
     }
@@ -669,37 +704,38 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
 
   Future<void> _downloadInvoiceAsPDF(Map<String, String> facture) async {
     try {
-      await Permission.storage.request();
-      final dir = Directory('/storage/emulated/0/Download/TranooFactures');
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      final file = File(
-        '${dir.path}/facture_${facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.txt',
+      final imageBytes = await _buildInvoiceImageBytes(facture);
+      final doc = pw.Document();
+      final img = pw.MemoryImage(imageBytes);
+      doc.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (_) => pw.Center(
+            child: pw.Image(img, fit: pw.BoxFit.contain),
+          ),
+        ),
       );
-      final content = '''
-FACTURE ${facture["numero"] ?? "--"}
-Date: ${facture["date"] ?? "--"}
-Produit: ${facture["produit"] ?? "--"}
-Vendeur: ${facture["vendeur"] ?? "--"}
-Boutique: ${facture["boutique"] ?? "--"}
-Adresse: ${facture["adresse"] ?? "--"}
-Sous-total: ${facture["prixProduit"] ?? "--"}
-Livraison: ${facture["livraison"] ?? "--"}
-TVA: ${facture["tva"] ?? "--"}
-Total: ${facture["montant"] ?? "--"}
-Référence: ${facture["reference"] ?? "--"}
-''';
-      await file.writeAsString(content, flush: true);
+      final bytes = await doc.save();
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Enregistrer la facture (document)',
+        fileName:
+            'facture_${facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.pdf',
+        bytes: bytes,
+      );
+      if (path == null) return;
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Document sauvegardé: ${file.path}')),
+        _showInvoiceToast(
+          context,
+          message: 'Document PDF sauvegardé avec succès',
+          success: true,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur PDF: $e')),
+        _showInvoiceToast(
+          context,
+          message: 'Échec de sauvegarde du document PDF',
+          success: false,
         );
       }
     }
@@ -721,6 +757,22 @@ class InvoicePreviewPage extends StatefulWidget {
 }
 
 class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
+  final GlobalKey _ticketCaptureKey = GlobalKey();
+
+  Future<Uint8List> _captureTicketBytes() async {
+    final boundary = _ticketCaptureKey.currentContext?.findRenderObject()
+        as RenderRepaintBoundary?;
+    if (boundary == null) {
+      throw Exception('Capture indisponible');
+    }
+    final image = await boundary.toImage(pixelRatio: 3);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (byteData == null) {
+      throw Exception('Impossible de générer l\'image');
+    }
+    return byteData.buffer.asUint8List();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -742,14 +794,62 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-            child: _buildTicket(),
+            child: _buildTicketPage(),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTicket() {
+  Widget _buildTicketPage() {
+    return Column(
+      children: [
+        RepaintBoundary(
+          key: _ticketCaptureKey,
+          child: _buildTicketContent(),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  _shareInvoice();
+                },
+                icon: const Icon(Icons.share_outlined),
+                label: const Text('Partager'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _showDownloadOptions();
+                },
+                icon: const Icon(Icons.download_rounded),
+                label: const Text('Télécharger'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: widget.accentColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTicketContent() {
     return Container(
       width: 360,
       decoration: BoxDecoration(
@@ -872,45 +972,6 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
           
           // Pied de page
           _buildFooter(),
-          const SizedBox(height: 20),
-          
-          // Boutons d'action en bas
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    _shareInvoice();
-                  },
-                  icon: const Icon(Icons.share_outlined),
-                  label: const Text('Partager'),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    _showDownloadOptions();
-                  },
-                  icon: const Icon(Icons.download_rounded),
-                  label: const Text('Télécharger'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: widget.accentColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -1297,34 +1358,26 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
 
   void _downloadInvoiceAsImage() async {
     try {
-      await Permission.storage.request();
-      final bytes = await _buildInvoiceImageBytes(widget.facture);
-      final base = Directory('/storage/emulated/0/Pictures/TranooFactures');
-      if (!await base.exists()) {
-        await base.create(recursive: true);
-      }
-      final file = File(
-        '${base.path}/facture_${widget.facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.png',
+      final bytes = await _captureTicketBytes();
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Enregistrer la facture (image)',
+        fileName:
+            'facture_${widget.facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.png',
+        bytes: bytes,
       );
-      await file.writeAsBytes(bytes, flush: true);
+      if (path == null) return;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Image sauvegardée: ${file.path}')),
+      _showInvoiceToast(
+        context,
+        message: 'Image sauvegardée avec succès',
+        success: true,
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Erreur: ${e.toString()}')),
-              ],
-            ),
-            backgroundColor: const Color(0xFFEF4444),
-            duration: const Duration(seconds: 3),
-          ),
+        _showInvoiceToast(
+          context,
+          message: 'Échec de sauvegarde de l\'image',
+          success: false,
         );
       }
     }
@@ -1333,46 +1386,37 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
   // Fonction pour télécharger en PDF
   void _downloadInvoiceAsPDF() async {
     try {
-      await Permission.storage.request();
-      final dir = Directory('/storage/emulated/0/Download/TranooFactures');
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      final file = File(
-        '${dir.path}/facture_${widget.facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.txt',
+      final imageBytes = await _captureTicketBytes();
+      final doc = pw.Document();
+      final img = pw.MemoryImage(imageBytes);
+      doc.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (_) => pw.Center(
+            child: pw.Image(img, fit: pw.BoxFit.contain),
+          ),
+        ),
       );
-      final content = '''
-FACTURE ${widget.facture["numero"] ?? "--"}
-Date: ${widget.facture["date"] ?? "--"}
-Produit: ${widget.facture["produit"] ?? "--"}
-Vendeur: ${widget.facture["vendeur"] ?? "--"}
-Boutique: ${widget.facture["boutique"] ?? "--"}
-Adresse: ${widget.facture["adresse"] ?? "--"}
-Sous-total: ${widget.facture["prixProduit"] ?? "--"}
-Livraison: ${widget.facture["livraison"] ?? "--"}
-TVA: ${widget.facture["tva"] ?? "--"}
-Total: ${widget.facture["montant"] ?? "--"}
-Référence: ${widget.facture["reference"] ?? "--"}
-''';
-      await file.writeAsString(content, flush: true);
+      final bytes = await doc.save();
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Enregistrer la facture (document)',
+        fileName:
+            'facture_${widget.facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.pdf',
+        bytes: bytes,
+      );
+      if (path == null) return;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Document sauvegardé: ${file.path}')),
+      _showInvoiceToast(
+        context,
+        message: 'Document PDF sauvegardé avec succès',
+        success: true,
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Erreur: ${e.toString()}')),
-              ],
-            ),
-            backgroundColor: const Color(0xFFEF4444),
-            duration: const Duration(seconds: 3),
-          ),
+        _showInvoiceToast(
+          context,
+          message: 'Échec de sauvegarde du document PDF',
+          success: false,
         );
       }
     }

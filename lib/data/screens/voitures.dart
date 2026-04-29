@@ -716,6 +716,9 @@ class _VoituresPageState extends State<VoituresPage>
     final anneeController = TextEditingController();
     final budgetController = TextEditingController();
     String etat = 'occasion';
+    String urgence = 'normale';
+    int quantity = 1;
+    bool isSubmitting = false;
 
     await showModalBottomSheet(
       context: context,
@@ -819,6 +822,35 @@ class _VoituresPageState extends State<VoituresPage>
                             setSheetState(() => etat = value ?? 'occasion'),
                       ),
                       const SizedBox(height: 10),
+                      const Text(
+                        'Niveau d\'urgence',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Faible'),
+                        value: 'faible',
+                        groupValue: urgence,
+                        onChanged: (value) =>
+                            setSheetState(() => urgence = value ?? 'faible'),
+                      ),
+                      RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Normale'),
+                        value: 'normale',
+                        groupValue: urgence,
+                        onChanged: (value) =>
+                            setSheetState(() => urgence = value ?? 'normale'),
+                      ),
+                      RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Urgente'),
+                        value: 'urgente',
+                        groupValue: urgence,
+                        onChanged: (value) =>
+                            setSheetState(() => urgence = value ?? 'urgente'),
+                      ),
+                      const SizedBox(height: 10),
                       TextFormField(
                         controller: budgetController,
                         keyboardType: TextInputType.number,
@@ -829,6 +861,34 @@ class _VoituresPageState extends State<VoituresPage>
                         validator: (v) => (v == null || v.trim().isEmpty)
                             ? 'Budget requis'
                             : null,
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Nombre de véhicules',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: quantity > 1
+                                ? () => setSheetState(() => quantity--)
+                                : null,
+                            icon: const Icon(Icons.remove_circle_outline),
+                          ),
+                          Text(
+                            '$quantity',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => setSheetState(() => quantity++),
+                            icon: const Icon(Icons.add_circle_outline),
+                          ),
+                        ],
                       ),
                             const SizedBox(height: 10),
                           ],
@@ -841,23 +901,38 @@ class _VoituresPageState extends State<VoituresPage>
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF8BF13),
-                            foregroundColor: Colors.black,
+                            backgroundColor: const Color(0xFFE57373),
+                            foregroundColor: Colors.white,
                           ),
                           onPressed: () {
+                            if (isSubmitting) return;
                             if (!(formKey.currentState?.validate() ?? false)) {
                               return;
                             }
                             () async {
+                              setSheetState(() => isSubmitting = true);
                               try {
                                 await AlertService().createVehicleAlert(
                                   marque: marqueController.text,
                                   modele: modeleController.text,
                                   annee: anneeController.text,
                                   etat: etat,
+                                  urgence: urgence,
                                   budgetMax: budgetController.text,
+                                  quantity: quantity,
                                 );
                                 if (!context.mounted) return;
+                                FocusScope.of(context).unfocus();
+                                _searchController.clear();
+                                setState(() {
+                                  _searchText = '';
+                                  _selectedBrand = null;
+                                  _selectedModel = null;
+                                  _selectedLocation = null;
+                                  _budgetMin = null;
+                                  _budgetMax = null;
+                                  _noResultDialogShown = false;
+                                });
                                 Navigator.pop(ctx);
                                 await showDialog(
                                   context: context,
@@ -894,10 +969,25 @@ class _VoituresPageState extends State<VoituresPage>
                                     content: Text('Erreur envoi alerte: $e'),
                                   ),
                                 );
+                              } finally {
+                                if (ctx.mounted) {
+                                  setSheetState(() => isSubmitting = false);
+                                }
                               }
                             }();
                           },
-                          child: const Text('Envoyer l\'alerte'),
+                          child: isSubmitting
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text('Envoyer l\'alerte'),
                         ),
                       ),
                     ),
@@ -940,6 +1030,16 @@ class _VoituresPageState extends State<VoituresPage>
             ElevatedButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
+                _searchController.clear();
+                setState(() {
+                  _searchText = '';
+                  _selectedBrand = null;
+                  _selectedModel = null;
+                  _selectedLocation = null;
+                  _budgetMin = null;
+                  _budgetMax = null;
+                  _noResultDialogShown = false;
+                });
                 _showVehicleMiniForm();
               },
               style: ElevatedButton.styleFrom(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
@@ -29,25 +30,56 @@ class AvantHome extends StatefulWidget {
   State<AvantHome> createState() => _AvantHomeState();
 }
 
-class _AvantHomeState extends State<AvantHome> {
+class _AvantHomeState extends State<AvantHome> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _didCheckOnboarding = false;
   int _invoiceUnreadCount = 0;
   bool _didShowSellerAlertPopup = false;
+  Timer? _lightRefreshTimer;
+  DateTime? _lastLightRefreshAt;
 
   final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkOnboardingAndInactivity();
     _updateLastLoginTime();
-    _loadUnreadInvoicesCount();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      Provider.of<CounterProvider>(context, listen: false).loadCounters();
-    });
+    _runLightRefresh(force: true);
+    _lightRefreshTimer = Timer.periodic(
+      const Duration(seconds: 90),
+      (_) => _runLightRefresh(),
+    );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _lightRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _runLightRefresh(force: true);
+    }
+  }
+
+  Future<void> _runLightRefresh({bool force = false}) async {
+    if (!mounted) return;
+    final now = DateTime.now();
+    if (!force &&
+        _lastLightRefreshAt != null &&
+        now.difference(_lastLightRefreshAt!) < const Duration(seconds: 45)) {
+      return;
+    }
+    _lastLightRefreshAt = now;
+    await _loadUnreadInvoicesCount();
+    if (!mounted) return;
+    await Provider.of<CounterProvider>(context, listen: false).loadCounters();
   }
 
   Future<void> _loadUnreadInvoicesCount() async {

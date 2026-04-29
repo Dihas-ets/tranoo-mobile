@@ -1200,6 +1200,8 @@ class _NotificationsBodyState extends State<NotificationsBody> {
         'Annee max: ${dataMap['anneeMax']}',
       if ((dataMap['budgetMax'] ?? '').toString().isNotEmpty)
         'Budget max: ${dataMap['budgetMax']} FCFA',
+      if ((dataMap['quantity'] ?? '').toString().isNotEmpty)
+        'Quantite recherchee: ${dataMap['quantity']}',
       if ((dataMap['pieceName'] ?? '').toString().isNotEmpty)
         'Piece: ${dataMap['pieceName']}',
       if ((dataMap['urgence'] ?? '').toString().isNotEmpty)
