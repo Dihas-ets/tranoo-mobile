@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
+import 'package:provider/provider.dart';
+import 'package:tranoo/providers/auth_provider.dart' as myauth;
 import 'package:tranoo/services/user_service.dart';
 
 class Profile2 extends StatefulWidget {
@@ -474,6 +476,7 @@ class _Profile2State extends State<Profile2> {
       }
       await fetchUser();
       if (mounted) {
+        context.read<myauth.AuthProvider>().reloadUser();
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Profil mis à jour.')));

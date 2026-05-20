@@ -1,6 +1,6 @@
 class FeexPayConfig {
   // Configuration de base
-  static const String baseUrl = "https://api.feexpay.me";
+  static const String baseUrl = "https://api-v2.feexpay.me";
 
   // Configuration de votre compte (à remplacer par vos vraies valeurs)
   static const String shopId = "VOTRE_SHOP_ID";

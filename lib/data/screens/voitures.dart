@@ -3,12 +3,36 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:tranoo/utils/cloudinary_upload.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'cars_info.dart';
 import 'package:tranoo/services/user_service.dart';
-import 'package:tranoo/widgets/video_preview_placeholder.dart';
+import 'package:tranoo/data/screens/cars_info.dart';
 import 'package:tranoo/services/alert_service.dart';
+import 'package:tranoo/widgets/video_preview_placeholder.dart';
+import 'package:tranoo/utils/article_view_helper.dart';
+import 'package:tranoo/utils/page_refresh_registry.dart';
+
+// Fonction utilitaire pour formater les prix avec des séparateurs de milliers
+String formatPrice(dynamic price) {
+  if (price == null) return '0';
+  try {
+    final priceNum = double.tryParse(price.toString()) ?? 0;
+    final priceStr = priceNum.toStringAsFixed(0);
+    final reversed = priceStr.split('').reversed.join('');
+    final withDots = reversed.replaceAllMapped(
+      RegExp(r'(\d{3})(?=\d)'),
+      (Match m) => '${m[0]}.',
+    );
+    return withDots.split('').reversed.join('');
+  } catch (e) {
+    return price.toString();
+  }
+}
 
 class VoituresPage extends StatefulWidget {
   const VoituresPage({super.key});
@@ -18,7 +42,9 @@ class VoituresPage extends StatefulWidget {
 }
 
 class _VoituresPageState extends State<VoituresPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, RegisterPageRefresh {
+  @override
+  Future<void> onPagePullRefresh() async => fetchVoitures();
   List<dynamic> voitures = [];
   bool isLoading = true;
   String? error;
@@ -45,6 +71,18 @@ class _VoituresPageState extends State<VoituresPage>
   @override
   void initState() {
     super.initState();
+
+    // Récupérer le paramètre de recherche si disponible
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['searchQuery'] != null) {
+        setState(() {
+          _searchController.text = args['searchQuery'];
+          _searchText = args['searchQuery'].toString().toLowerCase();
+        });
+      }
+    });
 
     // Initialisation des indices des onglets (acheteur)
     _marqueTabIndex = 0;
@@ -76,6 +114,21 @@ class _VoituresPageState extends State<VoituresPage>
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  String? _voitureDisplayCompany(dynamic v) {
+    final e = v['entreprise'];
+    if (e != null && e.toString().trim().isNotEmpty) return e.toString();
+    final vend = v['vendeur'];
+    if (vend is Map) {
+      final ve = vend['entreprise'];
+      if (ve != null && ve.toString().trim().isNotEmpty) return ve.toString();
+      final n = vend['nom'];
+      final p = vend['prenoms'];
+      final both = '${n ?? ''} ${p ?? ''}'.trim();
+      if (both.isNotEmpty) return both;
+    }
+    return null;
   }
 
   double _computeCardAspectRatio(BuildContext context) {
@@ -196,6 +249,9 @@ class _VoituresPageState extends State<VoituresPage>
         const SnackBar(content: Text('Erreur réseau ou serveur.')),
       );
     }
+    setState(() {
+      _isVisible[index] = true;
+    });
   }
 
   // Appliquer les filtres
@@ -307,14 +363,14 @@ class _VoituresPageState extends State<VoituresPage>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SizedBox(
-        height: 100 + 16,
+        height: 70 + 16,
         child: GridView.builder(
           scrollDirection: Axis.horizontal,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 1,
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
-            mainAxisExtent: 100,
+            mainAxisExtent: 70,
           ),
           itemCount: marques.length,
           itemBuilder: (context, index) {
@@ -362,19 +418,6 @@ class _VoituresPageState extends State<VoituresPage>
                         },
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item["name"] ?? '',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _selectedBrand == item["name"]
-                            ? Colors.white
-                            : Colors.black,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                   ],
                 ),
               ),
@@ -404,14 +447,14 @@ class _VoituresPageState extends State<VoituresPage>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SizedBox(
-        height: 90 + 16,
+        height: 60 + 16,
         child: GridView.builder(
           scrollDirection: Axis.horizontal,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 1,
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
-            mainAxisExtent: 120,
+            mainAxisExtent: 80,
           ),
           itemCount: modeles.length,
           itemBuilder: (context, index) {
@@ -509,21 +552,20 @@ class _VoituresPageState extends State<VoituresPage>
                   children: [
                     SizedBox(
                       width: 36,
-                      height: 24,
-                      child: Image.asset(item["image"], fit: BoxFit.contain),
+                      height: 36,
+                      child: Image.asset(
+                        item["image"],
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stack) {
+                          return const Icon(Icons.image_not_supported);
+                        },
+                      ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Text(
                       item["name"],
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _selectedLocation == item["name"]
-                            ? Colors.white
-                            : Colors.black,
-                      ),
+                      style: const TextStyle(fontSize: 10),
                       textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -595,118 +637,132 @@ class _VoituresPageState extends State<VoituresPage>
             return SafeArea(
               top: false,
               child: Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                bottom:
-                    MediaQuery.of(context).viewInsets.bottom + 16 + 12,
-                top: 8,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16 + 12,
+                  top: 8,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  const Text(
-                    'Prix (FCFA)',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: minCtl,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'Min.',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
+                    const Text(
+                      'Prix (FCFA)',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: minCtl,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Min.',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
+                            onChanged: (val) {
+                              final v = double.tryParse(val) ?? currentMin;
+                              setModalState(() {
+                                currentMin = v.clamp(minPrice, currentMax);
+                              });
+                            },
                           ),
-                          onChanged: (val) {
-                            final v = double.tryParse(val) ?? currentMin;
-                            setModalState(() {
-                              currentMin = v.clamp(minPrice, currentMax);
-                            });
-                          },
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: maxCtl,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'Max.',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: maxCtl,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Max.',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
+                            onChanged: (val) {
+                              final v = double.tryParse(val) ?? currentMax;
+                              setModalState(() {
+                                currentMax = v.clamp(currentMin, maxPrice);
+                              });
+                            },
                           ),
-                          onChanged: (val) {
-                            final v = double.tryParse(val) ?? currentMax;
-                            setModalState(() {
-                              currentMax = v.clamp(currentMin, maxPrice);
-                            });
-                          },
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text('$disponibles véhicule(s) disponible(s)'),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              _budgetMin = null;
-                              _budgetMax = null;
-                            });
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Réinitialiser'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE57373),
-                            foregroundColor: Colors.white,
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text('$disponibles véhicule(s) disponible(s)'),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setState(() {
+                                _budgetMin = null;
+                                _budgetMax = null;
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Réinitialiser'),
                           ),
-                          onPressed: () {
-                            setState(() {
-                              _budgetMin = currentMin;
-                              _budgetMax = currentMax;
-                            });
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Appliquer'),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE57373),
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _budgetMin = currentMin;
+                                _budgetMax = currentMax;
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Appliquer'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },
         );
       },
     );
+  }
+
+  Future<List<String>> _uploadAlertPhotos(
+    List<XFile> files, {
+    required String folder,
+  }) async {
+    final urls = <String>[];
+    for (final file in files.take(6)) {
+      final url = await uploadImageToCloudinary(
+        File(file.path),
+        folder: folder,
+      );
+      if (url != null && url.isNotEmpty) urls.add(url);
+    }
+    return urls;
   }
 
   Future<void> _showVehicleMiniForm() async {
@@ -716,9 +772,8 @@ class _VoituresPageState extends State<VoituresPage>
     final anneeController = TextEditingController();
     final budgetController = TextEditingController();
     String etat = 'occasion';
-    String urgence = 'normale';
-    int quantity = 1;
-    bool isSubmitting = false;
+    final alertPhotoUrls = <String>[];
+    var alertPhotosUploading = false;
 
     await showModalBottomSheet(
       context: context,
@@ -736,264 +791,273 @@ class _VoituresPageState extends State<VoituresPage>
               child: SizedBox(
                 height: MediaQuery.of(ctx).size.height * 0.78,
                 child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                16,
-                16,
-                MediaQuery.of(ctx).viewInsets.bottom + 16,
-              ),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                      Center(
-                        child: Container(
-                          width: 42,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        'Alerte vehicule',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: marqueController,
-                        decoration: const InputDecoration(
-                          labelText: 'Marque',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Marque requise'
-                            : null,
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: modeleController,
-                        decoration: const InputDecoration(
-                          labelText: 'Modele',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Modele requis'
-                            : null,
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: anneeController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Annee',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Annee requise'
-                            : null,
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Etat du vehicule',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Neuf'),
-                        value: 'neuf',
-                        groupValue: etat,
-                        onChanged: (value) =>
-                            setSheetState(() => etat = value ?? 'neuf'),
-                      ),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Occasion'),
-                        value: 'occasion',
-                        groupValue: etat,
-                        onChanged: (value) =>
-                            setSheetState(() => etat = value ?? 'occasion'),
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Niveau d\'urgence',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Faible'),
-                        value: 'faible',
-                        groupValue: urgence,
-                        onChanged: (value) =>
-                            setSheetState(() => urgence = value ?? 'faible'),
-                      ),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Normale'),
-                        value: 'normale',
-                        groupValue: urgence,
-                        onChanged: (value) =>
-                            setSheetState(() => urgence = value ?? 'normale'),
-                      ),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Urgente'),
-                        value: 'urgente',
-                        groupValue: urgence,
-                        onChanged: (value) =>
-                            setSheetState(() => urgence = value ?? 'urgente'),
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: budgetController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Budget (FCFA)',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Budget requis'
-                            : null,
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Nombre de véhicules',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: quantity > 1
-                                ? () => setSheetState(() => quantity--)
-                                : null,
-                            icon: const Icon(Icons.remove_circle_outline),
-                          ),
-                          Text(
-                            '$quantity',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => setSheetState(() => quantity++),
-                            icon: const Icon(Icons.add_circle_outline),
-                          ),
-                        ],
-                      ),
-                            const SizedBox(height: 10),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SafeArea(
-                      top: false,
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE57373),
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: () {
-                            if (isSubmitting) return;
-                            if (!(formKey.currentState?.validate() ?? false)) {
-                              return;
-                            }
-                            () async {
-                              setSheetState(() => isSubmitting = true);
-                              try {
-                                await AlertService().createVehicleAlert(
-                                  marque: marqueController.text,
-                                  modele: modeleController.text,
-                                  annee: anneeController.text,
-                                  etat: etat,
-                                  urgence: urgence,
-                                  budgetMax: budgetController.text,
-                                  quantity: quantity,
-                                );
-                                if (!context.mounted) return;
-                                FocusScope.of(context).unfocus();
-                                _searchController.clear();
-                                setState(() {
-                                  _searchText = '';
-                                  _selectedBrand = null;
-                                  _selectedModel = null;
-                                  _selectedLocation = null;
-                                  _budgetMin = null;
-                                  _budgetMax = null;
-                                  _noResultDialogShown = false;
-                                });
-                                Navigator.pop(ctx);
-                                await showDialog(
-                                  context: context,
-                                  barrierDismissible: true,
-                                  builder: (_) => AlertDialog(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    16,
+                    16,
+                    MediaQuery.of(ctx).viewInsets.bottom + 16,
+                  ),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Center(
+                                  child: Container(
+                                    width: 42,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade300,
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
-                                    title: const Row(
-                                      children: [
-                                        Icon(
-                                          Icons.check_circle,
-                                          color: Color(0xFF16A34A),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                const Text(
+                                  'Alerte vehicule',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 14),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: alertPhotosUploading
+                                            ? null
+                                            : () async {
+                                                final picker = ImagePicker();
+                                                final images =
+                                                    await picker.pickMultiImage();
+                                                if (images.isEmpty) return;
+                                                setSheetState(() =>
+                                                    alertPhotosUploading =
+                                                        true);
+                                                final uploaded =
+                                                    await _uploadAlertPhotos(
+                                                  images,
+                                                  folder: CloudinaryFolders
+                                                      .vehicleImages,
+                                                );
+                                                setSheetState(() {
+                                                  alertPhotoUrls.addAll(
+                                                      uploaded);
+                                                  alertPhotosUploading =
+                                                      false;
+                                                });
+                                              },
+                                        icon: const Icon(
+                                            Icons.add_photo_alternate,
+                                            size: 20),
+                                        label: const Text('Ajouter des images'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFFF8BF13),
+                                          foregroundColor: Colors.black,
                                         ),
-                                        SizedBox(width: 8),
-                                        Text('Alerte envoyée'),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Prendre une photo',
+                                      onPressed: alertPhotosUploading
+                                          ? null
+                                          : () async {
+                                              final picker = ImagePicker();
+                                              final photo = await picker
+                                                  .pickImage(
+                                                      source:
+                                                          ImageSource.camera);
+                                              if (photo == null) return;
+                                              setSheetState(() =>
+                                                  alertPhotosUploading = true);
+                                              final uploaded =
+                                                  await _uploadAlertPhotos(
+                                                [photo],
+                                                folder: CloudinaryFolders
+                                                    .vehicleImages,
+                                              );
+                                              setSheetState(() {
+                                                alertPhotoUrls.addAll(uploaded);
+                                                alertPhotosUploading = false;
+                                              });
+                                            },
+                                      icon: const Icon(Icons.photo_camera),
+                                      color: const Color(0xFFF8BF13),
+                                    ),
+                                  ],
+                                ),
+                                if (alertPhotosUploading)
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 8),
+                                    child: LinearProgressIndicator(),
+                                  ),
+                                if (alertPhotoUrls.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Wrap(
+                                      spacing: 6,
+                                      runSpacing: 6,
+                                      children: alertPhotoUrls
+                                          .map(
+                                            (url) => ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              child: Image.network(
+                                                url,
+                                                width: 56,
+                                                height: 56,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                    ),
+                                  ),
+                                const SizedBox(height: 14),
+                                TextFormField(
+                                  controller: marqueController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Marque',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  validator: (v) => (v == null || v.trim().isEmpty)
+                                      ? 'Marque requise'
+                                      : null,
+                                ),
+                                const SizedBox(height: 10),
+                                TextFormField(
+                                  controller: modeleController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Modele',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  validator: (v) => (v == null || v.trim().isEmpty)
+                                      ? 'Modele requis'
+                                      : null,
+                                ),
+                                const SizedBox(height: 10),
+                                TextFormField(
+                                  controller: anneeController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Annee',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  validator: (v) => (v == null || v.trim().isEmpty)
+                                      ? 'Annee requise'
+                                      : null,
+                                ),
+                                const SizedBox(height: 10),
+                                const Text(
+                                  'Etat du vehicule',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                RadioListTile<String>(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: const Text('Neuf'),
+                                  value: 'neuf',
+                                  groupValue: etat,
+                                  onChanged: (value) =>
+                                      setSheetState(() => etat = value ?? 'neuf'),
+                                ),
+                                RadioListTile<String>(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: const Text('Occasion'),
+                                  value: 'occasion',
+                                  groupValue: etat,
+                                  onChanged: (value) =>
+                                      setSheetState(() => etat = value ?? 'occasion'),
+                                ),
+                                const SizedBox(height: 10),
+                                TextFormField(
+                                  controller: budgetController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Budget (FCFA)',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  validator: (v) => (v == null || v.trim().isEmpty)
+                                      ? 'Budget requis'
+                                      : null,
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SafeArea(
+                          top: false,
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFF8BF13),
+                                foregroundColor: Colors.black,
+                              ),
+                              onPressed: alertPhotosUploading
+                                  ? null
+                                  : () async {
+                                if (!(formKey.currentState?.validate() ?? false)) {
+                                  return;
+                                }
+                                try {
+                                  await AlertService().createVehicleAlert(
+                                    marque: marqueController.text,
+                                    modele: modeleController.text,
+                                    annee: anneeController.text,
+                                    etat: etat,
+                                    budgetMax: budgetController.text,
+                                    photos: alertPhotoUrls,
+                                  );
+                                  if (!context.mounted) return;
+                                  Navigator.pop(ctx);
+                                  await showDialog(
+                                    context: context,
+                                    barrierDismissible: true,
+                                    builder: (_) => AlertDialog(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      title: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle,
+                                            color: Color(0xFF16A34A),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text('Alerte envoyée'),
+                                        ],
+                                      ),
+                                      content: const Text(
+                                        'Votre demande a bien ete enregistree. Vous recevrez les retours des vendeurs tres bientot.',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(),
+                                          child: const Text('OK'),
+                                        ),
                                       ],
                                     ),
-                                    content: const Text(
-                                      'Votre demande a bien ete enregistree. Vous recevrez les retours des vendeurs tres bientot.',
+                                  );
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Erreur envoi alerte: $e'),
                                     ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.of(context).pop(),
-                                        child: const Text('OK'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              } catch (e) {
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Erreur envoi alerte: $e'),
-                                  ),
-                                );
-                              } finally {
-                                if (ctx.mounted) {
-                                  setSheetState(() => isSubmitting = false);
+                                  );
                                 }
-                              }
-                            }();
-                          },
-                          child: isSubmitting
-                              ? const SizedBox(
-                                  height: 18,
-                                  width: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : const Text('Envoyer l\'alerte'),
+                              },
+                              child: const Text('Envoyer l\'alerte'),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
                 ),
               ),
             );
@@ -1030,16 +1094,6 @@ class _VoituresPageState extends State<VoituresPage>
             ElevatedButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
-                _searchController.clear();
-                setState(() {
-                  _searchText = '';
-                  _selectedBrand = null;
-                  _selectedModel = null;
-                  _selectedLocation = null;
-                  _budgetMin = null;
-                  _budgetMax = null;
-                  _noResultDialogShown = false;
-                });
                 _showVehicleMiniForm();
               },
               style: ElevatedButton.styleFrom(
@@ -1149,15 +1203,14 @@ class _VoituresPageState extends State<VoituresPage>
                                 children: [
                                   Builder(
                                     builder: (_) {
-                                      if (hasActiveCriteria) {
+                                      if (hasActiveCriteria && filteredVoitures.isEmpty) {
                                         _showNoResultDialog();
                                       }
                                       return const SizedBox.shrink();
                                     },
                                   ),
-                                  SizedBox(
-                                    height: MediaQuery.of(context).size.height *
-                                        0.22,
+                                  const SizedBox(
+                                    height: 250,
                                   ),
                                   const Center(
                                     child: Text(
@@ -1177,399 +1230,404 @@ class _VoituresPageState extends State<VoituresPage>
                                   physics: const AlwaysScrollableScrollPhysics(),
                                   gridDelegate:
                                       SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 10,
-                                  mainAxisSpacing: 10,
-                                  childAspectRatio:
-                                      _computeCardAspectRatio(context),
-                                ),
-                                itemCount: filteredVoitures.length,
-                                itemBuilder: (context, index) {
-                                  final voiture = filteredVoitures[index];
-                                  return AnimatedOpacity(
-                                    opacity: _isVisible.length > index &&
-                                            _isVisible[index]
-                                        ? 1.0
-                                        : 0.0,
-                                    duration: const Duration(milliseconds: 400),
-                                    child: Stack(
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => CarsInfo(
-                                                  id: (voiture['_id'] ??
-                                                          voiture['id'] ??
-                                                          voiture[
-                                                              'articleId'] ??
-                                                          voiture['Id'] ??
-                                                          voiture['article'])
-                                                      ?.toString(),
-                                                  titre: voiture['titre'] ?? '',
-                                                  description:
-                                                      voiture['description'] ??
-                                                          '',
-                                                  marque:
-                                                      voiture['marque'] ?? '',
-                                                  modele: voiture['modele']
-                                                          ?.toString() ??
-                                                      '',
-                                                  annee: voiture['annee'] ?? '',
-                                                  prix: voiture['prix']
-                                                          ?.toString() ??
-                                                      '',
-                                                  condition:
-                                                      voiture['condition'],
-                                                  boiteVitesse:
-                                                      voiture['boiteVitesse'],
-                                                  carburant:
-                                                      voiture['carburant'],
-                                                  climatiseur:
-                                                      voiture['climatiseur'],
-                                                  distance: voiture['distance'],
-                                                  sieges: voiture['sieges'],
-                                                  portes: voiture['portes'],
-                                                  cylindre: voiture['cylindre'],
-                                                  images: (voiture['photos']
-                                                              as List?)
-                                                          ?.map((e) =>
-                                                              e.toString())
-                                                          .toList() ??
-                                                      [],
-                                                  video: voiture['video'],
-                                                  videoOptimized:
-                                                      voiture['videoOptimized'],
-                                                  entreprise:
-                                                      voiture['entreprise'],
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.grey
-                                                      .withOpacity(0.2),
-                                                  spreadRadius: 2,
-                                                  blurRadius: 10,
-                                                  offset: const Offset(0, 4),
-                                                ),
-                                                BoxShadow(
-                                                  color: Colors.grey
-                                                      .withOpacity(0.1),
-                                                  spreadRadius: 1,
-                                                  blurRadius: 5,
-                                                  offset: const Offset(0, 2),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                // Image avec overlay
-                                                Expanded(
-                                                  flex: 3,
-                                                  child: Stack(
-                                                    children: [
-                                                      ClipRRect(
-                                                        borderRadius:
-                                                            const BorderRadius
-                                                                .only(
-                                                          topLeft:
-                                                              Radius.circular(
-                                                                  12),
-                                                          topRight:
-                                                              Radius.circular(
-                                                                  12),
-                                                        ),
-                                                        child: (voiture['photos']
-                                                                        as List?)
-                                                                    ?.isNotEmpty ==
-                                                                true
-                                                            ? Image.network(
-                                                                voiture['photos']
-                                                                    [0],
-                                                                height: double
-                                                                    .infinity,
-                                                                width: double
-                                                                    .infinity,
-                                                                fit: BoxFit
-                                                                    .cover,
-                                                              )
-                                                            : (voiture['video'] !=
-                                                                        null &&
-                                                                    (voiture['video']
-                                                                            ?.toString()
-                                                                            .isNotEmpty ??
-                                                                        false))
-                                                                ? VideoPreviewPlaceholder(
-                                                                    videoUrl: voiture[
-                                                                            'video']
-                                                                        ?.toString(),
-                                                                    enablePreviewFrame:
-                                                                        false,
-                                                                  )
-                                                                : Container(
-                                                                    height: double
-                                                                        .infinity,
-                                                                    width: double
-                                                                        .infinity,
-                                                                    color: Colors
-                                                                            .grey[
-                                                                        300],
-                                                                    child:
-                                                                        const Icon(
-                                                                      Icons
-                                                                          .image_not_supported,
-                                                                    ),
-                                                                  ),
-                                                      ),
-                                                      // Badge condition
-                                                      Positioned(
-                                                        top: 8,
-                                                        left: 8,
-                                                        child: Container(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                            horizontal: 8,
-                                                            vertical: 4,
-                                                          ),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: ((voiture['condition'] ??
-                                                                                '')
-                                                                            .toString()
-                                                                            .toLowerCase() ==
-                                                                        'nouveau' ||
-                                                                    (voiture['condition'] ??
-                                                                                '')
-                                                                            .toString()
-                                                                            .toLowerCase() ==
-                                                                        'neuf')
-                                                                ? Colors.purple
-                                                                : const Color(
-                                                                    0xFFF8BF13),
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        50),
-                                                          ),
-                                                          child: Text(
-                                                            ((voiture['condition'] ??
-                                                                                '')
-                                                                            .toString()
-                                                                            .toLowerCase() ==
-                                                                        'nouveau' ||
-                                                                    (voiture['condition'] ??
-                                                                                '')
-                                                                            .toString()
-                                                                            .toLowerCase() ==
-                                                                        'neuf')
-                                                                ? 'Nouveau'
-                                                                : 'Occasion',
-                                                            style:
-                                                                const TextStyle(
-                                                              color:
-                                                                  Colors.white,
-                                                              fontSize: 10,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                    childAspectRatio:
+                                        _computeCardAspectRatio(context),
+                                  ),
+                                  itemCount: filteredVoitures.length,
+                                  itemBuilder: (context, index) {
+                                    final voiture = filteredVoitures[index];
+                                    return AnimatedOpacity(
+                                      opacity: _isVisible.length > index &&
+                                              _isVisible[index]
+                                          ? 1.0
+                                          : 0.0,
+                                      duration: const Duration(milliseconds: 400),
+                                      child: Stack(
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () {
+                                              final articleMap =
+                                                  Map<String, dynamic>.from(voiture);
+                                              trackArticleView(
+                                                  articleIdFromMap(articleMap));
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => CarsInfo(
+                                                    id: (voiture['_id'] ??
+                                                            voiture['id'] ??
+                                                            voiture[
+                                                                'articleId'] ??
+                                                            voiture['Id'] ??
+                                                            voiture['article'])
+                                                        ?.toString(),
+                                                    titre: voiture['titre'] ?? '',
+                                                    description:
+                                                        voiture['description'] ??
+                                                            '',
+                                                    marque:
+                                                        voiture['marque'] ?? '',
+                                                    modele: voiture['modele']
+                                                            ?.toString() ??
+                                                        '',
+                                                    annee: voiture['annee'] ?? '',
+                                                    prix: voiture['prix']
+                                                            ?.toString() ??
+                                                        '',
+                                                    condition:
+                                                        voiture['condition'],
+                                                    boiteVitesse:
+                                                        voiture['boiteVitesse'],
+                                                    carburant:
+                                                        voiture['carburant'],
+                                                    climatiseur:
+                                                        voiture['climatiseur'],
+                                                    distance: voiture['distance'],
+                                                    sieges: voiture['sieges'],
+                                                    portes: voiture['portes'],
+                                                    cylindre: voiture['cylindre'],
+                                                    images: (voiture['photos']
+                                                                as List?)
+                                                            ?.map((e) =>
+                                                                e.toString())
+                                                            .toList() ??
+                                                        [],
+                                                    video: voiture['video'],
+                                                    videoOptimized:
+                                                        voiture['videoOptimized'],
+                                                    entreprise:
+                                                        _voitureDisplayCompany(
+                                                                voiture) ??
+                                                            voiture['entreprise']
+                                                                ?.toString(),
                                                   ),
                                                 ),
-                                                // Informations de la voiture
-                                                Expanded(
-                                                  flex: 2,
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(8),
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
+                                              );
+                                            },
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.grey
+                                                        .withOpacity(0.2),
+                                                    spreadRadius: 2,
+                                                    blurRadius: 10,
+                                                    offset: const Offset(0, 4),
+                                                  ),
+                                                  BoxShadow(
+                                                    color: Colors.grey
+                                                        .withOpacity(0.1),
+                                                    spreadRadius: 1,
+                                                    blurRadius: 5,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  // Image avec overlay
+                                                  Expanded(
+                                                    flex: 3,
+                                                    child: Stack(
                                                       children: [
-                                                        Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .spaceBetween,
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            Expanded(
-                                                              child: Column(
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .start,
-                                                                children: [
-                                                                  Text(
-                                                                    voiture['marque'] ??
-                                                                        '',
-                                                                    style:
-                                                                        TextStyle(
-                                                                      fontSize:
-                                                                          12,
+                                                        ClipRRect(
+                                                          borderRadius:
+                                                              const BorderRadius
+                                                                  .only(
+                                                            topLeft:
+                                                                Radius.circular(
+                                                                    12),
+                                                            topRight:
+                                                                Radius.circular(
+                                                                    12),
+                                                          ),
+                                                          child: (voiture['photos']
+                                                                          as List?)
+                                                                      ?.isNotEmpty ==
+                                                                  true
+                                                              ? Image.network(
+                                                                  voiture['photos']
+                                                                      [0],
+                                                                  height: double
+                                                                      .infinity,
+                                                                  width: double
+                                                                      .infinity,
+                                                                  fit: BoxFit
+                                                                      .cover,
+                                                                )
+                                                              : (voiture['video'] !=
+                                                                          null &&
+                                                                      (voiture['video']
+                                                                              ?.toString()
+                                                                              .isNotEmpty ??
+                                                                          false))
+                                                                  ? VideoPreviewPlaceholder(
+                                                                      videoUrl: voiture['video']
+                                                                          ?.toString(),
+                                                                      iconSize: 36,
+                                                                      enablePreviewFrame: false,
+                                                                    )
+                                                                  : Container(
+                                                                      height: double
+                                                                          .infinity,
+                                                                      width: double
+                                                                          .infinity,
                                                                       color: Colors
                                                                               .grey[
-                                                                          600],
+                                                                          300],
+                                                                      child:
+                                                                          const Icon(
+                                                                        Icons
+                                                                            .image_not_supported,
+                                                                      ),
                                                                     ),
-                                                                    maxLines: 1,
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                  ),
-                                                                  Text(
-                                                                    voiture['modele']
-                                                                            ?.toString() ??
-                                                                        '',
-                                                                    style:
-                                                                        TextStyle(
-                                                                      fontSize:
-                                                                          10,
-                                                                      color: Colors
-                                                                              .grey[
-                                                                          500],
-                                                                    ),
-                                                                    maxLines: 1,
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                  ),
-                                                                ],
-                                                              ),
+                                                        ),
+                                                        // Badge condition
+                                                        Positioned(
+                                                          top: 8,
+                                                          left: 8,
+                                                          child: Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                              horizontal: 8,
+                                                              vertical: 4,
                                                             ),
-                                                            const SizedBox(
-                                                                width: 4),
-                                                            Text(
-                                                              '${voiture['prix'] ?? ''} FCFA',
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: ((voiture['condition'] ??
+                                                                                  '')
+                                                                              .toString()
+                                                                              .toLowerCase() ==
+                                                                          'nouveau' ||
+                                                                      (voiture['condition'] ??
+                                                                                  '')
+                                                                              .toString()
+                                                                              .toLowerCase() ==
+                                                                          'neuf')
+                                                                  ? Colors.purple
+                                                                  : const Color(
+                                                                      0xFFF8BF13),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          50),
+                                                            ),
+                                                            child: Text(
+                                                              ((voiture['condition'] ??
+                                                                                  '')
+                                                                              .toString()
+                                                                              .toLowerCase() ==
+                                                                          'nouveau' ||
+                                                                      (voiture['condition'] ??
+                                                                                  '')
+                                                                              .toString()
+                                                                              .toLowerCase() ==
+                                                                          'neuf')
+                                                                  ? 'Nouveau'
+                                                                  : 'Occasion',
                                                               style:
                                                                   const TextStyle(
-                                                                fontSize: 14,
+                                                                color:
+                                                                    Colors.white,
+                                                                fontSize: 10,
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .bold,
-                                                                color: Colors
-                                                                    .black,
                                                               ),
                                                             ),
-                                                          ],
+                                                          ),
                                                         ),
-                                                        const SizedBox(
-                                                            height: 6),
-                                                        Expanded(
-                                                          child: Column(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .spaceAround,
-                                                            children: [
-                                                              // Rangée 1: Boite vitesse + Année
-                                                              Row(
-                                                                children: [
-                                                                  Expanded(
-                                                                    child:
-                                                                        _buildCaracteristic(
-                                                                      Icons
-                                                                          .settings,
-                                                                      voiture['boiteVitesse']
-                                                                              ?.toString() ??
-                                                                          'Automatique',
-                                                                    ),
-                                                                  ),
-                                                                  const SizedBox(
-                                                                      width: 4),
-                                                                  Expanded(
-                                                                    child:
-                                                                        _buildCaracteristic(
-                                                                      Icons
-                                                                          .calendar_today,
-                                                                      voiture['annee']
-                                                                              ?.toString() ??
-                                                                          '',
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              // Rangée 2: Carburant + Cylindre
-                                                              Row(
-                                                                children: [
-                                                                  Expanded(
-                                                                    child:
-                                                                        _buildCaracteristic(
-                                                                      Icons
-                                                                          .local_gas_station,
-                                                                      voiture['carburant']
-                                                                              ?.toString() ??
-                                                                          '',
-                                                                    ),
-                                                                  ),
-                                                                  const SizedBox(
-                                                                      width: 4),
-                                                                  Expanded(
-                                                                    child:
-                                                                        _buildCaracteristic(
-                                                                      Icons
-                                                                          .speed,
-                                                                      voiture['cylindre']
-                                                                              ?.toString() ??
-                                                                          '',
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              // Rangée 3: Distance + Portes
-                                                              Row(
-                                                                children: [
-                                                                  Expanded(
-                                                                    child:
-                                                                        _buildCaracteristic(
-                                                                      Icons
-                                                                          .speed,
-                                                                      '${voiture['distance'] ?? ''} KM',
-                                                                    ),
-                                                                  ),
-                                                                  const SizedBox(
-                                                                      width: 4),
-                                                                  Expanded(
-                                                                    child:
-                                                                        _buildCaracteristic(
-                                                                      Icons
-                                                                          .door_front_door,
-                                                                      '${voiture['portes'] ?? ''} portes',
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ],
+                                                        Positioned(
+                                                          bottom: 8,
+                                                          right: 8,
+                                                          child: buildArticleViewBadge(
+                                                            articleViewsFromMap(
+                                                              Map<String, dynamic>.from(voiture),
+                                                            ),
                                                           ),
                                                         ),
                                                       ],
                                                     ),
                                                   ),
-                                                ),
-                                              ],
+                                                  // Informations de la voiture
+                                                  Expanded(
+                                                    flex: 2,
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(8),
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceBetween,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Expanded(
+                                                                child: Column(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  children: [
+                                                                    Text(
+                                                                      voiture['marque'] ??
+                                                                          '',
+                                                                      style: TextStyle(
+                                                                        fontSize: 12,
+                                                                        color: Colors.grey[600],
+                                                                      ),
+                                                                      maxLines: 1,
+                                                                      overflow:
+                                                                          TextOverflow.ellipsis,
+                                                                    ),
+                                                                    Text(
+                                                                      voiture['modele']
+                                                                              ?.toString() ??
+                                                                          '',
+                                                                      style: TextStyle(
+                                                                        fontSize: 10,
+                                                                        color: Colors.grey[500],
+                                                                      ),
+                                                                      maxLines: 1,
+                                                                      overflow:
+                                                                          TextOverflow.ellipsis,
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                  width: 4),
+                                                              Text(
+                                                                '${formatPrice(voiture['prix'])} FCFA',
+                                                                style:
+                                                                    const TextStyle(
+                                                                  fontSize: 14,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: Colors
+                                                                      .black,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 6),
+                                                          Expanded(
+                                                            child: Column(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceAround,
+                                                              children: [
+                                                                // Rangée 1: Boite vitesse + Année
+                                                                Row(
+                                                                  children: [
+                                                                    Expanded(
+                                                                      child:
+                                                                          _buildCaracteristic(
+                                                                        Icons
+                                                                            .settings,
+                                                                        voiture['boiteVitesse']
+                                                                                ?.toString() ??
+                                                                            'Automatique',
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(
+                                                                        width: 4),
+                                                                    Expanded(
+                                                                      child:
+                                                                          _buildCaracteristic(
+                                                                        Icons
+                                                                            .calendar_today,
+                                                                        voiture['annee']
+                                                                                ?.toString() ??
+                                                                            '',
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                // Rangée 2: Carburant + Cylindre
+                                                                Row(
+                                                                  children: [
+                                                                    Expanded(
+                                                                      child:
+                                                                          _buildCaracteristic(
+                                                                        Icons
+                                                                            .local_gas_station,
+                                                                        voiture['carburant']
+                                                                                ?.toString() ??
+                                                                            '',
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(
+                                                                        width: 4),
+                                                                    Expanded(
+                                                                      child:
+                                                                          _buildCaracteristic(
+                                                                        Icons
+                                                                            .speed,
+                                                                        voiture['cylindre']
+                                                                                ?.toString() ??
+                                                                            '',
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                // Rangée 3: Distance + Portes
+                                                                Row(
+                                                                  children: [
+                                                                    Expanded(
+                                                                      child:
+                                                                          _buildCaracteristic(
+                                                                        Icons
+                                                                            .speed,
+                                                                        '${voiture['distance'] ?? ''} KM',
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(
+                                                                        width: 4),
+                                                                    Expanded(
+                                                                      child:
+                                                                          _buildCaracteristic(
+                                                                        Icons
+                                                                            .door_front_door,
+                                                                        '${voiture['portes'] ?? ''} portes',
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                        ),
+                      ),
                     ),
                   ],
                 ),

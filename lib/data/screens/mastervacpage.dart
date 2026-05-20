@@ -14,7 +14,25 @@ import 'package:tranoo/utils/auth_dialog.dart';
 import 'package:confetti/confetti.dart';
 // import 'verification_payment.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
+import 'package:tranoo/utils/article_view_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+// Fonction utilitaire pour formater les prix avec des séparateurs de milliers
+String formatPrice(dynamic price) {
+  if (price == null) return '0';
+  try {
+    final priceNum = double.tryParse(price.toString()) ?? 0;
+    final priceStr = priceNum.toStringAsFixed(0);
+    final reversed = priceStr.split('').reversed.join('');
+    final withDots = reversed.replaceAllMapped(
+      RegExp(r'(\d{3})(?=\d)'),
+      (Match m) => '${m[0]}.',
+    );
+    return withDots.split('').reversed.join('');
+  } catch (e) {
+    return price.toString();
+  }
+}
 
 class MastervacPage extends StatefulWidget {
   final String? id;
@@ -63,18 +81,91 @@ class _MastervacPageState extends State<MastervacPage> {
   // Champs de livraison/lieu supprimés - gérés dans OrderSummaryPage
   late ConfettiController _confettiController;
   bool _isOnline = false;
+  String? _sellerPhone;
 
   @override
   void initState() {
     super.initState();
+    trackArticleView(widget.id);
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
     );
     _pageController = PageController(initialPage: _currentImageIndex);
-    _loadArticleStatut();
+    _loadArticleDetails();
   }
 
-  Future<void> _loadArticleStatut() async {
+  String? _extractSellerPhone(Map<String, dynamic> data) {
+    final fournisseur = data['fournisseur'];
+    if (fournisseur is Map) {
+      final phone = fournisseur['telephone']?.toString().trim() ?? '';
+      if (phone.isNotEmpty) return phone;
+    }
+    final vendeur = data['vendeur'];
+    if (vendeur is Map) {
+      final phone = vendeur['telephone']?.toString().trim() ?? '';
+      if (phone.isNotEmpty) return phone;
+    }
+    return null;
+  }
+
+  String _digitsOnly(String raw) => raw.replaceAll(RegExp(r'\D'), '');
+
+  void _showSellerContactUnavailable() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Numéro du vendeur indisponible')),
+    );
+  }
+
+  Future<void> _openSellerWhatsApp() async {
+    final phone = _sellerPhone?.trim() ?? '';
+    if (phone.isEmpty) {
+      _showSellerContactUnavailable();
+      return;
+    }
+    final digits = _digitsOnly(phone);
+    if (digits.isEmpty) {
+      _showSellerContactUnavailable();
+      return;
+    }
+    final uri = Uri.parse('https://wa.me/$digits');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return;
+    }
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (ok) return;
+    } catch (_) {}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Impossible d\'ouvrir WhatsApp')),
+    );
+  }
+
+  Future<void> _callSeller() async {
+    final phone = _sellerPhone?.trim() ?? '';
+    if (phone.isEmpty) {
+      _showSellerContactUnavailable();
+      return;
+    }
+    final digits = _digitsOnly(phone);
+    if (digits.isEmpty) {
+      _showSellerContactUnavailable();
+      return;
+    }
+    final uri = Uri.parse('tel:+$digits');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+      return;
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Impossible de passer un appel')),
+    );
+  }
+
+  Future<void> _loadArticleDetails() async {
     try {
       final id = widget.id;
       if (id == null || id.isEmpty) return;
@@ -88,11 +179,12 @@ class _MastervacPageState extends State<MastervacPage> {
         },
       );
       if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
         final statut = (data['statut'] ?? '').toString().toLowerCase();
         if (!mounted) return;
         setState(() {
           _isOnline = (statut == 'en_ligne');
+          _sellerPhone = _extractSellerPhone(data);
         });
       }
     } catch (_) {}
@@ -260,18 +352,7 @@ class _MastervacPageState extends State<MastervacPage> {
             children: [
               // WhatsApp
               GestureDetector(
-                onTap: () async {
-                  final url = 'https://wa.me/22941839801';
-                  final uri = Uri.parse(url);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } else {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Impossible d\'ouvrir WhatsApp')),
-                    );
-                  }
-                },
+                onTap: _openSellerWhatsApp,
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.white,
@@ -290,18 +371,7 @@ class _MastervacPageState extends State<MastervacPage> {
               const SizedBox(height: 8),
               // Appel téléphonique
               GestureDetector(
-                onTap: () async {
-                  final url = 'tel:+2290141839801';
-                  final uri = Uri.parse(url);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri);
-                  } else {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Impossible de passer un appel')),
-                    );
-                  }
-                },
+                onTap: _callSeller,
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.white,
@@ -433,7 +503,7 @@ class _MastervacPageState extends State<MastervacPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          widget.price.isNotEmpty ? '${widget.price} FCFA' : 'Non renseigné',
+          widget.price.isNotEmpty ? '${formatPrice(widget.price)} FCFA' : 'Non renseigné',
           style: TextStyle(
             fontSize: 20,
             color: Colors.grey[800],

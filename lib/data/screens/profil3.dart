@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tranoo/data/screens/wallet_screen.dart';
 import 'package:tranoo/data/screens/connexion_page.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile.dart';
@@ -13,6 +12,7 @@ import 'package:tranoo/providers/auth_provider.dart' as myauth;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/cloudinary_upload.dart';
 
 void main() {
   runApp(const MyApp());
@@ -354,14 +354,36 @@ class Profil3State extends State<Profil3> {
     );
   }
 
+  Future<void> _syncProfileAfterUpdate() async {
+    if (!mounted) return;
+    await Provider.of<myauth.AuthProvider>(context, listen: false).reloadUser();
+    if (mounted) setState(() {});
+  }
+
   Future<void> _pickImage() async {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
-      // Ici, tu peux ajouter l'upload si besoin
+    if (pickedFile == null) return;
+    setState(() => _image = File(pickedFile.path));
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      final url = await uploadImageToCloudinary(
+        _image!,
+        folder: CloudinaryFolders.profiles,
+      );
+      if (url == null) return;
+      final idToken = await user.getIdToken();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: getBaseUrl(),
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+      await dio.patch('/users/me', data: {'photo': url});
+      await _syncProfileAfterUpdate();
+    } catch (e) {
+      debugPrint('Erreur upload photo profil3: $e');
     }
   }
 
@@ -400,11 +422,12 @@ class Profil3State extends State<Profil3> {
             title: "Mon compte",
             subtitle: "Apporter des modifications à votre compte",
             icon: Icons.person,
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => Profile()),
               );
+              await _syncProfileAfterUpdate();
             },
           ),
 
@@ -442,29 +465,6 @@ class Profil3State extends State<Profil3> {
           //     );
           //   },
           // ),
-          _buildListTile(
-            title: "Mon portefeuille",
-            icon: Icons.account_balance_wallet,
-            trailing: _walletLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    "${_walletBalance?.toStringAsFixed(0) ?? '0'} $_walletCurrency",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
-                  ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const WalletScreen()),
-              ).then((_) => _loadWallet()); // Recharger après retour
-            },
-          ),
           _buildListTile(
             title: "Parrainage",
             subtitle: "Gagnez en parrainant vos amis",

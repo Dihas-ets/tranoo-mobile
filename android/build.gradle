@@ -2,7 +2,8 @@
 subprojects {
     afterEvaluate { project ->
         if (project.hasProperty("android")) {
-            project.android.ndkVersion = "26.2.11394342"
+            // Force a 16 KB page-size compatible NDK for native libs.
+            project.android.ndkVersion = "27.0.12077973"
         }
     }
 }

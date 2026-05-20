@@ -78,7 +78,7 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                   ),
                   const SizedBox(height: 32),
                   const Text(
-                    'Publication envoyée !',
+                    'Publication en ligne !',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -100,8 +100,8 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                     child: Column(
                       children: [
                         const Icon(
-                          Icons.admin_panel_settings,
-                          color: Colors.blue,
+                          Icons.public,
+                          color: Colors.green,
                           size: 40,
                         ),
                         const SizedBox(height: 12),
@@ -114,20 +114,10 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                               height: 1.5,
                             ),
                             children: [
-                              TextSpan(text: 'Votre article a été envoyé aux '),
                               TextSpan(
-                                text: 'administrateurs',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                              ),
+                                  text: 'Votre article est publié et visible '),
                               TextSpan(
-                                text:
-                                    ' pour validation.\n\nDès que votre publication sera ',
-                              ),
-                              TextSpan(
-                                text: 'approuvée',
+                                text: 'immédiatement',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.green,
@@ -135,7 +125,7 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                               ),
                               TextSpan(
                                 text:
-                                    ', elle sera automatiquement mise en ligne sur l\'application.',
+                                    ' sur l\'application.\n\nVous pouvez déjà le retrouver dans les listes.',
                               ),
                             ],
                           ),
@@ -147,20 +137,20 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.1),
+                      color: Colors.green.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
                         const Icon(
-                          Icons.schedule,
-                          color: Colors.amber,
+                          Icons.visibility,
+                          color: Colors.green,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Temps de validation : 24-48h en moyenne',
+                            'Votre annonce est déjà en ligne.',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[700],

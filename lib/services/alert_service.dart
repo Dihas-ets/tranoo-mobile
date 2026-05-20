@@ -29,6 +29,7 @@ class AlertService {
     String? urgence,
     String? budgetMax,
     int quantity = 1,
+    List<String>? photos,
   }) async {
     final token = await _getAuthToken();
     if (token == null) {
@@ -53,6 +54,7 @@ class AlertService {
         'anneeMax': (annee ?? '').trim(),
         'budgetMax': (budgetMax ?? '').trim(),
         'quantity': quantity,
+        if (photos != null && photos.isNotEmpty) 'photos': photos,
       }),
     );
 
@@ -60,6 +62,7 @@ class AlertService {
       log('[ALERTE] vehicle error ${resp.statusCode}: ${resp.body}');
       throw Exception('Erreur envoi alerte (${resp.statusCode})');
     }
+    await _trackDemoAlertCreated(kind: 'vehicle');
   }
 
   Future<void> createPieceAlert({
@@ -69,6 +72,7 @@ class AlertService {
     String? annee,
     String? urgence,
     int quantity = 1,
+    List<String>? photos,
   }) async {
     final token = await _getAuthToken();
     if (token == null) {
@@ -91,12 +95,36 @@ class AlertService {
         'pieceName': pieceName.trim(),
         'urgence': (urgence ?? '').trim(),
         'quantity': quantity,
+        if (photos != null && photos.isNotEmpty) 'photos': photos,
       }),
     );
 
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
       log('[ALERTE] piece error ${resp.statusCode}: ${resp.body}');
       throw Exception('Erreur envoi alerte (${resp.statusCode})');
+    }
+    await _trackDemoAlertCreated(kind: 'piece');
+  }
+
+  /// KPI agent : action commerciale « création d'alerte » (best-effort).
+  Future<void> _trackDemoAlertCreated({required String kind}) async {
+    try {
+      final token = await _getAuthToken();
+      if (token == null) return;
+      await http.post(
+        Uri.parse('${getApiBaseUrl()}/demo-events/track'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'eventType': 'alert_created',
+          'page': 'alert_service.dart',
+          'meta': {'kind': kind},
+        }),
+      );
+    } catch (e) {
+      log('[ALERTE] demo track skip: $e');
     }
   }
 }

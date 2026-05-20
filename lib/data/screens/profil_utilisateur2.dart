@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tranoo/data/screens/wallet_screen.dart';
 import 'package:tranoo/data/screens/connexion_page.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/profile2.dart';
@@ -26,8 +25,8 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
   String selectedLanguage = "Français";
   String selectedCurrencyValue = "XOF";
   Map<String, dynamic>? userData;
-  bool loading = true;
   String? errorMsg;
+  bool loading = true;
   double? _walletBalance;
   String _walletCurrency = "XOF";
   bool _walletLoading = true;
@@ -248,9 +247,7 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
         await local_auth.AuthProvider.saveUserToPrefs(idToken, refreshedUser);
         if (mounted) {
           context.read<local_auth.AuthProvider>().reloadUser();
-        setState(() {
-          userData?["photo"] = url;
-        });
+          await fetchUser();
         }
       }
     } catch (e) {
@@ -456,29 +453,6 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
           //     );
           //   },
           // ),
-          _buildListTile(
-            title: "Mon portefeuille",
-            icon: Icons.account_balance_wallet,
-            trailing: _walletLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    "${_walletBalance?.toStringAsFixed(0) ?? '0'} $_walletCurrency",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
-                  ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const WalletScreen()),
-              ).then((_) => _loadWallet()); // Recharger après retour
-            },
-          ),
           _buildListTile(
             title: "Suppression de compte",
             icon: Icons.delete_forever,

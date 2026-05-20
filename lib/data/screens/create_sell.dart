@@ -175,6 +175,51 @@ class _CreateSellPageState extends State<CreateSellPage> {
 
   // Supprimer la déclaration, l'utilisation et l'affichage du champ 'lieu' (dropdown, TextField, variables _selectedLieu, _customLieu, _lieux, etc.)
 
+  Future<void> _takePhotoFromCamera() async {
+    final picker = ImagePicker();
+    final photo = await picker.pickImage(source: ImageSource.camera);
+    if (photo == null) return;
+    final gridIndex = _cloudinaryImageUrls.indexWhere(
+      (url) => url == null || url!.isEmpty,
+    );
+    if (gridIndex == -1) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Maximum de 12 images atteint')),
+        );
+      }
+      return;
+    }
+    if (kIsWeb) {
+      final bytes = await photo.readAsBytes();
+      setState(() {
+        _uploadedImagesWeb[gridIndex] = bytes;
+        _isUploadingImage[gridIndex] = true;
+      });
+      final url = await uploadImageToCloudinaryWeb(
+        bytes,
+        folder: CloudinaryFolders.vehicleImages,
+      );
+      if (url != null) {
+        setState(() => _cloudinaryImageUrls[gridIndex] = url);
+      }
+      setState(() => _isUploadingImage[gridIndex] = false);
+    } else {
+      setState(() {
+        _uploadedImages[gridIndex] = File(photo.path);
+        _isUploadingImage[gridIndex] = true;
+      });
+      final url = await uploadImageToCloudinary(
+        _uploadedImages[gridIndex]!,
+        folder: CloudinaryFolders.vehicleImages,
+      );
+      if (url != null) {
+        setState(() => _cloudinaryImageUrls[gridIndex] = url);
+      }
+      setState(() => _isUploadingImage[gridIndex] = false);
+    }
+  }
+
   Future<void> _pickImage(int startIndex) async {
     final ImagePicker picker = ImagePicker();
     // Multi-sélection sur mobile et web
@@ -1098,6 +1143,28 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     // Télécharger des images optionnelles
                     _buildLabel('Images (optionnel, max 12)',
                         isRequired: false),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _pickImage(0),
+                            icon: const Icon(Icons.add_photo_alternate, size: 20),
+                            label: const Text('Ajouter des images'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF8BF13),
+                              foregroundColor: Colors.black,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Prendre une photo',
+                          onPressed: _takePhotoFromCamera,
+                          icon: const Icon(Icons.photo_camera),
+                          color: const Color(0xFFF8BF13),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     GridView.builder(
                       shrinkWrap: true,

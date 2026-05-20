@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'avant_home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
@@ -7,6 +9,8 @@ import '../../services/user_service.dart';
 import 'package:feexpay_flutter/feexpay_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
+import 'package:tranoo/utils/feexpay_result_utils.dart';
+import 'package:tranoo/utils/feexpay_callback_state.dart';
 
 final fpToken = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
 final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
@@ -26,10 +30,41 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
   bool isLoading = false;
   String? errorMessage;
   late final String transKey;
+  int _verificationPrice = 20000;
+
+  String _formatFcfa(int value) {
+    final priceStr = value.toString();
+    final reversed = priceStr.split('').reversed.join('');
+    final withDots = reversed.replaceAllMapped(
+      RegExp(r'(\d{3})(?=\d)'),
+      (Match m) => '${m[0]}.',
+    );
+    return withDots.split('').reversed.join('');
+  }
+
+  Future<void> _loadVerificationPrice() async {
+    try {
+      final url =
+          '${UserService().dio.options.baseUrl}/admin/verification-pricing';
+      final res = await http.get(Uri.parse(url));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final raw = data['prixVerification'] ??
+            (data['pricing'] is Map
+                ? data['pricing']['prixVerification']
+                : null);
+        final parsed = int.tryParse('$raw');
+        if (parsed != null && parsed >= 0 && mounted) {
+          setState(() => _verificationPrice = parsed);
+        }
+      }
+    } catch (_) {}
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadVerificationPrice();
     // Trans key encodant l'articleId si fourni pour usage côté web (paiements-details)
     // Format attendu côté web: VERIFICATION_<ObjectId>_...
     if ((widget.articleId ?? '').isNotEmpty) {
@@ -150,9 +185,9 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                      '10 000 FCFA',  
-                            style: TextStyle(
+                          Text(
+                            '${_formatFcfa(_verificationPrice)} FCFA',
+                            style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF00A86B),
@@ -202,9 +237,9 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
                         color: Colors.white,
                         strokeWidth: 2,
                       )
-                    : const Text(
-                          'Procéder au paiement - 10 000 FCFA',
-                        style: TextStyle(
+                    : Text(
+                          'Procéder au paiement - ${_formatFcfa(_verificationPrice)} FCFA',
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
@@ -296,6 +331,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
         throw Exception('Configuration FeexPay manquante');
       }
 
+      FeexPayCallbackState.clearPendingAtNewCheckout();
       // Navigation vers FeexPay avec le package officiel
       final result = await Navigator.push(
         context,
@@ -303,7 +339,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
           builder: (context) => ChoicePage(
             token: fpToken,
             id: idUser,
-            amount: '10000', // Montant test 10 000 FCFA
+            amount: _verificationPrice.toString(),
             redirecturl:
                 (successUrl.isNotEmpty ? successUrl : '/verification-success'),
             errorredirecturl:
@@ -313,10 +349,43 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
         ),
       );
 
-      // Le résultat sera géré par les routes de redirection
-      if (result != null) {
-        // Traiter la demande serveur puis afficher HTML succès et rediriger vers Marque
-        await _processVerificationRequest();
+      if (!mounted) return;
+      final cb = FeexPayCallbackState.takeLatest();
+      final callbackHint = result is Map && result['successHint'] == true;
+      var paid = feexPayReturnIndicatesSuccess(result) ||
+          cb.success == true ||
+          callbackHint;
+      final txId = extractFeexPayTransactionId(result) ?? cb.transactionId;
+      if (!paid && txId != null && txId.isNotEmpty) {
+        try {
+          final url = Uri.parse(
+            '${getBaseUrl()}/payments/feexpay/public/status/$txId',
+          );
+          final r = await http.get(url);
+          if (r.statusCode == 200) {
+            final body = jsonDecode(r.body) as Map<String, dynamic>;
+            final st = (body['status'] ?? '').toString().toLowerCase();
+            paid = st.contains('success') ||
+                st.contains('successful') ||
+                st.contains('paid') ||
+                st.contains('ok') ||
+                st.contains('completed') ||
+                st.contains('approved');
+          }
+        } catch (e) {
+          debugPrint('[verification_payment] public/status fallback: $e');
+        }
+      }
+      if (paid) {
+        await _recordVerificationFeexPayFlutter(txId);
+        try {
+          await _processVerificationRequest();
+        } catch (e) {
+          if (mounted) {
+            setState(() => errorMessage = 'Erreur enregistrement: $e');
+          }
+          return;
+        }
         if (!mounted) return;
         await _showHtmlResultAndRedirect(success: true);
       }
@@ -332,6 +401,42 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> _recordVerificationFeexPayFlutter(String? txId) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final token = await user.getIdToken();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: UserService().dio.options.baseUrl,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+      final body = <String, dynamic>{
+        'transKey': transKey,
+        'amount': _verificationPrice,
+        'description': 'Frais vérification documents',
+        'type': 'verification',
+        'status': 'success',
+      };
+      final tid = txId?.trim();
+      if (tid != null && tid.isNotEmpty) {
+        body['id_transaction'] = tid;
+        body['ref'] = tid;
+        body['reference'] = tid;
+      }
+      final res = await dio.post('/payments/feexpay/flutter/record', data: body);
+      debugPrint(
+        '[VerificationPayment] recordFeexPayFlutter status=${res.statusCode} data=${res.data}',
+      );
+    } catch (e) {
+      debugPrint('[VerificationPayment] recordFeexPayFlutter error: $e');
     }
   }
 
@@ -353,7 +458,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
     try {
       final response = await dio.post('/verification/request', data: {
         'type': 'document_verification',
-        'amount': 10000, // Montant test 10 000 FCFA
+        'amount': _verificationPrice,
         if ((widget.articleId ?? '').isNotEmpty) 'articleId': widget.articleId,
         'transKey': transKey, // utile pour traçabilité
       });

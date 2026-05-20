@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tranoo/data/screens/wallet_screen.dart';
 import 'package:tranoo/data/screens/connexion_page.dart';
 import 'package:tranoo/data/screens/create_sell.dart';
 import 'package:tranoo/data/screens/notifications.dart';
@@ -265,9 +264,7 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
         await local_auth.AuthProvider.saveUserToPrefs(idToken, refreshedUser);
         if (mounted) {
           context.read<local_auth.AuthProvider>().reloadUser();
-        setState(() {
-          userData?["photo"] = url;
-        });
+          await fetchUser();
         }
       }
     } catch (e) {
@@ -436,6 +433,15 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
   }
 
   Widget _buildAccountOptions() {
+    final vendeurType = (userData?['vendeurType'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
+    final canSellVehicles =
+        vendeurType.isEmpty || vendeurType == 'mixte' || vendeurType == 'vehicules';
+    final canSellPieces =
+        vendeurType.isEmpty || vendeurType == 'mixte' || vendeurType == 'pieces';
+
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -448,60 +454,38 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
             title: "Mon compte",
             subtitle: "Apporter des modifications à votre compte",
             icon: Icons.person,
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => Profile()),
               );
+              await fetchUser();
             },
           ),
-          _buildListTile(
-            title: "Vendre ma voiture",
-            subtitle: "Devenir titulaire et vendez avec nous",
-            icon: Icons.car_rental,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => CreateSellPage()),
-              );
-            },
-          ),
-          _buildListTile(
-            title: "Vendre ma pièce",
-            subtitle: "Devenir titulaire et vendez avec nous",
-            icon: Icons.build,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => CreateSellPage2()),
-              );
-            },
-          ),
-          _buildListTile(
-            title: "Mon portefeuille",
-            icon: Icons.account_balance_wallet,
-            trailing: _walletLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    _walletBalance == null
-                        ? '--'
-                        : '${_walletCurrency} ${_walletBalance!.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
-                  ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const WalletScreen()),
-              );
-            },
-          ),
+          if (canSellVehicles)
+            _buildListTile(
+              title: "Vendre ma voiture",
+              subtitle: "Devenir titulaire et vendez avec nous",
+              icon: Icons.car_rental,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => CreateSellPage()),
+                );
+              },
+            ),
+          if (canSellPieces)
+            _buildListTile(
+              title: "Vendre ma pièce",
+              subtitle: "Devenir titulaire et vendez avec nous",
+              icon: Icons.build,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => CreateSellPage2()),
+                );
+              },
+            ),
           _buildListTile(
             title: "Suppression de compte",
             icon: Icons.delete_forever,

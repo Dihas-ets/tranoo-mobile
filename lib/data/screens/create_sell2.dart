@@ -19,6 +19,8 @@ class CreateSellPage2State extends State<CreateSellPage2> {
   static const int _maxMediaSlots = 12;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _anneeController = TextEditingController();
+  final TextEditingController _fournisseurTelController = TextEditingController();
+  final TextEditingController _modelController = TextEditingController();
   final TextEditingController _localisationController = TextEditingController();
   final TextEditingController _prixController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -55,19 +57,27 @@ class CreateSellPage2State extends State<CreateSellPage2> {
   String? _customFuelType;
   String? _customModel;
 
-  Future<void> _pickImage(int index) async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image =
-        await picker.pickImage(source: ImageSource.gallery);
-
+  Future<void> _takePhotoFromCamera() async {
+    final emptyIndex = _cloudinaryUrls.indexWhere((u) => u == null);
+    if (emptyIndex == -1) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Maximum de 12 images atteint')),
+        );
+      }
+      return;
+    }
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.camera);
     if (image == null) return;
+    await _uploadImageAt(emptyIndex, File(image.path));
+  }
 
-    final file = File(image.path);
-      setState(() {
+  Future<void> _uploadImageAt(int index, File file) async {
+    setState(() {
       _uploadedImages[index] = file;
       _isUploadingImage[index] = true;
-      });
-
+    });
     try {
       final url = await uploadImageToCloudinary(
         file,
@@ -75,34 +85,30 @@ class CreateSellPage2State extends State<CreateSellPage2> {
       );
       if (!mounted) return;
       if (url != null) {
-        setState(() {
-          _cloudinaryUrls[index] = url;
-        });
+        setState(() => _cloudinaryUrls[index] = url);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Erreur lors de l\'upload de l\'image. Veuillez réessayer.'),
-          ),
-        );
-        setState(() {
-          _uploadedImages[index] = null;
-        });
+        setState(() => _uploadedImages[index] = null);
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Upload échoué: $e')),
       );
-      setState(() {
-        _uploadedImages[index] = null;
-      });
+      setState(() => _uploadedImages[index] = null);
     } finally {
       if (!mounted) return;
-      setState(() {
-        _isUploadingImage[index] = false;
-      });
+      setState(() => _isUploadingImage[index] = false);
     }
+  }
+
+  Future<void> _pickImage(int index) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image =
+        await picker.pickImage(source: ImageSource.gallery);
+
+    if (image == null) return;
+
+    await _uploadImageAt(index, File(image.path));
   }
 
   void _removeImage(int index) {
@@ -180,12 +186,8 @@ class CreateSellPage2State extends State<CreateSellPage2> {
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            12,
-            16,
-            20 + MediaQuery.of(context).viewInsets.bottom,
-          ),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -624,6 +626,31 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                       isMediumScreen,
                       isLargeScreen,
                       isRequired: false,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              final idx = _cloudinaryUrls.indexWhere((u) => u == null);
+                              if (idx != -1) _pickImage(idx);
+                            },
+                            icon: const Icon(Icons.add_photo_alternate, size: 20),
+                            label: const Text('Ajouter des images'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF8BF13),
+                              foregroundColor: Colors.black,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Prendre une photo',
+                          onPressed: _takePhotoFromCamera,
+                          icon: const Icon(Icons.photo_camera),
+                          color: const Color(0xFFF8BF13),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     GridView.builder(

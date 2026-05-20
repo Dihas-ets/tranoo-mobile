@@ -225,6 +225,7 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
       final txKey = 'ORDER_${randomAlphaNumeric(15)}';
       _transKey = txKey;
       developer.log('[OrderPayment] opening ChoicePage trans_key=$txKey');
+      FeexPayCallbackState.clearPendingAtNewCheckout();
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -241,10 +242,12 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
 
       // Keep a plain print to make sure we see it in noisy logcat.
       print('[OrderPayment] result runtimeType=${result.runtimeType} raw=$result');
-      final localPaid = _isFeexPaySuccess(result);
-      final transactionRef = _extractTransactionRef(result) ?? _transKey;
-      bool paid = localPaid;
       final callbackPayload = FeexPayCallbackState.takeLatest();
+      final localPaid = _isFeexPaySuccess(result);
+      final transactionRef = _extractTransactionRef(result) ??
+          callbackPayload.transactionId ??
+          txKey;
+      bool paid = localPaid;
       if (callbackPayload.success == true) {
         paid = true;
       }
@@ -253,8 +256,7 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
       if (callbackSuccessHint == true) {
         paid = true;
       }
-      final canVerifyRemotely =
-          transactionRef != null && _looksLikeFeexPayId(transactionRef);
+      final canVerifyRemotely = _looksLikeFeexPayId(transactionRef);
       if (canVerifyRemotely) {
         final verified = await _verifyPaymentWithBackend(transactionRef);
         // Si vérification backend réussit, c'est la source de vérité.

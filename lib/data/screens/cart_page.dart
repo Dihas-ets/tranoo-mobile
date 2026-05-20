@@ -220,7 +220,7 @@ class _CartPageState extends State<CartPage> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const Piece(),
+                          builder: (_) => PiecePage(),
                         ),
                       );
                     },

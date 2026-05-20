@@ -9,9 +9,30 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:developer';
 import 'verification_payment.dart'; // Import pour la page de vérification de paiement
+import 'package:tranoo/services/views_service.dart';
+import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/services/alert_service.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/utils/auth_dialog.dart';
+import 'package:tranoo/utils/article_view_helper.dart';
+
+// Fonction utilitaire pour formater les prix avec des séparateurs de milliers
+String formatPrice(dynamic price) {
+  if (price == null) return '0';
+  try {
+    final priceNum = double.tryParse(price.toString()) ?? 0;
+    final priceStr = priceNum.toStringAsFixed(0);
+    final reversed = priceStr.split('').reversed.join('');
+    final withDots = reversed.replaceAllMapped(
+      RegExp(r'(\d{3})(?=\d)'),
+      (Match m) => '${m[0]}.',
+    );
+    return withDots.split('').reversed.join('');
+  } catch (e) {
+    return price.toString();
+  }
+}
 
 class CarsInfo extends StatefulWidget {
   final String? id;
@@ -109,10 +130,44 @@ class _CarsinfoState extends State<CarsInfo> {
   ];
   late ConfettiController _confettiController;
   static const String _whatsAppPhone = '22941839801'; // sans +
+  int _verificationPrice = 20000;
+
+  String _formatFcfa(int value) {
+    final priceStr = value.toString();
+    final reversed = priceStr.split('').reversed.join('');
+    final withDots = reversed.replaceAllMapped(
+      RegExp(r'(\d{3})(?=\d)'),
+      (Match m) => '${m[0]}.',
+    );
+    return withDots.split('').reversed.join('');
+  }
+
+  String get _verificationPriceLabel => '${_formatFcfa(_verificationPrice)} FCFA';
+
+  Future<void> _loadVerificationPrice() async {
+    try {
+      final url =
+          '${UserService().dio.options.baseUrl}/admin/verification-pricing';
+      final res = await http.get(Uri.parse(url));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final raw = data['prixVerification'] ??
+            (data['pricing'] is Map
+                ? data['pricing']['prixVerification']
+                : null);
+        final parsed = int.tryParse('$raw');
+        if (parsed != null && parsed >= 0 && mounted) {
+          setState(() => _verificationPrice = parsed);
+        }
+      }
+    } catch (_) {}
+  }
 
   @override
   void initState() {
     super.initState();
+    trackArticleView(widget.id);
+    _loadVerificationPrice();
     // Log toutes les valeurs reçues
     log('[CarsInfo] titre: ${widget.titre}');
     log('[CarsInfo] description: ${widget.description}');
@@ -222,40 +277,30 @@ class _CarsinfoState extends State<CarsInfo> {
   }
 
   Future<void> _openWhatsApp() async {
-    // Format recommandé par WhatsApp: https://wa.me/<countrycode><number>
+    // Aligné sur Tranoo Pro : uniquement wa.me + app externe, jamais le Play Store.
     final phone = _whatsAppPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    final uri = Uri.parse('https://wa.me/$phone');
 
-    // 1) Essayer le schéma natif WhatsApp (ouvre directement l'app)
-    final deepLink = Uri.parse('whatsapp://send?phone=$phone');
-    if (await canLaunchUrl(deepLink)) {
-      await launchUrl(deepLink, mode: LaunchMode.externalApplication);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
       return;
     }
 
-    // 2) Fallback navigateur / WhatsApp Web
-    final webUrl = Uri.parse('https://wa.me/$phone');
-    if (await canLaunchUrl(webUrl)) {
-      await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-      return;
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (ok) return;
+    } catch (e) {
+      log('[CarsInfo] WhatsApp launchUrl error: $e');
     }
 
-     // 3) Dernier recours : ouvrir la page WhatsApp sur le Play Store
-    final playStoreUrl =
-        Uri.parse('https://play.google.com/store/apps/details?id=com.whatsapp');
-    if (await canLaunchUrl(playStoreUrl)) {
-      await launchUrl(playStoreUrl, mode: LaunchMode.externalApplication);
-      return;
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Impossible d\'ouvrir WhatsApp. Vérifiez que l\'application ou un navigateur est installé sur votre téléphone.',
-          ),
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Impossible d\'ouvrir WhatsApp. Vérifiez que l\'application ou un navigateur est installé sur votre téléphone.',
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override
@@ -668,7 +713,7 @@ class _CarsinfoState extends State<CarsInfo> {
         const SizedBox(height: 8),
         Text(
           (widget.prix != null && widget.prix!.isNotEmpty)
-              ? '${widget.prix!} FCFA'
+              ? '${formatPrice(widget.prix!)} FCFA'
               : 'Non renseigné',
           style: TextStyle(
             fontSize: screenWidth * 0.05,
@@ -1125,9 +1170,9 @@ class _CarsinfoState extends State<CarsInfo> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          '10 000 FCFA',
-                          style: TextStyle(
+                        Text(
+                          _verificationPriceLabel,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF00A86B),
                             fontSize: 16,

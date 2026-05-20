@@ -1,21 +1,47 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:tranoo/utils/cloudinary_upload.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'mastervacpage.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/services/alert_service.dart';
+import 'package:tranoo/utils/article_view_helper.dart';
+import 'package:tranoo/utils/page_refresh_registry.dart';
 
-class Piece extends StatefulWidget {
-  const Piece({super.key});
-
-  @override
-  State<Piece> createState() => _PieceState();
+// Fonction utilitaire pour formater les prix avec des séparateurs de milliers
+String formatPrice(dynamic price) {
+  if (price == null) return '0';
+  try {
+    final priceNum = double.tryParse(price.toString()) ?? 0;
+    final priceStr = priceNum.toStringAsFixed(0);
+    final reversed = priceStr.split('').reversed.join('');
+    final withDots = reversed.replaceAllMapped(
+      RegExp(r'(\d{3})(?=\d)'),
+      (Match m) => '${m[0]}.',
+    );
+    return withDots.split('').reversed.join('');
+  } catch (e) {
+    return price.toString();
+  }
 }
 
-class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
+class PiecePage extends StatefulWidget {
+  const PiecePage({super.key});
+
+  @override
+  State<PiecePage> createState() => _PiecePageState();
+}
+
+class _PiecePageState extends State<PiecePage>
+    with SingleTickerProviderStateMixin, RegisterPageRefresh {
+  @override
+  Future<void> onPagePullRefresh() async => fetchPieces();
   List<dynamic> pieces = [];
   bool isLoading = true;
   String? error;
@@ -42,6 +68,19 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    // Récupérer le paramètre de recherche si disponible
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['searchQuery'] != null) {
+        setState(() {
+          _searchController.text = args['searchQuery'];
+          _searchText = args['searchQuery'].toString().toLowerCase();
+        });
+      }
+    });
 
     // Initialisation des indices des onglets (acheteur)
     _marqueTabIndex = 0;
@@ -72,6 +111,37 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  String _pieceDisplayTitle(dynamic piece) {
+    final t = piece['titre'];
+    if (t != null && t.toString().trim().isNotEmpty) return t.toString();
+    final pt = piece['pieceType'];
+    if (pt != null && pt.toString().trim().isNotEmpty) return pt.toString();
+    return 'Sans titre';
+  }
+
+  String _pieceDisplayCompany(dynamic piece) {
+    final e = piece['entreprise'];
+    if (e != null && e.toString().trim().isNotEmpty) return e.toString();
+    final v = piece['vendeur'];
+    if (v is Map) {
+      final ve = v['entreprise'];
+      if (ve != null && ve.toString().trim().isNotEmpty) return ve.toString();
+      final n = v['nom'];
+      final p = v['prenoms'];
+      final both = '${n ?? ''} ${p ?? ''}'.trim();
+      if (both.isNotEmpty) return both;
+    }
+    return 'Entreprise inconnue';
+  }
+
+  String _pieceDisplayLocation(dynamic piece) {
+    final a = piece['localisation']?.toString().trim();
+    if (a != null && a.isNotEmpty) return a;
+    final b = piece['lieu']?.toString().trim();
+    if (b != null && b.isNotEmpty) return b;
+    return '';
   }
 
   Future<void> _reloadAll() async {
@@ -112,7 +182,7 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
             Uri.parse(url),
             headers: headers,
           )
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
@@ -121,12 +191,17 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
           isLoading = false;
         });
       } else {
+        debugPrint(
+            '[PIECES_PUBLIC] HTTP ${response.statusCode}: ${response.body}');
         setState(() {
-          error = 'Erreur lors du chargement des pièces';
+          error = response.statusCode == 401
+              ? 'Session expirée. Reconnectez-vous.'
+              : 'Erreur lors du chargement des pièces';
           isLoading = false;
         });
       }
     } catch (e) {
+      debugPrint('[PIECES_PUBLIC] fetchPieces exception: $e');
       setState(() {
         error = 'Erreur réseau';
         isLoading = false;
@@ -278,14 +353,14 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SizedBox(
-        height: 100 + 16,
+        height: 70 + 16,
         child: GridView.builder(
           scrollDirection: Axis.horizontal,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 1,
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
-            mainAxisExtent: 100,
+            mainAxisExtent: 70,
           ),
           itemCount: marques.length,
           itemBuilder: (context, index) {
@@ -333,19 +408,6 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                         },
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item["name"] ?? '',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _selectedBrand == item["name"]
-                            ? Colors.white
-                            : Colors.black,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                   ],
                 ),
               ),
@@ -375,14 +437,14 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SizedBox(
-        height: 90 + 16,
+        height: 60 + 16,
         child: GridView.builder(
           scrollDirection: Axis.horizontal,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 1,
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
-            mainAxisExtent: 120,
+            mainAxisExtent: 80,
           ),
           itemCount: modeles.length,
           itemBuilder: (context, index) {
@@ -480,21 +542,8 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                   children: [
                     SizedBox(
                       width: 36,
-                      height: 24,
+                      height: 36,
                       child: Image.asset(item["image"], fit: BoxFit.contain),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item["name"],
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _selectedLocation == item["name"]
-                            ? Colors.white
-                            : Colors.black,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -680,6 +729,21 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
     );
   }
 
+  Future<List<String>> _uploadAlertPhotos(
+    List<XFile> files, {
+    required String folder,
+  }) async {
+    final urls = <String>[];
+    for (final file in files.take(6)) {
+      final url = await uploadImageToCloudinary(
+        File(file.path),
+        folder: folder,
+      );
+      if (url != null && url.isNotEmpty) urls.add(url);
+    }
+    return urls;
+  }
+
   Future<void> _showPieceMiniForm() async {
     final formKey = GlobalKey<FormState>();
     final marqueController = TextEditingController();
@@ -687,8 +751,8 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
     final anneeController = TextEditingController();
     final pieceNameController = TextEditingController();
     String urgence = 'normale';
-    int quantity = 1;
-    bool isSubmitting = false;
+    final alertPhotoUrls = <String>[];
+    var alertPhotosUploading = false;
 
     await showModalBottomSheet(
       context: context,
@@ -738,6 +802,101 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold),
                                 ),
+                                const SizedBox(height: 14),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: alertPhotosUploading
+                                            ? null
+                                            : () async {
+                                                final picker = ImagePicker();
+                                                final images =
+                                                    await picker.pickMultiImage();
+                                                if (images.isEmpty) return;
+                                                setSheetState(() =>
+                                                    alertPhotosUploading =
+                                                        true);
+                                                final uploaded =
+                                                    await _uploadAlertPhotos(
+                                                  images,
+                                                  folder: CloudinaryFolders
+                                                      .pieceImages,
+                                                );
+                                                setSheetState(() {
+                                                  alertPhotoUrls.addAll(
+                                                      uploaded);
+                                                  alertPhotosUploading =
+                                                      false;
+                                                });
+                                              },
+                                        icon: const Icon(
+                                            Icons.add_photo_alternate,
+                                            size: 20),
+                                        label: const Text('Ajouter des images'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFFE57373),
+                                          foregroundColor: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Prendre une photo',
+                                      onPressed: alertPhotosUploading
+                                          ? null
+                                          : () async {
+                                              final picker = ImagePicker();
+                                              final photo = await picker
+                                                  .pickImage(
+                                                      source:
+                                                          ImageSource.camera);
+                                              if (photo == null) return;
+                                              setSheetState(() =>
+                                                  alertPhotosUploading = true);
+                                              final uploaded =
+                                                  await _uploadAlertPhotos(
+                                                [photo],
+                                                folder: CloudinaryFolders
+                                                    .pieceImages,
+                                              );
+                                              setSheetState(() {
+                                                alertPhotoUrls.addAll(uploaded);
+                                                alertPhotosUploading = false;
+                                              });
+                                            },
+                                      icon: const Icon(Icons.photo_camera),
+                                      color: const Color(0xFFE57373),
+                                    ),
+                                  ],
+                                ),
+                                if (alertPhotosUploading)
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 8),
+                                    child: LinearProgressIndicator(),
+                                  ),
+                                if (alertPhotoUrls.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Wrap(
+                                      spacing: 6,
+                                      runSpacing: 6,
+                                      children: alertPhotoUrls
+                                          .map(
+                                            (url) => ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              child: Image.network(
+                                                url,
+                                                width: 56,
+                                                height: 56,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                    ),
+                                  ),
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: marqueController,
@@ -817,41 +976,6 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                       () => urgence = value ?? 'urgente'),
                                 ),
                                 const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    const Expanded(
-                                      child: Text(
-                                        'Nombre de pièces',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      onPressed: quantity > 1
-                                          ? () =>
-                                              setSheetState(() => quantity--)
-                                          : null,
-                                      icon: const Icon(
-                                        Icons.remove_circle_outline,
-                                      ),
-                                    ),
-                                    Text(
-                                      '$quantity',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      onPressed: () =>
-                                          setSheetState(() => quantity++),
-                                      icon: const Icon(
-                                        Icons.add_circle_outline,
-                                      ),
-                                    ),
-                                  ],
-                                ),
                               ],
                             ),
                           ),
@@ -865,14 +989,14 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                 backgroundColor: const Color(0xFFE57373),
                                 foregroundColor: Colors.white,
                               ),
-                              onPressed: () {
-                                if (isSubmitting) return;
+                              onPressed: alertPhotosUploading
+                                  ? null
+                                  : () {
                                 if (!(formKey.currentState?.validate() ??
                                     false)) {
                                   return;
                                 }
                                 () async {
-                                  setSheetState(() => isSubmitting = true);
                                   try {
                                     await AlertService().createPieceAlert(
                                       marque: marqueController.text,
@@ -880,20 +1004,9 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                       annee: anneeController.text,
                                       pieceName: pieceNameController.text,
                                       urgence: urgence,
-                                      quantity: quantity,
+                                      photos: alertPhotoUrls,
                                     );
                                     if (!context.mounted) return;
-                                    FocusScope.of(context).unfocus();
-                                    _searchController.clear();
-                                    setState(() {
-                                      _searchText = '';
-                                      _selectedBrand = null;
-                                      _selectedModel = null;
-                                      _selectedLocation = null;
-                                      _budgetMin = null;
-                                      _budgetMax = null;
-                                      _noResultDialogShown = false;
-                                    });
                                     Navigator.pop(ctx);
                                     await showDialog(
                                       context: context,
@@ -933,26 +1046,10 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                             Text('Erreur envoi alerte: $e'),
                                       ),
                                     );
-                                  } finally {
-                                    if (ctx.mounted) {
-                                      setSheetState(() => isSubmitting = false);
-                                    }
                                   }
                                 }();
                               },
-                              child: isSubmitting
-                                  ? const SizedBox(
-                                      height: 18,
-                                      width: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    )
-                                  : const Text('Envoyer l\'alerte'),
+                              child: const Text('Envoyer l\'alerte'),
                             ),
                           ),
                         ),
@@ -996,16 +1093,6 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
-                _searchController.clear();
-                setState(() {
-                  _searchText = '';
-                  _selectedBrand = null;
-                  _selectedModel = null;
-                  _selectedLocation = null;
-                  _budgetMin = null;
-                  _budgetMax = null;
-                  _noResultDialogShown = false;
-                });
                 _showPieceMiniForm();
               },
               style: ElevatedButton.styleFrom(
@@ -1157,6 +1244,11 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                         children: [
                                           GestureDetector(
                                             onTap: () {
+                                              final articleMap =
+                                                  Map<String, dynamic>.from(
+                                                      piece);
+                                              trackArticleView(
+                                                  articleIdFromMap(articleMap));
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
@@ -1170,17 +1262,18 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                                             piece['article'])
                                                         ?.toString(),
                                                     isAcheteur: true,
-                                                    title: piece['titre'] ?? '',
+                                                    title: _pieceDisplayTitle(
+                                                        piece),
                                                     year: piece['annee'] ?? '',
                                                     description:
                                                         piece['description'] ??
                                                             '',
                                                     company:
-                                                        piece['entreprise'] ??
-                                                            '',
+                                                        _pieceDisplayCompany(
+                                                            piece),
                                                     location:
-                                                        piece['localisation'] ??
-                                                            '',
+                                                        _pieceDisplayLocation(
+                                                            piece),
                                                     price: piece['prix']
                                                             ?.toString() ??
                                                         '',
@@ -1227,46 +1320,62 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                                     child: SizedBox(
                                                       height: 100,
                                                       width: double.infinity,
-                                                      child: (piece['photos']
-                                                                      as List?)
-                                                                  ?.isNotEmpty ==
-                                                              true
-                                                          ? Image.network(
-                                                              piece['photos']
-                                                                  [0],
-                                                              fit: BoxFit.cover,
-                                                            )
-                                                          : (piece['video'] !=
-                                                                      null &&
-                                                                  (piece['video']
-                                                                          ?.toString()
-                                                                          .isNotEmpty ??
-                                                                      false))
-                                                              ? VideoPreviewPlaceholder(
-                                                                  videoUrl: piece[
-                                                                          'video']
-                                                                      ?.toString(),
-                                                                  iconSize: 36,
-                                                                )
-                                                              : Container(
-                                                                  color: Colors
-                                                                          .grey[
-                                                                      200],
-                                                                  child:
-                                                                      const Icon(
-                                                                    Icons
-                                                                        .image_not_supported,
-                                                                    size: 30,
-                                                                    color: Colors
-                                                                        .black26,
-                                                                  ),
-                                                                ),
+                                                      child: Stack(
+                                                        children: [
+                                                          Positioned.fill(
+                                                            child: (piece['photos']
+                                                                            as List?)
+                                                                        ?.isNotEmpty ==
+                                                                    true
+                                                                ? Image.network(
+                                                                    piece['photos']
+                                                                        [0],
+                                                                    fit: BoxFit
+                                                                        .cover,
+                                                                  )
+                                                                : (piece['video'] !=
+                                                                            null &&
+                                                                        (piece['video']?.toString().isNotEmpty ??
+                                                                            false))
+                                                                    ? VideoPreviewPlaceholder(
+                                                                        videoUrl:
+                                                                            piece['video']?.toString(),
+                                                                        iconSize:
+                                                                            36,
+                                                                      )
+                                                                    : Container(
+                                                                        color: Colors
+                                                                            .grey[200],
+                                                                        child:
+                                                                            const Icon(
+                                                                          Icons
+                                                                              .image_not_supported,
+                                                                          size:
+                                                                              30,
+                                                                          color:
+                                                                              Colors.black26,
+                                                                        ),
+                                                                      ),
+                                                          ),
+                                                          Positioned(
+                                                            bottom: 6,
+                                                            right: 6,
+                                                            child:
+                                                                buildArticleViewBadge(
+                                                              articleViewsFromMap(
+                                                                Map<String,
+                                                                        dynamic>.from(
+                                                                    piece),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ),
                                                   ),
                                                   const SizedBox(height: 8),
                                                   Text(
-                                                    piece['titre'] ??
-                                                        'Sans titre',
+                                                    _pieceDisplayTitle(piece),
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,
@@ -1278,8 +1387,7 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                                   ),
                                                   const SizedBox(height: 2),
                                                   Text(
-                                                    piece['entreprise'] ??
-                                                        'Entreprise inconnue',
+                                                    _pieceDisplayCompany(piece),
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,
@@ -1293,8 +1401,9 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                                     width: double.infinity,
                                                     padding: const EdgeInsets
                                                         .symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 5),
+                                                      horizontal: 8,
+                                                      vertical: 5,
+                                                    ),
                                                     decoration: BoxDecoration(
                                                       color: const Color(
                                                           0xFFFFF5E5),
@@ -1304,7 +1413,7 @@ class _PieceState extends State<Piece> with SingleTickerProviderStateMixin {
                                                     ),
                                                     child: Text(
                                                       piece['prix'] != null
-                                                          ? "${piece['prix']} FCFA"
+                                                          ? "${formatPrice(piece['prix'])} FCFA"
                                                           : 'Prix non communiqué',
                                                       textAlign:
                                                           TextAlign.center,

@@ -23,8 +23,6 @@ import 'package:tranoo/utils/local_notification_service.dart';
 import 'package:tranoo/utils/in_app_delivery_popup.dart';
 import 'package:tranoo/providers/locale_provider.dart';
 import 'package:tranoo/utils/feexpay_callback_state.dart';
-
-// import 'package:flutter/services.dart';
 import 'data/screens/marque.dart';
 import 'data/screens/tarif.dart';
 import 'firebase_options.dart';
@@ -36,6 +34,138 @@ import 'package:tranoo/data/screens/reset/verify_code_page.dart';
 import 'package:tranoo/data/screens/reset/create_new_password_page.dart';
 import 'package:tranoo/data/screens/order_details_page.dart';
 import 'package:tranoo/data/screens/mes_commandes.dart';
+import 'package:tranoo/widgets/app_refresh_shell.dart';
+
+/// Clés souvent utilisées par FeexPay / le package sur la redirection.
+/// Doc V2 (intégrations front) : paramètre **`ref`** sur l’URL de callback.
+const List<String> _feexPayTransactionIdKeys = [
+  'ref',
+  'reference',
+  'id_transaction',
+  'transaction_id',
+  'transactionId',
+  'short_code',
+  'shortCode',
+  'payment_reference',
+  'custom_id',
+  'order_id',
+];
+
+String? _firstNonEmptyFromMap(Map<String, String> map, Iterable<String> keys) {
+  for (final k in keys) {
+    final v = map[k]?.trim();
+    if (v != null && v.isNotEmpty) return v;
+  }
+  return null;
+}
+
+String? _firstNonEmptyFromArgsMap(dynamic args, Iterable<String> keys) {
+  if (args is! Map) return null;
+  for (final k in keys) {
+    final v = args[k]?.toString().trim();
+    if (v != null && v.isNotEmpty) return v;
+  }
+  return null;
+}
+
+/// FeexPay / feexpay_flutter peut passer la `reference` UUID en **String** brute dans `RouteSettings.arguments`.
+final RegExp _feexFullUuidArg = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+);
+
+String? _feexIdFromRawArguments(dynamic args) {
+  if (args == null) return null;
+  final fromMap = _firstNonEmptyFromArgsMap(args, _feexPayTransactionIdKeys);
+  if (fromMap != null) return fromMap;
+  if (args is String) {
+    final t = args.trim();
+    if (t.isEmpty) return null;
+    if (_feexFullUuidArg.hasMatch(t)) return t;
+    final trn = RegExp(r'\bTRN-[A-Z0-9-]+\b', caseSensitive: false).firstMatch(t);
+    if (trn != null) return trn.group(0);
+    if (t.startsWith('{') && t.endsWith('}')) {
+      try {
+        final m = jsonDecode(t);
+        if (m is Map) return _firstNonEmptyFromArgsMap(m, _feexPayTransactionIdKeys);
+      } catch (_) {}
+    }
+  }
+  return null;
+}
+
+Map<String, String> _feexQueryParamsFromRouteName(String? name) {
+  if (name == null || name.isEmpty) return {};
+  final qi = name.indexOf('?');
+  if (qi < 0 || qi >= name.length - 1) return {};
+  return Uri.splitQueryString(name.substring(qi + 1));
+}
+
+/// Logs console + DevTools pour comprendre ce que FeexPay renvoie sur la route.
+void _logFeexPayRedirectDebug(RouteSettings? settings, String source) {
+  void line(String msg) {
+    print('DEBUG_FEEEXPAY[$source] $msg');
+    developer.log(msg, name: 'DEBUG_FEEEXPAY');
+  }
+
+  if (settings == null) {
+    line('settings=null');
+    return;
+  }
+
+  final name = settings.name;
+  line('Route name brut: $name');
+  line('arguments type=${settings.arguments?.runtimeType} valeur=${settings.arguments}');
+
+  final qpSplit = _feexQueryParamsFromRouteName(name);
+  if (qpSplit.isNotEmpty) {
+    line('Query (Uri.splitQueryString): $qpSplit');
+  } else {
+    line('Aucune query string après ? sur le route name');
+  }
+
+  if (name != null && name.isNotEmpty) {
+    try {
+      final uri = name.contains('://')
+          ? Uri.parse(name)
+          : Uri.parse('https://feexpay.redirect.debug$name');
+      line('Uri.parse queryParameters: ${uri.queryParameters}');
+    } catch (e) {
+      line('Uri.parse échoué: $e');
+    }
+  }
+
+  final fromArgs = _feexIdFromRawArguments(settings.arguments);
+  final fromQuery = _firstNonEmptyFromMap(qpSplit, _feexPayTransactionIdKeys);
+  line(
+    'ID déduit (priorité args puis query): ${fromArgs ?? fromQuery ?? "(aucun)"}',
+  );
+}
+
+/// Extrait l’identifiant FeexPay (UUID ou short code) depuis la route de retour.
+String? _feexIdFromRouteSettings(RouteSettings? settings) {
+  if (settings == null) return null;
+  final fromArgs = _feexIdFromRawArguments(settings.arguments);
+  if (fromArgs != null) return fromArgs;
+
+  final name = settings.name;
+  final qp = _feexQueryParamsFromRouteName(name);
+  final fromQuery = _firstNonEmptyFromMap(qp, _feexPayTransactionIdKeys);
+  if (fromQuery != null) return fromQuery;
+
+  if (name != null && name.isNotEmpty) {
+    try {
+      final uri = name.contains('://')
+          ? Uri.parse(name)
+          : Uri.parse('https://feexpay.redirect.debug$name');
+      final fromUri = _firstNonEmptyFromMap(
+        uri.queryParameters,
+        _feexPayTransactionIdKeys,
+      );
+      if (fromUri != null) return fromUri;
+    } catch (_) {}
+  }
+  return null;
+}
 
 // Gestionnaire pour les notifications en arrière-plan
 @pragma('vm:entry-point')
@@ -264,9 +394,11 @@ class MyApp extends StatelessWidget {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           BlockedUserService.setContext(context);
         });
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(),
-          child: DevicePreview.appBuilder(context, child),
+        return AppRefreshShell(
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(),
+            child: DevicePreview.appBuilder(context, child),
+          ),
         );
       },
       theme: ThemeData(
@@ -330,17 +462,27 @@ class _CartPaymentCallbackPageState extends State<_CartPaymentCallbackPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       // Retourner le résultat au ChoicePage qui a pushNamed ce callback.
-      final args = ModalRoute.of(context)?.settings.arguments;
+      final settings = ModalRoute.of(context)?.settings;
+      _logFeexPayRedirectDebug(
+        settings,
+        widget.success ? 'cart_payment_success' : 'cart_payment_error',
+      );
+      final feexId = _feexIdFromRouteSettings(settings);
       FeexPayCallbackState.report(
         success: widget.success,
-        args: args?.toString(),
+        args: feexId ?? settings?.arguments?.toString(),
+        transactionId: feexId,
       );
-      final payload = {
+      final payload = <String, dynamic>{
+        'success': widget.success,
         'successHint': widget.success,
-        'routeName': ModalRoute.of(context)?.settings.name,
-        'callbackArgs': args?.toString(),
+        'routeName': settings?.name,
+        'callbackArgs': settings?.arguments?.toString(),
+        if (feexId != null && feexId.isNotEmpty) 'id_transaction': feexId,
+        if (feexId != null && feexId.isNotEmpty) 'ref': feexId,
+        if (feexId != null && feexId.isNotEmpty) 'reference': feexId,
       };
-      developer.log('[FEEPAY_CALLBACK] pop callback payload=$payload');
+      developer.log('[FEEPAY_CALLBACK] pop callback payload=$payload feexId=$feexId');
       Navigator.of(context).pop(payload);
     });
   }
@@ -384,10 +526,35 @@ class SubscriptionSuccessPage extends StatefulWidget {
 }
 
 class _SubscriptionSuccessPageState extends State<SubscriptionSuccessPage> {
+  bool _handled = false;
+
+  Future<num> _resolveSubscriptionAmount() async {
+    try {
+      final pricingResponse = await http.get(
+        Uri.parse('${getBaseUrl()}/admin/subscription-pricing'),
+      );
+      if (pricingResponse.statusCode == 200) {
+        final data = jsonDecode(pricingResponse.body);
+        final direct = data is Map<String, dynamic> ? data['prixMensuel'] : null;
+        if (direct is num && direct > 0) return direct;
+        final nested =
+            data is Map<String, dynamic> && data['pricing'] is Map<String, dynamic>
+                ? data['pricing']['prixMensuel']
+                : null;
+        if (nested is num && nested > 0) return nested;
+      }
+    } catch (_) {}
+    return 5000;
+  }
+
   @override
-  void initState() {
-    super.initState();
-    _handleSubscriptionSuccess();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_handled) return;
+    _handled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _handleSubscriptionSuccess();
+    });
   }
 
   Future<void> _handleSubscriptionSuccess() async {
@@ -396,6 +563,38 @@ class _SubscriptionSuccessPageState extends State<SubscriptionSuccessPage> {
       if (user == null) return;
 
       final token = await user.getIdToken();
+      final subscriptionAmount = await _resolveSubscriptionAmount();
+      final settings = ModalRoute.of(context)?.settings;
+      _logFeexPayRedirectDebug(settings, 'subscription_success');
+      final feexId = _feexIdFromRouteSettings(settings);
+
+      if (feexId != null && feexId.isNotEmpty) {
+        final statusResp = await http.get(
+          Uri.parse(
+            '${getBaseUrl()}/payments/feexpay/public/status/$feexId',
+          ),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        if (statusResp.statusCode == 200) {
+          final body = jsonDecode(statusResp.body);
+          final st = (body is Map ? body['status'] : null)?.toString().toLowerCase() ?? '';
+          final ok = st.contains('success') ||
+              st.contains('successful') ||
+              st.contains('paid') ||
+              st.contains('ok') ||
+              st.contains('completed') ||
+              st.contains('approved');
+          if (!ok) {
+            print(
+              '[SUBSCRIPTION_SUCCESS] statut FeexPay non confirmé: $st ref=$feexId',
+            );
+          }
+        }
+      } else {
+        print(
+          '[SUBSCRIPTION_SUCCESS] aucun id_transaction dans la route — enregistrement legacy',
+        );
+      }
 
       // 1. Enregistrer le paiement
       final paymentResponse = await http.post(
@@ -406,10 +605,13 @@ class _SubscriptionSuccessPageState extends State<SubscriptionSuccessPage> {
         },
         body: jsonEncode({
           'transKey': 'SUBSCRIPTION_${DateTime.now().millisecondsSinceEpoch}',
-          'amount': 5,
+          'amount': subscriptionAmount,
           'description': 'Abonnement Premium Transitaire - 1 mois',
           'type': 'subscription',
           'status': 'success',
+          if (feexId != null && feexId.isNotEmpty) 'id_transaction': feexId,
+          if (feexId != null && feexId.isNotEmpty) 'ref': feexId,
+          if (feexId != null && feexId.isNotEmpty) 'reference': feexId,
         }),
       );
       print(
@@ -506,6 +708,13 @@ class _VerificationSuccessPageState extends State<VerificationSuccessPage> {
   }
 
   Future<void> _loadAndShow() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _logFeexPayRedirectDebug(
+        ModalRoute.of(context)?.settings,
+        'verification_success',
+      );
+    });
     try {
       htmlContent = await DefaultAssetBundle.of(context)
           .loadString('assets/html/verification_success.html');
@@ -561,6 +770,13 @@ class _VerificationErrorPageState extends State<VerificationErrorPage> {
   }
 
   Future<void> _loadAndShow() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _logFeexPayRedirectDebug(
+        ModalRoute.of(context)?.settings,
+        'verification_error',
+      );
+    });
     try {
       htmlContent = await DefaultAssetBundle.of(context)
           .loadString('assets/html/verification_error.html');
@@ -775,34 +991,3 @@ class _AppInitializerState extends State<AppInitializer> {
     return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
-
-/*void main() {
-  runApp(const MyApp());
-}*/
-
-/*class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: FirstPage(),
-    );
-  }
-}*/
-
-// import 'package:flutter/material.dart';
-// import 'nouveau.dart'; // adapte le chemin si besoin
-
-// void main() {
-//   runApp(const MaterialApp(
-//     home: AgePickerPage(),
-//     debugShowCheckedModeBanner: false,
-//   ));
-// }

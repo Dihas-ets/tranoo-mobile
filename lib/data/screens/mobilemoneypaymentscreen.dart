@@ -8,6 +8,8 @@ import 'package:feexpay_flutter/feexpay_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
 import 'package:tranoo/data/screens/succes6.dart';
+import 'package:tranoo/utils/feexpay_result_utils.dart';
+import 'package:tranoo/utils/feexpay_callback_state.dart';
 
 final fpToken = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
 final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
@@ -361,7 +363,8 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
       }
 
       final amount = pubData!['prix']?.toString() ?? '0';
-      
+
+      FeexPayCallbackState.clearPendingAtNewCheckout();
       // Navigation vers FeexPay avec le package officiel
       final result = await Navigator.push(
         context,
@@ -371,47 +374,72 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
             id: idUser,
             amount: amount,
             redirecturl: '/payment-success',
-            errorredirecturl: '/payment-error', 
+            errorredirecturl: '/payment-error',
             trans_key: transKey,
           ),
         ),
       );
 
-      // Le résultat sera géré par les routes de redirection
-      if (result != null) {
-        // Afficher d'abord le message de succès
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Paiement réussi ! Mise à jour du statut...'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
-            ),
+      final cb = FeexPayCallbackState.takeLatest();
+      final callbackHint = result is Map && result['successHint'] == true;
+      String? txId = extractFeexPayTransactionId(result) ?? cb.transactionId;
+      var success = feexPayReturnIndicatesSuccess(result) ||
+          cb.success == true ||
+          callbackHint;
+      if (txId != null && txId.isNotEmpty) {
+        try {
+          final st = await http.get(
+            Uri.parse('${getBaseUrl()}/payments/feexpay/public/status/$txId'),
           );
+          if (st.statusCode == 200) {
+            final body = jsonDecode(st.body) as Map<String, dynamic>;
+            final s = (body['status'] ?? '').toString().toLowerCase();
+            success = success ||
+                s.contains('success') ||
+                s.contains('successful') ||
+                s.contains('paid') ||
+                s.contains('ok') ||
+                s.contains('completed') ||
+                s.contains('approved');
+          }
+        } catch (e) {
+          log('[MobileMoneyPayment] public/status: $e');
         }
-        
-        // Attendre un peu pour que l'utilisateur voie le message
+      }
+
+      log(
+        '[MobileMoneyPayment] ChoicePage result=$result txId=$txId success=$success transKey=$transKey pubId=${widget.pubId}',
+      );
+
+      if (!success) {
+        return;
+      }
+
+      final amountNum = num.tryParse(amount) ?? 0;
+      await _recordPubFeexPay(amountNum, idTransaction: txId);
+      await _updatePubStatus();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Paiement réussi ! Mise à jour du statut...'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
         await Future.delayed(const Duration(seconds: 2));
-        
-        await _updatePubStatus();
-        
-        if (mounted) {
-          // Afficher le message final
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Publicité payée avec succès !'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-          
-          // Attendre encore un peu avant de naviguer
-          await Future.delayed(const Duration(seconds: 2));
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => SuccesScreen6()),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Publicité payée avec succès !'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        await Future.delayed(const Duration(seconds: 1));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const SuccesScreen6()),
+        );
       }
     } catch (e) {
       setState(() {
@@ -421,6 +449,40 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> _recordPubFeexPay(num amount, {String? idTransaction}) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final payload = <String, dynamic>{
+        'transKey': transKey,
+        'amount': amount,
+        'description': 'Paiement publicité (mobile money) ${widget.pubId}',
+        'type': 'publicite',
+        'status': 'success',
+        'publiciteId': widget.pubId,
+      };
+      final tid = idTransaction?.trim();
+      if (tid != null && tid.isNotEmpty) {
+        payload['id_transaction'] = tid;
+        payload['ref'] = tid;
+        payload['reference'] = tid;
+      }
+      final res = await http.post(
+        Uri.parse('${getBaseUrl()}/payments/feexpay/flutter/record'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (idToken != null) 'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode(payload),
+      );
+      log(
+        '[MobileMoneyPayment] recordFeexPayFlutter status=${res.statusCode} body=${res.body}',
+      );
+    } catch (e) {
+      log('[MobileMoneyPayment] recordFeexPayFlutter error: $e');
     }
   }
 

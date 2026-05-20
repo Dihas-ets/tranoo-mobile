@@ -20,6 +20,7 @@ import 'mesfactures.dart';
 import 'second_page.dart';
 import '../../providers/auth_provider.dart' as myauth;
 import '../../services/notification_service.dart';
+import '../../utils/page_refresh_registry.dart';
 import 'create_sell.dart';
 import 'create_sell2.dart';
 
@@ -30,7 +31,10 @@ class AvantHome extends StatefulWidget {
   State<AvantHome> createState() => _AvantHomeState();
 }
 
-class _AvantHomeState extends State<AvantHome> with WidgetsBindingObserver {
+class _AvantHomeState extends State<AvantHome>
+    with WidgetsBindingObserver, RegisterPageRefresh {
+  @override
+  Future<void> onPagePullRefresh() async => _runLightRefresh(force: true);
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _didCheckOnboarding = false;
@@ -150,7 +154,7 @@ class _AvantHomeState extends State<AvantHome> with WidgetsBindingObserver {
     return [
       const Marque(),
       const VoituresPage(),
-      const Piece(),
+      PiecePage(),
       _profilePageForUser(user),
     ];
   }

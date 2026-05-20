@@ -78,6 +78,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace "tech.dihas.tramoo"
     compileSdk 36
+    ndkVersion "27.0.12077973"
 
     defaultConfig {
         applicationId "tech.dihas.tramoo"
@@ -85,7 +86,7 @@ android {
         targetSdkVersion 36
     //     versionCode flutterVersionCode.toInteger()
     //   versionName flutterVersionName
-        versionCode 12
+        versionCode 16
         versionName "2.0.0"
         multiDexEnabled true  
     }

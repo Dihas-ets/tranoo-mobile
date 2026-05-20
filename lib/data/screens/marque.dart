@@ -16,13 +16,30 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
-import 'package:tranoo/services/alert_service.dart';
+import 'package:tranoo/utils/page_refresh_registry.dart';
 import 'package:tranoo/data/screens/movie.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/data/screens/orders_page.dart';
 import 'package:tranoo/data/screens/mes_commandes.dart';
 import 'package:tranoo/data/screens/tricycle/tricycle_home.dart';
+
+// Fonction utilitaire pour formater les prix avec des séparateurs de milliers
+String formatPrice(dynamic price) {
+  if (price == null) return '0';
+  try {
+    final priceNum = double.tryParse(price.toString()) ?? 0;
+    final priceStr = priceNum.toStringAsFixed(0);
+    final reversed = priceStr.split('').reversed.join('');
+    final withDots = reversed.replaceAllMapped(
+      RegExp(r'(\d{3})(?=\d)'),
+      (Match m) => '${m[0]}.',
+    );
+    return withDots.split('').reversed.join('');
+  } catch (e) {
+    return price.toString();
+  }
+}
 
 class Article {
   final String id;
@@ -160,6 +177,7 @@ String? errorVoitures;
 // Ajout : modèle Pub pour la récupération des publicités
 class Pub {
   final String id;
+  final String? articleId;
   final String description;
   final String typePub;
   final String statut;
@@ -172,6 +190,7 @@ class Pub {
 
   Pub({
     required this.id,
+    this.articleId,
     required this.description,
     required this.typePub,
     required this.statut,
@@ -184,8 +203,13 @@ class Pub {
   });
 
   factory Pub.fromJson(Map<String, dynamic> json) {
+    final dynamic rawArticleId = json['articleId'];
+    final String? parsedArticleId = rawArticleId is Map<String, dynamic>
+        ? rawArticleId['_id']?.toString()
+        : rawArticleId?.toString();
     return Pub(
       id: json['_id'] ?? '',
+      articleId: parsedArticleId,
       description: json['description'] ?? '',
       typePub: json['typePub'] ?? '',
       statut: json['statut'] ?? '',
@@ -207,7 +231,12 @@ class Marque extends StatefulWidget {
   State<Marque> createState() => _MarqueState();
 }
 
-class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
+class _MarqueState extends State<Marque>
+    with SingleTickerProviderStateMixin, RegisterPageRefresh {
+  @override
+  Future<void> onPagePullRefresh() async {
+    await _reloadAll();
+  }
   int _currentPage = 0;
   late PageController _pageController;
   late TabController _tabController;
@@ -233,9 +262,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   String _searchPieceText = '';
   // Recherche globale (barre en haut)
   final TextEditingController _searchGlobalController = TextEditingController();
-  String _searchGlobalText = '';
-  bool _vehicleNoResultDialogShown = false;
-  bool _pieceNoResultDialogShown = false;
+  String _searchText = "";
+  bool _hasTypedSearch = false;
 
   final _logger = Logger('MarquePage');
 
@@ -321,16 +349,15 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
       setState(() {});
     });
 
-    // Aligner l'affichage "À la une" sur Tranoo Pro:
-    // - viewportFraction pour voir les pubs adjacentes
-    _pageController = PageController(
-      initialPage: 0,
-      viewportFraction: 0.85,
-    );
+   _pageController = PageController(
+  initialPage: 0,
+  viewportFraction: 0.85,  // Permet de voir les cards adjacentes
+);
     _searchGlobalController.addListener(() {
       setState(() {
-        _searchGlobalText = _searchGlobalController.text.trim();
-        _vehicleNoResultDialogShown = false;
+        _searchText = _searchGlobalController.text.trim();
+        _hasTypedSearch = _searchGlobalController.text.trim().isNotEmpty;
+        _logger.info('[DEBUG] 🔍 Recherche tapée: "${_searchGlobalController.text}"');
       });
     });
 
@@ -360,7 +387,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   Future<void> _reloadAll() async {
     // Réinitialiser la recherche
     _searchGlobalController.clear();
-    _searchGlobalText = '';
+    _searchText = '';
 
     // Réinitialiser les filtres
     _selectedBrand = null;
@@ -402,13 +429,21 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             Uri.parse(url),
             headers: headers,
           )
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final body = response.body;
         try {
           final List<dynamic> data = json.decode(body);
           if (!mounted) return;
-          final allPieces = data.map((e) => Article.fromJson(e)).toList();
+          final allPieces = <Article>[];
+          for (final raw in data) {
+            if (raw is! Map<String, dynamic>) continue;
+            try {
+              allPieces.add(Article.fromJson(raw));
+            } catch (parseErr) {
+              _logger.info('[DEBUG] Pièce ignorée (parse): $parseErr');
+            }
+          }
           final piecesFiltered = allPieces
               .where((p) => (p.statut ?? 'en_ligne') != 'vendu')
               .toList();
@@ -444,6 +479,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           });
         }
       } else {
+        _logger.info(
+          '[DEBUG] HTTP pièces ${response.statusCode}: ${response.body}',
+        );
         if (!mounted) return;
         setState(() {
           errorPieces = 'Erreur lors du chargement des pièces';
@@ -884,609 +922,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     );
   }
 
-  Future<void> _showVehicleMiniForm() async {
-    final formKey = GlobalKey<FormState>();
-    final marqueController = TextEditingController();
-    final modeleController = TextEditingController();
-    final anneeController = TextEditingController();
-    final budgetController = TextEditingController();
-    String etat = 'occasion';
-    String urgence = 'normale';
-    int quantity = 1;
-    bool isSubmitting = false;
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            return SafeArea(
-              top: false,
-              child: SizedBox(
-                height: MediaQuery.of(ctx).size.height * 0.78,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    16,
-                    16,
-                    MediaQuery.of(ctx).viewInsets.bottom + 16,
-                  ),
-                  child: Form(
-                    key: formKey,
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                      const Text(
-                        'Mini form vehicule',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: marqueController,
-                        decoration: const InputDecoration(
-                          labelText: 'Marque',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Marque requise' : null,
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: modeleController,
-                        decoration: const InputDecoration(
-                          labelText: 'Modele',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Modele requis' : null,
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: anneeController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Annee',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Annee requise' : null,
-                      ),
-                      const SizedBox(height: 10),
-                      const Text('Etat du vehicule', style: TextStyle(fontWeight: FontWeight.w600)),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Neuf'),
-                        value: 'neuf',
-                        groupValue: etat,
-                        onChanged: (value) => setSheetState(() => etat = value ?? 'neuf'),
-                      ),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Occasion'),
-                        value: 'occasion',
-                        groupValue: etat,
-                        onChanged: (value) => setSheetState(() => etat = value ?? 'occasion'),
-                      ),
-                      const SizedBox(height: 10),
-                      const Text('Niveau d\'urgence', style: TextStyle(fontWeight: FontWeight.w600)),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Faible'),
-                        value: 'faible',
-                        groupValue: urgence,
-                        onChanged: (value) => setSheetState(() => urgence = value ?? 'faible'),
-                      ),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Normale'),
-                        value: 'normale',
-                        groupValue: urgence,
-                        onChanged: (value) => setSheetState(() => urgence = value ?? 'normale'),
-                      ),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Urgente'),
-                        value: 'urgente',
-                        groupValue: urgence,
-                        onChanged: (value) => setSheetState(() => urgence = value ?? 'urgente'),
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: budgetController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Budget (FCFA)',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Budget requis' : null,
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Nombre de véhicules',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: quantity > 1
-                                ? () => setSheetState(() => quantity--)
-                                : null,
-                            icon: const Icon(Icons.remove_circle_outline),
-                          ),
-                          Text(
-                            '$quantity',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => setSheetState(() => quantity++),
-                            icon: const Icon(Icons.add_circle_outline),
-                          ),
-                        ],
-                      ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SafeArea(
-                          top: false,
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE57373),
-                                foregroundColor: Colors.white,
-                              ),
-                              onPressed: () {
-                                if (isSubmitting) return;
-                                if (!(formKey.currentState?.validate() ??
-                                    false)) return;
-                                () async {
-                                  setSheetState(() => isSubmitting = true);
-                                  try {
-                                    await AlertService().createVehicleAlert(
-                                      marque: marqueController.text,
-                                      modele: modeleController.text,
-                                      annee: anneeController.text,
-                                      etat: etat,
-                                      urgence: urgence,
-                                      budgetMax: budgetController.text,
-                                      quantity: quantity,
-                                    );
-                                    if (!context.mounted) return;
-                                    FocusScope.of(context).unfocus();
-                                    _searchGlobalController.clear();
-                                    setState(() {
-                                      _searchGlobalText = '';
-                                      _vehicleNoResultDialogShown = false;
-                                    });
-                                    Navigator.pop(ctx);
-                                    await showDialog(
-                                      context: context,
-                                      barrierDismissible: true,
-                                      builder: (_) => AlertDialog(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                        ),
-                                        title: const Row(
-                                          children: [
-                                            Icon(
-                                              Icons.check_circle,
-                                              color: Color(0xFF16A34A),
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text('Alerte envoyée'),
-                                          ],
-                                        ),
-                                        content: const Text(
-                                          'Votre demande a bien ete enregistree. Vous recevrez les retours des vendeurs tres bientot.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(),
-                                            child: const Text('OK'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content:
-                                            Text('Erreur envoi alerte: $e'),
-                                      ),
-                                    );
-                                  } finally {
-                                    if (ctx.mounted) {
-                                      setSheetState(() => isSubmitting = false);
-                                    }
-                                  }
-                                }();
-                              },
-                              child: isSubmitting
-                                  ? const SizedBox(
-                                      height: 18,
-                                      width: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    )
-                                  : const Text('Envoyer l\'alerte'),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _showPieceMiniForm() async {
-    final formKey = GlobalKey<FormState>();
-    final marqueController = TextEditingController();
-    final modeleController = TextEditingController();
-    final anneeController = TextEditingController();
-    final pieceController = TextEditingController();
-    String urgence = 'normale';
-    int quantity = 1;
-    bool isSubmitting = false;
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            return SafeArea(
-              top: false,
-              child: SizedBox(
-                height: MediaQuery.of(ctx).size.height * 0.78,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    16,
-                    16,
-                    MediaQuery.of(ctx).viewInsets.bottom + 16,
-                  ),
-                  child: Form(
-                    key: formKey,
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                      const Text(
-                        'Mini form piece',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: marqueController,
-                        decoration: const InputDecoration(
-                          labelText: 'Marque du vehicule',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Marque requise' : null,
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: modeleController,
-                        decoration: const InputDecoration(
-                          labelText: 'Modele',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Modele requis' : null,
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: anneeController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Annee',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Annee requise' : null,
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        controller: pieceController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom de la piece',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Nom de la piece requis' : null,
-                      ),
-                      const SizedBox(height: 10),
-                      const Text('Urgence', style: TextStyle(fontWeight: FontWeight.w600)),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Faible'),
-                        value: 'faible',
-                        groupValue: urgence,
-                        onChanged: (value) => setSheetState(() => urgence = value ?? 'faible'),
-                      ),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Normale'),
-                        value: 'normale',
-                        groupValue: urgence,
-                        onChanged: (value) => setSheetState(() => urgence = value ?? 'normale'),
-                      ),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Urgente'),
-                        value: 'urgente',
-                        groupValue: urgence,
-                        onChanged: (value) => setSheetState(() => urgence = value ?? 'urgente'),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Nombre de pièces',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: quantity > 1
-                                ? () => setSheetState(() => quantity--)
-                                : null,
-                            icon: const Icon(Icons.remove_circle_outline),
-                          ),
-                          Text(
-                            '$quantity',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => setSheetState(() => quantity++),
-                            icon: const Icon(Icons.add_circle_outline),
-                          ),
-                        ],
-                      ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SafeArea(
-                          top: false,
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE57373),
-                                foregroundColor: Colors.white,
-                              ),
-                              onPressed: () {
-                                if (isSubmitting) return;
-                                if (!(formKey.currentState?.validate() ??
-                                    false)) return;
-                                () async {
-                                  setSheetState(() => isSubmitting = true);
-                                  try {
-                                    await AlertService().createPieceAlert(
-                                      marque: marqueController.text,
-                                      modele: modeleController.text,
-                                      annee: anneeController.text,
-                                      pieceName: pieceController.text,
-                                      urgence: urgence,
-                                      quantity: quantity,
-                                    );
-                                    if (!context.mounted) return;
-                                    FocusScope.of(context).unfocus();
-                                    _searchPieceController.clear();
-                                    setState(() {
-                                      _searchPieceText = '';
-                                      _pieceNoResultDialogShown = false;
-                                    });
-                                    Navigator.pop(ctx);
-                                    await showDialog(
-                                      context: context,
-                                      barrierDismissible: true,
-                                      builder: (_) => AlertDialog(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                        ),
-                                        title: const Row(
-                                          children: [
-                                            Icon(
-                                              Icons.check_circle,
-                                              color: Color(0xFF16A34A),
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text('Alerte envoyée'),
-                                          ],
-                                        ),
-                                        content: const Text(
-                                          'Votre demande a bien ete enregistree. Vous recevrez les retours des vendeurs tres bientot.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(),
-                                            child: const Text('OK'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content:
-                                            Text('Erreur envoi alerte: $e'),
-                                      ),
-                                    );
-                                  } finally {
-                                    if (ctx.mounted) {
-                                      setSheetState(() => isSubmitting = false);
-                                    }
-                                  }
-                                }();
-                              },
-                              child: isSubmitting
-                                  ? const SizedBox(
-                                      height: 18,
-                                      width: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    )
-                                  : const Text('Envoyer l\'alerte'),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showVehicleNoResultDialog() {
-    if (!mounted || _vehicleNoResultDialogShown) return;
-    _vehicleNoResultDialogShown = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: const Row(
-            children: [
-              Icon(Icons.search_off, color: Color(0xFFB45309)),
-              SizedBox(width: 8),
-              Text('Aucun resultat'),
-            ],
-          ),
-          content: const Text(
-            'Aucune voiture ne correspond a votre recherche.\nRemplissez un mini form pour notifier les vendeurs.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Plus tard'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                _searchGlobalController.clear();
-                setState(() {
-                  _searchGlobalText = '';
-                  _vehicleNoResultDialogShown = false;
-                });
-                _showVehicleMiniForm();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF8BF13),
-                foregroundColor: Colors.black,
-              ),
-              child: const Text('Remplir mini form'),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
-  void _showPieceNoResultDialog() {
-    if (!mounted || _pieceNoResultDialogShown) return;
-    _pieceNoResultDialogShown = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: const Row(
-            children: [
-              Icon(Icons.search_off, color: Color(0xFFB45309)),
-              SizedBox(width: 8),
-              Text('Aucun resultat'),
-            ],
-          ),
-          content: const Text(
-            'Aucune piece ne correspond a votre recherche.\nRemplissez un mini form pour notifier les vendeurs.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Plus tard'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                _searchPieceController.clear();
-                setState(() {
-                  _searchPieceText = '';
-                  _pieceNoResultDialogShown = false;
-                });
-                _showPieceMiniForm();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF8BF13),
-                foregroundColor: Colors.black,
-              ),
-              child: const Text('Remplir mini form'),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
   // Section Recommandé :
   Widget buildVoituresRecommandeesGrid() {
     if (isLoadingVoitures) {
@@ -1519,7 +954,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     }
     // Appliquer filtres + recherche globale
     final filtered = _applyFilters(voituresEnLigne).where((v) {
-      if (_searchGlobalText.isEmpty) return true;
+      if (_searchText.isEmpty) return true;
       final hay = (v.marque +
               ' ' +
               v.modele +
@@ -1528,13 +963,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               ' ' +
               (v.entreprise ?? ''))
           .toLowerCase();
-      return hay.contains(_searchGlobalText.toLowerCase());
+      return hay.contains(_searchText.toLowerCase());
     }).toList();
-    if (filtered.isNotEmpty) {
-      _vehicleNoResultDialogShown = false;
-    } else if (_searchGlobalText.trim().isNotEmpty) {
-      _showVehicleNoResultDialog();
-    }
     final screenWidth = MediaQuery.of(context).size.width;
     final cardAspectRatio = screenWidth < 360
         ? 0.68
@@ -1708,11 +1138,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                           const SizedBox(height: 8),
                           // Prix en gras avec devise
                           Text(
-                            '${voiture.prix} FCFA',
+                            '${formatPrice(voiture.prix)} FCFA',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: Color(0xFFB45309),
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -1857,17 +1287,14 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     // Filtrage recherche
     final filteredPieces = piecesEnLigne.where((p) {
       final q1 = _searchPieceText.trim().toLowerCase();
+      final q2 = _searchText.trim().toLowerCase();
       final hay =
           (p.title + ' ' + p.description + ' ' + p.company + ' ' + p.location)
               .toLowerCase();
       final ok1 = q1.isEmpty || hay.contains(q1);
-      return ok1;
+      final ok2 = q2.isEmpty || hay.contains(q2);
+      return ok1 && ok2;
     }).toList();
-    if (filteredPieces.isNotEmpty) {
-      _pieceNoResultDialogShown = false;
-    } else if (_searchPieceText.trim().isNotEmpty) {
-      _showPieceNoResultDialog();
-    }
     if (filteredPieces.isEmpty) {
       return Center(
         child: Text(
@@ -1894,7 +1321,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             ),
             onChanged: (val) {
               _searchPieceText = val;
-              _pieceNoResultDialogShown = false;
               // Rafraîchir l'affichage
               (this as dynamic).setState(() {});
             },
@@ -2105,8 +1531,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                       mainAxisSpacing: 10,
                       childAspectRatio: sectionCardAspectRatio,
                     ),
-                    itemCount: _applyFilters(voituresEnLigne).length > 8
-                        ? 8
+                    itemCount: _applyFilters(voituresEnLigne).length > 4
+                        ? 4
                         : _applyFilters(voituresEnLigne).length,
                     itemBuilder: (context, index) {
                       final list = _applyFilters(voituresEnLigne);
@@ -2251,57 +1677,27 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      // LIGNE 1: Nom + Prix sur la même ligne
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  voiture.marque,
-                                                  style: TextStyle(
-                                                    // RETIRÉ le gras, mis en gris
-                                                    fontSize: 12,
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                                Text(
-                                                  voiture.modele,
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.grey[500],
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '${voiture.prix} FCFA',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.black,
-                                            ),
-                                          ),
-                                        ],
+                                      Text(
+                                        '${voiture.marque} ${voiture.modele}'
+                                            .trim(),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-
-                                      const SizedBox(
-                                        height: 6,
-                                      ), // RÉDUIT l'espace
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${formatPrice(voiture.prix)} FCFA',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
                                       // CARACTÉRISTIQUES - Espaces réduits
                                       Flexible(
                                         child: Column(
@@ -2420,7 +1816,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => Piece()),
+                    MaterialPageRoute(builder: (context) => PiecePage()),
                   );
                 },
                 child: const Text(
@@ -2450,7 +1846,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                   ),
                 )
               : SizedBox(
-                  height: 240,
+                  height: 220,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -2557,6 +1953,11 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                         ),
                                       ),
                                     ),
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: _buildViewBadge(piece.id),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -2592,7 +1993,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                 ),
                                 child: Text(
                                   piece.price.isNotEmpty
-                                      ? "${piece.price} FCFA"
+                                      ? "${formatPrice(piece.price)} FCFA"
                                       : 'Prix non communiqué',
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
@@ -2660,7 +2061,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           )
         else
           Container(
-            height: 210,
+            height: 190,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: pubsValides.length,
@@ -2677,34 +2078,31 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                           const Center(child: CircularProgressIndicator()),
                     );
                     try {
-                      // Récupérer la pub complète pour avoir l'articleId
                       final user = FirebaseAuth.instance.currentUser;
                       final idToken = await user?.getIdToken();
-                      final pubResponse = await http.get(
-                        Uri.parse(getBaseUrl() + '/publicites/${pub.id}'),
+                      final articleId = pub.articleId;
+                      if (articleId == null || articleId.isEmpty) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Aucun article lié à cette pub.'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Récupérer l'article directement (évite l'appel privé /publicites/:id)
+                      final articleResponse = await http.get(
+                        Uri.parse(getBaseUrl() + '/articles/$articleId'),
                         headers: {
                           'Content-Type': 'application/json',
                           if (idToken != null)
                             'Authorization': 'Bearer $idToken',
                         },
                       );
-                      if (pubResponse.statusCode == 200) {
-                        final pubData = jsonDecode(pubResponse.body);
-                        final articleId = pubData['articleId'];
-                        if (articleId != null &&
-                            articleId.toString().isNotEmpty) {
-                          // Récupérer l'article
-                          final articleResponse = await http.get(
-                            Uri.parse(getBaseUrl() + '/articles/$articleId'),
-                            headers: {
-                              'Content-Type': 'application/json',
-                              if (idToken != null)
-                                'Authorization': 'Bearer $idToken',
-                            },
-                          );
-                          if (articleResponse.statusCode == 200) {
-                            final article = jsonDecode(articleResponse.body);
-                            Navigator.pop(context); // Fermer le loader
+                      if (articleResponse.statusCode == 200) {
+                        final article = jsonDecode(articleResponse.body);
+                        Navigator.pop(context); // Fermer le loader
                             if (article['type'] == 'voiture') {
                               Navigator.push(
                                 context,
@@ -2767,30 +2165,12 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                 ),
                               );
                             }
-                          } else {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Erreur lors du chargement de l\'article.',
-                                ),
-                              ),
-                            );
-                          }
-                        } else {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Aucun article lié à cette pub.'),
-                            ),
-                          );
-                        }
                       } else {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                              'Erreur lors du chargement de la pub.',
+                              'Erreur lors du chargement de l\'article.',
                             ),
                           ),
                         );
@@ -2803,7 +2183,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     }
                   },
                   child: SizedBox(
-                    width: 340,
+                    width: 255,
                     child: Card(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -2824,12 +2204,12 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                                 ),
                                 child: Container(
                                   height: 170,
-                                  width: 340,
+                                  width: 255,
                                   color: Colors.grey[300],
                                   child: pub.media.isNotEmpty
                                       ? Image.network(
                                           pub.media[0],
-                                          width: 340,
+                                          width: 255,
                                           height: 170,
                                           fit: BoxFit.cover,
                                           errorBuilder: (
@@ -2937,7 +2317,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     );
   }
 
-  // SECTION À LA UNE (carrousel) — aligné sur Tranoo Pro
+  // SECTION À LA UNE (carrousel)
   Widget buildPubsALaUneCarousel() {
     if (isLoadingPubs) {
       return const Center(child: CircularProgressIndicator());
@@ -2952,13 +2332,10 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     return Column(
       children: [
         Container(
-          height: 200, // Un peu plus haut pour mieux voir les adjacentes
-          margin: const EdgeInsets.symmetric(
-            horizontal: 8,
-          ), // Marge extérieure pour voir les adjacents
+          height: 200,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
           child: PageView.builder(
             controller: _pageController,
-            // Afficher une partie des slides adjacents
             padEnds: true,
             itemCount: pubsALaUne.length,
             itemBuilder: (context, index) {
@@ -2966,7 +2343,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               final hasLink = (pub.lien ?? '').trim().isNotEmpty;
               final card = Card(
                 margin: const EdgeInsets.symmetric(
-                  horizontal: 8, // Marges pour espacer les cards
+                  horizontal: 8,
                   vertical: 8,
                 ),
                 elevation: 3,
@@ -2980,51 +2357,21 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     height: 180,
                     color: Colors.black,
                     child: pub.media.isNotEmpty
-                        ? Stack(
-                            children: [
-                              // Image avec ajustement auto
-                              Positioned.fill(
-                                child: Image.network(
-                                  pub.media[0],
-                                  fit: BoxFit.cover,
-                                  alignment: Alignment.center,
-                                  filterQuality: FilterQuality.high,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: Colors.grey[300],
-                                      child: const Icon(
-                                        Icons.image_not_supported,
-                                        size: 60,
-                                        color: Colors.black54,
-                                      ),
-                                    );
-                                  },
+                        ? Image.network(
+                            pub.media[0],
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            filterQuality: FilterQuality.high,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.image_not_supported,
+                                  size: 60,
+                                  color: Colors.black54,
                                 ),
-                              ),
-                              // Overlay pour s'assurer que le contenu reste lisible
-                              if (pub.description.isNotEmpty)
-                                Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.bottomCenter,
-                                        end: Alignment.topCenter,
-                                        colors: [
-                                          Colors.black.withOpacity(0.7),
-                                          Colors.transparent,
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
+                              );
+                            },
                           )
                         : Container(
                             height: 180,
@@ -3035,25 +2382,23 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                 ),
               );
 
-              return GestureDetector(
-                onTap: () {
-                  if (hasLink) {
-                    _openPubLink(pub.lien!.trim());
-                  } else {
-                    _openFlyerPreview(pub.media.isNotEmpty ? pub.media[0] : '');
-                  }
-                },
-                onDoubleTap: () {
-                  if (hasLink) {
-                    _openFlyerPreview(pub.media.isNotEmpty ? pub.media[0] : '');
-                  }
-                },
+              if (hasLink) {
+                return InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _openPubLink(pub.lien!.trim()),
+                  child: card,
+                );
+              }
+              return InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () =>
+                    _openFlyerPreview(pub.media.isNotEmpty ? pub.media[0] : ''),
                 child: card,
               );
             },
           ),
         ),
-        const SizedBox(height: 6), // Espace réduit
+        const SizedBox(height: 6),
         if (pubsALaUne.length > 1)
           SmoothPageIndicator(
             controller: _pageController,
@@ -3069,6 +2414,207 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     );
   }
 
+  void _showFilterDialog() {
+    _logger.info('[DEBUG] 🔧 Ouverture du dialogue de filtre');
+    _logger.info('[DEBUG] 🔧 Context disponible: ${context != null}');
+    _logger.info('[DEBUG] 🔧 Monted: $mounted');
+    
+    try {
+      showDialog(
+        context: context,
+        builder: (ctx) {
+          _logger.info('[DEBUG] 🔧 Builder context créé: ${ctx != null}');
+          return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.tune, color: Color(0xFFB45309)),
+            SizedBox(width: 8),
+            Text('Type de recherche'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Que voulez-vous rechercher ?'),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _logger.info('[DEBUG] 🚗 Clic sur Véhicules - recherche: "${_searchGlobalController.text}"');
+                  try {
+                    Navigator.of(ctx).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => VoituresPage(),
+                        settings: RouteSettings(
+                          arguments: {
+                            'searchQuery': _searchGlobalController.text,
+                          },
+                        ),
+                      ),
+                    );
+                    _logger.info('[DEBUG] 🚗 Navigation vers VoituresPage réussie');
+                  } catch (e, stackTrace) {
+                    _logger.severe('[ERROR] 💥 Erreur navigation Véhicules: $e');
+                    _logger.severe('[ERROR] 💥 Stack trace: $stackTrace');
+                  }
+                },
+                icon: const Icon(Icons.directions_car),
+                label: const Text('Véhicules'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFB45309),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _logger.info('[DEBUG] 🔧 Clic sur Pièces - recherche: "${_searchGlobalController.text}"');
+                  try {
+                    Navigator.of(ctx).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PiecePage(),
+                        settings: RouteSettings(
+                          arguments: {
+                            'searchQuery': _searchGlobalController.text,
+                          },
+                        ),
+                      ),
+                    );
+                    _logger.info('[DEBUG] 🔧 Navigation vers PiecePage réussie');
+                  } catch (e, stackTrace) {
+                    _logger.severe('[ERROR] 💥 Erreur navigation Pièces: $e');
+                    _logger.severe('[ERROR] 💥 Stack trace: $stackTrace');
+                  }
+                },
+                icon: const Icon(Icons.build),
+                label: const Text('Pièces'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[700],
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Annuler'),
+          ),
+        ],
+      );
+        },
+      );
+    } catch (e, stackTrace) {
+      _logger.severe('[ERROR] 💥 Erreur lors de l\'ouverture du dialogue: $e');
+      _logger.severe('[ERROR] 💥 Stack trace: $stackTrace');
+      
+      // Afficher un message à l'utilisateur
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showFilterHint() {
+    _logger.info('[DEBUG] 💡 Affichage du hint pour le filtre');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.lightbulb, color: Color(0xFFB45309)),
+            SizedBox(width: 8),
+            Text('Choisissez le type'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Vous avez tapé: "${_searchGlobalController.text}"'),
+            const SizedBox(height: 12),
+            const Text('Quel type d\'article recherchez-vous ?'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => VoituresPage(),
+                          settings: RouteSettings(
+                            arguments: {
+                              'searchQuery': _searchGlobalController.text,
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.directions_car),
+                    label: const Text('Véhicule'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB45309),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PiecePage(),
+                          settings: RouteSettings(
+                            arguments: {
+                              'searchQuery': _searchGlobalController.text,
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.build),
+                    label: const Text('Pièce'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[700],
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Annuler'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -3078,32 +2624,74 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     const bool isTransitaire = false;
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _reloadAll,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth * 0.04,
-                  vertical: screenHeight * 0.012,
+      body: Column(
+        children: [
+          // Barre de recherche fixe avec icone filtre
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            color: Colors.white,
+            child: TextField(
+              controller: _searchGlobalController,
+              decoration: InputDecoration(
+                hintText: 'Rechercher véhicules, pièces...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: AnimatedBuilder(
+                  animation: _searchGlobalController,
+                  builder: (context, child) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      child: IconButton(
+                        icon: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: _hasTypedSearch
+                              ? Container(
+                                  key: const Key('filter_active'),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.filter_list,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.filter_list,
+                                  color: Colors.grey,
+                                  key: Key('filter_inactive'),
+                                ),
+                        ),
+                        onPressed: () {
+                          _logger.info('[DEBUG] 🔧 Clic sur le filtre - recherche: "${_searchGlobalController.text}"');
+                          if (_hasTypedSearch && _searchGlobalController.text.trim().isNotEmpty) {
+                            _showFilterHint();
+                          } else {
+                            _showFilterDialog();
+                          }
+                        },
+                      ),
+                    );
+                  },
                 ),
-                child: TextField(
-                  controller: _searchGlobalController,
-                  decoration: InputDecoration(
-                    hintText: 'Rechercher un véhicule...',
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
+                filled: true,
+                fillColor: Colors.grey[200],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
               ),
-              buildPubsALaUneCarousel(),
+            ),
+          ),
+          // Contenu scrollable
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _reloadAll,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    buildPubsALaUneCarousel(),
               _buildServicesSummarySection(
                 screenWidth: screenWidth,
                 screenHeight: screenHeight,
@@ -3113,10 +2701,13 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               buildPubsSponsoriseesSection(),
               buildVoituresRecommandeesSection(),
               buildPiecesSection(),
-              // Add the new sections here
-            ],
+                    // Add the new sections here
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -3150,21 +2741,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    l10n.services,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF040415),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
                   child: _buildServiceIcon(
                     label: 'Véhicules',
                     icon: Icons.directions_car,
@@ -3190,7 +2766,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => Piece()),
+                        MaterialPageRoute(builder: (context) => PiecePage()),
                       );
                     },
                   ),
@@ -3206,8 +2782,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     onTap: () {
                       Navigator.push(
                         context,
-                         MaterialPageRoute(builder: (context) => const MesCommandesPage()),
-                        // MaterialPageRoute(builder: (context) => const OrdersPage()),
+                         MaterialPageRoute(builder: (context) => MesCommandesPage()),
+                        // MaterialPageRoute(builder: (context) => PiecePage()),
                       );
                     },
                   ),
@@ -3442,6 +3018,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           itemCount: marques.length,
           itemBuilder: (context, index) {
             final item = marques[index];
+            final selected = _selectedBrand == item["name"];
             return GestureDetector(
               onTap: () {
                 setState(() {
@@ -3450,9 +3027,16 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF9FAFB),
+                  color: selected
+                      ? const Color(0xFFF8BF13)
+                      : const Color(0xFFF9FAFB),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+                  border: Border.all(
+                    color: selected
+                        ? const Color(0xFFF8BF13)
+                        : const Color(0xFFE0E0E0),
+                    width: 1,
+                  ),
                 ),
                 padding: const EdgeInsets.all(10),
                 child: Column(
@@ -3481,7 +3065,12 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                     const SizedBox(height: 6),
                     Text(
                       item["name"] ?? '',
-                      style: const TextStyle(fontSize: 12),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: selected ? Colors.white : Colors.black,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.normal,
+                      ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -3527,6 +3116,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           itemCount: modeles.length,
           itemBuilder: (context, index) {
             final name = modeles[index];
+            final selected = _selectedModel == name;
             return GestureDetector(
               onTap: () {
                 setState(() {
@@ -3535,15 +3125,27 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF9FAFB),
+                  color: selected
+                      ? const Color(0xFFF8BF13)
+                      : const Color(0xFFF9FAFB),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+                  border: Border.all(
+                    color: selected
+                        ? const Color(0xFFF8BF13)
+                        : const Color(0xFFE0E0E0),
+                    width: 1,
+                  ),
                 ),
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
                   name,
-                  style: const TextStyle(fontSize: 12),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: selected ? Colors.white : Colors.black,
+                    fontWeight:
+                        selected ? FontWeight.w600 : FontWeight.normal,
+                  ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -3884,7 +3486,6 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -3892,19 +3493,17 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final disponibles = compterDansIntervalle(currentMin, currentMax);
-            return SafeArea(
-              top: false,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 16 + 12,
-                  top: 8,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                top: 8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Center(
                     child: Container(
                       width: 40,
@@ -4012,8 +3611,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
                       ),
                     ],
                   ),
-                  ],
-                ),
+                ],
               ),
             );
           },

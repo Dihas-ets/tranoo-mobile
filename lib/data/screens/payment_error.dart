@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'avant_home.dart';
 
 class PaymentErrorPage extends StatefulWidget {
-  const PaymentErrorPage({super.key});
+  /// Retour arrière / fermeture sans callback de succès FeexPay.
+  final bool cancelled;
+
+  const PaymentErrorPage({super.key, this.cancelled = false});
 
   @override
   State<PaymentErrorPage> createState() => _PaymentErrorPageState();
@@ -56,16 +59,18 @@ class _PaymentErrorPageState extends State<PaymentErrorPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Icône d'erreur
-                    const Text(
-                      '❌',
-                      style: TextStyle(fontSize: 80),
+                    Text(
+                      widget.cancelled ? '↩' : '❌',
+                      style: const TextStyle(fontSize: 80),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Titre
-                    const Text(
-                      'Paiement Échoué',
-                      style: TextStyle(
+                    Text(
+                      widget.cancelled
+                          ? 'Paiement interrompu'
+                          : 'Paiement échoué',
+                      style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -73,20 +78,24 @@ class _PaymentErrorPageState extends State<PaymentErrorPage> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Messages
-                    const Text(
-                      'Une erreur s\'est produite lors de la transaction.',
-                      style: TextStyle(
+                    Text(
+                      widget.cancelled
+                          ? 'Vous avez quitté l’écran de paiement ou la transaction n’a pas été finalisée.'
+                          : 'Une erreur s\'est produite lors de la transaction.',
+                      style: const TextStyle(
                         fontSize: 18,
                         color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Veuillez réessayer ou contacter le support.',
-                      style: TextStyle(
+                    Text(
+                      widget.cancelled
+                          ? 'Aucun prélèvement n’est enregistré. Vous pouvez réessayer quand vous voulez.'
+                          : 'Veuillez réessayer ou contacter le support.',
+                      style: const TextStyle(
                         fontSize: 18,
                         color: Colors.white,
                       ),
