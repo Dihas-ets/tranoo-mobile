@@ -131,35 +131,55 @@ class _ProfileState extends State<Profile> {
     }
   }
 
-  // Edition des infos utilisateur
-  Future<void> _saveProfileField(String field, String value) async {
-    setState(() {
-      isSaving = true;
-    });
+  Future<void> _saveProfileFields({
+    required String nom,
+    required String email,
+    required String telephone,
+  }) async {
+    setState(() => isSaving = true);
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final idToken = await user.getIdToken();
-    final String baseUrl = getBaseUrl();
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl,
-        headers: {'Authorization': 'Bearer $idToken'},
-      ),
-    );
-    await dio.patch('/users/me', data: {field: value});
-    final me = await dio.get('/protected/me');
-    final refreshedUser = me.data['user'];
-    await local_auth.AuthProvider.saveUserToPrefs(idToken, refreshedUser);
-    if (mounted) {
-      context.read<local_auth.AuthProvider>().reloadUser();
+    if (user == null) {
+      if (mounted) setState(() => isSaving = false);
+      return;
     }
-    await fetchUser();
-    setState(() {
-      isSaving = false;
-      isEditingName = false;
-      isEditingEmail = false;
-      isEditingPhone = false;
-    });
+    try {
+      final idToken = await user.getIdToken();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: getBaseUrl(),
+          headers: {'Authorization': 'Bearer $idToken'},
+        ),
+      );
+      await dio.patch('/users/me', data: {
+        'nom': nom,
+        'email': email,
+        'telephone': telephone,
+      });
+      final me = await dio.get('/protected/me');
+      final refreshedUser = me.data['user'];
+      await local_auth.AuthProvider.saveUserToPrefs(idToken, refreshedUser);
+      if (mounted) {
+        await context.read<local_auth.AuthProvider>().reloadUser();
+        setState(() {
+          userData = refreshedUser;
+          editedName = refreshedUser['nom']?.toString() ?? nom;
+          editedEmail = refreshedUser['email']?.toString() ?? email;
+          editedPhone = refreshedUser['telephone']?.toString() ?? telephone;
+          isSaving = false;
+          isEditingName = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil mis à jour')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la sauvegarde du profil')),
+        );
+      }
+    }
   }
 
   // Edition du mot de passe
@@ -387,23 +407,11 @@ class _ProfileState extends State<Profile> {
                                           (editedPhone ?? '').trim().isEmpty) {
                                         return;
                                       }
-                                      setState(() => isSaving = true);
-                                      await _saveProfileField(
-                                        "nom",
-                                        editedName!.trim(),
+                                      await _saveProfileFields(
+                                        nom: editedName!.trim(),
+                                        email: editedEmail!.trim(),
+                                        telephone: editedPhone!.trim(),
                                       );
-                                      await _saveProfileField(
-                                        "email",
-                                        editedEmail!.trim(),
-                                      );
-                                      await _saveProfileField(
-                                        "telephone",
-                                        editedPhone!.trim(),
-                                      );
-                                      setState(() {
-                                        isSaving = false;
-                                        isEditingName = false;
-                                      });
                                     },
                             ),
                         ],

@@ -13,6 +13,7 @@ import 'package:tranoo/services/views_service.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/alert_service.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
+import 'package:tranoo/utils/auth_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/utils/auth_dialog.dart';
 import 'package:tranoo/utils/article_view_helper.dart';
@@ -700,9 +701,7 @@ class _CarsinfoState extends State<CarsInfo> {
         ),
         //Nom de l'entreprise
         Text(
-          (widget.entreprise != null && widget.entreprise!.isNotEmpty)
-              ? widget.entreprise!
-              : 'Entreprise non renseignée',
+          AuthConfig.displayEntreprise(widget.entreprise),
           style: TextStyle(
             fontSize: screenWidth * 0.05,
             fontWeight: FontWeight.bold,

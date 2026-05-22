@@ -170,7 +170,7 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Un code vous a été envoyé par notification push sur cet appareil. Saisissez-le ci-dessous.',
+                    'Un code vous a été envoyé sur WhatsApp. Saisissez-le ci-dessous.',
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.black),
                   ),

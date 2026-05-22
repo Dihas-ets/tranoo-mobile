@@ -21,6 +21,9 @@ import 'second_page.dart';
 import '../../providers/auth_provider.dart' as myauth;
 import '../../services/notification_service.dart';
 import '../../utils/page_refresh_registry.dart';
+import '../../main.dart' show rootNavigatorKey;
+import '../../widgets/alert_incoming_call_overlay.dart';
+import '../../widgets/alert_display_permission_dialog.dart';
 import 'create_sell.dart';
 import 'create_sell2.dart';
 
@@ -49,6 +52,12 @@ class _AvantHomeState extends State<AvantHome>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AlertIncomingCallService.tryShowFromAppLaunchOnly(
+        navigatorKey: rootNavigatorKey,
+      );
+      AlertDisplayPermissionDialog.showIfNeeded(context);
+    });
     _checkOnboardingAndInactivity();
     _updateLastLoginTime();
     _runLightRefresh(force: true);
@@ -68,6 +77,7 @@ class _AvantHomeState extends State<AvantHome>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      AlertDisplayPermissionDialog.showIfNeeded(context);
       _runLightRefresh(force: true);
     }
   }

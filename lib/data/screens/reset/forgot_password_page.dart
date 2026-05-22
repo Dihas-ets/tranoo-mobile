@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/services/push_otp_service.dart';
+import 'package:tranoo/utils/phone_country_config.dart';
 import 'package:tranoo/widgets/auth_message_popup.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
@@ -11,99 +12,154 @@ class ForgotPasswordPage extends StatefulWidget {
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
+  final _identifierCtrl = TextEditingController();
+  String? selectedCountry;
+  String? selectedCountryCode;
   bool _loading = false;
+
+  PhoneCountryConfig get _phoneCountry =>
+      phoneCountryByName(selectedCountry);
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCountry = kPhoneCountries.first.name;
+    selectedCountryCode = kPhoneCountries.first.code;
+  }
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
+    _identifierCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _openCountryPicker() async {
+    final search = TextEditingController();
+    var filtered = List<PhoneCountryConfig>.from(kPhoneCountries);
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => SizedBox(
+          height: MediaQuery.of(ctx).size.height * 0.6,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: TextField(
+                  controller: search,
+                  decoration: const InputDecoration(
+                    hintText: 'Rechercher un pays',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                  onChanged: (v) {
+                    final q = v.trim().toLowerCase();
+                    setModal(() {
+                      filtered = kPhoneCountries
+                          .where((c) =>
+                              c.name.toLowerCase().contains(q) ||
+                              c.code.contains(q))
+                          .toList();
+                    });
+                  },
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: filtered.length,
+                  itemBuilder: (_, i) {
+                    final c = filtered[i];
+                    return ListTile(
+                      leading: Text(c.flag),
+                      title: Text(c.name),
+                      trailing: Text(c.code),
+                      onTap: () {
+                        setState(() {
+                          selectedCountry = c.name;
+                          selectedCountryCode = c.code;
+                        });
+                        Navigator.pop(ctx);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _passwordResetErrorTitle(String? raw) {
+    final msg = (raw ?? '').trim();
+    final lower = msg.toLowerCase();
+    if (lower.contains('aucun compte') ||
+        lower.contains('trouvé pour') ||
+        lower.contains('pas trouvé') ||
+        lower.contains('introuvable') ||
+        lower.contains('n\'existe pas')) {
+      return 'Aucun compte trouvé pour ce numéro.';
+    }
+    if (msg.isEmpty) return 'Une erreur est survenue.';
+    return msg;
   }
 
   Future<void> _requestOtp() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      final email = _emailCtrl.text.trim();
-
-      final fcmToken = await PushOTPService.getFCMToken();
-      if (fcmToken == null || fcmToken.isEmpty) {
-        if (mounted) {
-          AuthMessagePopup.showSupportContact(
-            context,
-            message: 'Autorisez les notifications pour recevoir le code sur cet appareil.',
-            subtitle: 'En cas de difficulté, contactez notre assistance.',
-          );
-        }
-        setState(() => _loading = false);
-        return;
-      }
-
-      final deviceId = await PushOTPService.getDeviceId();
-      if (deviceId == null || deviceId.isEmpty) {
-        if (mounted) {
-          AuthMessagePopup.showSupportContact(
-            context,
-            message: "Impossible d'identifier ce téléphone.",
-            subtitle: 'Contactez notre assistance pour vous aider.',
-          );
-        }
-        setState(() => _loading = false);
-        return;
-      }
+      final raw = _identifierCtrl.text.trim();
+      final cc = selectedCountryCode ?? '+229';
+      final telephone = '$cc$raw';
 
       final result = await PushOTPService.requestPasswordReset(
-        identifier: email,
-        deviceId: deviceId,
-        fcmToken: fcmToken,
+        telephone: telephone,
       );
 
       if (!mounted) return;
 
       if (result['success'] == true) {
         final requestId = result['requestId']?.toString();
-        if (requestId == null || requestId.isEmpty) {
-          AuthMessagePopup.showSupportContact(
+        final sessionDeviceId = result['deviceId']?.toString();
+        if (requestId == null ||
+            requestId.isEmpty ||
+            sessionDeviceId == null ||
+            sessionDeviceId.isEmpty) {
+          AuthMessagePopup.showError(
             context,
-            message: 'Impossible de démarrer la demande.',
-            subtitle: 'Contactez notre assistance pour vous aider.',
+            title: 'Réponse serveur incomplète.',
+            subtitle: 'Réessayez dans quelques instants.',
+            buttonText: 'Réessayer',
           );
           return;
         }
         AuthMessagePopup.showSuccess(
           context,
-          title: 'Un lien de réinitialisation a été envoyé à votre email.',
+          title: 'Un code a été envoyé sur WhatsApp au numéro de votre compte.',
         );
         Navigator.pushNamed(
           context,
           '/auth/verify-reset',
           arguments: {
             'requestId': requestId,
-            'deviceId': deviceId,
+            'deviceId': sessionDeviceId,
           },
         );
       } else {
-        final msg = result['message'] as String? ?? 'Une erreur est survenue.';
-        final needsSupport = msg.toLowerCase().contains('device') ||
-            msg.toLowerCase().contains('appareil') ||
-            msg.toLowerCase().contains('reconnu') ||
-            msg.toLowerCase().contains('identifi') ||
-            msg.toLowerCase().contains('compte') && msg.toLowerCase().contains('pas trouvé');
-        if (needsSupport || msg.contains('assistance') || msg.contains('support')) {
-          AuthMessagePopup.showSupportContact(
-            context,
-            message: msg,
-            subtitle: 'Contactez notre assistance pour vous aider.',
-          );
-        } else {
-          AuthMessagePopup.showError(
-            context,
-            title: msg.contains('aucun') || msg.contains('pas trouvé')
-                ? 'Nous n\'avons trouvé aucun compte avec cet email.'
-                : msg,
-            buttonText: 'Réessayer',
-          );
-        }
+        final msg = result['message'] as String?;
+        AuthMessagePopup.showError(
+          context,
+          title: _passwordResetErrorTitle(msg),
+          subtitle: _passwordResetErrorTitle(msg) ==
+                  'Aucun compte trouvé pour ce numéro.'
+              ? 'Vérifiez l\'indicatif pays et le numéro, ou créez un compte.'
+              : null,
+          buttonText: 'Réessayer',
+        );
       }
     } catch (e) {
       if (!mounted) return;
@@ -112,20 +168,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           err.contains('socket') ||
           err.contains('host lookup') ||
           err.contains('connection');
-      if (isNetwork) {
-        AuthMessagePopup.showError(
-          context,
-          title: 'Impossible de se connecter au serveur.',
-          subtitle: 'Vérifiez votre connexion internet.',
-          buttonText: 'Réessayer',
-        );
-      } else {
-        AuthMessagePopup.showSupportContact(
-          context,
-          message: 'Une erreur est survenue lors de votre demande.',
-          subtitle: 'Contactez notre assistance pour vous aider.',
-        );
-      }
+      AuthMessagePopup.showError(
+        context,
+        title: isNetwork
+            ? 'Impossible de se connecter au serveur.'
+            : 'Une erreur est survenue.',
+        subtitle: isNetwork ? 'Vérifiez votre connexion internet.' : null,
+        buttonText: 'Réessayer',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -164,35 +214,61 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Text(
-                      'Entrez l\'adresse email de votre compte.\nUn code sera envoyé par notification sur ce téléphone.',
+                      'Entrez le numéro enregistré sur votre compte.\nLe code de réinitialisation sera envoyé sur WhatsApp.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.black),
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  // Champ email
-                  TextFormField(
-                    controller: _emailCtrl,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: 'Adresse email',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: _openCountryPicker,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey),
+                          ),
+                          child: Row(
+                            children: [
+                              Text(_phoneCountry.flag),
+                              const SizedBox(width: 4),
+                              Text(selectedCountryCode ?? '+229'),
+                              const Icon(Icons.arrow_drop_down),
+                            ],
+                          ),
+                        ),
                       ),
-                      prefixIcon: const Icon(Icons.email, color: Colors.grey),
-                    ),
-                    validator: (v) {
-                      final val = v?.trim() ?? '';
-                      if (val.isEmpty) return 'Entrez votre email';
-                      final regex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                      if (!regex.hasMatch(val)) {
-                        return 'Format email invalide';
-                      }
-                      return null;
-                    },
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _identifierCtrl,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            labelText: 'Numéro de téléphone',
+                            hintText: _phoneCountry.digitHint,
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          validator: (v) {
+                            final val = v?.trim() ?? '';
+                            if (val.isEmpty) return 'Entrez votre numéro';
+                            if (!_phoneCountry.isValidNationalNumber(val)) {
+                              return 'Numéro invalide (${_phoneCountry.digitHint})';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   SizedBox(

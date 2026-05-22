@@ -136,10 +136,10 @@ android {
 }
 
 dependencies {
-    // Requis pour "core library desugaring" (voir erreur :flutter_local_notifications)
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
-    // Nécessaire pour WindowCompat.setDecorFitsSystemWindows (Android 15+ bord à bord)
     implementation 'androidx.core:core-ktx:1.15.0'
+    implementation platform('com.google.firebase:firebase-bom:34.9.0')
+    implementation 'com.google.firebase:firebase-messaging'
 }
 
 flutter {

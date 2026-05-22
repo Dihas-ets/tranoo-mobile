@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'blocked_user_service.dart';
 import 'push_otp_service.dart';
 import '../config/backend_config.dart';
+import '../utils/phone_country_config.dart';
 
 String getBaseUrl() => getApiBaseUrl();
 
@@ -124,12 +125,26 @@ class UserService extends ChangeNotifier {
   }
 
   // Connexion : authentifie avec Firebase, puis récupère le token
+  Future<UserCredential> loginWithPhone({
+    required String countryCode,
+    required String nationalNumber,
+    required String password,
+    TranooAuthApp app = TranooAuthApp.buyer,
+  }) {
+    final email = syntheticEmailFromPhone(
+      countryCode,
+      nationalNumber,
+      app: app,
+    );
+    return loginUser(email: email, password: password);
+  }
+
   Future<UserCredential> loginUser({
     required String email,
     required String password,
   }) async {
     final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: email,
+      email: email.trim(),
       password: password,
     );
 

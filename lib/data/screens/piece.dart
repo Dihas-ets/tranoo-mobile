@@ -13,6 +13,8 @@ import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/services/alert_service.dart';
 import 'package:tranoo/utils/article_view_helper.dart';
 import 'package:tranoo/utils/page_refresh_registry.dart';
+import 'package:tranoo/widgets/page_pull_refresh.dart';
+import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -1128,11 +1130,22 @@ class _PiecePageState extends State<PiecePage>
         title: const Text('Pièces détachées'),
         backgroundColor: Colors.amber,
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : error != null
-              ? Center(child: Text(error!))
-              : Column(
+      body: PagePullRefresh(
+        onRefresh: () => fetchPieces(),
+        refreshSkeleton: SkeletonPresets.fullPageList(),
+        child: isLoading && pieces.isEmpty
+            ? SkeletonPresets.fullPageList()
+            : error != null
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.sizeOf(context).height * 0.35,
+                        child: Center(child: Text(error!)),
+                      ),
+                    ],
+                  )
+                : Column(
                   children: [
                     // Barre de recherche
                     Padding(
@@ -1440,6 +1453,7 @@ class _PiecePageState extends State<PiecePage>
                     ),
                   ],
                 ),
+      ),
     );
   }
 }

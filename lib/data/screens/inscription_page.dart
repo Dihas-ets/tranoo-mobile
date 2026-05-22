@@ -8,6 +8,8 @@ import 'package:tranoo/widgets/auth_message_popup.dart';
 
 import 'connexion_page.dart';
 import 'avant_home.dart';
+import 'package:tranoo/utils/phone_country_config.dart';
+import 'package:tranoo/utils/auth_config.dart';
 
 class InscriptionPage extends StatefulWidget {
   const InscriptionPage({super.key});
@@ -20,7 +22,6 @@ class _InscriptionPageState extends State<InscriptionPage> {
   // Contrôleurs pour les champs du formulaire
   final TextEditingController _nomController = TextEditingController();
   final TextEditingController _prenomController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _telephoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -33,8 +34,35 @@ class _InscriptionPageState extends State<InscriptionPage> {
   String? selectedCountryCode;
   int selectedDigits = 8;
   int _currentStep = 0; // 0: infos, 1: sécurité
+
+  int _phoneMin(Map<String, dynamic> c) =>
+      (c['minDigits'] ?? c['digits'] ?? 8) as int;
+
+  int _phoneMax(Map<String, dynamic> c) =>
+      (c['maxDigits'] ?? c['digits'] ?? 8) as int;
+
+  Map<String, dynamic> get _selectedCountryMap {
+    if (selectedCountry == null) return countries.first;
+    for (final c in countries) {
+      if (c['name'] == selectedCountry) return c;
+    }
+    return countries.first;
+  }
+
+  String get _phoneDigitHint {
+    final min = _phoneMin(_selectedCountryMap);
+    final max = _phoneMax(_selectedCountryMap);
+    return min == max ? '$max chiffres' : '$min à $max chiffres';
+  }
+
+  bool _isValidNationalPhone(String raw) {
+    final len = raw.replaceAll(RegExp(r'\D'), '').length;
+    return len >= _phoneMin(_selectedCountryMap) &&
+        len <= _phoneMax(_selectedCountryMap);
+  }
+
   final List<Map<String, dynamic>> countries = [
-    {'name': 'Bénin', 'code': '+229', 'flag': '🇧🇯', 'digits': 8},
+    {'name': 'Bénin', 'code': '+229', 'flag': '🇧🇯', 'minDigits': 8, 'maxDigits': 10},
     {'name': 'Côte d\'Ivoire', 'code': '+225', 'flag': '🇨🇮', 'digits': 10},
     {'name': 'Sénégal', 'code': '+221', 'flag': '🇸🇳', 'digits': 9},
     {'name': 'Togo', 'code': '+228', 'flag': '🇹🇬', 'digits': 8},
@@ -137,7 +165,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
     // Initialiser le pays par défaut (Bénin)
     selectedCountry = countries[0]['name'] as String?;
     selectedCountryCode = countries[0]['code'] as String?;
-    selectedDigits = countries[0]['digits'] as int;
+    selectedDigits = _phoneMax(countries.first);
   }
 
   Widget _buildStepBar() {
@@ -251,7 +279,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               setState(() {
                                 selectedCountry = c['name'] as String?;
                                 selectedCountryCode = c['code'] as String?;
-                                selectedDigits = c['digits'] as int? ?? 8;
+                                selectedDigits = _phoneMax(c);
                                 _telephoneController.clear();
                               });
                               Navigator.pop(ctx);
@@ -339,16 +367,6 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 buildTextFieldWithController(
-                  controller: _emailController,
-                  label: "Adresse email",
-                  icon: Icons.email,
-                  placeholder: "jean.dupont@email.com",
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                  isPortrait: isPortrait,
-                ),
-                SizedBox(height: screenHeight * 0.02),
-                buildTextFieldWithController(
                   controller: _referralController,
                   label: "Code de parrainage (optionnel)",
                   icon: Icons.card_giftcard,
@@ -377,13 +395,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              countries
-                                      .firstWhere(
-                                        (c) => c['name'] == selectedCountry,
-                                        orElse: () => countries[0],
-                                      )['flag']
-                                      ?.toString() ??
-                                  '',
+                              _selectedCountryMap['flag']?.toString() ?? '',
                               style: const TextStyle(fontSize: 16),
                             ),
                             const SizedBox(width: 6),
@@ -407,7 +419,9 @@ class _InscriptionPageState extends State<InscriptionPage> {
                         keyboardType: TextInputType.number,
                         maxLength: selectedDigits,
                         decoration: InputDecoration(
-                          labelText: 'Téléphone ($selectedDigits chiffres)',
+                          labelText: 'Numéro WhatsApp',
+                          hintText: 'WhatsApp · $_phoneDigitHint',
+                          prefixIcon: AuthConfig.whatsAppPhonePrefixIcon(),
                           counterText: '',
                           filled: true,
                           fillColor: Colors.white,
@@ -453,7 +467,6 @@ class _InscriptionPageState extends State<InscriptionPage> {
                     onPressed: () {
                       if (_nomController.text.trim().isEmpty ||
                           _prenomController.text.trim().isEmpty ||
-                          _emailController.text.trim().isEmpty ||
                           _telephoneController.text.trim().isEmpty) {
                         AuthMessagePopup.showWarning(
                           context,
@@ -651,7 +664,6 @@ class _InscriptionPageState extends State<InscriptionPage> {
                           // Vérification des champs obligatoires
                           if (_nomController.text.trim().isEmpty ||
                               _prenomController.text.trim().isEmpty ||
-                              _emailController.text.trim().isEmpty ||
                               _telephoneController.text.trim().isEmpty ||
                               _passwordController.text.trim().isEmpty ||
                               _confirmPasswordController.text.trim().isEmpty ||
@@ -660,18 +672,6 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               context,
                               title: 'Certains champs sont manquants.',
                               subtitle: 'Veuillez compléter les informations requises.',
-                            );
-                            return;
-                          }
-                          // Vérification email
-                          final email = _emailController.text.trim();
-                          final emailRegex = RegExp(
-                            r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                          );
-                          if (!emailRegex.hasMatch(email)) {
-                            AuthMessagePopup.showError(
-                              context,
-                              title: 'Veuillez entrer une adresse email valide.',
                             );
                             return;
                           }
@@ -693,14 +693,11 @@ class _InscriptionPageState extends State<InscriptionPage> {
                           }
                           // Validation du numéro de téléphone (nombre de chiffres dynamique)
                           final phone = _telephoneController.text.trim();
-                          final phoneRegex = RegExp(
-                            '^\\d{$selectedDigits}\$',
-                          );
-                          if (!phoneRegex.hasMatch(phone)) {
+                          if (!_isValidNationalPhone(phone)) {
                             AuthMessagePopup.showError(
                               context,
                               title: 'Numéro invalide',
-                              subtitle: 'Entrez $selectedDigits chiffres.',
+                              subtitle: 'Entrez $_phoneDigitHint.',
                             );
                             return;
                           }
@@ -708,8 +705,13 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             _isLoading = true;
                           });
                           try {
-                            final fullPhone =
-                                (selectedCountryCode ?? '+229') + phone;
+                            final cc = selectedCountryCode ?? '+229';
+                            final email = syntheticEmailFromPhone(
+                              cc,
+                              phone,
+                              app: TranooAuthApp.buyer,
+                            );
+                            final fullPhone = cc + phone;
                             // Récupérer le code de parrainage en attente
                             final prefs = await SharedPreferences.getInstance();
                             final pendingReferral =
@@ -814,8 +816,9 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             if (e.toString().contains(
                                   'email-already-in-use',
                                 )) {
-                              title = 'Un compte existe déjà avec cette adresse email.';
-                              subtitle = 'Essayez de vous connecter.';
+                              title = 'Un compte existe déjà avec ce numéro.';
+                              subtitle =
+                                  'Connectez-vous ou utilisez un autre numéro.';
                             } else if (e.toString().contains(
                                   'weak-password',
                                 )) {

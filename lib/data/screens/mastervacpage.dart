@@ -6,6 +6,7 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
 import 'package:tranoo/services/cart_service.dart';
 import 'cart_page.dart';
+import 'order_summary.dart';
 // import 'package:tranoo/data/screens/paymentscreen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -15,6 +16,7 @@ import 'package:confetti/confetti.dart';
 // import 'verification_payment.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/utils/article_view_helper.dart';
+import 'package:tranoo/utils/auth_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
@@ -165,6 +167,39 @@ class _MastervacPageState extends State<MastervacPage> {
     );
   }
 
+  Future<void> _startDeliveryFlow() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) {
+      showAuthDialog(
+        context,
+        message: 'Connectez-vous pour commander avec livraison',
+      );
+      return;
+    }
+    final firstImage = widget.images.whereType<String>().firstWhere(
+          (e) => e.startsWith('http'),
+          orElse: () => '',
+        );
+    await CartService().clear();
+    await CartService().addOrIncrement(
+      CartItem(
+        articleId: (widget.id ?? '').toString(),
+        title: widget.title,
+        imageUrl: firstImage.isEmpty ? null : firstImage,
+        priceLabel: widget.price,
+        pieceType: widget.pieceType,
+        model: widget.model,
+        fuelType: widget.fuelType,
+        quantity: 1,
+      ),
+    );
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const OrderSummaryPage()),
+    );
+  }
+
   Future<void> _loadArticleDetails() async {
     try {
       final id = widget.id;
@@ -203,6 +238,12 @@ class _MastervacPageState extends State<MastervacPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: _buildAppBar(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _startDeliveryFlow,
+        backgroundColor: Colors.blue,
+        tooltip: 'Commander avec livraison',
+        child: const Icon(Icons.local_shipping, color: Colors.white),
+      ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
         children: [
@@ -494,9 +535,9 @@ class _MastervacPageState extends State<MastervacPage> {
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Text(
-              widget.company.isNotEmpty
-                  ? widget.company
-                  : 'Entreprise non renseignée',
+              AuthConfig.displayEntreprise(
+                widget.company.isNotEmpty ? widget.company : null,
+              ),
               style: const TextStyle(fontSize: 16, color: Colors.black87),
             ),
           ],
@@ -598,115 +639,44 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Widget _buildActionButton() {
-    if (widget.fromPub == true) {
-      // Toujours afficher uniquement le bouton Acheter
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.amber,
-            padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          onPressed: () async {
-            // Vérifier l'authentification avant d'ajouter au panier
-            final firebaseUser = FirebaseAuth.instance.currentUser;
-            if (firebaseUser == null) {
-              showAuthDialog(context, message: 'Connectez-vous pour ajouter cette pièce au panier');
-              return;
-            }
-            
-            // Ajout au panier (sans validation des champs de livraison)
-            final firstImage = widget.images.whereType<String>().firstWhere(
-                  (e) => e.startsWith('http'),
-                  orElse: () => '',
-                );
-            await CartService().addOrIncrement(
-              CartItem(
-                articleId: (widget.id ?? '').toString(),
-                title: widget.title,
-                imageUrl: firstImage.isEmpty ? null : firstImage,
-                priceLabel: widget.price,
-                pieceType: widget.pieceType,
-                model: widget.model,
-                fuelType: widget.fuelType,
-                quantity: 1,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
-            );
-            
-            // Redirection automatique vers le panier amélioré
-            if (!mounted) return;
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const CartPage()),
-            );
-          },
-          child: const Text(
-            'Ajouter au panier',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
+            ),
+            onPressed: _openSellerWhatsApp,
+            icon: const Icon(Icons.chat),
+            label: const Text(
+              'Contacter le vendeur',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),
         ),
-      );
-    }
-    // Acheteur : bouton acheter
-    return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.amber,
-            padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          onPressed: () async {
-            // Vérifier l'authentification avant d'ajouter au panier
-            final firebaseUser = FirebaseAuth.instance.currentUser;
-            if (firebaseUser == null) {
-              showAuthDialog(context, message: 'Connectez-vous pour ajouter cette pièce au panier');
-              return;
-            }
-            
-            // Ajout au panier (sans validation des champs de livraison)
-            final firstImage = widget.images.whereType<String>().firstWhere(
-                  (e) => e.startsWith('http'),
-                  orElse: () => '',
-                );
-            await CartService().addOrIncrement(
-              CartItem(
-                articleId: (widget.id ?? '').toString(),
-                title: widget.title,
-                imageUrl: firstImage.isEmpty ? null : firstImage,
-                priceLabel: widget.price,
-                pieceType: widget.pieceType,
-                model: widget.model,
-                fuelType: widget.fuelType,
-                quantity: 1,
-              ),
-            );
-            
-            // Redirection automatique vers le panier amélioré
-            if (!mounted) return;
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const CartPage()),
-            );
-          },
-          child: const Text(
-            'Ajouter au panier',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _callSeller,
+            icon: const Icon(Icons.phone),
+            label: const Text('Appeler le vendeur'),
           ),
         ),
-      );
+        const SizedBox(height: 8),
+        Text(
+          'Utilisez le bouton bleu (livraison) à droite pour commander avec livraison.',
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
   }
 }

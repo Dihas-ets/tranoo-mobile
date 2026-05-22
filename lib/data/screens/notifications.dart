@@ -12,6 +12,7 @@ import '../../providers/counter_provider.dart';
 import 'cars_info.dart';
 import 'mastervacpage.dart';
 import 'package:tranoo/widgets/notification_list_ui.dart';
+import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 
 // --------- HELPERS SÉCURISÉS ----------
 List<String> getNotifImages(Map notif) {
@@ -715,7 +716,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
         ],
       ),
       body: provider.loading
-          ? const Center(child: CircularProgressIndicator())
+          ? SkeletonPresets.notificationList()
           : provider.notifications.isEmpty
               ? const Center(
                   child: Text(

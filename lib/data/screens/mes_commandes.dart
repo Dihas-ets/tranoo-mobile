@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import '../../services/user_service.dart';
@@ -143,7 +144,7 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
           // Contenu
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFF8BF13)))
+                ? SkeletonPresets.orderList()
                 : _error != null
                     ? _buildErrorWidget()
                     : _orders.isEmpty

@@ -21,6 +21,10 @@ import 'package:tranoo/services/blocked_user_service.dart';
 import 'package:tranoo/services/push_otp_service.dart';
 import 'package:tranoo/utils/local_notification_service.dart';
 import 'package:tranoo/utils/in_app_delivery_popup.dart';
+import 'package:tranoo/services/urgent_fcm_utils.dart';
+import 'package:tranoo/services/alert_launch_bootstrap.dart';
+import 'package:tranoo/widgets/alert_incoming_call_overlay.dart';
+import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/providers/locale_provider.dart';
 import 'package:tranoo/utils/feexpay_callback_state.dart';
 import 'data/screens/marque.dart';
@@ -34,7 +38,6 @@ import 'package:tranoo/data/screens/reset/verify_code_page.dart';
 import 'package:tranoo/data/screens/reset/create_new_password_page.dart';
 import 'package:tranoo/data/screens/order_details_page.dart';
 import 'package:tranoo/data/screens/mes_commandes.dart';
-import 'package:tranoo/widgets/app_refresh_shell.dart';
 
 /// Clés souvent utilisées par FeexPay / le package sur la redirection.
 /// Doc V2 (intégrations front) : paramètre **`ref`** sur l’URL de callback.
@@ -172,6 +175,21 @@ String? _feexIdFromRouteSettings(RouteSettings? settings) {
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   Logger('FCM').info('Message reçu en arrière-plan: ${message.messageId}');
+  if (isUrgentFcmMessage(message)) {
+    await LocalNotificationService.initialize();
+    final data = message.data.map(
+      (k, v) => MapEntry(k, v?.toString() ?? ''),
+    );
+    await LocalNotificationService.showAlertIncomingCallNotification(
+      title: message.notification?.title ??
+          data['title'] ??
+          'Nouvelle proposition',
+      body: message.notification?.body ??
+          data['message'] ??
+          'Un vendeur a répondu à votre alerte',
+      data: data,
+    );
+  }
 }
 
 // Service pour gérer les notifications
@@ -208,14 +226,32 @@ class NotificationService {
         _logger.info(
           'Message reçu en premier plan: ${message.notification?.title}',
         );
+        if (isUrgentFcmMessage(message)) {
+          AlertIncomingCallService.show(
+            message,
+            navigatorKey: rootNavigatorKey,
+          );
+          return;
+        }
         _showLocalNotification(message);
       });
 
       // Gestionnaire pour les notifications cliquées
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         _logger.info('Notification cliquée: ${message.notification?.title}');
+        if (isUrgentFcmMessage(message)) {
+          _openUrgentNotificationFromTap(message);
+          return;
+        }
         _handleNotificationTap(message);
       });
+
+      final initialMessage = await _messaging.getInitialMessage();
+      if (initialMessage != null && isUrgentFcmMessage(initialMessage)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _openUrgentNotificationFromTap(initialMessage);
+        });
+      }
 
       // Récupérer le token FCM
       String? token = await _messaging.getToken();
@@ -301,6 +337,12 @@ class NotificationService {
         );
       }
     }
+  }
+
+  void _openUrgentNotificationFromTap(RemoteMessage message) {
+    rootNavigatorKey.currentState?.push(
+      MaterialPageRoute(builder: (_) => const Notifications()),
+    );
   }
 
   void _handleNotificationTap(RemoteMessage message) {
@@ -394,7 +436,7 @@ class MyApp extends StatelessWidget {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           BlockedUserService.setContext(context);
         });
-        return AppRefreshShell(
+        return AlertLaunchBootstrap(
           child: MediaQuery(
             data: MediaQuery.of(context).copyWith(),
             child: DevicePreview.appBuilder(context, child),

@@ -17,6 +17,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/utils/page_refresh_registry.dart';
+import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:tranoo/data/screens/movie.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
@@ -235,7 +236,12 @@ class _MarqueState extends State<Marque>
     with SingleTickerProviderStateMixin, RegisterPageRefresh {
   @override
   Future<void> onPagePullRefresh() async {
-    await _reloadAll();
+    setState(() => _pullRefreshing = true);
+    try {
+      await _reloadAll();
+    } finally {
+      if (mounted) setState(() => _pullRefreshing = false);
+    }
   }
   int _currentPage = 0;
   late PageController _pageController;
@@ -243,6 +249,8 @@ class _MarqueState extends State<Marque>
   Timer? _carouselTimer;
   /// Rafraîchissement périodique des données (comme la liste tricycle), sans bloquer l’UI.
   Timer? _marqueAutoRefreshTimer;
+  bool _initialDataLoaded = false;
+  bool _pullRefreshing = false;
   final UserService _userService = UserService();
   late int _marqueTabIndex;
   late int _modeleTabIndex;
@@ -366,7 +374,9 @@ class _MarqueState extends State<Marque>
     fetchArticlesPieces();
     fetchVoituresRecommandees();
     fetchPubs();
-    fetchPubsSponsorisees();
+    fetchPubsSponsorisees().then((_) {
+      if (mounted) _initialDataLoaded = true;
+    });
     _marqueAutoRefreshTimer =
         Timer.periodic(const Duration(seconds: 30), (_) async {
       if (!mounted) return;
@@ -397,12 +407,14 @@ class _MarqueState extends State<Marque>
     _budgetMax = null;
 
     setState(() {});
+    final silent = _initialDataLoaded;
     await Future.wait<void>([
-      fetchArticlesPieces(),
-      fetchVoituresRecommandees(),
-      fetchPubs(),
-      fetchPubsSponsorisees(),
+      fetchArticlesPieces(silent: silent),
+      fetchVoituresRecommandees(silent: silent),
+      fetchPubs(silent: silent),
+      fetchPubsSponsorisees(silent: silent),
     ]);
+    _initialDataLoaded = true;
   }
 
   Future<void> fetchArticlesPieces({bool silent = false}) async {
@@ -924,8 +936,8 @@ class _MarqueState extends State<Marque>
 
   // Section Recommandé :
   Widget buildVoituresRecommandeesGrid() {
-    if (isLoadingVoitures) {
-      return const Center(child: CircularProgressIndicator());
+    if (isLoadingVoitures && voituresRecommandees.isEmpty) {
+      return SkeletonPresets.articleGrid(count: 2);
     }
     if (errorVoitures != null) {
       return Center(child: Text(errorVoitures!));
@@ -1270,8 +1282,8 @@ class _MarqueState extends State<Marque>
   }
 
   Widget buildPiecesGrid() {
-    if (isLoadingPieces) {
-      return const Center(child: CircularProgressIndicator());
+    if (isLoadingPieces && articlesPieces.isEmpty) {
+      return SkeletonPresets.articleGrid(count: 2);
     }
     if (errorPieces != null) {
       return Center(child: Text(errorPieces!));
@@ -1501,7 +1513,8 @@ class _MarqueState extends State<Marque>
             ],
           ),
         ),
-        if (isLoadingVoitures) const Center(child: CircularProgressIndicator()),
+        if (isLoadingVoitures && voituresRecommandees.isEmpty)
+          SkeletonPresets.articleGrid(count: 2),
         if (errorVoitures != null) Center(child: Text(errorVoitures!)),
         if (!isLoadingVoitures && errorVoitures == null)
           _applyFilters(voituresEnLigne).isEmpty
@@ -1827,7 +1840,8 @@ class _MarqueState extends State<Marque>
             ],
           ),
         ),
-        if (isLoadingPieces) const Center(child: CircularProgressIndicator()),
+        if (isLoadingPieces && articlesPieces.isEmpty)
+          SkeletonPresets.articleGrid(count: 2),
         if (errorPieces != null) Center(child: Text(errorPieces!)),
         if (!isLoadingPieces && errorPieces == null)
           piecesEnLigne.isEmpty
@@ -2040,10 +2054,7 @@ class _MarqueState extends State<Marque>
           ),
         ),
         if (isLoadingPubs)
-          const SizedBox(
-            height: 100,
-            child: Center(child: CircularProgressIndicator()),
-          )
+          SkeletonPresets.pubBanner(height: 100)
         else if (errorPubs != null)
           SizedBox(height: 100, child: Center(child: Text(errorPubs!)))
         else if (pubsValides.isEmpty)
@@ -2075,7 +2086,7 @@ class _MarqueState extends State<Marque>
                       context: context,
                       barrierDismissible: false,
                       builder: (context) =>
-                          const Center(child: CircularProgressIndicator()),
+                          SkeletonPresets.articleGrid(count: 2),
                     );
                     try {
                       final user = FirebaseAuth.instance.currentUser;
@@ -2320,7 +2331,7 @@ class _MarqueState extends State<Marque>
   // SECTION À LA UNE (carrousel)
   Widget buildPubsALaUneCarousel() {
     if (isLoadingPubs) {
-      return const Center(child: CircularProgressIndicator());
+      return SkeletonPresets.articleGrid(count: 2);
     }
     if (errorPubs != null) {
       return Center(child: Text(errorPubs!));
@@ -2686,8 +2697,11 @@ class _MarqueState extends State<Marque>
           // Contenu scrollable
           Expanded(
             child: RefreshIndicator(
-              onRefresh: _reloadAll,
-              child: SingleChildScrollView(
+              color: const Color(0xFFFFCC00),
+              onRefresh: onPagePullRefresh,
+              child: _pullRefreshing
+                  ? SkeletonPresets.homeMarque()
+                  : SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [

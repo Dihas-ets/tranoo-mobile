@@ -927,10 +927,13 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
       );
     }
 
-    final chauffeur = _chauffeurs.firstWhere(
-      (c) => c['_id']?.toString() == selectedId,
-      orElse: () => <String, dynamic>{},
-    );
+    Map<String, dynamic> chauffeur = {};
+    for (final c in _chauffeurs) {
+      if (c['_id']?.toString() == selectedId) {
+        chauffeur = c;
+        break;
+      }
+    }
     final canContact = chauffeur['canContact'] == true;
 
     return SizedBox(
