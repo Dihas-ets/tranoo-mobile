@@ -4,6 +4,7 @@ enum NotificationVisualKind {
   systemApp,
   pieceAlert,
   vehicleAlert,
+  proposalAlert,
   simple,
   verification,
 }
@@ -17,6 +18,9 @@ NotificationVisualKind resolveNotificationVisualKind(Map<String, dynamic> notif)
   final sender = (notif['sender'] ?? '').toString();
 
   if (type == 'verification') return NotificationVisualKind.verification;
+  if (type == 'proposition_alerte') {
+    return NotificationVisualKind.proposalAlert;
+  }
   if (type == 'alerte' ||
       requestType == 'piece_search' ||
       requestType == 'vehicle_search') {
@@ -39,6 +43,8 @@ IconData iconForNotificationKind(NotificationVisualKind kind) {
       return Icons.build_outlined;
     case NotificationVisualKind.vehicleAlert:
       return Icons.directions_car_outlined;
+    case NotificationVisualKind.proposalAlert:
+      return Icons.reply_outlined;
     case NotificationVisualKind.verification:
       return Icons.verified_outlined;
     case NotificationVisualKind.simple:

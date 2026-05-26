@@ -84,12 +84,14 @@ String? _feexIdFromRawArguments(dynamic args) {
     final t = args.trim();
     if (t.isEmpty) return null;
     if (_feexFullUuidArg.hasMatch(t)) return t;
-    final trn = RegExp(r'\bTRN-[A-Z0-9-]+\b', caseSensitive: false).firstMatch(t);
+    final trn =
+        RegExp(r'\bTRN-[A-Z0-9-]+\b', caseSensitive: false).firstMatch(t);
     if (trn != null) return trn.group(0);
     if (t.startsWith('{') && t.endsWith('}')) {
       try {
         final m = jsonDecode(t);
-        if (m is Map) return _firstNonEmptyFromArgsMap(m, _feexPayTransactionIdKeys);
+        if (m is Map)
+          return _firstNonEmptyFromArgsMap(m, _feexPayTransactionIdKeys);
       } catch (_) {}
     }
   }
@@ -117,7 +119,8 @@ void _logFeexPayRedirectDebug(RouteSettings? settings, String source) {
 
   final name = settings.name;
   line('Route name brut: $name');
-  line('arguments type=${settings.arguments?.runtimeType} valeur=${settings.arguments}');
+  line(
+      'arguments type=${settings.arguments?.runtimeType} valeur=${settings.arguments}');
 
   final qpSplit = _feexQueryParamsFromRouteName(name);
   if (qpSplit.isNotEmpty) {
@@ -302,7 +305,7 @@ class NotificationService {
 
   void _showLocalNotification(RemoteMessage message) {
     _logger.info('Notification locale: ${message.notification?.title}');
-    
+
     // Popup global (in-app) pour arrivée livreur (peu importe l'écran)
     if (message.data['type'] == 'delivery' &&
         (message.data['eventType'] == 'arrived' ||
@@ -355,7 +358,9 @@ class NotificationService {
     if (message.data.containsKey('type')) {
       final type = message.data['type'];
       final eventType = message.data['eventType'];
-      if (type == 'delivery' && eventType == 'arrived' && message.data['relatedId'] != null) {
+      if (type == 'delivery' &&
+          eventType == 'arrived' &&
+          message.data['relatedId'] != null) {
         final deliveryId = message.data['relatedId'].toString();
         InAppDeliveryPopup.showLivreurArrived(deliveryId: deliveryId);
         return;
@@ -388,7 +393,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Charger les variables d'environnement
   await dotenv.load(fileName: ".env");
-  
+
   // Initialiser le service de notifications locales
   try {
     await LocalNotificationService.initialize();
@@ -396,7 +401,7 @@ void main() async {
   } catch (e) {
     print('Erreur LocalNotificationService: $e');
   }
-  
+
   // Initialiser le service de notifications
   await NotificationService().initialize();
 
@@ -467,7 +472,8 @@ class MyApp extends StatelessWidget {
         },
         '/orders': (context) => const MesCommandesPage(),
         '/order-details': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          final args = ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>?;
           return OrderDetailsPage(
             order: args?['order'] ?? {},
             accentColor: args?['accentColor'] ?? const Color(0xFF1F69FF),
@@ -487,7 +493,8 @@ class _CartPaymentCallbackPage extends StatefulWidget {
   const _CartPaymentCallbackPage({required this.success});
 
   @override
-  State<_CartPaymentCallbackPage> createState() => _CartPaymentCallbackPageState();
+  State<_CartPaymentCallbackPage> createState() =>
+      _CartPaymentCallbackPageState();
 }
 
 class _CartPaymentCallbackPageState extends State<_CartPaymentCallbackPage> {
@@ -524,7 +531,8 @@ class _CartPaymentCallbackPageState extends State<_CartPaymentCallbackPage> {
         if (feexId != null && feexId.isNotEmpty) 'ref': feexId,
         if (feexId != null && feexId.isNotEmpty) 'reference': feexId,
       };
-      developer.log('[FEEPAY_CALLBACK] pop callback payload=$payload feexId=$feexId');
+      developer.log(
+          '[FEEPAY_CALLBACK] pop callback payload=$payload feexId=$feexId');
       Navigator.of(context).pop(payload);
     });
   }
@@ -577,12 +585,13 @@ class _SubscriptionSuccessPageState extends State<SubscriptionSuccessPage> {
       );
       if (pricingResponse.statusCode == 200) {
         final data = jsonDecode(pricingResponse.body);
-        final direct = data is Map<String, dynamic> ? data['prixMensuel'] : null;
+        final direct =
+            data is Map<String, dynamic> ? data['prixMensuel'] : null;
         if (direct is num && direct > 0) return direct;
-        final nested =
-            data is Map<String, dynamic> && data['pricing'] is Map<String, dynamic>
-                ? data['pricing']['prixMensuel']
-                : null;
+        final nested = data is Map<String, dynamic> &&
+                data['pricing'] is Map<String, dynamic>
+            ? data['pricing']['prixMensuel']
+            : null;
         if (nested is num && nested > 0) return nested;
       }
     } catch (_) {}
@@ -619,7 +628,9 @@ class _SubscriptionSuccessPageState extends State<SubscriptionSuccessPage> {
         );
         if (statusResp.statusCode == 200) {
           final body = jsonDecode(statusResp.body);
-          final st = (body is Map ? body['status'] : null)?.toString().toLowerCase() ?? '';
+          final st =
+              (body is Map ? body['status'] : null)?.toString().toLowerCase() ??
+                  '';
           final ok = st.contains('success') ||
               st.contains('successful') ||
               st.contains('paid') ||

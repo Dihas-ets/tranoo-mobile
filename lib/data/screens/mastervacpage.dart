@@ -119,6 +119,74 @@ class _MastervacPageState extends State<MastervacPage> {
     );
   }
 
+  Future<void> _showContactSellerDialog() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.handshake_outlined, size: 44, color: Colors.amber[800]),
+              const SizedBox(height: 12),
+              const Text(
+                'Avant de contacter le vendeur',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                '• Confirmez le prix et les frais éventuels\n'
+                '• Vérifiez la localisation et la disponibilité\n'
+                '• Échangez clairement sur l\'état du bien\n'
+                '• Privilégiez un lieu sûr pour la transaction',
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                  color: Color(0xFF475569),
+                ),
+              ),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _openSellerWhatsApp();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF8BF13),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'D\'accord',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _openSellerWhatsApp() async {
     final phone = _sellerPhone?.trim() ?? '';
     if (phone.isEmpty) {
@@ -142,28 +210,6 @@ class _MastervacPageState extends State<MastervacPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Impossible d\'ouvrir WhatsApp')),
-    );
-  }
-
-  Future<void> _callSeller() async {
-    final phone = _sellerPhone?.trim() ?? '';
-    if (phone.isEmpty) {
-      _showSellerContactUnavailable();
-      return;
-    }
-    final digits = _digitsOnly(phone);
-    if (digits.isEmpty) {
-      _showSellerContactUnavailable();
-      return;
-    }
-    final uri = Uri.parse('tel:+$digits');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-      return;
-    }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Impossible de passer un appel')),
     );
   }
 
@@ -393,7 +439,7 @@ class _MastervacPageState extends State<MastervacPage> {
             children: [
               // WhatsApp
               GestureDetector(
-                onTap: _openSellerWhatsApp,
+                onTap: _showContactSellerDialog,
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.white,
@@ -410,15 +456,15 @@ class _MastervacPageState extends State<MastervacPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Appel téléphonique
+              // Contact vendeur (même flux que WhatsApp : popup puis WA)
               GestureDetector(
-                onTap: _callSeller,
+                onTap: _showContactSellerDialog,
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.white,
                   child: const Icon(
-                    Icons.phone,
-                    color: Colors.green,
+                    Icons.chat,
+                    color: Color(0xFF25D366),
                     size: 20,
                   ),
                 ),
@@ -598,11 +644,7 @@ class _MastervacPageState extends State<MastervacPage> {
           widget.year.isNotEmpty ? widget.year : 'Non renseigné',
           Icons.calendar_today,
         ),
-        _buildSpecCard(
-          'Localisation',
-          (widget.location.isNotEmpty) ? widget.location : 'Non renseigné',
-          Icons.location_on,
-        ),
+        _buildLocationSpecCard(),
       ],
     );
   }
@@ -632,8 +674,61 @@ class _MastervacPageState extends State<MastervacPage> {
           Text(
             value,
             style: const TextStyle(fontSize: 13, color: Colors.black54),
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLocationSpecCard() {
+    final loc = widget.location.trim();
+    if (loc.isEmpty) {
+      return _buildSpecCard('Localisation', 'Non renseigné', Icons.location_on);
+    }
+    if (loc.length <= 56) {
+      return _buildSpecCard('Localisation', loc, Icons.location_on);
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F1FF),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          leading: const Icon(Icons.location_on, size: 20, color: Colors.black87),
+          title: const Text(
+            'Localisation',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          subtitle: Text(
+            loc,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, color: Colors.black54),
+          ),
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                loc,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.black87,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -646,15 +741,15 @@ class _MastervacPageState extends State<MastervacPage> {
           width: double.infinity,
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF25D366),
-              foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFFF8BF13),
+              foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            onPressed: _openSellerWhatsApp,
-            icon: const Icon(Icons.chat),
+            onPressed: _showContactSellerDialog,
+            icon: const Icon(Icons.chat_bubble_outline),
             label: const Text(
               'Contacter le vendeur',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -664,15 +759,27 @@ class _MastervacPageState extends State<MastervacPage> {
         const SizedBox(height: 10),
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _callSeller,
-            icon: const Icon(Icons.phone),
-            label: const Text('Appeler le vendeur'),
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF0461B6),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              side: const BorderSide(color: Color(0xFF0461B6), width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: _startDeliveryFlow,
+            icon: const Icon(Icons.shopping_cart_outlined),
+            label: const Text(
+              'Acheter via l\'application',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          'Utilisez le bouton bleu (livraison) à droite pour commander avec livraison.',
+          'Commande sécurisée via le panier Tranoo (livraison disponible).',
           style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           textAlign: TextAlign.center,
         ),

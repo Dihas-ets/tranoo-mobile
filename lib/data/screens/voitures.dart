@@ -18,6 +18,7 @@ import 'package:tranoo/utils/article_view_helper.dart';
 import 'package:tranoo/utils/page_refresh_registry.dart';
 import 'package:tranoo/widgets/page_pull_refresh.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
+import 'package:tranoo/utils/catalog_display.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -1482,61 +1483,11 @@ class _VoituresPageState extends State<VoituresPage>
                                                             CrossAxisAlignment
                                                                 .start,
                                                         children: [
-                                                          Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .spaceBetween,
-                                                            crossAxisAlignment:
-                                                                CrossAxisAlignment
-                                                                    .start,
-                                                            children: [
-                                                              Expanded(
-                                                                child: Column(
-                                                                  crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-                                                                  children: [
-                                                                    Text(
-                                                                      voiture['marque'] ??
-                                                                          '',
-                                                                      style: TextStyle(
-                                                                        fontSize: 12,
-                                                                        color: Colors.grey[600],
-                                                                      ),
-                                                                      maxLines: 1,
-                                                                      overflow:
-                                                                          TextOverflow.ellipsis,
-                                                                    ),
-                                                                    Text(
-                                                                      voiture['modele']
-                                                                              ?.toString() ??
-                                                                          '',
-                                                                      style: TextStyle(
-                                                                        fontSize: 10,
-                                                                        color: Colors.grey[500],
-                                                                      ),
-                                                                      maxLines: 1,
-                                                                      overflow:
-                                                                          TextOverflow.ellipsis,
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                              const SizedBox(
-                                                                  width: 4),
-                                                              Text(
-                                                                '${formatPrice(voiture['prix'])} FCFA',
-                                                                style:
-                                                                    const TextStyle(
-                                                                  fontSize: 14,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  color: Colors
-                                                                      .black,
-                                                                ),
-                                                              ),
-                                                            ],
+                                                          catalogVehicleInfoFooter(
+                                                            title: vehicleTitleFromMap(
+                                                              Map<String, dynamic>.from(voiture),
+                                                            ),
+                                                            prix: voiture['prix'],
                                                           ),
                                                           const SizedBox(
                                                               height: 6),

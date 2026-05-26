@@ -15,6 +15,67 @@ import 'package:tranoo/widgets/notification_list_ui.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 
 // --------- HELPERS SÉCURISÉS ----------
+String stripHtmlDocumentWrapper(String html) {
+  final t = html.trim();
+  if (!t.toLowerCase().contains('<!doctype') &&
+      !t.toLowerCase().startsWith('<html')) {
+    return t;
+  }
+  final bodyMatch =
+      RegExp(r'<body[^>]*>([\s\S]*)</body>', caseSensitive: false)
+          .firstMatch(t);
+  if (bodyMatch != null) return bodyMatch.group(1)!.trim();
+  return t
+      .replaceAll(RegExp(r'<!DOCTYPE[^>]*>', caseSensitive: false), '')
+      .replaceAll(RegExp(r'</?html[^>]*>', caseSensitive: false), '')
+      .replaceAll(
+          RegExp(r'<head[\s\S]*?</head>', caseSensitive: false), '')
+      .replaceAll(RegExp(r'</?body[^>]*>', caseSensitive: false), '')
+      .trim();
+}
+
+String? resolveNotificationBodyHtml(Map notif) {
+  try {
+    String? raw;
+    final data = notif['data'];
+    if (data is Map && data['bodyHtml'] != null) {
+      raw = data['bodyHtml'].toString();
+    }
+    raw ??= notif['bodyHtml']?.toString();
+    final type = (notif['type'] ?? '').toString();
+    if (raw == null || raw.isEmpty) {
+      final msg = notif['message']?.toString();
+      if (msg != null &&
+          msg.isNotEmpty &&
+          type == 'verification' &&
+          (msg.contains('<!DOCTYPE') || msg.contains('<html'))) {
+        raw = msg;
+      } else if (type != 'verification') {
+        raw = msg;
+      } else {
+        raw = msg;
+      }
+    }
+    if (raw == null || raw.isEmpty) return null;
+    return stripHtmlDocumentWrapper(raw);
+  } catch (_) {
+    return null;
+  }
+}
+
+String? getVerificationPdfUrl(Map notif) {
+  try {
+    final data = notif['data'];
+    if (data is Map && data['pdfUrl'] != null) {
+      final url = data['pdfUrl'].toString();
+      if (url.isNotEmpty) return url;
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
 List<String> getNotifImages(Map notif) {
   try {
     final att = notif['attachments'];
@@ -136,7 +197,8 @@ class VerificationDetailPage extends StatelessWidget {
     final documents = getNotifDocuments(notification);
     final stampUrl = getStampUrl(notification);
     final signatureUrl = getSignatureUrl(notification);
-    final bodyHtml = _safeGetStringLocal(notification, 'bodyHtml') ??
+    final pdfUrl = getVerificationPdfUrl(notification);
+    final bodyHtml = resolveNotificationBodyHtml(notification) ??
         _safeGetStringLocal(notification, 'message') ??
         '-';
 
@@ -197,7 +259,24 @@ class VerificationDetailPage extends StatelessWidget {
                   style: const TextStyle(fontSize: 14, color: Colors.black87)),
             ],
             const SizedBox(height: 10),
-            Html(data: bodyHtml),
+            if (pdfUrl != null) ...[
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final uri = Uri.parse(pdfUrl);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                icon: const Icon(Icons.picture_as_pdf),
+                label: const Text('Télécharger le rapport PDF'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber[800],
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+            if (bodyHtml.isNotEmpty && bodyHtml != '-') Html(data: bodyHtml),
             if (documents.isNotEmpty) ...[
               const SizedBox(height: 16),
               const Text(
@@ -966,10 +1045,15 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     );
   }
 
+  bool _isProposalNotification(Map<String, dynamic> notif) {
+    return _safeGetString(notif, 'type') == 'proposition_alerte';
+  }
+
   bool _isAlertNotification(Map<String, dynamic> notif) {
     final data = _notifDataMap(notif);
     final requestType = (data['requestType'] ?? '').toString();
-    return _safeGetString(notif, 'type') == 'alerte' ||
+    return _isProposalNotification(notif) ||
+        _safeGetString(notif, 'type') == 'alerte' ||
         requestType == 'vehicle_search' ||
         requestType == 'piece_search';
   }
@@ -985,9 +1069,11 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     final kind = resolveNotificationVisualKind(notif);
     final imageUrl = notificationThumbUrl(notif) ?? _alertImageUrl(notif);
     final title = _safeGetString(notif, 'title') ?? 'Notification';
-    final preview = _isAlertNotification(notif)
-        ? _alertPreviewText(notif)
-        : notificationPreviewText(notif);
+    final preview = _isProposalNotification(notif)
+        ? (_safeGetString(notif, 'message') ?? 'Proposition pour votre alerte')
+        : _isAlertNotification(notif)
+            ? _alertPreviewText(notif)
+            : notificationPreviewText(notif);
     final dateStr =
         notif['date'] is DateTime ? _formatDate(notif['date'] as DateTime) : '';
 
@@ -1221,13 +1307,17 @@ class _NotificationsBodyState extends State<NotificationsBody> {
               ? Map<String, dynamic>.from(notification['data'])
               : <String, dynamic>{};
           final requestType = (dataMap['requestType'] ?? '').toString();
-          final isAlert = _safeGetString(notification, 'type') == 'alerte' ||
-              requestType == 'vehicle_search' ||
-              requestType == 'piece_search';
+          final isProposal =
+              _safeGetString(notification, 'type') == 'proposition_alerte';
+          final isAlert = !isProposal &&
+              (_safeGetString(notification, 'type') == 'alerte' ||
+                  requestType == 'vehicle_search' ||
+                  requestType == 'piece_search');
           final images = getNotifImages(notification);
           final stampUrl = getStampUrl(notification);
           final signatureUrl = getSignatureUrl(notification);
-          final bodyHtml = _safeGetString(notification, 'bodyHtml') ??
+          final pdfUrl = getVerificationPdfUrl(notification);
+          final bodyHtml = resolveNotificationBodyHtml(notification) ??
               _safeGetString(notification, 'message') ??
               '-';
 
@@ -1268,8 +1358,9 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     List<String> images,
     String? stampUrl,
     String? signatureUrl,
-    String bodyHtml,
-  ) {
+    String bodyHtml, {
+    String? pdfUrl,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -1300,7 +1391,24 @@ class _NotificationsBodyState extends State<NotificationsBody> {
           ),
           const SizedBox(height: 12),
         ],
-        Html(data: bodyHtml),
+        if (pdfUrl != null && pdfUrl.isNotEmpty) ...[
+          ElevatedButton.icon(
+            onPressed: () async {
+              final uri = Uri.parse(pdfUrl);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+            icon: const Icon(Icons.picture_as_pdf),
+            label: const Text('Télécharger le rapport PDF'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber[800],
+              foregroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (bodyHtml.isNotEmpty && bodyHtml != '-') Html(data: bodyHtml),
         if (images.isNotEmpty)
           GridView.count(
             crossAxisCount: 2,

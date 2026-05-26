@@ -18,6 +18,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/utils/page_refresh_registry.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
+import 'package:tranoo/utils/catalog_display.dart';
 import 'package:tranoo/data/screens/movie.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
@@ -581,6 +582,14 @@ class _MarqueState extends State<Marque>
     );
   }
 
+  double _computeCardAspectRatio(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth < 360) return 0.58;
+    if (screenWidth < 420) return 0.59;
+    if (screenWidth < 520) return 0.7;
+    return 0.78;
+  }
+
   List<ArticleVoiture> _applyFilters(List<ArticleVoiture> source) {
     return source.where((v) {
       if (_selectedBrand != null && _selectedBrand!.isNotEmpty) {
@@ -1132,30 +1141,13 @@ class _MarqueState extends State<Marque>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Marque et modèle
-                          Text(
-                            voiture.marque,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            voiture.modele,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Prix en gras avec devise
-                          Text(
-                            '${formatPrice(voiture.prix)} FCFA',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFB45309),
-                            ),
+                          catalogVehicleInfoFooter(
+                            title: vehicleTitleFromMap({
+                              'titre': voiture.titre,
+                              'marque': voiture.marque,
+                              'modele': voiture.modele,
+                            }),
+                            prix: voiture.prix,
                           ),
                           const SizedBox(height: 6),
                           // Caractéristiques en deux colonnes
@@ -1473,13 +1465,6 @@ class _MarqueState extends State<Marque>
               (v.statut ?? '') != 'vendu',
         )
         .toList();
-    final screenWidth = MediaQuery.of(context).size.width;
-    final sectionCardAspectRatio = screenWidth < 360
-        ? 0.64
-        : screenWidth < 420
-            ? 0.6
-            : 0.58;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1542,7 +1527,7 @@ class _MarqueState extends State<Marque>
                       crossAxisCount: 2,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
-                      childAspectRatio: sectionCardAspectRatio,
+                      childAspectRatio: _computeCardAspectRatio(context),
                     ),
                     itemCount: _applyFilters(voituresEnLigne).length > 4
                         ? 4
@@ -1632,12 +1617,6 @@ class _MarqueState extends State<Marque>
                                                   ),
                                                 ),
                                     ),
-                                    // Badge de vues
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: _buildViewBadge(voiture.id),
-                                    ),
                                     // Badge condition (nouveau/occasion)
                                     Positioned(
                                       top: 8,
@@ -1675,40 +1654,30 @@ class _MarqueState extends State<Marque>
                                         ),
                                       ),
                                     ),
+                                    Positioned(
+                                      bottom: 8,
+                                      right: 8,
+                                      child: _buildViewBadge(voiture.id),
+                                    ),
                                   ],
                                 ),
                               ),
 
-                              // Informations de la voiture - PARTIE MODIFIÉE
                               Expanded(
-                                flex: 2, // RÉDUIT de 3 à 2 pour moins d'espace
+                                flex: 2,
                                 child: Padding(
-                                  padding: const EdgeInsets.all(
-                                    8,
-                                  ), // RÉDUIT de 12 à 8
+                                  padding: const EdgeInsets.all(8),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        '${voiture.marque} ${voiture.modele}'
-                                            .trim(),
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black87,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${formatPrice(voiture.prix)} FCFA',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
+                                      catalogVehicleInfoFooter(
+                                        title: vehicleTitleFromMap({
+                                          'titre': voiture.titre,
+                                          'marque': voiture.marque,
+                                          'modele': voiture.modele,
+                                        }),
+                                        prix: voiture.prix,
                                       ),
                                       const SizedBox(height: 6),
                                       // CARACTÉRISTIQUES - Espaces réduits
@@ -1995,28 +1964,7 @@ class _MarqueState extends State<Marque>
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF5E5),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Text(
-                                  piece.price.isNotEmpty
-                                      ? "${formatPrice(piece.price)} FCFA"
-                                      : 'Prix non communiqué',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: Color(0xFFB45309),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
+                              catalogPiecePricePill(piece.price),
                             ],
                           ),
                         ),
