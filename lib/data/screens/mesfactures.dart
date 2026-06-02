@@ -677,7 +677,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
   Future<void> _downloadInvoiceAsImage(Map<String, String> facture) async {
     try {
       final bytes = await _buildInvoiceImageBytes(facture);
-      final path = await FilePicker.platform.saveFile(
+      final path = await FilePicker.saveFile(
         dialogTitle: 'Enregistrer la facture (image)',
         fileName:
             'facture_${facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.png',
@@ -716,7 +716,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
         ),
       );
       final bytes = await doc.save();
-      final path = await FilePicker.platform.saveFile(
+      final path = await FilePicker.saveFile(
         dialogTitle: 'Enregistrer la facture (document)',
         fileName:
             'facture_${facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.pdf',
@@ -1359,7 +1359,7 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
   void _downloadInvoiceAsImage() async {
     try {
       final bytes = await _captureTicketBytes();
-      final path = await FilePicker.platform.saveFile(
+      final path = await FilePicker.saveFile(
         dialogTitle: 'Enregistrer la facture (image)',
         fileName:
             'facture_${widget.facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.png',
@@ -1398,7 +1398,7 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
         ),
       );
       final bytes = await doc.save();
-      final path = await FilePicker.platform.saveFile(
+      final path = await FilePicker.saveFile(
         dialogTitle: 'Enregistrer la facture (document)',
         fileName:
             'facture_${widget.facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.pdf',

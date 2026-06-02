@@ -560,11 +560,11 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
                     ),
                     child: FlutterMap(
                       options: MapOptions(
-                        center: LatLng(
+                        initialCenter: LatLng(
                           _position?.latitude ?? 6.3654,
                           _position?.longitude ?? 2.4183,
                         ),
-                        zoom: 13.0,
+                        initialZoom: 13.0,
                       ),
                       children: [
                         TileLayer(

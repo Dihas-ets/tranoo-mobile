@@ -185,7 +185,7 @@ class _DiscussionState extends State<Discussion> {
     });
 
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'doc', 'docx'],
       );
