@@ -21,7 +21,10 @@ class LocalNotificationService {
     );
 
     await _notifications.initialize(
-      const InitializationSettings(android: androidSettings, iOS: iosSettings),
+      settings: const InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      ),
       onDidReceiveNotificationResponse: AlertNotificationHandler.handleResponse,
       onDidReceiveBackgroundNotificationResponse:
           AlertNotificationHandler.handleBackgroundResponse,
@@ -107,10 +110,13 @@ class LocalNotificationService {
       sound: NotificationSounds.generalIos,
     );
     await _notifications.show(
-      1001,
-      'Code de vérification Tranoo',
-      'Votre code : $code',
-      const NotificationDetails(android: androidDetails, iOS: iosDetails),
+      id: 1001,
+      title: 'Code de vérification Tranoo',
+      body: 'Votre code : $code',
+      notificationDetails: const NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      ),
       payload: code,
     );
   }
@@ -133,10 +139,13 @@ class LocalNotificationService {
       sound: NotificationSounds.generalIos,
     );
     await _notifications.show(
-      DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      title,
-      body,
-      const NotificationDetails(android: androidDetails, iOS: iosDetails),
+      id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      title: title,
+      body: body,
+      notificationDetails: const NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      ),
     );
   }
 
@@ -154,7 +163,7 @@ class LocalNotificationService {
       importance: Importance.max,
       priority: Priority.max,
       category: AndroidNotificationCategory.call,
-      fullScreenIntent: true,
+      fullScreenIntent: false,
       playSound: true,
       enableVibration: true,
       visibility: NotificationVisibility.public,
@@ -188,10 +197,13 @@ class LocalNotificationService {
       interruptionLevel: InterruptionLevel.timeSensitive,
     );
     await _notifications.show(
-      9001,
-      title,
-      body,
-      NotificationDetails(android: androidDetails, iOS: iosDetails),
+      id: 9001,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      ),
       payload: payload,
     );
   }
@@ -214,10 +226,13 @@ class LocalNotificationService {
       sound: NotificationSounds.generalIos,
     );
     await _notifications.show(
-      DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      title,
-      body,
-      const NotificationDetails(android: androidDetails, iOS: iosDetails),
+      id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      title: title,
+      body: body,
+      notificationDetails: const NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      ),
     );
   }
 }
