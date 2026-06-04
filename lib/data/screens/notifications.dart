@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/user_service.dart';
 import '../../providers/counter_provider.dart';
@@ -13,6 +12,7 @@ import 'cars_info.dart';
 import 'mastervacpage.dart';
 import 'package:tranoo/widgets/notification_list_ui.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
+import 'package:tranoo/utils/verification_notification_helpers.dart';
 
 // --------- HELPERS SÉCURISÉS ----------
 String stripHtmlDocumentWrapper(String html) {
@@ -148,8 +148,44 @@ class VerificationDetailPage extends StatelessWidget {
   const VerificationDetailPage({Key? key, required this.notification})
       : super(key: key);
 
-  Future<void> _postVerificationAction(
-      BuildContext context, String action) async {
+  static Future<void> _handleVerificationApprove(
+    BuildContext context,
+    Map<String, dynamic> notification,
+  ) async {
+    await _postVerificationActionStatic(context, notification, 'approve');
+    final title = _safeGetStringLocal(notification, 'title') ?? 'véhicule';
+    final articleId = _safeGetStringLocal(
+            notification['verificationData'], 'articleId') ??
+        _safeGetStringLocal(notification['relatedId'], '_id') ??
+        _safeGetStringLocal(notification, 'relatedId');
+    final waText = articleId != null && articleId.isNotEmpty
+        ? 'Bonjour Tranoo, je confirme mon intérêt pour l\'achat : $title (réf. $articleId).'
+        : 'Bonjour Tranoo, je confirme mon intérêt pour l\'achat : $title.';
+    await openTranooWhatsApp(text: waText);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Demande validée — ouverture WhatsApp')),
+    );
+    Navigator.pop(context);
+  }
+
+  static Future<void> _handleVerificationReject(
+    BuildContext context,
+    Map<String, dynamic> notification,
+  ) async {
+    await _postVerificationActionStatic(context, notification, 'reject');
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Demande rejetée')),
+    );
+    Navigator.pop(context);
+  }
+
+  static Future<void> _postVerificationActionStatic(
+    BuildContext context,
+    Map<String, dynamic> notification,
+    String action,
+  ) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final token = await user?.getIdToken();
@@ -164,14 +200,14 @@ class VerificationDetailPage extends StatelessWidget {
         },
         body: jsonEncode({'action': action}),
       );
-      if (resp.statusCode >= 200 && resp.statusCode < 300) {
-        // OK
-      } else {
+      if (resp.statusCode < 200 || resp.statusCode >= 300) {
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur action: ${resp.statusCode}')),
         );
       }
     } catch (e) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur: $e')),
       );
@@ -203,224 +239,29 @@ class VerificationDetailPage extends StatelessWidget {
         '-';
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.amber[100],
-        foregroundColor: Colors.black,
-        title: const Text('Détail de la vérification',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        elevation: 0.7,
-      ),
+      backgroundColor: kVerifyYellowSoft,
+      appBar: buildVerificationAppBar(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SvgPicture.asset('assets/images/logo_tramoo.svg', height: 54),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text('Destinataire',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w500, fontSize: 13)),
-                    Text(
-                        _safeGetStringLocal(notification['recipient'], 'nom') ??
-                            '-',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                    Text(
-                      _safeGetStringLocal(notification['recipient'], 'email') ??
-                          _safeGetStringLocal(
-                              notification['recipient'], 'telephone') ??
-                          '-',
-                      style:
-                          const TextStyle(fontSize: 12, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                        notification['date'] is DateTime
-                            ? _formatDateStatic(notification['date'])
-                            : '',
-                        style: const TextStyle(fontSize: 13))
-                  ],
-                ),
-              ],
-            ),
-            const Divider(height: 36),
-            Text(_safeGetStringLocal(notification, 'title') ?? '',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 19,
-                    color: Colors.amber[900])),
-            if (_safeGetStringLocal(notification, 'details') != null) ...[
-              const SizedBox(height: 6),
-              Text(_safeGetStringLocal(notification, 'details')!,
-                  style: const TextStyle(fontSize: 14, color: Colors.black87)),
-            ],
-            const SizedBox(height: 10),
-            if (pdfUrl != null) ...[
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final uri = Uri.parse(pdfUrl);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
-                icon: const Icon(Icons.picture_as_pdf),
-                label: const Text('Télécharger le rapport PDF'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber[800],
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-            if (bodyHtml.isNotEmpty && bodyHtml != '-') Html(data: bodyHtml),
-            if (documents.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              const Text(
-                'Documents joints',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Column(
-                children: documents.map((url) {
-                  final name = url.split('/').last.split('?').first;
-                  return Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () async {
-                        // Ouvre dans le navigateur / viewer du téléphone
-                        try {
-                          final uri = Uri.parse(url);
-                          if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri,
-                                mode: LaunchMode.externalApplication);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content:
-                                    Text('Impossible d\'ouvrir le document'),
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Erreur: $e')),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.insert_drive_file, size: 18),
-                      label: Text(
-                        name,
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-            if (images.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  mainAxisSpacing: 11,
-                  crossAxisSpacing: 11,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: _safeMapImages(images),
-                ),
-              ),
-            const SizedBox(height: 20),
-            Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-              if (stampUrl != null)
-                Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Image.network(stampUrl,
-                      height: 53,
-                      width: 53,
-                      fit: BoxFit.contain,
-                      opacity: const AlwaysStoppedAnimation(0.9),
-                      errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 53,
-                      width: 53,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.verified, color: Colors.amber),
-                    );
-                  }),
-                ),
-              if (signatureUrl != null)
-                Image.network(signatureUrl, height: 39, fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 39,
-                    width: 100,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.edit, color: Colors.blueGrey),
-                  );
-                }),
-            ]),
-            const SizedBox(height: 16),
-            if ((_safeGetStringLocal(notification, 'status') ?? 'pending') ==
-                'pending')
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: () async {
-                      await _postVerificationAction(context, 'approve');
-                      // Extraire articleId et aller vers paiement
-                      String? articleId = _safeGetStringLocal(
-                          notification['verificationData'], 'articleId');
-                      articleId ??= _safeGetStringLocal(
-                              notification['relatedId'], '_id') ??
-                          _safeGetStringLocal(notification, 'relatedId');
-                      if (articleId != null && articleId.isNotEmpty) {
-                        // ignore: use_build_context_synchronously
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Cette fonctionnalité n\'est plus disponible'),
-                          ),
-                        );
-                        Navigator.pop(context);
-                      } else {
-                        // ignore: use_build_context_synchronously
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Article introuvable')),
-                        );
-                        Navigator.pop(context);
-                      }
-                    },
-                    style:
-                        ElevatedButton.styleFrom(backgroundColor: Colors.amber),
-                    child: const Text('Valider',
-                        style: TextStyle(color: Colors.black)),
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      await _postVerificationAction(context, 'reject');
-                      // ignore: use_build_context_synchronously
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Demande rejetée')),
-                      );
-                      // ignore: use_build_context_synchronously
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red[300]),
-                    child: const Text('Rejeter',
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-          ],
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: buildVerificationNotificationContent(
+          context: context,
+          notification: Map<String, dynamic>.from(notification),
+          bodyHtml: bodyHtml,
+          images: images,
+          documents: documents,
+          stampUrl: stampUrl,
+          signatureUrl: signatureUrl,
+          pdfUrl: pdfUrl,
+          showLogo: true,
+          formatDate: _formatDateStatic,
+          onApprove: (_safeGetStringLocal(notification, 'status') ?? 'pending') ==
+                  'pending'
+              ? () => _handleVerificationApprove(context, notification)
+              : null,
+          onReject: (_safeGetStringLocal(notification, 'status') ?? 'pending') ==
+                  'pending'
+              ? () => _handleVerificationReject(context, notification)
+              : null,
         ),
       ),
     );
@@ -448,23 +289,37 @@ class VerificationDetailPage extends StatelessWidget {
     }
   }
 
-  // Méthode helper sécurisée pour mapper les images
-  static List<Widget> _safeMapImages(List<String> images) {
+  static List<Widget> _safeMapImages(BuildContext context, List<String> images) {
     try {
       return images
-          .map((img) => ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  img,
-                  height: 90,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 90,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.broken_image),
-                    );
-                  },
+          .map((img) => GestureDetector(
+                onTap: () => openRemoteAttachment(context, img,
+                    label: img.split('/').last.split('?').first),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      Image.network(
+                        img,
+                        height: 90,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 90,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.broken_image),
+                          );
+                        },
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.download_rounded,
+                            size: 18, color: Colors.white),
+                      ),
+                    ],
+                  ),
                 ),
               ))
           .toList();
@@ -1314,6 +1169,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                   requestType == 'vehicle_search' ||
                   requestType == 'piece_search');
           final images = getNotifImages(notification);
+          final documents = getNotifDocuments(notification);
           final stampUrl = getStampUrl(notification);
           final signatureUrl = getSignatureUrl(notification);
           final pdfUrl = getVerificationPdfUrl(notification);
@@ -1324,22 +1180,32 @@ class _NotificationsBodyState extends State<NotificationsBody> {
           Widget detailContent;
 
           if (isVerification) {
-            detailContent = _buildVerificationContent(context, notification,
-                provider, token, images, stampUrl, signatureUrl, bodyHtml);
+            detailContent = _buildVerificationContent(
+              context,
+              notification,
+              images,
+              documents,
+              stampUrl,
+              signatureUrl,
+              bodyHtml,
+              pdfUrl: pdfUrl,
+            );
           } else if (isAlert) {
             detailContent = _buildAlertContent(notification, bodyHtml);
           } else if (isPromo) {
-            detailContent = _buildPromoContent(notification, images, bodyHtml);
+            detailContent =
+                _buildPromoContent(context, notification, images, bodyHtml);
           } else {
             detailContent = _buildStandardContent(notification, bodyHtml);
           }
 
           return Dialog(
+            backgroundColor: kVerifyYellowSoft,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(isVerification ? 12 : 20),
               child: detailContent,
             ),
           );
@@ -1353,183 +1219,33 @@ class _NotificationsBodyState extends State<NotificationsBody> {
   Widget _buildVerificationContent(
     BuildContext context,
     Map<String, dynamic> notification,
-    NotificationProvider provider,
-    String token,
     List<String> images,
+    List<String> documents,
     String? stampUrl,
     String? signatureUrl,
     String bodyHtml, {
     String? pdfUrl,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              _safeGetString(notification, 'title') ?? '',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.amber[900],
-                fontSize: 18,
-              ),
-            ),
-            Text(
-              notification['date'] is DateTime
-                  ? _formatDate(notification['date'])
-                  : "",
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (_safeGetString(notification, 'details') != null) ...[
-          Text(
-            _safeGetString(notification, 'details')!,
-            style: const TextStyle(color: Colors.black87),
-          ),
-          const SizedBox(height: 12),
-        ],
-        if (pdfUrl != null && pdfUrl.isNotEmpty) ...[
-          ElevatedButton.icon(
-            onPressed: () async {
-              final uri = Uri.parse(pdfUrl);
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-            },
-            icon: const Icon(Icons.picture_as_pdf),
-            label: const Text('Télécharger le rapport PDF'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber[800],
-              foregroundColor: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        if (bodyHtml.isNotEmpty && bodyHtml != '-') Html(data: bodyHtml),
-        if (images.isNotEmpty)
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            physics: const NeverScrollableScrollPhysics(),
-            children: VerificationDetailPage._safeMapImages(images),
-          ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            if (stampUrl != null)
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Image.network(
-                  stampUrl,
-                  height: 47,
-                  width: 47,
-                  fit: BoxFit.contain,
-                  opacity: const AlwaysStoppedAnimation(0.9),
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 47,
-                      width: 47,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.verified, color: Colors.amber),
-                    );
-                  },
-                ),
-              ),
-            if (signatureUrl != null)
-              Image.network(
-                signatureUrl,
-                height: 34,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 34,
-                    width: 100,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.edit, color: Colors.blueGrey),
-                  );
-                },
-              ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        if ((_safeGetString(notification, 'status') ?? 'pending') == 'pending')
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton(
-                onPressed: () async {
-                  final notificationId = _safeGetString(notification, '_id');
-                  if (notificationId != null) {
-                    await provider.handleVerificationAction(
-                      notificationId,
-                      'approve',
-                      token,
-                    );
-                  }
-                  // Récupérer l'articleId depuis la notif
-                  String? articleId = _safeGetString(
-                      notification['verificationData'], 'articleId');
-                  if (articleId == null) {
-                    articleId =
-                        _safeGetString(notification['relatedId'], '_id') ??
-                            _safeGetString(notification, 'relatedId');
-                  }
-                  if (articleId != null && articleId.isNotEmpty) {
-                    // ignore: use_build_context_synchronously
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content:
-                            Text('Cette fonctionnalité n\'est plus disponible'),
-                      ),
-                    );
-                    Navigator.pop(context);
-                  } else {
-                    // ignore: use_build_context_synchronously
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('Article introuvable pour la vérification')),
-                    );
-                    Navigator.pop(context);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                ),
-                child: const Text(
-                  "Valider",
-                  style: TextStyle(color: Colors.black),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  final notificationId = _safeGetString(notification, '_id');
-                  if (notificationId != null) {
-                    await provider.handleVerificationAction(
-                      notificationId,
-                      'reject',
-                      token,
-                    );
-                    Navigator.pop(context);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red[300],
-                ),
-                child: const Text(
-                  "Rejeter",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-      ],
+    final pending =
+        (_safeGetString(notification, 'status') ?? 'pending') == 'pending';
+    return buildVerificationNotificationContent(
+      context: context,
+      notification: notification,
+      bodyHtml: bodyHtml,
+      images: images,
+      documents: documents,
+      stampUrl: stampUrl,
+      signatureUrl: signatureUrl,
+      pdfUrl: pdfUrl,
+      formatDate: _formatDate,
+      onApprove: pending
+          ? () => VerificationDetailPage._handleVerificationApprove(
+              context, notification)
+          : null,
+      onReject: pending
+          ? () => VerificationDetailPage._handleVerificationReject(
+              context, notification)
+          : null,
     );
   }
 
@@ -1720,7 +1436,11 @@ class _NotificationsBodyState extends State<NotificationsBody> {
   }
 
   Widget _buildPromoContent(
-      Map<String, dynamic> notification, List<String> images, String bodyHtml) {
+    BuildContext context,
+    Map<String, dynamic> notification,
+    List<String> images,
+    String bodyHtml,
+  ) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -1770,7 +1490,8 @@ class _NotificationsBodyState extends State<NotificationsBody> {
               child: Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: VerificationDetailPage._safeMapImages(images),
+                children:
+                    VerificationDetailPage._safeMapImages(context, images),
               ),
             ),
           if (_safeGetString(notification, 'ctaLabel') != null &&

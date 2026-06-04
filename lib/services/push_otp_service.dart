@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
@@ -10,6 +12,30 @@ import '../config/backend_config.dart';
 class PushOTPService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final String _baseUrl = getPushOtpBaseUrl();
+
+  /// Dernier code OTP reçu (FCM). Les pages de vérification écoutent ce notifier.
+  static final ValueNotifier<String?> pendingOtpCode = ValueNotifier(null);
+
+  static String? extractOtpFromRemoteMessage(RemoteMessage message) {
+    if (message.data['type'] != 'otp') return null;
+    String? code = message.data['code'] as String?;
+    if (code == null || code.isEmpty) {
+      final body = message.notification?.body ??
+          (message.data['body'] as String?) ??
+          '';
+      code = RegExp(r'\b(\d{6})\b').firstMatch(body)?.group(1);
+    }
+    code = code?.trim();
+    if (code != null && RegExp(r'^\d{6}$').hasMatch(code)) return code;
+    return null;
+  }
+
+  static void notifyOtpCode(String code) {
+    final trimmed = code.trim();
+    if (RegExp(r'^\d{6}$').hasMatch(trimmed)) {
+      pendingOtpCode.value = trimmed;
+    }
+  }
 
   static Future<String?> getDeviceId() async {
     try {
@@ -91,32 +117,71 @@ class PushOTPService {
     }
   }
 
-  /// Mot de passe oublié : OTP WhatsApp au numéro enregistré sur le compte.
+  /// Mot de passe oublié : OTP WhatsApp + notification push (fallback FCM).
   static Future<Map<String, dynamic>> requestPasswordReset({
     required String telephone,
+    String? countryCode,
+    String? nationalNumber,
+    required String app,
   }) async {
     try {
       if (telephone.trim().isEmpty) {
         return {'success': false, 'message': 'Veuillez entrer votre numéro.'};
       }
 
+      // Token FCM de cet appareil (fallback si WhatsApp invisible)
+      String? fcmToken = await getFCMToken();
+      if (fcmToken == null || fcmToken.isEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        fcmToken = prefs.getString('fcm_token');
+      }
+
+      final url = '$_baseUrl/api/push-otp/request';
+      debugPrint(
+        '[RESET] POST $url telephone=${telephone.trim()} app=$app fcm=${fcmToken != null}',
+      );
+
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/push-otp/request'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'telephone': telephone.trim(),
+          if (countryCode != null) 'countryCode': countryCode,
+          if (nationalNumber != null) 'nationalNumber': nationalNumber,
+          'app': app,
+          if (fcmToken != null && fcmToken.isNotEmpty) 'fcmToken': fcmToken,
         }),
       );
 
       final data = json.decode(response.body) as Map<String, dynamic>? ?? {};
+      developer.log(
+        '[RESET] request status=${response.statusCode} body=$data',
+        name: 'PushOTPService',
+      );
 
       if (response.statusCode == 200) {
+        final requestId = data['requestId']?.toString();
+        final deviceId = data['deviceId']?.toString();
+        if (requestId == null ||
+            requestId.isEmpty ||
+            deviceId == null ||
+            deviceId.isEmpty) {
+          return {
+            'success': false,
+            'message':
+                'Aucun compte trouvé pour ce numéro WhatsApp. Vérifiez le numéro utilisé à l\'inscription.',
+          };
+        }
         return {
           'success': true,
-          'message': data['message'] as String? ?? 'Code envoyé sur WhatsApp.',
-          'requestId': data['requestId'],
-          'deviceId': data['deviceId'],
+          'message': data['message'] as String? ??
+              'Code envoyé. Vérifiez WhatsApp ou la notification Tranoo.',
+          'requestId': requestId,
+          'deviceId': deviceId,
           'expiresInSeconds': data['expiresInSeconds'],
+          'sentToMasked': data['sentToMasked']?.toString(),
+          'channels': data['channels'],
+          if (data['devOtp'] != null) 'devOtp': data['devOtp']?.toString(),
         };
       } else {
         return {
@@ -146,6 +211,10 @@ class PushOTPService {
       );
 
       final data = json.decode(response.body);
+      developer.log(
+        '[RESET] verify status=${response.statusCode} body=$data',
+        name: 'PushOTPService',
+      );
 
       if (response.statusCode == 200) {
         return {'success': true, 'message': data['message'] ?? 'Code vérifié.'};
@@ -156,6 +225,7 @@ class PushOTPService {
         };
       }
     } catch (e) {
+      developer.log('[RESET] verify error: $e', name: 'PushOTPService');
       return {'success': false, 'message': 'Erreur de connexion: $e'};
     }
   }
@@ -177,6 +247,10 @@ class PushOTPService {
       );
 
       final data = json.decode(response.body);
+      developer.log(
+        '[RESET] reset-password status=${response.statusCode}',
+        name: 'PushOTPService',
+      );
 
       if (response.statusCode == 200) {
         return {'success': true, 'message': data['message'] ?? 'Mot de passe réinitialisé.'};
@@ -187,67 +261,22 @@ class PushOTPService {
         };
       }
     } catch (e) {
+      developer.log('[RESET] reset-password error: $e', name: 'PushOTPService');
       return {'success': false, 'message': 'Erreur de connexion: $e'};
     }
   }
 
-  // Configurer les handlers de notifications
   static void setupNotificationHandlers() {
-    // Notification reçue en foreground
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Notification reçue en foreground: ${message.notification?.title}');
-      print('Notification body: ${message.notification?.body}');
-      print('Notification data: ${message.data}');
-
-      if (message.data['type'] == 'otp') {
-        // Extraire le code depuis data.code (prioritaire) ou depuis notification.body
-        String? code = message.data['code'] as String?;
-        if (code == null || code.isEmpty) {
-          // Fallback: extraire depuis notification.body (format: "Votre code : 123456")
-          final body = message.notification?.body ?? '';
-          final match = RegExp(r'(\d{6})').firstMatch(body);
-          code = match?.group(1);
-        }
-        
-        if (code != null && code.isNotEmpty) {
-          print('Code OTP extrait: $code');
-          _showOTPNotification(code);
-        } else {
-          print('⚠️ Code OTP non trouvé dans la notification');
-        }
+    void handleOtpMessage(RemoteMessage message) {
+      final code = extractOtpFromRemoteMessage(message);
+      if (code != null) {
+        developer.log('[RESET] OTP FCM → remplissage auto', name: 'PushOTPService');
+        notifyOtpCode(code);
       }
-    });
+    }
 
-    // Notification tapée (app en background)
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('Notification tapée: ${message.notification?.title}');
-      print('Notification body: ${message.notification?.body}');
-      print('Notification data: ${message.data}');
-
-      if (message.data['type'] == 'otp') {
-        // Extraire le code depuis data.code (prioritaire) ou depuis notification.body
-        String? code = message.data['code'] as String?;
-        if (code == null || code.isEmpty) {
-          // Fallback: extraire depuis notification.body (format: "Votre code : 123456")
-          final body = message.notification?.body ?? '';
-          final match = RegExp(r'(\d{6})').firstMatch(body);
-          code = match?.group(1);
-        }
-        
-        if (code != null && code.isNotEmpty) {
-          print('Code OTP extrait: $code');
-          _showOTPNotification(code);
-        } else {
-          print('⚠️ Code OTP non trouvé dans la notification');
-        }
-      }
-    });
-  }
-
-  // Afficher une notification avec le code OTP
-  static void _showOTPNotification(String code) {
-    // Cette méthode sera appelée depuis le contexte de l'app
-    // L'implémentation sera dans les pages qui utilisent le service
+    FirebaseMessaging.onMessage.listen(handleOtpMessage);
+    FirebaseMessaging.onMessageOpenedApp.listen(handleOtpMessage);
   }
 
   // Initialiser le service complet

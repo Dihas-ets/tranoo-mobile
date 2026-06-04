@@ -726,6 +726,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               prenoms: _prenomController.text.trim(),
                               telephone: fullPhone,
                               role: 'acheteur',
+                              authApp: 'tranoo',
                               entreprise: null,
                               registreCommerce: null,
                               numeroIFU: null,

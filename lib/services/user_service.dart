@@ -73,6 +73,7 @@ class UserService extends ChangeNotifier {
     required String prenoms,
     required String telephone,
     required String role,
+    required String authApp,
     String? fcmToken,
     String? entreprise,
     String? registreCommerce,
@@ -96,6 +97,7 @@ class UserService extends ChangeNotifier {
         'prenoms': prenoms,
         'telephone': telephone,
         'role': role.toLowerCase(),
+        'authApp': authApp,
         'fcmToken': fcmToken,
       };
 

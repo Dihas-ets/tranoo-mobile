@@ -58,6 +58,31 @@ PhoneCountryConfig phoneCountryByName(String? name) {
   return kPhoneCountries.first;
 }
 
+String phoneDigitsOnly(String raw) => raw.replaceAll(RegExp(r'\D'), '');
+
+/// Numéro international (+229…) — retire le 0 national après l'indicatif Bénin.
+String _normalizeBeninNational(String national) {
+  var n = phoneDigitsOnly(national);
+  if (n.startsWith('01') && n.length >= 10) {
+    n = n.substring(2);
+  } else if (n.startsWith('0')) {
+    n = n.replaceFirst(RegExp(r'^0+'), '');
+  }
+  if (n.length == 9 && n.startsWith('1')) {
+    n = n.substring(1);
+  }
+  return n;
+}
+
+String buildInternationalPhone(String countryCode, String nationalRaw) {
+  final cc = phoneDigitsOnly(countryCode);
+  var national = phoneDigitsOnly(nationalRaw);
+  if (cc == '229') {
+    national = _normalizeBeninNational(national);
+  }
+  return '+$cc$national';
+}
+
 bool isTranooBuyerAppRole(String? role) =>
     (role ?? '').toLowerCase() == 'acheteur';
 

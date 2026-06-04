@@ -5,17 +5,28 @@ import 'package:http/http.dart' as http;
 import 'avant_home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
-import '../../services/user_service.dart';
+import '../../services/user_service.dart' show UserService, getBaseUrl;
 import 'package:feexpay_flutter/feexpay_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
 import 'package:tranoo/utils/feexpay_result_utils.dart';
 import 'package:tranoo/utils/feexpay_callback_state.dart';
 
-final fpToken = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
-final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
-final successUrl = dotenv.env['FEEXPAY_SUCCESS_URL'] ?? '';
-final errorUrl = dotenv.env['FEEXPAY_ERROR_URL'] ?? '';
+String get _fpToken {
+  final a = (dotenv.env['FP_TOKEN_FEEXPAY'] ?? '').trim();
+  if (a.isNotEmpty) return a;
+  return (dotenv.env['FEEXPAY_API_TOKEN'] ?? '').trim();
+}
+
+String get _idUser {
+  final a = (dotenv.env['ID_USER_FEEXPAY'] ?? '').trim();
+  if (a.isNotEmpty) return a;
+  return (dotenv.env['FEEXPAY_SHOP_ID'] ?? '').trim();
+}
+
+/// Routes Flutter internes (FeexPay V2). Ne pas utiliser les URLs ngrok du .env ici.
+const String _kVerificationSuccessRoute = '/verification-success';
+const String _kVerificationErrorRoute = '/verification-error';
 
 class VerificationPaymentScreen extends StatefulWidget {
   final String? articleId; // Optionnel: pour lier le paiement à un article
@@ -327,23 +338,26 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
         throw Exception('Utilisateur non connecté');
       }
 
-      if (fpToken.isEmpty || idUser.isEmpty) {
-        throw Exception('Configuration FeexPay manquante');
+      if (_fpToken.isEmpty || _idUser.isEmpty) {
+        throw Exception(
+          'Configuration FeexPay manquante (FP_TOKEN_FEEXPAY / ID_USER_FEEXPAY)',
+        );
       }
 
       FeexPayCallbackState.clearPendingAtNewCheckout();
-      // Navigation vers FeexPay avec le package officiel
+      debugPrint(
+        '[VerificationPayment] ChoicePage amount=$_verificationPrice '
+        'trans_key=$transKey success=$_kVerificationSuccessRoute',
+      );
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ChoicePage(
-            token: fpToken,
-            id: idUser,
+            token: _fpToken,
+            id: _idUser,
             amount: _verificationPrice.toString(),
-            redirecturl:
-                (successUrl.isNotEmpty ? successUrl : '/verification-success'),
-            errorredirecturl:
-                (errorUrl.isNotEmpty ? errorUrl : '/verification-error'),
+            redirecturl: _kVerificationSuccessRoute,
+            errorredirecturl: _kVerificationErrorRoute,
             trans_key: transKey,
           ),
         ),
@@ -377,25 +391,48 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
         }
       }
       if (paid) {
-        await _recordVerificationFeexPayFlutter(txId);
-        try {
-          await _processVerificationRequest();
-        } catch (e) {
+        final recorded = await _recordVerificationFeexPayFlutter(txId);
+        if (!recorded) {
           if (mounted) {
-            setState(() => errorMessage = 'Erreur enregistrement: $e');
+            setState(() {
+              errorMessage =
+                  'Paiement reçu mais enregistrement serveur incomplet. Réessayez ou contactez le support.';
+            });
           }
           return;
         }
+        try {
+          await _processVerificationRequest();
+        } catch (e) {
+          debugPrint('[VerificationPayment] verification/request: $e');
+        }
         if (!mounted) return;
-        await _showHtmlResultAndRedirect(success: true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Paiement reçu. Votre demande de vérification est en cours de traitement.',
+            ),
+            backgroundColor: Color(0xFF00A86B),
+          ),
+        );
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AvantHome()),
+          (route) => false,
+        );
+      } else {
+        if (mounted) {
+          setState(() {
+            errorMessage =
+                'Paiement annulé ou non confirmé. Réessayez si besoin.';
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        errorMessage = 'Erreur: $e';
-      });
-      // Affichage page d'échec puis redirection
+      debugPrint('[VerificationPayment] erreur flux: $e');
       if (mounted) {
-        await _showHtmlResultAndRedirect(success: false);
+        setState(() {
+          errorMessage = 'Erreur: $e';
+        });
       }
     } finally {
       setState(() {
@@ -404,10 +441,10 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
     }
   }
 
-  Future<void> _recordVerificationFeexPayFlutter(String? txId) async {
+  Future<bool> _recordVerificationFeexPayFlutter(String? txId) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+      if (user == null) return false;
       final token = await user.getIdToken();
       final dio = Dio(
         BaseOptions(
@@ -435,8 +472,10 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
       debugPrint(
         '[VerificationPayment] recordFeexPayFlutter status=${res.statusCode} data=${res.data}',
       );
+      return res.statusCode == 200;
     } catch (e) {
       debugPrint('[VerificationPayment] recordFeexPayFlutter error: $e');
+      return false;
     }
   }
 

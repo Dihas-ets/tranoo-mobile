@@ -457,8 +457,10 @@ class MyApp extends StatelessWidget {
         '/marque': (context) => const Marque(),
         '/subscription-success': (context) => _buildSubscriptionSuccessPage(),
         '/subscription-error': (context) => _buildSubscriptionErrorPage(),
-        '/verification-success': (context) => _buildVerificationSuccessPage(),
-        '/verification-error': (context) => _buildVerificationErrorPage(),
+        '/verification-success': (context) =>
+            const _CartPaymentCallbackPage(success: true),
+        '/verification-error': (context) =>
+            const _CartPaymentCallbackPage(success: false),
         '/tarif': (context) => const Tarif(),
         '/auth/forgot-password': (context) => const ForgotPasswordPage(),
         '/auth/verify-reset': (context) => const VerifyResetCodePage(),
