@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'avant_home.dart';
 
 class PaymentSuccessPage extends StatefulWidget {
@@ -9,10 +10,11 @@ class PaymentSuccessPage extends StatefulWidget {
 }
 
 class _PaymentSuccessPageState extends State<PaymentSuccessPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   @override
   void initState() {
     super.initState();
-    // Auto-redirection après 3 secondes
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         _goToHome();
@@ -29,6 +31,8 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -55,17 +59,14 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage> {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Icône de succès
                     const Text(
                       '✅',
                       style: TextStyle(fontSize: 80),
                     ),
                     const SizedBox(height: 20),
-
-                    // Titre
-                    const Text(
-                      'Paiement Réussi !',
-                      style: TextStyle(
+                    Text(
+                      l10n.paymentSuccessful,
+                      style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -73,28 +74,24 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
-
-                    // Messages
-                    const Text(
-                      'Votre transaction a été effectuée avec succès.',
-                      style: TextStyle(
+                    Text(
+                      l10n.transactionSuccessMessage,
+                      style: const TextStyle(
                         fontSize: 18,
                         color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Vous pouvez maintenant fermer cette page et retourner à l\'application.',
-                      style: TextStyle(
+                    Text(
+                      l10n.closePageReturnToApp,
+                      style: const TextStyle(
                         fontSize: 18,
                         color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 30),
-
-                    // Bouton retour
                     ElevatedButton(
                       onPressed: _goToHome,
                       style: ElevatedButton.styleFrom(
@@ -109,9 +106,9 @@ class _PaymentSuccessPageState extends State<PaymentSuccessPage> {
                           side: const BorderSide(color: Colors.white, width: 2),
                         ),
                       ),
-                      child: const Text(
-                        'Retourner à l\'app',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.returnToApp,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import '../../services/cart_service.dart';
 import 'order_summary.dart';
 import 'piece.dart';
@@ -12,6 +13,8 @@ class CartPage extends StatefulWidget {
 }
 
 class _CartPageState extends State<CartPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   @override
   void initState() {
     super.initState();
@@ -20,9 +23,11 @@ class _CartPageState extends State<CartPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mon Panier'),
+        title: Text(l10n.myCart),
         backgroundColor: Colors.amber,
         foregroundColor: Colors.black,
         actions: [
@@ -48,37 +53,34 @@ class _CartPageState extends State<CartPage> {
       body: SafeArea(
         child: Consumer<CartService>(
           builder: (context, cart, child) {
-            /// 🛒 PANIER VIDE
             if (cart.items.isEmpty) {
-              return const Center(
+              return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.shopping_cart_outlined,
+                    const Icon(Icons.shopping_cart_outlined,
                         size: 80, color: Colors.grey),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
-                      'Votre panier est vide',
-                      style: TextStyle(
+                      l10n.cartEmpty,
+                      style: const TextStyle(
                         fontSize: 18,
                         color: Colors.grey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Ajoutez des articles pour commencer vos achats',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      l10n.cartEmptyHint,
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                   ],
                 ),
               );
             }
 
-            /// 📦 PANIER AVEC ARTICLES
             return Column(
               children: [
-                /// LISTE
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -92,7 +94,6 @@ class _CartPageState extends State<CartPage> {
                           padding: const EdgeInsets.all(12),
                           child: Row(
                             children: [
-                              /// IMAGE
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Container(
@@ -112,7 +113,6 @@ class _CartPageState extends State<CartPage> {
 
                               const SizedBox(width: 16),
 
-                              /// INFOS
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment:
@@ -127,10 +127,8 @@ class _CartPageState extends State<CartPage> {
                                     ),
                                     const SizedBox(height: 8),
 
-                                    /// QUANTITÉ
                                     Row(
                                       children: [
-                                        /// -
                                         GestureDetector(
                                           onTap: () {
                                             if (item.quantity > 1) {
@@ -168,7 +166,6 @@ class _CartPageState extends State<CartPage> {
 
                                         const SizedBox(width: 12),
 
-                                        /// +
                                         GestureDetector(
                                           onTap: () {
                                             cart.updateQuantity(
@@ -195,7 +192,6 @@ class _CartPageState extends State<CartPage> {
                                 ),
                               ),
 
-                              /// PRIX
                               Text(
                                 '${item.totalPrice.toStringAsFixed(2)}',
                                 style: const TextStyle(
@@ -211,7 +207,6 @@ class _CartPageState extends State<CartPage> {
                   ),
                 ),
 
-                /// ➕ BOUTON AJOUTER
                 Container(
                   alignment: Alignment.bottomRight,
                   padding: const EdgeInsets.only(right: 20, bottom: 10),
@@ -246,7 +241,6 @@ class _CartPageState extends State<CartPage> {
                   ),
                 ),
 
-                /// 🛒 COMMANDER
                 Container(
                   margin:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -269,9 +263,9 @@ class _CartPageState extends State<CartPage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      'Passer la commande',
-                      style: TextStyle(
+                    child: Text(
+                      l10n.checkout,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),

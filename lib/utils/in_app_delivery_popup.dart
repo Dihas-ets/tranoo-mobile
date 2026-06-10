@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:feexpay_flutter/feexpay_flutter.dart';
 import 'package:random_string/random_string.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 import '../config/backend_config.dart';
 import '../main.dart';
@@ -24,7 +25,6 @@ class InAppDeliveryPopup {
 
     _isShowing = true;
     try {
-      // Charger delivery pour afficher montants
       final details = await _fetchDelivery(deliveryId);
       final totalCommande = details['totalCommande'] ?? 0.0;
       final fraisLivraison = details['fraisLivraison'] ?? 0.0;
@@ -34,6 +34,7 @@ class InAppDeliveryPopup {
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (sheetCtx) {
+          final l10n = AppLocalizations.of(sheetCtx)!;
           return SafeArea(
             child: Container(
               margin: const EdgeInsets.all(12),
@@ -71,17 +72,18 @@ class InAppDeliveryPopup {
                     child: const Icon(Icons.location_on, color: Colors.green, size: 30),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Votre livreur est arrivé',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  Text(
+                    l10n.driverArrivedTitle,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Choisissez une action.',
+                    l10n.chooseAnAction,
                     style: TextStyle(color: Colors.grey.shade700),
                   ),
                   const SizedBox(height: 14),
                   _amountBox(
+                    l10n: l10n,
                     totalCommande: totalCommande,
                     fraisLivraison: fraisLivraison,
                   ),
@@ -96,9 +98,11 @@ class InAppDeliveryPopup {
                           },
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          child: const Text('Retourner le colis'),
+                          child: Text(l10n.returnPackage),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -106,14 +110,20 @@ class InAppDeliveryPopup {
                         child: ElevatedButton(
                           onPressed: () async {
                             Navigator.pop(sheetCtx);
-                            await _startFeexpayPayment(ctx, amount: totalCommande, label: 'Paiement commande pièces');
+                            await _startFeexpayPayment(
+                              ctx,
+                              amount: totalCommande,
+                              label: l10n.partsOrderPaymentLabel,
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          child: const Text('Payer ma commande'),
+                          child: Text(l10n.payMyOrder),
                         ),
                       ),
                     ],
@@ -129,7 +139,11 @@ class InAppDeliveryPopup {
     }
   }
 
-  static Widget _amountBox({required double totalCommande, required double fraisLivraison}) {
+  static Widget _amountBox({
+    required AppLocalizations l10n,
+    required double totalCommande,
+    required double fraisLivraison,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -140,9 +154,15 @@ class InAppDeliveryPopup {
       ),
       child: Column(
         children: [
-          _amountRow('Total commande', '${totalCommande.toStringAsFixed(0)} FCFA'),
+          _amountRow(
+            l10n.orderTotalLabel,
+            l10n.valueAmountFcfa(totalCommande.toStringAsFixed(0)),
+          ),
           const SizedBox(height: 6),
-          _amountRow('Frais livraison', '${fraisLivraison.toStringAsFixed(0)} FCFA'),
+          _amountRow(
+            l10n.deliveryFeesLabel,
+            l10n.valueAmountFcfa(fraisLivraison.toStringAsFixed(0)),
+          ),
         ],
       ),
     );
@@ -174,12 +194,14 @@ class InAppDeliveryPopup {
   }
 
   static Future<void> _returnFlow(BuildContext ctx, String deliveryId, double fraisLivraison) async {
+    final l10n = AppLocalizations.of(ctx)!;
     final reasonController = TextEditingController();
     final confirmed = await showModalBottomSheet<bool>(
       context: ctx,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) {
+        final sheetL10n = AppLocalizations.of(sheetCtx)!;
         return SafeArea(
           child: Padding(
             padding: EdgeInsets.only(
@@ -198,22 +220,40 @@ class InAppDeliveryPopup {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Motif de retour (obligatoire)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                  Text(
+                    sheetL10n.returnReasonRequiredTitle,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: reasonController,
                     maxLines: 3,
                     decoration: InputDecoration(
-                      hintText: 'Ex: pièce non conforme, défaut…',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      hintText: sheetL10n.returnReasonHint,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(sheetCtx, false), child: const Text('Annuler'))),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(sheetCtx, false),
+                          child: Text(sheetL10n.cancel),
+                        ),
+                      ),
                       const SizedBox(width: 10),
-                      Expanded(child: ElevatedButton(onPressed: () => Navigator.pop(sheetCtx, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), child: const Text('Envoyer'))),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(sheetCtx, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                          ),
+                          child: Text(sheetL10n.send),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -227,7 +267,9 @@ class InAppDeliveryPopup {
 
     final reason = reasonController.text.trim();
     if (reason.isEmpty) {
-      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Motif requis.')));
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(content: Text(l10n.reasonRequired)),
+      );
       return;
     }
 
@@ -243,21 +285,36 @@ class InAppDeliveryPopup {
         ),
       );
       if (res.statusCode == 200) {
-        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Retour signalé. Paiement des frais de livraison requis.')));
-        await _startFeexpayPayment(ctx, amount: fraisLivraison, label: 'Paiement frais de livraison');
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(content: Text(l10n.returnReportedPaymentRequired)),
+        );
+        await _startFeexpayPayment(
+          ctx,
+          amount: fraisLivraison,
+          label: l10n.deliveryFeePaymentLabel,
+        );
       } else {
         throw Exception('Erreur serveur (${res.statusCode})');
       }
     } catch (e) {
-      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Erreur retour: $e')));
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(content: Text(l10n.returnError(e.toString()))),
+      );
     }
   }
 
-  static Future<void> _startFeexpayPayment(BuildContext ctx, {required double amount, required String label}) async {
+  static Future<void> _startFeexpayPayment(
+    BuildContext ctx, {
+    required double amount,
+    required String label,
+  }) async {
+    final l10n = AppLocalizations.of(ctx)!;
     final token = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
     final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
     if (token.isEmpty || idUser.isEmpty) {
-      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Configuration FeexPay manquante')));
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(content: Text(l10n.feexpayConfigMissing)),
+      );
       return;
     }
 
@@ -277,4 +334,3 @@ class InAppDeliveryPopup {
     );
   }
 }
-

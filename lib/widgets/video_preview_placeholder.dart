@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:video_player/video_player.dart';
 
 /// Affiche un aperçu vidéo (première frame) avec bouton lecture cliquable.
 class VideoPreviewPlaceholder extends StatefulWidget {
   final String? videoUrl;
   final double iconSize;
-  final String label;
+  final String? label;
   final Color backgroundColor;
   final Color iconColor;
   final Color textColor;
@@ -16,7 +17,7 @@ class VideoPreviewPlaceholder extends StatefulWidget {
     super.key,
     this.videoUrl,
     this.iconSize = 40,
-    this.label = 'Vidéo disponible',
+    this.label,
     this.backgroundColor = Colors.black87,
     this.iconColor = Colors.white,
     this.textColor = Colors.white,
@@ -30,6 +31,8 @@ class VideoPreviewPlaceholder extends StatefulWidget {
 }
 
 class _VideoPreviewPlaceholderState extends State<VideoPreviewPlaceholder> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   VideoPlayerController? _controller;
   bool _initTried = false;
 
@@ -73,6 +76,8 @@ class _VideoPreviewPlaceholderState extends State<VideoPreviewPlaceholder> {
 
   @override
   Widget build(BuildContext context) {
+    final displayLabel =
+        widget.label ?? AppLocalizations.of(context)?.videoAvailable ?? '';
     final canShowFrame = widget.enablePreviewFrame &&
         _controller != null &&
         _controller!.value.isInitialized;
@@ -122,10 +127,10 @@ class _VideoPreviewPlaceholderState extends State<VideoPreviewPlaceholder> {
                     size: widget.iconSize,
                   ),
                 ),
-                if (widget.label.isNotEmpty) ...[
+                if (displayLabel.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
-                    widget.label,
+                    displayLabel,
                     style: TextStyle(
                       color: widget.textColor,
                       fontSize: 12,

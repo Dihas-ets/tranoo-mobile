@@ -4,6 +4,7 @@
   "validate": "Confirm",
   "french": "French",
   "english": "English",
+  "arabic": "Arabic",
   "services": "Services",
   "service_sales_cars": "Sales (Cars)",
   "service_delivery_parts": "Delivery (Parts)",
@@ -21,8 +22,2276 @@
   "refresh": "Refresh",
   "call": "Call",
   "message": "Message",
-  
   "tricycle_auth_required": "Authentication required",
   "tricycle_connect_to_see": "Connect to see",
-  "tricycle_connect_description": "Please connect your account to view this content"
+  "tricycle_connect_description": "Please connect your account to view this content",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "ok": "OK",
+  "confirm": "Confirm",
+  "back": "Back",
+  "close": "Close",
+  "apply": "Apply",
+  "reset": "Reset",
+  "yes": "Yes",
+  "no": "No",
+  "loading": "Loading...",
+  "understood": "Got it",
+  "later": "Later",
+  "agree": "OK",
+  "submit": "Submit",
+  "share": "Share",
+  "download": "Download",
+  "home": "Home",
+  "profile": "Profile",
+  "login": "Sign in",
+  "logout": "Sign out",
+  "account": "Account",
+  "myAccount": "My account",
+  "settings": "Settings",
+  "notifications": "Notifications",
+  "currency": "Currency",
+  "chooseCurrency": "Choose a currency",
+  "currencyXof": "XOF",
+  "currencyEuro": "Euro",
+  "currencyDollars": "Dollars",
+  "password": "Password",
+  "email": "Email",
+  "phone": "Phone",
+  "fullName": "Full name",
+  "firstName": "First name",
+  "lastName": "Last name",
+  "security": "Security",
+  "description": "Description",
+  "price": "Price",
+  "brand": "Brand",
+  "model": "Model",
+  "year": "Year",
+  "location": "Location",
+  "pieces": "Parts",
+  "vehicles": "Vehicles",
+  "cars": "Cars",
+  "noResults": "No results",
+  "fillAllFields": "Please fill in all fields.",
+  "networkOrServerError": "Network or server error.",
+  "invalidSessionReconnect": "Invalid session. Please sign in again.",
+  "profileUpdated": "Profile updated",
+  "noUserData": "No user data",
+  "pleaseSignIn": "Please sign in",
+  "addImages": "Add images",
+  "filterByBudget": "Filter by budget",
+  "minLabel": "Min.",
+  "maxLabel": "Max.",
+  "confirmDeletion": "Confirm deletion",
+  "deletionError": "Error during deletion.",
+  "sendAlert": "Send alert",
+  "alertSent": "Alert sent",
+  "passwordsDoNotMatch": "Passwords do not match.",
+  "errorGeneric": "Error: {error}",
+  "@errorGeneric": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorOpening": "Error opening: {error}",
+  "@errorOpening": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorDeletion": "Deletion error: {error}",
+  "@errorDeletion": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorPayment": "Payment error: {error}",
+  "@errorPayment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorNetwork": "Network error: {error}",
+  "@errorNetwork": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "vehiclesAvailableCount": "{count} vehicle(s) available",
+  "@vehiclesAvailableCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "partsAvailableCount": "{count} part(s) available",
+  "@partsAvailableCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "signInTitle": "Sign in",
+  "welcomeTranoo": "Welcome to Tranoo",
+  "welcomeTranooPro": "Welcome to Tranoo Pro",
+  "phoneTab": "Phone number",
+  "legacyEmailTab": "Email (legacy account)",
+  "emailAddress": "Email address",
+  "emailExample": "example@mail.com",
+  "phoneNumber": "Phone number",
+  "forgotPassword": "Forgot password?",
+  "noAccount": "Don't have an account? ",
+  "signUp": "Sign up",
+  "invalidEmailTitle": "Invalid email",
+  "legacyEmailSubtitle": "Select « Email » and enter your old address.",
+  "invalidPhoneTitle": "Invalid number",
+  "invalidPhoneSubtitle": "Enter {hint} for {country}.",
+  "@invalidPhoneSubtitle": {
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      },
+      "country": {
+        "type": "String"
+      }
+    }
+  },
+  "loginSuccessTitle": "Login successful. Welcome!",
+  "cannotLoginTitle": "Unable to sign in with these credentials.",
+  "noBuyerAccount": "No buyer account linked to this number.",
+  "checkCountryCode": "Create an account or verify the country code.",
+  "wrongPassword": "Incorrect password.",
+  "verifyAndRetry": "Check your information and try again.",
+  "wrongCredentials": "Incorrect number, email or password.",
+  "accountBlocked": "Your account is temporarily blocked.",
+  "contactSupport": "Contact support.",
+  "tooManyAttempts": "Too many login attempts.",
+  "retryInMinutes": "Try again in a few minutes.",
+  "cannotReachServer": "Unable to connect to the server.",
+  "checkInternet": "Check your internet connection.",
+  "serviceTemporaryIssue": "Our service is experiencing a temporary issue.",
+  "tryAgainLater": "Please try again later.",
+  "sessionInitFailed": "Session could not be initialized. Try again.",
+  "searchCountryOrCode": "Search a country or code",
+  "buyerBlockedTitle": "This app is for buyers only",
+  "buyerBlockedSubtitle": "Use Tranoo Pro for seller, driver or delivery accounts.",
+  "noSellerAccount": "No seller account linked to this number.",
+  "useTranooForBuyer": "Use the Tranoo app for buyer accounts.",
+  "findDreamCar": "Find your dream car!",
+  "referralCodeOptional": "Referral code (optional)",
+  "referralPlaceholder": "Ex: TRN-ABCD1234",
+  "searchCountryCode": "Search a country code (country or +code)",
+  "whatsappNumber": "WhatsApp number",
+  "whatsappHint": "WhatsApp · {hint}",
+  "@whatsappHint": {
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmPassword": "Confirm password",
+  "retypePassword": "Retype password",
+  "passwordMin8": "Min. 8 characters",
+  "missingFieldsTitle": "Some fields are missing.",
+  "completeRequiredInfo": "Please complete the required information.",
+  "passwordMin8Title": "Password must be at least 8 characters.",
+  "accountCreatedTitle": "Your account was created successfully.",
+  "welcomeTranooExclaim": "Welcome to Tranoo!",
+  "passwordWeak": "Weak",
+  "passwordMedium": "Medium",
+  "passwordStrong": "Strong",
+  "passwordVeryStrong": "Very strong",
+  "personalInfo": "Personal information",
+  "nextStep": "Next",
+  "createAccount": "Create account",
+  "alreadyHaveAccount": "Already have an account? ",
+  "forgotPasswordTitle": "Forgot password",
+  "searchCountry": "Search a country",
+  "incompleteServerResponse": "Incomplete server response.",
+  "retryShortly": "Try again in a few moments.",
+  "codeSent": "Code sent",
+  "sendCode": "Send code",
+  "verifyCodeTitle": "Verify code",
+  "missingInfoTitle": "Missing information.",
+  "restartFromForgotPassword": "Please start over from the forgot-password page.",
+  "errorOccurredTitle": "An error occurred.",
+  "checkConnectionAndRetry": "Check your connection and try again.",
+  "passwordTooShortTitle": "Password too short.",
+  "passwordMinLength": "Minimum {count} characters.",
+  "@passwordMinLength": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newPassword": "New password",
+  "resetPassword": "Reset password",
+  "whatsappNumberWarning": "Use a WhatsApp-reachable number: it will be used for OTP and communication between our team and users.",
+  "phoneDigitsExact": "{count} digits",
+  "@phoneDigitsExact": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "phoneDigitsRange": "{min} to {max} digits",
+  "@phoneDigitsRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "passwordStrengthLabel": "Password strength: {label}",
+  "@passwordStrengthLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "stepInfo": "Information",
+  "placeholderFirstName": "John",
+  "placeholderLastName": "Doe",
+  "accountAlreadyExistsTitle": "An account already exists with this number.",
+  "accountAlreadyExistsSubtitle": "Sign in or use another number.",
+  "referralCodeRegistered": "Referral code saved (status: {status})",
+  "@referralCodeRegistered": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "accountCreatedAgentReferral": "Account created successfully. Agent referral validated.",
+  "forgotPasswordInstructions": "Choose your country, then enter the national number\n(without repeating the +229 code).\nThe code is sent to the WhatsApp registered on the account.",
+  "enterYourPhone": "Enter your number",
+  "invalidPhoneWithHint": "Invalid number ({hint})",
+  "@invalidPhoneWithHint": {
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
+  "forgotPasswordBeninHint": "E.g. for +229: enter 593XXXXXXX (8 digits), not 01593XXXXXXX or +229 prefix.",
+  "forgotPasswordNationalHint": "Enter only the national number; country code {code} is already selected.",
+  "@forgotPasswordNationalHint": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "accountNotFoundForNumber": "No account found for this number.",
+  "useSameWhatsappAsSignup": "Use the same WhatsApp number as at sign-up (without 0 after +229).",
+  "errorTokenMissing": "Missing or invalid token.",
+  "errorTokenInvalid": "Invalid token.",
+  "errorUserNotFound": "User not found. Please sign in again.",
+  "errorAccountBlocked": "Your account has been blocked. Contact support.",
+  "errorSessionRequired": "Web session required. Please sign in again.",
+  "errorSessionRevoked": "Your session was opened elsewhere. Sign in again.",
+  "errorSessionInactive": "Session expired due to inactivity. Please sign in again.",
+  "errorInvalidPhone": "Invalid number. Check country code and number.",
+  "errorAppRequired": "App required (tranoo or tranoo_pro).",
+  "errorAccountAmbiguous": "Multiple accounts share this number. Contact support.",
+  "errorAccountNotFound": "No account found for this number.",
+  "errorOtpSendFailed": "Unable to send code. Check the number or try again.",
+  "errorMissingFields": "Required fields missing.",
+  "errorOtpInvalidOrExpired": "Invalid or expired code.",
+  "errorDeviceMismatch": "This phone does not match the request.",
+  "errorRequestInvalid": "Invalid request.",
+  "errorOtpExpired": "Code expired. Request a new code.",
+  "errorOtpLocked": "Too many attempts. Request a new code.",
+  "errorOtpIncorrect": "Incorrect code.",
+  "errorVerifyFirst": "Please verify the code first.",
+  "errorPasswordTooShort": "Password too short.",
+  "errorPasswordUpdateFailed": "Unable to update password. Contact support.",
+  "errorInternalError": "Error. Please try again.",
+  "errorValidationError": "Invalid data.",
+  "errorConnectionFailed": "Connection error.",
+  "errorEnterPhoneNumber": "Please enter your number.",
+  "codeSentWhatsappDefault": "Code sent via WhatsApp to your account number.",
+  "enterCodePlease": "Please enter the code",
+  "otpMustBe6Digits": "The code must be 6 digits",
+  "invalidCode": "Invalid code.",
+  "verifyCodeBanner": "Enter the 6-digit code.\nValid for {minutes} min. Check the Tranoo notification or WhatsApp on the account number.",
+  "@verifyCodeBanner": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "save": "Save",
+  "passwordChangedSuccess": "Password changed successfully.",
+  "connectSupport": "Contact support",
+  "cannotOpenWhatsApp": "Unable to open WhatsApp.",
+  "installWhatsAppRetry": "Install WhatsApp and try again.",
+  "preferences": "Preferences",
+  "geolocation": "Geolocation",
+  "enableNotifications": "Enable notifications",
+  "pushNotificationsSubtitle": "Receive push notifications",
+  "locationTracking": "Location tracking",
+  "shareRealtimeLocation": "Share your real-time location",
+  "cfaFranc": "CFA Franc",
+  "usDollar": "US Dollar",
+  "createAccountToContinue": "Create an account to continue.",
+  "actionRequired": "Action required",
+  "uploadProfilePhotoRequired": "Please upload your profile photo to continue.",
+  "proBuyerBlockedTitle": "Buyer account not allowed on Tranoo Pro",
+  "proBuyerBlockedSubtitle": "Buyers use the Tranoo app.",
+  "thisCountry": "this country",
+  "passwordDotsHint": "••••••••",
+  "continueButton": "Continue",
+  "locationRequired": "Location required",
+  "authorizationRequired": "Authorization required",
+  "whatWeUse": "What we use:",
+  "locationBackgroundWarning": "Location is used even when the app is in the background for continuous tracking.",
+  "backgroundLocationTitle": "Background location",
+  "backgroundLocationMessage": "To ensure continuous tracking of your missions, we need access to your location even when the app is in the background.\n\nYou can enable this permission in your device settings.",
+  "deviceSettings": "Settings",
+  "permissionDenied": "Permission denied",
+  "locationRequiredForRole": "Location is required to use {role} features. Some features may be limited.",
+  "@locationRequiredForRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "permissionRequestError": "An error occurred while requesting permission: {error}",
+  "@permissionRequestError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeTranooProExclaim": "Welcome to Tranoo Pro!",
+  "locationAuthorization": "Location authorization",
+  "locationUsageIntro": "For proper operation, Tranoo Pro uses your location to:",
+  "locationBackgroundServicesWarning": "Location may be used even when the app is in the background to ensure continuous service tracking.",
+  "changeDecisionLaterInSettings": "You can change this decision later in settings",
+  "authorizeLocationInSettings": "Allow location in settings.",
+  "cannotGetPosition": "Unable to get position.",
+  "yourCurrentPosition": "Your current position",
+  "positionUsageForListings": "Used for your listings and supplier location. You can update it in your profile.",
+  "saveCurrentPosition": "Save my current position",
+  "refreshPosition": "Refresh position",
+  "positionSavedGps": "Position saved (GPS coordinates)",
+  "profilePositionUpdated": "Profile position updated",
+  "savePositionToContinue": "Save your current position to continue.",
+  "saveYourCurrentPosition": "Save your current position.",
+  "sellerUpdateTitle": "Seller update",
+  "sellerTypeChoiceIntro": "Tranoo Pro now lets you choose your seller type: vehicles, spare parts or mixed.",
+  "sellerTypeChoiceHint": "Make your choice on the dedicated page to adapt your menus and listings.",
+  "makeChoice": "Make a choice",
+  "professionalAccess": "Professional access",
+  "useAlternativeAppForProfessionalRole": "Use {app} instead for your professional role",
+  "@useAlternativeAppForProfessionalRole": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionExpiresIn": "Your subscription expires in {days} day(s).",
+  "@subscriptionExpiresIn": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "freeTrialEndsIn": "Your free trial ends in {days} day(s).",
+  "@freeTrialEndsIn": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "currentPlanLabel": "Current plan: {plan}",
+  "@currentPlanLabel": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "unknown": "Unknown",
+  "manageSubscription": "Manage my subscription",
+  "historyLast10": "History (last 10)",
+  "noSubscriptionPayments": "No subscription payments yet.",
+  "serverTimeout": "The server is taking too long to respond. Try again shortly.",
+  "cannotReachServerDetailed": "Unable to reach the server. Check your connection and backend URL.",
+  "accountDeletionFailed": "Account deletion failed. Try again later.",
+  "unexpectedDeletionError": "An unexpected error occurred during deletion.",
+  "myPurchases": "My purchases",
+  "myPurchasesSubtitle": "View your order history",
+  "myReviews": "My reviews",
+  "myReviewsSubtitle": "View or edit your comments",
+  "myInvoices": "My invoices",
+  "myInvoicesSubtitle": "Download your purchase receipts",
+  "accountCreatedSuccess": "Account created successfully.",
+  "fieldRequired": "This field is required.",
+  "address": "Address",
+  "deliveryAddress": "Delivery address",
+  "addDeliveryNote": "Add a delivery note",
+  "chooseDate": "Choose date",
+  "packageLabel": "Package",
+  "packagesToDeliver": "Packages to deliver",
+  "orderLabel": "Order",
+  "qrContent": "QR content",
+  "carDescription": "Car description",
+  "becomeCertifiedDriver": "Become a certified driver",
+  "adDuration": "Ad duration",
+  "inDelivery": "In delivery",
+  "inTransit": "In transit",
+  "enterCompanyName": "Enter company name",
+  "enterVehicleName": "Enter vehicle name",
+  "enterCarDescriptionOptional": "Enter a description of your car (optional)",
+  "enterClientDestination": "Enter client destination",
+  "enterBrand": "Enter brand",
+  "enterModel": "Enter model",
+  "enterCustomModel": "Enter custom model",
+  "enterDestinationDetails": "Enter your destination details here...",
+  "engineDisplacementExample": "E.g. 1600 or 1.6",
+  "requirements": "Requirements",
+  "supplier": "Supplier",
+  "supplierToBuyer": "Supplier -> Buyer",
+  "deliveryEarnings": "Delivery earnings",
+  "vehicleInfoRequired": "Registration, type, brand and model are required.",
+  "vehicleInfoMissing": "Vehicle information missing.",
+  "mileageHint": "Mileage (km), e.g. 12500 or 12.5",
+  "externalLinkOptional": "External link (optional)",
+  "partOrCarName": "Part/car name",
+  "nameOnCard": "Name on card",
+  "seatCount": "Number of seats",
+  "notProvided": "Not provided",
+  "notificationDefault": "Notification",
+  "orderNumber": "Order number",
+  "cashPayment": "Cash payment",
+  "positionRequired": "Position required",
+  "priceFcfa": "Price (FCFA)",
+  "priceFcfaExample": "Price in FCFA (e.g. 1500000 or 1,500,000.5)",
+  "offerDeliveryServices": "Offer delivery services",
+  "specifyModel": "Specify model",
+  "searchCarHint": "Search for a car (brand, model, title)...",
+  "summary": "Summary",
+  "roleLabel": "Role",
+  "titleLabel": "Title",
+  "typeLabel": "Type",
+  "engineType": "Engine type",
+  "adType": "Ad type",
+  "engineTypeShort": "Engine",
+  "toBuyer": "To buyer",
+  "toSupplier": "To supplier",
+  "pleaseEnterCompany": "Please enter your company.",
+  "deliverTo": "Deliver to",
+  "conditionLabel": "Condition",
+  "buyer": "Buyer",
+  "positionGpsSaved": "GPS position saved",
+  "enterLink": "Enter link",
+  "passwordSuperStrong": "Super strong",
+  "onboardingTagline1": "Tranoo\nFind your parts and\nvehicles quickly",
+  "onboardingTagline2": "Discover your\nideal vehicle in\na few clicks",
+  "accountDeletion": "Account deletion",
+  "accountDeletionIrreversible": "This action is irreversible.",
+  "accountDeletionDataWarning": "Your account, app access and related data will be deleted.",
+  "accountDeletionConfirmWarning": "Make sure you no longer need this account before confirming.",
+  "editAccountSubtitle": "Make changes to your account",
+  "referral": "Referral",
+  "referralSubtitle": "Earn by referring friends",
+  "sellMyCar": "Sell my car",
+  "sellMyPart": "Sell my part",
+  "becomeSellerSubtitle": "Become a seller and sell with us",
+  "sellerAccessOnly": "Access reserved for sellers.",
+  "transitaireAccessOnly": "Access reserved for freight forwarders.",
+  "transitHistory": "Transit history",
+  "user": "User",
+  "userNotConnected": "User not signed in",
+  "newAlertDefault": "New alert",
+  "buyerSearchingPart": "A buyer is looking for a part.",
+  "buyerSearchingVehicle": "A buyer is looking for a vehicle.",
+  "characteristics": "Characteristics:",
+  "noCharacteristicsProvided": "- No characteristics provided",
+  "proposeOffer": "Propose an offer",
+  "myCart": "My Cart",
+  "cartEmpty": "Your cart is empty",
+  "cartEmptyHint": "Add items to start shopping",
+  "checkout": "Place order",
+  "carsOnline": "Cars online",
+  "carDeletedSuccess": "Car deleted successfully!",
+  "newCondition": "New",
+  "usedCondition": "Used",
+  "budgetFcfa": "Budget (FCFA)",
+  "spareParts": "Spare parts",
+  "confirmDeletePart": "Do you really want to delete this part?",
+  "partDeletedSuccess": "Part deleted successfully!",
+  "searchPartHint": "Search for a part...",
+  "searchVehiclesPartsHint": "Search vehicles, parts...",
+  "deliveries": "Deliveries",
+  "tricycles": "Tricycles",
+  "fillMiniForm": "Fill mini form",
+  "discussions": "Discussions",
+  "noDiscussions": "No discussions",
+  "startDiscussionWithSeller": "Start a discussion with a seller",
+  "typeMessageHint": "Type your message...",
+  "messageSendError": "Error sending message",
+  "noNotifications": "No notifications",
+  "markAllRead": "Mark all as read",
+  "notificationDetails": "Notification details",
+  "myOrders": "My orders",
+  "noOrders": "No orders",
+  "orderDetails": "Order details",
+  "orderTracking": "Order tracking",
+  "filterAll": "All",
+  "filterInProgress": "In progress",
+  "filterCompleted": "Completed",
+  "myWallet": "My wallet",
+  "withdrawal": "Withdrawal",
+  "transactions": "Transactions",
+  "paymentMethod": "Payment method",
+  "paymentSuccessful": "Payment successful!",
+  "paymentFailed": "Payment failed",
+  "pay": "Pay",
+  "payNow": "Pay now",
+  "returnToApp": "Return to app",
+  "wooHoo": "Woo hoo!!",
+  "goToHome": "Go to home",
+  "congratulations": "Congratulations!",
+  "publishedOnline": "Published online!",
+  "returnHome": "Return home",
+  "referralTitle": "Referral",
+  "referralLinkCopied": "Referral link copied!",
+  "copyLink": "Copy link",
+  "yourStats": "Your statistics",
+  "pending": "Pending",
+  "completed": "Completed",
+  "chooseLocation": "Choose location",
+  "navigate": "Navigate",
+  "termsOfUse": "Terms of use",
+  "livreurHome": "Delivery home",
+  "chauffeurHome": "Driver home",
+  "myDeliveries": "My deliveries",
+  "sellerSubscription": "Seller subscription",
+  "premiumSubscription": "Premium subscription",
+  "subscribeNow": "Subscribe now",
+  "sellerWallet": "Seller wallet",
+  "more": "More",
+  "signInForProfile": "Sign in to access your profile",
+  "profileLoadError": "Unable to load profile. Check your connection or permissions.",
+  "profileSaveError": "Error saving profile",
+  "company": "Company",
+  "country": "Country",
+  "gender": "Gender",
+  "genderMale": "Male",
+  "genderFemale": "Female",
+  "genderOther": "Other",
+  "saving": "Saving...",
+  "updateProfile": "Update profile",
+  "profileUpdateError": "Error during update",
+  "restrictedAccess": "Restricted access",
+  "roleNotAllowedOnApp": "Your role ({role}) is not allowed on {app}",
+  "@roleNotAllowedOnApp": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      },
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "useAlternativeAppForRole": "Use {app} instead for your role",
+  "@useAlternativeAppForRole": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "googlePlay": "Google Play",
+  "appStore": "App Store",
+  "alertNotificationsTitle": "Alert notifications",
+  "alertNotificationsDescription": "Allow notifications to be alerted when a seller responds to your alert, even when the app is in the background.",
+  "allowNotifications": "Allow notifications",
+  "referralLinkTitle": "Your referral link",
+  "referralShareTitle": "Share your referral link",
+  "others": "Others",
+  "total": "Total",
+  "yourReferrals": "Your referrals",
+  "noReferralsYet": "No referrals yet",
+  "shareReferralHint": "Share your code with friends to get started!",
+  "referralShareMessage": "🚗 Join me on Tranoo!\n\nDownload the app via my referral link: {link}\n\nTogether, let's find the best cars and spare parts! 🚙✨",
+  "@referralShareMessage": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "unexpectedError": "Unexpected error: {error}",
+  "@unexpectedError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "serverError": "Server error: {status} - {message}",
+  "@serverError": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelBrand": "Brand: {value}",
+  "@alertLabelBrand": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelModel": "Model: {value}",
+  "@alertLabelModel": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelCondition": "Condition: {value}",
+  "@alertLabelCondition": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelYear": "Year: {value}",
+  "@alertLabelYear": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelYearMin": "Min year: {value}",
+  "@alertLabelYearMin": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelYearMax": "Max year: {value}",
+  "@alertLabelYearMax": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelBudgetMax": "Max budget: {value} FCFA",
+  "@alertLabelBudgetMax": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelPart": "Part: {value}",
+  "@alertLabelPart": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelUrgency": "Urgency: {value}",
+  "@alertLabelUrgency": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelLocation": "Location: {value}",
+  "@alertLabelLocation": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelDetails": "Details: {value}",
+  "@alertLabelDetails": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmDeleteCar": "Do you really want to delete this car?",
+  "vehicleBrandLabel": "Vehicle brand",
+  "partNameLabel": "Part name",
+  "urgencyLow": "Low",
+  "urgencyNormal": "Normal",
+  "urgencyHigh": "Urgent",
+  "alertSendError": "Alert send error: {error}",
+  "@alertSendError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "searchTypeTitle": "Search type",
+  "whatDoYouWantToSearch": "What do you want to search?",
+  "noArticleLinkedToAd": "No item linked to this ad.",
+  "sellerPhoneUnavailable": "Seller phone number unavailable",
+  "imageNotAvailable": "Image not available",
+  "requestValidatedWhatsApp": "Request approved — opening WhatsApp",
+  "requestRejected": "Request rejected",
+  "errorActionStatus": "Action error: {status}",
+  "@errorActionStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsLoadError": "Error loading notifications",
+  "notificationDeleted": "Notification deleted",
+  "markedAsUnread": "Marked as unread",
+  "markAsUnread": "Mark as unread",
+  "confirmDeleteNotification": "Delete this notification?",
+  "orderSummary": "Summary",
+  "selectAddress": "Select an address",
+  "direction": "Directions",
+  "track": "Track",
+  "orderPayment": "Order payment",
+  "preparingPayment": "Preparing payment...",
+  "noActiveOrderToTrack": "No active order to track",
+  "ordersLoadError": "Error loading orders",
+  "orderRegisteredDeliverySoon": "Your order is registered. A driver will take charge of delivery soon.",
+  "driverAssignedTrackRealtime": "Driver assigned. Track their position in real time.",
+  "returnPackage": "Return package",
+  "pickupMyOrder": "Pick up my order",
+  "deliveryNotFound": "Delivery not found.",
+  "orderPickedUpSuccess": "Order picked up successfully.",
+  "pickupError": "Pickup error: {error}",
+  "@pickupError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "returnReasonHint": "E.g. wrong part, defect, model error…",
+  "send": "Send",
+  "reasonRequired": "Reason required.",
+  "returnReportedPaymentRequired": "Return reported. Delivery fee payment required.",
+  "returnError": "Return error: {error}",
+  "@returnError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentInterrupted": "Payment interrupted",
+  "paymentInterruptedMessage": "You left the payment screen or the transaction was not completed.",
+  "paymentInterruptedSubtitle": "No charge recorded. You can try again anytime.",
+  "paymentErrorMessage": "An error occurred during the transaction.",
+  "paymentErrorRetrySupport": "Please try again or contact support.",
+  "transactionSuccessMessage": "Your transaction was completed successfully.",
+  "closePageReturnToApp": "You can now close this page and return to the app.",
+  "selectToChoose": "Select",
+  "bankPayment": "Bank payment",
+  "mobileMoney": "Mobile Money",
+  "paymentSuccessUpdatingStatus": "Payment successful! Updating status...",
+  "adPaidSuccess": "Ad paid successfully!",
+  "subscriptionActivatedSuccess": "Subscription activated successfully!",
+  "redirecting": "Redirecting...",
+  "verifyPayment": "Verify payment",
+  "finalizePayment": "Finalize payment",
+  "purchaseSuccessMessage": "Dear customer, your purchase was successful. ",
+  "purchaseSuccessDelivery": "Your product will be delivered within 5 days at most. Thank you for your trust!",
+  "articleCreatedPendingValidation": "Well done! You created your listing. It is pending validation.",
+  "almostThere": "Almost there",
+  "spotlightCostPrefix": "Your spotlight will cost about ",
+  "spotlightCostSuffix": " for this vehicle. Continue and complete payment to see your vehicle at the top of our listings.",
+  "saleSuccessTitle": "Sale successful!",
+  "publishedSuccessMessage": "Your listing is now online!",
+  "yourBalanceIs": "Your balance is:",
+  "entry": "Credit",
+  "makeWithdrawal": "Make a withdrawal",
+  "transferAccount": "Transfer account",
+  "cardNumber": "Card number",
+  "month": "Month",
+  "securityCode": "Card security code",
+  "codeHint": "Code",
+  "requestWithdrawal": "Request withdrawal",
+  "myWithdrawals": "My withdrawals",
+  "withdrawalRequest": "Withdrawal request",
+  "noMessage": "No message",
+  "articleDefault": "Item",
+  "justNow": "Just now",
+  "recent": "Recent",
+  "errorSendingImage": "Error sending image",
+  "errorSendingDocument": "Error sending document",
+  "pdfLabel": "PDF",
+  "openingDocument": "Opening document...",
+  "myTransits": "My transits",
+  "noArticlesInCategory": "No items in this category",
+  "discussionCreationError": "Error creating discussion",
+  "articleWithoutId": "Item without ID",
+  "contactTransitaire": "Contact forwarder",
+  "finalizePurchase": "Complete purchase",
+  "chosenForwarderRate": "Selected forwarder rate",
+  "additionalFees": "Additional fees",
+  "totalPrice": "Total price",
+  "downloadInvoice": "Download invoice",
+  "chooseFormat": "Choose format:",
+  "imageFormat": "Image",
+  "documentFormat": "Document",
+  "imageGallery": "Image (Gallery)",
+  "chooseDownloadFormat": "Choose download format:",
+  "preparingShare": "Preparing share...",
+  "invoiceReadyToShare": "Invoice ready to share!",
+  "shareError": "Share error: {error}",
+  "@shareError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "maxImagesReached": "Maximum of 12 images reached",
+  "videoUploadedSuccess": "Video uploaded successfully!",
+  "waitUploadFinish": "Please wait for upload to finish.",
+  "addAtLeastOneMedia": "Please add at least one image or video.",
+  "fillRequiredFields": "Please fill in all required fields.",
+  "enterTitle": "Enter title",
+  "enterYear": "Enter year (e.g. 2020)",
+  "enterCylinder": "Enter cylinder (e.g. 1600)",
+  "enterDistance": "Enter distance (km)",
+  "enterSeats": "Enter number of seats",
+  "enterPrice": "Enter price",
+  "enterCarDescription": "Enter a description of your car",
+  "uploadInProgress": "Upload in progress...",
+  "publishListing": "Publish listing",
+  "uploadImageFailed": "Image upload failed.",
+  "noImageSelected": "No image selected.",
+  "newOffer": "New offer",
+  "selectAtLeastOneImage": "Please select at least one image.",
+  "fillCarFields": "Please fill in all car fields.",
+  "requestCreationError": "Error creating request.",
+  "statusUpdateError": "Error updating status.",
+  "clickableLinkOptional": "Clickable link (optional)",
+  "itemName": "Part/car name",
+  "companyName": "Company name",
+  "locationServicesDisabled": "Location services are disabled",
+  "locationPermissionDenied": "Location permission denied",
+  "locationPermissionDeniedForever": "Location permission permanently denied",
+  "confirmThisLocation": "Confirm this location",
+  "useMyLocation": "Use my location",
+  "drivingLicense": "Driving license",
+  "yourMessage": "Your message",
+  "submitApplication": "Submit application",
+  "applicationSubmitted": "Application submitted successfully!",
+  "applicationSubmitError": "Error submitting application.",
+  "vendreTitle": "Sell",
+  "quantity": "Quantity",
+  "addToCart": "Add to cart",
+  "buyNow": "Buy now",
+  "contactSeller": "Contact seller",
+  "views": "Views",
+  "status": "Status",
+  "date": "Date",
+  "amount": "Amount",
+  "details": "Details",
+  "search": "Search",
+  "filter": "Filter",
+  "seeAll": "See all",
+  "noData": "No data",
+  "errorLoading": "Loading error",
+  "continueAction": "Continue",
+  "edit": "Edit",
+  "remove": "Remove",
+  "subtotal": "Subtotal",
+  "shipping": "Shipping",
+  "orderStatus": "Order status",
+  "orderDate": "Order date",
+  "delivered": "Delivered",
+  "cancelled": "Cancelled",
+  "processing": "Processing...",
+  "errorUserNotConnected": "Error: User not signed in",
+  "adPaymentSuccessMessage": "Your payment was completed successfully! ",
+  "adPaymentSuccessHighlight": "Your listing will be featured once validated by our team. You will receive a confirmation notification.",
+  "preparing": "Preparing...",
+  "listingPublishedVisiblePrefix": "Your listing is published and visible ",
+  "immediately": "immediately",
+  "listingPublishedVisibleSuffix": " on the app.\n\nYou can already find it in the listings.",
+  "listingAlreadyOnline": "Your listing is already online.",
+  "noVehicleSearchResultHint": "No car matches your search.\nCreate a mini alert to be contacted quickly.",
+  "noPartSearchResultHint": "No part matches your search.\nCreate a mini alert to be contacted quickly.",
+  "priceFcfaLabel": "Price (FCFA)",
+  "vehicleAlert": "Vehicle alert",
+  "partAlert": "Part alert",
+  "takePhoto": "Take a photo",
+  "vehicleCondition": "Vehicle condition",
+  "brandRequired": "Brand required",
+  "modelRequired": "Model required",
+  "yearRequired": "Year required",
+  "budgetRequired": "Budget required",
+  "alertRegisteredFeedback": "Your request has been registered. You will hear back from sellers very soon.",
+  "whatsappOpenDetailed": "Unable to open WhatsApp. Check that the app or a browser is installed on your phone.",
+  "noVideoAvailable": "No video available",
+  "cannotMakeCall": "Unable to make a call",
+  "cylinder": "Cylinder",
+  "fuel": "Fuel",
+  "airConditioner": "Air conditioning",
+  "distanceKm": "Distance",
+  "seats": "Seats",
+  "doors": "Doors",
+  "gearbox": "Gearbox",
+  "customsClearance": "Customs clearance",
+  "inConsumption": "For consumption",
+  "chooseCountry": "Choose a country",
+  "additionalDetails": "Additional details",
+  "signInForVerification": "Sign in to request verification",
+  "signInForDelivery": "Sign in to order with delivery",
+  "signInToBuyThisCar": "Sign in to buy this car",
+  "chooseDeliveryMode": "Please choose a delivery mode (For consumption or In transit).",
+  "selectLocationPlease": "Please select a location.",
+  "verificationInProgress": "Verification in progress",
+  "verificationChecksPrefix": "Checks will be performed and sent to you within ",
+  "tenBusinessDays": "10 days",
+  "verificationChecksMiddle": ". To start, please pay the ",
+  "verificationFeesLabel": "verification fees",
+  "payVerificationFees": "Pay verification fees",
+  "requestVerification": "Request verification",
+  "buyThisCar": "Buy this car",
+  "sampleCarDescription": "The Tesla Model 3 is a mid-size electric sedan known for impressive performance, acceleration and range.",
+  "chooseCondition": "Choose condition",
+  "chooseBrand": "Choose brand",
+  "chooseModel": "Choose model",
+  "chooseDoorCount": "Choose number of doors",
+  "chooseGearbox": "Choose gearbox",
+  "chooseFuel": "Choose fuel",
+  "chooseAirConditioner": "Choose air conditioning",
+  "brandsLabel": "Brands",
+  "doorSingular": "Door",
+  "seatSingular": "Seat",
+  "selectedColorLabel": "Selected color: {color}",
+  "@selectedColorLabel": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "companyBlOwner": "Company name on bill of lading",
+  "imagesOptionalMax12": "Images (optional, max 12)",
+  "videoOptionalMax500": "Video (optional, max 500 MB)",
+  "addImagesButton": "Add images",
+  "videoReady": "Video ready",
+  "mediaSlot": "Slot {index}",
+  "@mediaSlot": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "tapToAddVideo": "Tap to add",
+  "sending": "Sending...",
+  "videoTooHeavy": "Video is too large ({size} MB). Limit: 500 MB.",
+  "@videoTooHeavy": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "videoUploadError": "Error uploading video. Please try again.",
+  "maxMediaCount": "You can select at most {count} media items.",
+  "@maxMediaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "manualTransmission": "Manual",
+  "automaticTransmission": "Automatic",
+  "petrol": "Petrol",
+  "diesel": "Diesel",
+  "electric": "Electric",
+  "hybrid": "Hybrid",
+  "otherOption": "Other",
+  "pieceName": "Part name",
+  "enterYearShort": "Enter year",
+  "placement": "Location",
+  "enterPartDescription": "Enter a description of your part",
+  "verificationAction": "Verification",
+  "uploadFailed": "Upload failed: {error}",
+  "@uploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "videoUploadFailed": "Video upload failed: {error}",
+  "@videoUploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "selectedModelLabel": "Selected model: {model}",
+  "@selectedModelLabel": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "customModelLabel": "Custom model: {model}",
+  "@customModelLabel": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "enterEngineType": "Enter engine type",
+  "noEngine": "None",
+  "gazoil": "Gas oil",
+  "addVideo": "Add a video",
+  "videoUploadedLabel": "Video uploaded",
+  "beforeContactSeller": "Before contacting the seller",
+  "contactSellerTips": "• Confirm price and any fees\n• Check location and availability\n• Discuss item condition clearly\n• Prefer a safe place for the transaction",
+  "orderWithDelivery": "Order with delivery",
+  "buyViaApp": "Buy via the app",
+  "secureOrderViaCart": "Secure order via Tranoo cart (delivery available).",
+  "partTypeLabel": "Part type",
+  "ratingOutOf5": "0 / 5",
+  "mastervacSampleDescription": "Essential braking component, the brake booster amplifies pedal force to make braking easier.",
+  "rare": "Rare",
+  "sellYourPart": "Sell your part",
+  "newBadge": "New",
+  "createAd": "Create an ad",
+  "adRequest": "Ad request",
+  "standaloneAd": "Standalone ad",
+  "existingArticleAd": "Existing item ad",
+  "standaloneAdDesc": "Standalone featured ad. Upload a flyer (1080 x 1350 px recommended) and add an optional link to your site or catalog.",
+  "nonExistingPubDesc": "Non-existing listing. You are creating a new offer. Users can tap to see your offer details.",
+  "existingArticlePubDesc": "You are creating an ad for an existing item. Users can tap to see the full item.",
+  "loadingArticleInfo": "Loading item information...",
+  "articleLoadedSuccess": "Item loaded successfully! You can now advertise this item.",
+  "linkExampleHint": "E.g. https://wa.me/2250700000000 or https://my-site.com",
+  "linkHelperText": "Let users open your site, catalog or payment form.",
+  "selectAdType": "Please select a type",
+  "selectDuration": "Please select a duration",
+  "sponsoredType": "Sponsored",
+  "featuredType": "Featured",
+  "oneWeek": "1 week",
+  "twoWeeks": "2 weeks",
+  "oneMonth": "1 month",
+  "twoMonths": "2 months",
+  "threeMonths": "3 months",
+  "pricePerDayLabel": "{price}/day",
+  "@pricePerDayLabel": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "carInfoSection": "Vehicle information",
+  "enterName": "Please enter the name",
+  "enterYearValidator": "Please enter the year",
+  "enterLocationValidator": "Please enter the location",
+  "enterPriceValidator": "Please enter the price",
+  "enterDescriptionValidator": "Please enter a description",
+  "enterCompanyValidator": "Please enter the company name",
+  "selectEngineTypeValidator": "Please select engine type",
+  "selectModelValidator": "Please select the model",
+  "selectTypeValidator": "Please select the type",
+  "mainFlyerImage": "Main image (flyer)",
+  "recommendedDimensions": "Recommended dimensions: 1080 x 1350 px (PNG/JPG)",
+  "addMainImage": "Add main image",
+  "dimensions1080x1350": "1080 x 1350 px",
+  "additionalImagesOptional": "Additional images (optional)",
+  "standaloneFeaturedTitle": "Featured ad",
+  "standaloneFeaturedDesc": "Dedicated flyer, no existing item needed. Just add your visual and (optionally) an external link.",
+  "addMainImageForFeatured": "Please add a main image for \"Featured\".",
+  "articleCreateError": "Error creating item.",
+  "articleCreateNetworkError": "Network error while creating item: {error}",
+  "@articleCreateNetworkError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "articleLoadError": "Error loading item",
+  "articleLoadNetworkError": "Network error while loading item",
+  "mediaUploadError": "Error uploading media: {error}",
+  "@mediaUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fillAllFieldsShort": "Please fill in all fields.",
+  "articleNotExistCreateFirst": "This item does not exist. Please create it and after admin validation you can feature it.",
+  "articleNotExistFeaturedFirst": "This item does not exist. For \"Featured\" ads, create the item first and after admin validation you can feature it.",
+  "articleCreateRetryError": "Error creating item. Please try again.",
+  "paymentSuccessPendingValidation": "Payment successful, pending admin validation. You will receive a notification once approved.",
+  "pubForTitle": "Ad for {title}",
+  "@pubForTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "noDescriptionAd": "Ad without description",
+  "defaultCarName": "Car name",
+  "defaultLocation": "Location",
+  "defaultPrice": "Price",
+  "defaultCarDescription": "Car description",
+  "defaultCompanyName": "Company name",
+  "defaultBrand": "Brand",
+  "standaloneFeaturedDescriptionDefault": "Featured ad (Tranoo storefront flyer)",
+  "perMonth": "per month",
+  "boostVisibilitySubtitle": "Boost your visibility with clients",
+  "premiumBenefits": "Premium benefits",
+  "prioritySpotlight": "Priority spotlight",
+  "prioritySpotlightDesc": "Appear first in search results",
+  "premiumBadge": "Premium badge",
+  "premiumBadgeDesc": "Gold badge visible on your profile",
+  "boostedVisibility": "Boosted visibility",
+  "boostedVisibilityDesc": "More clients contact you",
+  "prioritySupport": "Priority support",
+  "prioritySupportDesc": "Dedicated assistance 24/7",
+  "monthlySubscription": "Monthly subscription",
+  "subscriptionAutoRenewNote": "Your subscription renews automatically each month. You can cancel anytime.",
+  "subscribeNowPrice": "Subscribe now - {price} FCFA",
+  "@subscribeNowPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "userNotLoggedIn": "User not signed in",
+  "feexpayConfigMissing": "FeexPay configuration missing",
+  "feexpayConfigMissingDetailed": "FeexPay configuration missing (FP_TOKEN_FEEXPAY / ID_USER_FEEXPAY)",
+  "verificationFeesTitle": "Verification fees",
+  "documentVerification": "Document verification",
+  "verifyDocumentsAuthenticity": "Verify the authenticity of your documents",
+  "includedServices": "Included services",
+  "fullVerification": "Full verification",
+  "fullVerificationDesc": "Review of all your official documents",
+  "fastProcessing": "Fast processing",
+  "fastProcessingDesc": "Results within 10 business days",
+  "oneTimePayment": "one-time payment",
+  "verificationPaymentNote": "After payment, you will receive a summary and checks will be completed within 10 business days.",
+  "proceedToPayment": "Proceed to payment - {price} FCFA",
+  "@proceedToPayment": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentReceivedIncompleteRecord": "Payment received but server record incomplete. Retry or contact support.",
+  "paymentReceivedVerificationProcessing": "Payment received. Your verification request is being processed.",
+  "paymentCancelledNotConfirmed": "Payment cancelled or not confirmed. Try again if needed.",
+  "cannotLoadData": "Unable to load data",
+  "recommendedForwarders": "Recommended forwarders",
+  "forwarderSubscription": "Forwarder subscription",
+  "activateMonthlySubscription": "Activate a monthly subscription to be featured to buyers.",
+  "pricePerMonth": "{price} FCFA / month",
+  "@pricePerMonth": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "activatedOn": "Activated on: {date}",
+  "@activatedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "expiresOn": "Expires on: {date}",
+  "@expiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "manage": "Manage",
+  "visibility": "Visibility",
+  "boosted": "Boosted",
+  "spotlight": "Spotlight",
+  "subscriptionStatus": "Subscription status",
+  "active": "Active",
+  "inactive": "Inactive",
+  "noActiveSubscription": "No active subscription",
+  "performances": "Performance",
+  "ordersDeliveredPerMonth": "Orders delivered / month",
+  "clientDistribution": "Client distribution",
+  "chartBuyers": "Buyers",
+  "chartDrivers": "Drivers",
+  "chartOthers": "Others",
+  "discuss": "Discuss",
+  "priceWithValue": "Price: {price}",
+  "@priceWithValue": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "priceNotSpecified": "Not specified",
+  "sellerInfoError": "Error: Unable to retrieve seller information",
+  "transitHistoryTitle": "Transit history",
+  "clientLabel": "Client: {name}",
+  "@clientLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "departurePortLabel": "Departure port: {port}",
+  "@departurePortLabel": {
+    "placeholders": {
+      "port": {
+        "type": "String"
+      }
+    }
+  },
+  "arrivalPortLabel": "Arrival port: {port}",
+  "@arrivalPortLabel": {
+    "placeholders": {
+      "port": {
+        "type": "String"
+      }
+    }
+  },
+  "transitDateLabel": "Transit date: {date}",
+  "@transitDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "statusWithValue": "Status: {status}",
+  "@statusWithValue": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveredSuccessfully": "Delivered successfully",
+  "atCustoms": "At customs",
+  "billOfLading": "Bill of lading",
+  "proformaInvoice": "Pro forma invoice",
+  "transitCertificate": "Transit certificate",
+  "partialCustomsCertificate": "Partial customs clearance certificate",
+  "inspectionCertificate": "Inspection certificate",
+  "transitFormTitle": "Transit forms",
+  "carNameLabel": "Car name",
+  "clientField": "Client",
+  "departurePort": "Departure port",
+  "arrivalPort": "Arrival port",
+  "transitDate": "Transit date",
+  "uploadDocuments": "Upload documents",
+  "registrationForm": "Registration form",
+  "familyName": "Last name",
+  "enterYourName": "Enter your name",
+  "enterYourFirstName": "Enter your first name",
+  "typeYourPhone": "Enter your phone number",
+  "enterYourEmail": "Enter your email",
+  "licenseNumber": "License number",
+  "enterLicenseNumber": "Enter your license number",
+  "messages": "Messages",
+  "writeYourMessage": "Write your message",
+  "uploadImagesLabel": "Upload images",
+  "myLicensePdf": "My license PDF",
+  "fillFieldsAndUploadLicense": "Please fill in all required fields and upload your license.",
+  "requestSentSuccess": "Request sent successfully!",
+  "sendErrorWithBody": "Error sending: {body}",
+  "@sendErrorWithBody": {
+    "placeholders": {
+      "body": {
+        "type": "String"
+      }
+    }
+  },
+  "timeAgoDays": "{count} day(s) ago",
+  "@timeAgoDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeAgoHours": "{count}h ago",
+  "@timeAgoHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeAgoMinutes": "{count} min ago",
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkingPermissions": "Checking permissions...",
+  "redirectingIfNeeded": "Redirecting if necessary",
+  "unauthorizedAccess": "Unauthorized access",
+  "tricycle_home_title": "Tricycles",
+  "tricycle_request_accepted": "Request accepted",
+  "tricycle_request_sent": "Request sent",
+  "tricycle_order_command": "Order · Tricycle",
+  "feexpayPaymentTitle": "FeexPay payment",
+  "feexpayInitSuccess": "FeexPay service initialized successfully",
+  "feexpayInitError": "Initialization error: {error}",
+  "@feexpayInitError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentInitSuccess": "Payment initialized successfully!",
+  "cannotOpenPaymentPage": "Unable to open payment page",
+  "transactionDetailsTitle": "Transaction details",
+  "labelTransactionId": "Transaction ID",
+  "valueAmountFcfa": "{amount} FCFA",
+  "@valueAmountFcfa": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "enterAmount": "Please enter the amount",
+  "enterValidAmount": "Please enter a valid amount",
+  "amountMustBePositive": "Amount must be greater than 0",
+  "enterDescriptionRequired": "Please enter a description",
+  "enterOrderId": "Please enter an order ID",
+  "commandIdLabel": "Order ID",
+  "paymentTypeLabel": "Payment type",
+  "mobileMoneyProviders": "Mobile Money (MTN, Moov, Orange)",
+  "bankCardPayment": "Bank card (VISA, Mastercard)",
+  "feexpayWallet": "FeexPay wallet",
+  "initializeFeexpay": "Initialize FeexPay",
+  "aboutFeexpay": "About FeexPay",
+  "feexpayAboutDescription": "FeexPay is a secure payment aggregator that accepts:",
+  "feexpayAcceptedMethods": "• MTN Mobile Money, Moov Money, Orange Money\n• VISA and Mastercard cards\n• Digital wallets",
+  "feexpayTransactionsTitle": "FeexPay transactions",
+  "transactionsLoadError": "Error loading: {error}",
+  "@transactionsLoadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "processRefundTitle": "Process a refund",
+  "transactionWithId": "Transaction: {id}",
+  "@transactionWithId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "refundAmountFcfa": "Refund amount (FCFA)",
+  "refundReason": "Refund reason",
+  "refundAction": "Refund",
+  "invalidAmount": "Invalid amount",
+  "refundSuccess": "Refund completed successfully",
+  "transactionHistory": "Transaction history",
+  "transactionCount": "{count} transaction(s)",
+  "@transactionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountBalanceLabel": "Account balance",
+  "currencyWithValue": "Currency: {currency}",
+  "@currencyWithValue": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "noTransactionsFound": "No transactions found",
+  "transactionsEmptyHint": "Transactions will appear here after your first payments",
+  "transactionNoDescription": "Transaction without description",
+  "idWithValue": "ID: {id}",
+  "@idWithValue": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "dateWithValue": "Date: {date}",
+  "@dateWithValue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "methodWithValue": "Method: {method}",
+  "@methodWithValue": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "unknownDate": "Unknown date",
+  "customerEmailLabel": "Customer email",
+  "accountBlockedTitle": "Account blocked",
+  "accountBlockedDialogMessage": "You cannot access the app because an administrator has temporarily blocked you.",
+  "contactSupportTeam": "Contact the support team for more information.",
+  "driverArrivedTitle": "Your delivery driver has arrived",
+  "chooseAnAction": "Choose an action.",
+  "orderTotalLabel": "Order total",
+  "deliveryFeesLabel": "Delivery fee",
+  "payMyOrder": "Pay my order",
+  "returnReasonRequiredTitle": "Return reason (required)",
+  "partsOrderPaymentLabel": "Parts order payment",
+  "deliveryFeePaymentLabel": "Delivery fee payment",
+  "fileDownloadFailed": "Unable to download the file",
+  "tranooDocumentShare": "Tranoo document",
+  "refWithId": "Ref. {id}",
+  "@refWithId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "attachedImages": "Attached images",
+  "attachedDocuments": "Attached documents",
+  "stampAndSignature": "Stamp and signature",
+  "reject": "Reject",
+  "downloadReportPdf": "Download PDF report",
+  "imageWithIndex": "Image {index}",
+  "@imageWithIndex": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "documentWithIndex": "Document {index}",
+  "@documentWithIndex": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "buyerAlert": "Buyer alert",
+  "swipeUpOrTap": "Swipe up or tap",
+  "decline": "Decline",
+  "answer": "Answer",
+  "newAlertTitle": "New alert",
+  "sellerRespondedToAlert": "A seller responded to your alert",
+  "videoAvailable": "Video available",
+  "withdrawalProcessingMessage": "Your request is being processed and you will receive confirmation once the withdrawal is complete. If you have questions or wish to modify your request, contact us. Thank you for your trust.",
+  "departurePortField": "Departure port",
+  "arrivalPortField": "Arrival port",
+  "transitDateField": "Transit date",
+  "carNameExample": "Toyota Corolla 2018",
+  "clientExample": "Marcel T",
+  "departurePortExample": "Antwerp, Belgium",
+  "arrivalPortExample": "Cotonou, Benin",
+  "transitDateExample": "April 10, 2025",
+  "timeAgoMinutesLong": "{count} minutes ago",
+  "@timeAgoMinutesLong": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsSelectedCount": "{count} selected",
+  "@notificationsSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmDeleteNotificationsCount": "Delete {count} notification(s)?",
+  "@confirmDeleteNotificationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newRequest": "New request",
+  "budgetAmountFcfa": "Budget {amount} FCFA",
+  "@budgetAmountFcfa": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "alertProposalForYourAlert": "Offer for your alert",
+  "whatsappInterestWithRef": "Hello Tranoo, I confirm my interest in purchasing: {title} (ref. {articleId}).",
+  "@whatsappInterestWithRef": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "articleId": {
+        "type": "String"
+      }
+    }
+  },
+  "whatsappInterestNoRef": "Hello Tranoo, I confirm my interest in purchasing: {title}.",
+  "@whatsappInterestNoRef": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultVehicleTitle": "vehicle",
+  "cannotLoadOrders": "Unable to load your orders",
+  "noOrdersYetHint": "You haven't placed any orders yet",
+  "filterRejected": "Rejected",
+  "filterTracking": "Tracking",
+  "finishedOrdersHiddenHint": "Completed or cancelled orders do not appear here",
+  "orderCmdNumber": "CMD #{id}",
+  "@orderCmdNumber": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "orderStatusPending": "Pending",
+  "orderStatusConfirmed": "Confirmed",
+  "orderStatusPreparing": "Preparing",
+  "orderStatusReady": "Ready",
+  "orderStatusDelivering": "Delivering",
+  "orderStatusDelivered": "Delivered",
+  "orderStatusCancelled": "Cancelled",
+  "orderStatusDriverAssigned": "Driver assigned",
+  "tranooDelivery": "Tranoo Delivery",
+  "driverLabel": "Driver",
+  "addressNotSpecified": "Address not specified",
+  "quantityLabel": "Qty: x{qty}",
+  "@quantityLabel": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
+  },
+  "deliveryDetails": "Delivery details",
+  "driverAssignmentPending": "Assignment in progress",
+  "defaultLocationCotonou": "Cotonou, Benin",
+  "apiErrorWithDetails": "API error ({status}): {details}",
+  "@apiErrorWithDetails": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "monthJan": "JAN",
+  "monthFeb": "FEB",
+  "monthMar": "MAR",
+  "monthApr": "APR",
+  "monthMay": "MAY",
+  "monthJun": "JUN",
+  "monthJul": "JUL",
+  "monthAug": "AUG",
+  "monthSep": "SEP",
+  "monthOct": "OCT",
+  "monthNov": "NOV",
+  "monthDec": "DEC",
+  "fetchingLocation": "Fetching...",
+  "fetchMyLocation": "Use my location",
+  "chooseOnMap": "Choose on map",
+  "currentPositionLabel": "Current position",
+  "selectedPositionLabel": "Selected position",
+  "coordinatesLabel": "Lat: {lat}\nLon: {lng}",
+  "@coordinatesLabel": {
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "availability": "Availability",
+  "deliveryFeeLabel": "Delivery fee",
+  "processingOrder": "Processing...",
+  "supplierCoordsUnavailable": "Supplier coordinates unavailable to calculate delivery.",
+  "invalidCoordinates": "Invalid coordinates",
+  "selectionCancelled": "Selection cancelled",
+  "mapSelectionError": "Map selection error: {error}",
+  "@mapSelectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationRetrievedSuccess": "Current position retrieved successfully!",
+  "deliveryAddressSelectedOnMap": "Delivery address selected on the map!",
+  "enableLocationInSettingsMsg": "Enable location in settings",
+  "locationError": "Location error: {error}",
+  "@locationError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidDeliveryAddress": "Invalid delivery address",
+  "selectDeliveryAddressPlease": "Please select a delivery address",
+  "confirmYourOrder": "Confirm your order",
+  "totalToPay": "Total to pay: {amount} F",
+  "@totalToPay": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "transactionFailedNotSaved": "Transaction failed/cancelled. Order not saved.",
+  "orderConfirmedTitle": "Order confirmed!",
+  "orderSavedSuccess": "Your order was saved successfully.",
+  "deliveryExpected": "Expected delivery",
+  "deliveryBetween3And7Days": "Within 3 to 7 business days",
+  "youWillReceiveNotification": "You will receive a notification",
+  "availAvailable": "Available",
+  "avail15to30min": "In 15-30 min",
+  "avail1to2h": "In 1-2h",
+  "availBefore12": "Before 12pm",
+  "availBefore18": "Before 6pm",
+  "availBefore20": "Before 8pm",
+  "availFlexible": "Flexible",
+  "supplierDefault": "Supplier",
+  "supplierAddressDefault": "Supplier address",
+  "orderSaveError": "Error saving order: {error}",
+  "@orderSaveError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "positionCoords": "Position: {lat}, {lng}",
+  "@positionCoords": {
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "orderPaymentTranooDescription": "Tranoo order payment",
+  "mobileMoneyPayment": "Mobile Money payment",
+  "adDetailsTitle": "Your ad details",
+  "amountToPay": "Amount to pay",
+  "viaMobileMoney": "via Mobile Money",
+  "supportedOperators": "Supported operators",
+  "afterPaymentAdValidationNote": "After payment, your ad will be submitted for admin validation before publication.",
+  "payAmountFcfa": "Pay {amount} FCFA",
+  "@payAmountFcfa": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "adForYourListing": "Ad for your listing",
+  "adPaymentMobileDescription": "Ad payment (mobile money) {pubId}",
+  "@adPaymentMobileDescription": {
+    "placeholders": {
+      "pubId": {
+        "type": "String"
+      }
+    }
+  },
+  "durationLabel": "Duration",
+  "invoicesLoadError": "Unable to load invoices",
+  "signInForInvoices": "Sign in to access your invoices",
+  "noInvoicesYet": "You have no invoices yet.",
+  "unreadLabel": "Unread",
+  "filterByDate": "Filter by date",
+  "filterAllDates": "All",
+  "filterToday": "Today",
+  "filterThisWeek": "This week",
+  "filterThisMonth": "This month",
+  "filterCustom": "Custom",
+  "selectedDateLabel": "Selected date: {date}",
+  "@selectedDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "invoicePreview": "Invoice preview",
+  "transactionSuccessTitle": "Transaction success",
+  "transactionNumber": "Transaction number {ref}",
+  "@transactionNumber": {
+    "placeholders": {
+      "ref": {
+        "type": "String"
+      }
+    }
+  },
+  "dateTimeLabel": "Date & time",
+  "productLabel": "Product",
+  "sellerLabel": "Seller",
+  "shopLabel": "Shop",
+  "fundsSourceLabel": "Funding source",
+  "destinationLabel": "Destination",
+  "referenceLabel": "Reference",
+  "productDetails": "Product details:",
+  "productPriceLabel": "Product price",
+  "deliveryPriceLabel": "Delivery price",
+  "vatLabel": "VAT",
+  "totalTransaction": "Total transaction",
+  "tranooSupport": "Tranoo support",
+  "thankYouForTrust": "Thank you for your trust ",
+  "officialInvoiceDisclaimer": "This invoice is an official document. In case of dispute, please contact our support.",
+  "saveInvoiceImage": "Save invoice (image)",
+  "saveInvoiceDocument": "Save invoice (document)",
+  "imageSavedSuccess": "Image saved successfully",
+  "imageSaveFailed": "Failed to save image",
+  "documentSavedSuccess": "PDF document saved successfully",
+  "documentSaveFailed": "Failed to save PDF document",
+  "captureUnavailable": "Capture unavailable",
+  "imageGenerationFailed": "Unable to generate image",
+  "paidStatus": "Paid",
+  "pendingPaymentStatus": "Pending",
+  "sellerDefault": "Seller",
+  "shopDefault": "Shop",
+  "invoiceTitle": "INVOICE {number}",
+  "@invoiceTitle": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "purchasesLoadError": "Error loading purchases",
+  "purchaseStatusLabel": "Status: {status}",
+  "@purchaseStatusLabel": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryDateLabel": "Delivery date: {date}",
+  "@deliveryDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryLocationLabel": "Delivery location: {location}",
+  "@deliveryLocationLabel": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "fuelTypeLabel": "Fuel type: {type}",
+  "@fuelTypeLabel": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "colorLabel": "Color: {color}",
+  "@colorLabel": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "publishedOn": "Published on {date}",
+  "@publishedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "ratingOutOf": "{rating}/5",
+  "@ratingOutOf": {
+    "placeholders": {
+      "rating": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesAgo2": "2 min ago",
+  "inProgressStatus": "In progress",
+  "yearDropdown": "Year",
+  "cardPlaceholderName": "John Doe",
+  "cardNumberPlaceholder": "0000 0000 0000 0000",
+  "paymentFormFor": "Payment form for {name}",
+  "@paymentFormFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "partNameLabelShort": "Part name: {name}",
+  "@partNameLabelShort": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "untitled": "Untitled",
+  "unknownCompany": "Unknown company",
+  "piecesLoadError": "Error loading parts",
+  "carsLoadError": "Error loading cars",
+  "adsLoadError": "Error loading ads",
+  "dataFormatError": "Data format error",
+  "filterModelsTab": "Models",
+  "filterLocationTab": "Location",
+  "filterBudgetTab": "Budget",
+  "noCarsAvailable": "No cars available at the moment.",
+  "noPartsAvailableOnline": "No parts online at the moment",
+  "noCarsOnlineSeller": "You have no cars online",
+  "noPartsOnlineSeller": "You have no parts online at the moment",
+  "doorsCountLabel": "{count} doors",
+  "@doorsCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsoredLabel": "Sponsored",
+  "chooseTypeTitle": "Choose type",
+  "youTyped": "You typed: \"{text}\"",
+  "@youTyped": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "whatArticleTypeSearch": "What type of item are you looking for?",
+  "vehicleSingular": "Vehicle",
+  "partSingular": "Part",
+  "unknownArticleType": "Unknown item type.",
+  "urgencyLevel": "Urgency level",
+  "partNameRequired": "Part name required",
+  "showVehiclesCount": "Show {count} vehicle(s)",
+  "@showVehiclesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "buyerSearchingPartShort": "A buyer is looking for a part",
+  "buyerSearchingVehicleShort": "A buyer is looking for a vehicle",
+  "validateLocation": "Confirm",
+  "colorField": "Color",
+  "pubRequestCreateError": "Error creating request.",
+  "videoOptional": "Video (optional)",
+  "viewListing": "View listing",
+  "enlarge": "Enlarge",
+  "networkError": "Network error",
+  "cannotGenerateImage": "Unable to generate image",
+  "errorLoadingArticle": "Error loading item.",
+  "conditionNew": "New",
+  "budgetLabel": "Budget",
+  "addressLabel": "Address",
+  "tvaLabel": "VAT",
+  "deliveryLabelShort": "Delivery",
+  "totalLabelShort": "Total",
+  "articleLabel": "Item",
+  "urgencyLabel": "Urgency",
+  "invoicesLoadErrorDetail": "Unable to load invoices ({status}): {message}",
+  "@invoicesLoadErrorDetail": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyProPermissions": "Verifying professional permissions...",
+  "advertisingLabel": "Advertising",
+  "sellerTypeLabel": "Seller type",
+  "deliveryToLabel": "Deliver to",
+  "cashLabel": "Cash",
+  "onlineLabel": "Online",
+  "placeOrderButton": "Order • {total} F",
+  "@placeOrderButton": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "cashOnDeliveryTitle": "Cash on delivery",
+  "cashOnDeliveryChosen": "You chose cash on delivery.",
+  "cashOnDeliveryBilled": "You will be charged when you receive your order.",
+  "previewLabel": "Preview",
+  "changesSaved": "Changes saved.",
+  "saveErrorStatus": "Save error: {status}",
+  "@saveErrorStatus": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "saveErrorGeneric": "Save error: {error}",
+  "@saveErrorGeneric": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "itemAddedToCart": "Item added to cart",
+  "modifyPart": "Edit part",
+  "someImagesNotAdded": "Some images could not be added:",
+  "imagesAddedSuccess": "{count} image(s) added successfully",
+  "@imagesAddedSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unsupportedFormat": "Unsupported format. Accepted: {formats}",
+  "@unsupportedFormat": {
+    "placeholders": {
+      "formats": {
+        "type": "String"
+      }
+    }
+  },
+  "loadingProfile": "Loading profile...",
+  "phoneWithNumber": "Phone {number}",
+  "@phoneWithNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "phoneNotProvided": "Phone not provided — complete your profile",
+  "locationMissingProfile": "Location missing — update your position in profile.",
+  "profileContactLocationHint": "Phone and location from sign-up. Update your profile if needed.",
+  "vehicleLocationLabel": "Vehicle location",
+  "profileLocationReuse": "Uses your registered sign-up position (profile).",
+  "noProfileLocation": "No profile location — update your position in Profile.",
+  "descriptionNotProvided": "Description not provided",
+  "mileageLabel": "Mileage",
+  "maxImages12": "Maximum of 12 images reached",
+  "maxImages10": "Maximum of 10 images reached",
+  "cameraError": "Camera error: {error}",
+  "@cameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "selectionError": "Selection error: {error}",
+  "@selectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "imageAdded": "Image added: {name}",
+  "@imageAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "imageUploaded": "Image uploaded: {name}",
+  "@imageUploaded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadError": "Upload error: {error}",
+  "@uploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorDetail": "Detailed error: {error}",
+  "@errorDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationDetailTitle": "Verification details",
+  "recipientLabel": "Recipient",
+  "cannotOpenDocument": "Unable to open document",
+  "featureNoLongerAvailable": "This feature is no longer available",
+  "articleNotFound": "Item not found",
+  "sessionExpiredReconnect": "Session expired. Sign in again.",
+  "cannotLoadProposal": "Unable to load proposal.",
+  "searchDetails": "Search details",
+  "proposeOfferButton": "Propose an offer",
+  "specialPromotion": "Special promotion",
+  "viewProposal": "View proposal",
+  "partSearched": "Part searched",
+  "articleNotFoundVerification": "Item not found for verification",
+  "noUserForNotifications": "No signed-in user. Cannot load notifications.",
+  "verifySubscriptionPlan": "Unable to verify subscription plan.",
+  "viewSubscription": "View subscription",
+  "addPartTitle": "Add a part",
+  "myCarsTitle": "My cars",
+  "noCarsPublished": "You have no cars published",
+  "myPartsTitle": "My parts",
+  "recommendedLabel": "Recommended",
+  "priceNotCommunicated": "Price not disclosed",
+  "noSponsoredCars": "No sponsored cars.",
+  "linkedArticleNotFound": "Linked item not found for this ad.",
+  "cannotLoadAdDetails": "Unable to load ad details.",
+  "verifiedLabel": "Verified",
+  "vehiclesPending": "Pending vehicles",
+  "noVehiclesPending": "No vehicles pending validation.",
+  "statsForSellersOnly": "Detailed statistics are reserved for sellers.",
+  "saleCreditsRegistered": "{count} sale credit(s) recorded",
+  "@saleCreditsRegistered": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "vehiclesOnlineStat": "Vehicles online",
+  "partsOnlineStat": "Parts online",
+  "vehiclesSoldStat": "Vehicles sold",
+  "partsSoldStat": "Parts sold",
+  "articlesMarkedSold": "Items marked sold",
+  "viewsRecorded": "Recorded views",
+  "topVehiclesViews": "Top vehicles (views)",
+  "globalViewsHint": "Global views will appear here when your vehicles are viewed.",
+  "activities": "Activities",
+  "inTransitStatus": "In transit",
+  "placeLabel": "Place",
+  "packageDelivered": "Package delivered",
+  "arrivalNotified": "Arrival notified to buyer",
+  "arrivalError": "Arrival error: {error}",
+  "@arrivalError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "validateOnSiteFirst": "Confirm \"On site\" at supplier before buyer step.",
+  "doorToDoor": "Door to door",
+  "geolocateSupplier": "Geolocate supplier",
+  "geolocateBuyer": "Geolocate buyer",
+  "contactButton": "Contact",
+  "cashOnDeliveryShort": "Cash on delivery",
+  "onSite": "On site",
+  "finishedLabel": "Finished",
+  "rejectedTabLabel": "Rejected",
+  "addMultipleImages": "Add multiple images",
+  "imageTooLarge": "Image too large: {size}MB (max: 5MB)",
+  "@imageTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "formatNotSupportedExt": "Unsupported format: {ext}. Formats: {formats}",
+  "@formatNotSupportedExt": {
+    "placeholders": {
+      "ext": {
+        "type": "String"
+      },
+      "formats": {
+        "type": "String"
+      }
+    }
+  },
+  "articleNetworkCreateError": "Network error creating item: {error}",
+  "@articleNetworkCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "searchingAddress": "Searching address...",
+  "saveProfileError": "Error updating profile.",
+  "backToSettings": "Back to settings",
+  "sellerTypeUpdatedSuccess": "Seller type updated successfully!",
+  "updateError": "Update error: {error}",
+  "@updateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionPaymentSuccess": "Payment successful: subscription activated.",
+  "subscriptionPaymentFailed": "Payment or activation failed.",
+  "deliveryAcceptedSuccess": "Delivery accepted successfully!",
+  "tricycleLoginRequiredTitle": "You must sign in to continue.",
+  "tricycleLoginRequiredSubtitle": "Sign in to order a tricycle.",
+  "tricycleRequestSentToDriver": "Request sent to the driver.",
+  "tricycleRequestCancelled": "Your request was cancelled.",
+  "tricycleCannotCancel": "Request can no longer be cancelled.",
+  "tricycleDriverAlreadyAccepted": "The driver has already accepted the request.",
+  "tricycleCancelFailed": "Unable to cancel request.",
+  "tricycleCancelErrorCode": "Code: {code}. Please try again.",
+  "@tricycleCancelErrorCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "tricycleCancelError": "Error during cancellation.",
+  "tricycleRequestAcceptedChat": "Request accepted. You can now chat.",
+  "tricycleRequestRejected": "Request rejected.",
+  "checkConnectionRetry": "Check your internet connection and try again.",
+  "pageNotAvailableForRole": "Page not available for this role",
+  "errorDetailed": "Detailed error: {error}",
+  "@errorDetailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "videoUploadErrorRetry": "Error uploading video. Please try again.",
+  "maxMediaSlots": "You can select at most {count} media.",
+  "@maxMediaSlots": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "driverRegistrationFormTitle": "Registration form",
+  "imagesNotAllAddedWarning": "Some images could not be added:",
+  "addedToCart": "Item added to cart",
+  "payOnline": "Online",
+  "orderCommandTotal": "Order • {total} F",
+  "@orderCommandTotal": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationSaveError": "Save error: {error}",
+  "@registrationSaveError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

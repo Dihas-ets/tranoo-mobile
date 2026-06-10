@@ -14,6 +14,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:tranoo/data/screens/map_picker_screen.dart';
 import 'package:tranoo/data/screens/order_payment_screen.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 enum PaymentMethod { cash, online }
 
@@ -25,6 +26,8 @@ class OrderSummaryPage extends StatefulWidget {
 }
 
 class _OrderSummaryPageState extends State<OrderSummaryPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   PaymentMethod _method = PaymentMethod.cash;
@@ -63,16 +66,27 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   String _selectedCity = '';
   String _selectedCountry = 'Bénin';
   
-  // Variables pour le champ Disponibilité
-  String _selectedDisponibilite = 'Disponible'; // Valeur par défaut
-  final List<String> _disponibiliteOptions = [
-    'Dans 15-30 min',
-    'Dans 1h-2h',
-    'Avant 12h',
-    'Avant 18h',
-    'Avant 20h',
-    'Flexible',
-  ];
+  String _selectedDisponibilite = '';
+  bool _disponibiliteInitialized = false;
+
+  List<String> _disponibiliteOptions(AppLocalizations l10n) => [
+        l10n.availAvailable,
+        l10n.avail15to30min,
+        l10n.avail1to2h,
+        l10n.availBefore12,
+        l10n.availBefore18,
+        l10n.availBefore20,
+        l10n.availFlexible,
+      ];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_disponibiliteInitialized) {
+      _selectedDisponibilite = AppLocalizations.of(context)!.availAvailable;
+      _disponibiliteInitialized = true;
+    }
+  }
 
   @override
   void initState() {
@@ -184,13 +198,13 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          _showMessage('Permission de localisation refusée');
+          _showMessage(AppLocalizations.of(context)!.locationPermissionDenied);
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        _showMessage('Activez la localisation dans les paramètres');
+        _showMessage(AppLocalizations.of(context)!.enableLocationInSettingsMsg);
         return;
       }
 
@@ -209,19 +223,25 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         _useCurrentLocation = true;
         _useMapSelection = false;
         _selectedAddress = address;
-        _addressController.text = address.isNotEmpty ? address : 'Position: ${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
+        _addressController.text = address.isNotEmpty
+            ? address
+            : AppLocalizations.of(context)!.positionCoords(
+                position.latitude.toStringAsFixed(6),
+                position.longitude.toStringAsFixed(6),
+              );
         _isLoadingLocation = false;
       });
 
       // Calculer automatiquement les frais de livraison
       await _calculateDeliveryFeeFromLocation();
 
-      _showMessage('Position actuelle récupérée avec succès !');
+      _showMessage(AppLocalizations.of(context)!.locationRetrievedSuccess);
     } catch (e) {
       setState(() {
         _isLoadingLocation = false;
       });
-      _showMessage('Erreur de localisation: ${e.toString()}');
+      _showMessage(
+          AppLocalizations.of(context)!.locationError(e.toString()));
     }
   }
 
@@ -292,7 +312,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           setState(() {
             _isLoadingMap = false;
           });
-          _showMessage('Coordonnées invalides');
+          _showMessage(AppLocalizations.of(context)!.invalidCoordinates);
           return;
         }
         
@@ -309,28 +329,34 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           _useMapSelection = true;
           _useCurrentLocation = false;
           _selectedAddress = address;
-          _addressController.text = address.isNotEmpty ? address : 'Position: ${selectedLat.toStringAsFixed(6)}, ${selectedLng.toStringAsFixed(6)}';
+          _addressController.text = address.isNotEmpty
+              ? address
+              : AppLocalizations.of(context)!.positionCoords(
+                  selectedLat.toStringAsFixed(6),
+                  selectedLng.toStringAsFixed(6),
+                );
           _isLoadingMap = false;
         });
         
         // Calculer automatiquement les frais de livraison
         await _calculateDeliveryFeeFromLocation();
         
-        _showMessage('Adresse de livraison sélectionnée sur la carte !');
+        _showMessage(AppLocalizations.of(context)!.deliveryAddressSelectedOnMap);
         developer.log('✅ SÉLECTION CARTE RÉUSSIE - Lat: $selectedLat, Lng: $selectedLng, Adresse: $address');
       } else {
         developer.log('❌ SÉLECTION CARTE ANNULÉE - Résultat: $result');
         setState(() {
           _isLoadingMap = false;
         });
-        _showMessage('Sélection annulée');
+        _showMessage(AppLocalizations.of(context)!.selectionCancelled);
       }
     } catch (e) {
       developer.log('❌ ERREUR SÉLECTION CARTE: $e');
       setState(() {
         _isLoadingMap = false;
       });
-      _showMessage('Erreur lors de la sélection de la carte: ${e.toString()}');
+      _showMessage(
+          AppLocalizations.of(context)!.mapSelectionError(e.toString()));
     }
   }
 
@@ -391,7 +417,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
               _deliveryDistanceKm = null;
             });
           }
-          _showMessage('Coordonnées fournisseur indisponibles pour calculer la livraison.');
+          _showMessage(AppLocalizations.of(context)!.supplierCoordsUnavailable);
           developer.log('[ORDER_SUMMARY] calc skipped: missing supplier coords');
           return;
         }
@@ -477,9 +503,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Résumé'),
+        title: Text(l10n.orderSummary),
         backgroundColor: Colors.amber,
         foregroundColor: Colors.black,
       ),
@@ -522,9 +549,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       const Divider(height: 24),
 
                       // Section Adresse de livraison avec 2 boutons
-                      const Text(
-                        'Adresse de livraison',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      Text(
+                        l10n.deliveryAddress,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 16),
                       
@@ -543,10 +570,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             elevation: 2,
                           ),
                           child: _isLoadingLocation
-                              ? const Row(
+                              ? Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    SizedBox(
+                                    const SizedBox(
                                       width: 20,
                                       height: 20,
                                       child: CircularProgressIndicator(
@@ -554,24 +581,24 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         color: Colors.black,
                                       ),
                                     ),
-                                    SizedBox(width: 8),
+                                    const SizedBox(width: 8),
                                     Text(
-                                      'Récupération...',
-                                      style: TextStyle(
+                                      l10n.fetchingLocation,
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ],
                                 )
-                              : const Row(
+                              : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.my_location, size: 20),
-                                    SizedBox(width: 8),
+                                    const Icon(Icons.my_location, size: 20),
+                                    const SizedBox(width: 8),
                                     Text(
-                                      'Récupérer ma position',
-                                      style: TextStyle(
+                                      l10n.fetchMyLocation,
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -598,10 +625,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             elevation: 2,
                           ),
                           child: _isLoadingMap
-                              ? const Row(
+                              ? Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    SizedBox(
+                                    const SizedBox(
                                       width: 20,
                                       height: 20,
                                       child: CircularProgressIndicator(
@@ -609,24 +636,24 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         color: Colors.black,
                                       ),
                                     ),
-                                    SizedBox(width: 8),
+                                    const SizedBox(width: 8),
                                     Text(
-                                      'Chargement...',
-                                      style: TextStyle(
+                                      l10n.loading,
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ],
                                 )
-                              : const Row(
+                              : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.map, size: 20),
-                                    SizedBox(width: 8),
+                                    const Icon(Icons.map, size: 20),
+                                    const SizedBox(width: 8),
                                     Text(
-                                      'Choisir sur la carte',
-                                      style: TextStyle(
+                                      l10n.chooseOnMap,
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -660,7 +687,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    _useCurrentLocation ? 'Position actuelle' : 'Position sélectionnée',
+                                    _useCurrentLocation
+                                        ? l10n.currentPositionLabel
+                                        : l10n.selectedPositionLabel,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFFF8BF13),
@@ -727,8 +756,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                       const SizedBox(height: 16),
                       
                       // Section Disponibilité
-                      const Text(
-                        'Disponibilité',
+                      Text(
+                        l10n.availability,
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
@@ -746,7 +775,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                               _selectedDisponibilite = newValue!;
                             });
                           },
-                          items: _disponibiliteOptions.map((String option) {
+                          items: _disponibiliteOptions(l10n).map((String option) {
                             return DropdownMenuItem<String>(
                               value: option,
                               child: Text(
@@ -767,19 +796,19 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
 
                       const SizedBox(height: 8),
                       // Total de la commande
-                      const Text(
-                        'Total de la commande',
+                      Text(
+                        l10n.orderTotalLabel,
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
-                      _rowKV('Sous-total', '${subtotal.toStringAsFixed(0)} F'),
+                      _rowKV(l10n.subtotal, '${subtotal.toStringAsFixed(0)} F'),
                       const SizedBox(height: 6),
                       _rowKV(
-                        'Frais de livraison',
+                        l10n.deliveryFeeLabel,
                         '${_deliveryFee.toStringAsFixed(0)} F',
                       ),
                       const Divider(height: 24),
-                      _rowKV('Total', '${total.toStringAsFixed(0)} F', isBold: true),
+                      _rowKV(l10n.total, '${total.toStringAsFixed(0)} F', isBold: true),
 
                       // Bouton de confirmation intégré dans la page
                       const SizedBox(height: 24),
@@ -798,7 +827,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                       MaterialPageRoute(
                                         builder: (_) => OrderPaymentScreen(
                                           amount: total,
-                                          description: 'Paiement commande Tranoo',
+                                          description: l10n.orderPaymentTranooDescription,
                                         ),
                                       ),
                                     );
@@ -810,7 +839,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     );
                                     if (paid != true) {
                                       _showMessage(
-                                        'Transaction échouée/annulée. Commande non enregistrée.',
+                                        l10n.transactionFailedNotSaved,
                                       );
                                       return;
                                     }
@@ -840,7 +869,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     ),
                                     SizedBox(width: 12),
                                     Text(
-                                      'Traitement en cours...',
+                                      l10n.processingOrder,
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
@@ -848,8 +877,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                     ),
                                   ],
                                 )
-                              : const Text(
-                                  'Passer la commande',
+                              : Text(
+                                  l10n.checkout,
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -902,7 +931,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     final selectedAddress = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Sélectionner une adresse'),
+        title: Text(l10n.selectAddress),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -921,7 +950,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
         ],
       ),
@@ -935,6 +964,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
   }
 
   Future<bool> _confirmOrder(double total) async {
+    final l10n = AppLocalizations.of(context)!;
     developer.log('=== DÉBUT VALIDATION COMMANDE ===');
     developer.log('Total: $total');
     
@@ -949,12 +979,12 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     
     // Vérifier si une adresse a été sélectionnée (GPS ou carte)
     if (!_useCurrentLocation && !_useMapSelection) {
-      _showMessage('Veuillez sélectionner une adresse de livraison');
+      _showMessage(AppLocalizations.of(context)!.selectDeliveryAddressPlease);
       return false;
     }
     
     if (address.isEmpty) {
-      _showMessage('Adresse de livraison invalide');
+      _showMessage(AppLocalizations.of(context)!.invalidDeliveryAddress);
       return false;
     }
 
@@ -981,9 +1011,9 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Confirmer votre commande',
+                    l10n.confirmYourOrder,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -996,7 +1026,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Total à payer: ${total.toStringAsFixed(0)} F',
+                  l10n.totalToPay(total.toStringAsFixed(0)),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -1004,7 +1034,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Adresse de livraison:',
+                  '${l10n.deliveryAddress}:',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[700],
@@ -1022,7 +1052,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Annuler'),
+                      child: Text(l10n.cancel),
                     ),
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
@@ -1030,7 +1060,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         backgroundColor: const Color(0xFFF8BF13), // Jaune Tranoo
                         foregroundColor: Colors.black,
                       ),
-                      child: const Text('Confirmer'),
+                      child: Text(l10n.confirm),
                     ),
                   ],
                 ),
@@ -1089,7 +1119,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text(AppLocalizations.of(context)!.errorGeneric(e.toString())),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),
@@ -1113,7 +1143,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       developer.log('ERREUR: Utilisateur non connecté');
-      throw Exception('Utilisateur non connecté');
+      throw Exception(AppLocalizations.of(context)!.errorUserNotConnected);
     }
     
     developer.log('Utilisateur connecté: ${user.uid}');
@@ -1158,8 +1188,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
           _supplierLatitude = firstItem.supplierLatitude?.toDouble();
           _supplierLongitude = firstItem.supplierLongitude?.toDouble();
           lieuDepart = {
-            'nom': firstItem.supplierName ?? 'Fournisseur',
-            'adresse': firstItem.supplierName ?? 'Adresse fournisseur',
+            'nom': firstItem.supplierName ?? AppLocalizations.of(context)!.supplierDefault,
+            'adresse': firstItem.supplierName ?? AppLocalizations.of(context)!.supplierAddressDefault,
             'latitude': firstItem.supplierLatitude,
             'longitude': firstItem.supplierLongitude,
           };
@@ -1255,8 +1285,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Commande confirmée !',
+            Text(
+              AppLocalizations.of(context)!.orderConfirmedTitle,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -1264,8 +1294,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Votre commande a été enregistrée avec succès.',
+            Text(
+              AppLocalizations.of(context)!.orderSavedSuccess,
               style: TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -1287,8 +1317,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         size: 20,
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Livraison prévue',
+                      Text(
+                        AppLocalizations.of(context)!.deliveryExpected,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.blue,
@@ -1297,8 +1327,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Entre 3 et 7 jours ouvrables',
+                  Text(
+                    AppLocalizations.of(context)!.deliveryBetween3And7Days,
                     style: TextStyle(fontSize: 14, color: Colors.blue),
                   ),
                   const SizedBox(height: 8),
@@ -1310,8 +1340,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                         size: 20,
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Vous recevrez une notification',
+                      Text(
+                        AppLocalizations.of(context)!.youWillReceiveNotification,
                         style: TextStyle(fontSize: 12, color: Colors.amber),
                       ),
                     ],
@@ -1337,8 +1367,8 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
-                  'Revenir à l\'accueil',
+                child: Text(
+                  AppLocalizations.of(context)!.returnHome,
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

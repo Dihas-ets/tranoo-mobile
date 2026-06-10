@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:tranoo/utils/cloudinary_upload.dart';
 import 'dart:developer';
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class Une extends StatefulWidget {
   final String? articleId; // ID de l'article existant (optionnel)
@@ -58,6 +59,21 @@ class Une extends StatefulWidget {
 }
 
 class _UneState extends State<Une> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
+  static const String _pubSponsored = 'Sponsorisée';
+  static const String _pubFeatured = 'À la une';
+  static const String _bankPayment = 'Paiement bancaire';
+  static const String _dureeOneWeek = '1 semaine';
+  static const String _dureeTwoWeeks = '2 semaines';
+  static const String _dureeOneMonth = '1 mois';
+  static const String _dureeTwoMonths = '2 mois';
+  static const String _dureeThreeMonths = '3 mois';
+  static const String _conditionNew = 'Nouveau';
+  static const String _conditionUsed = 'Occasion';
+  static const String _noEngine = 'Aucun';
+  static const String _otherModel = 'Autre';
+
   final _formKey = GlobalKey<FormState>();
   String? _selectedVoiture;
   String? _selectedPaiement;
@@ -90,14 +106,14 @@ class _UneState extends State<Une> {
   bool _isUploadingVideo = false;
   double _videoUploadProgress = 0.0; // Progression de l'upload vidéo
 
-  final List<String> voitures = ['Sponsorisée', 'À la une'];
-  final List<String> moyensPaiement = ['Paiement bancaire', 'Mobile Money'];
+  final List<String> voitures = [_pubSponsored, _pubFeatured];
+  final List<String> moyensPaiement = [_bankPayment, 'Mobile Money'];
   final List<String> durees = [
-    '1 semaine',
-    '2 semaines',
-    '1 mois',
-    '2 mois',
-    '3 mois',
+    _dureeOneWeek,
+    _dureeTwoWeeks,
+    _dureeOneMonth,
+    _dureeTwoMonths,
+    _dureeThreeMonths,
   ];
 
   // Prix par jour pour chaque type (à récupérer du backend)
@@ -105,18 +121,99 @@ class _UneState extends State<Une> {
   double _prixALaUneParJour = 2000.0;
 
   // Listes pour les dropdowns de voiture
-  final List<String> _carTypes = ['Nouveau', 'Occasion'];
+  final List<String> _carTypes = [_conditionNew, _conditionUsed];
   final List<String> _carFuelTypes = [
     'Essence',
     'Gazoil',
     'Diesel',
     'Electrique',
     'Hybride',
-    'Aucun',
+    _noEngine,
   ];
-  final List<String> _carModels = ['Modèle1', 'Modèle2', 'Autre'];
+  final List<String> _carModels = ['Modèle1', 'Modèle2', _otherModel];
 
   final ImagePicker picker = ImagePicker();
+
+  String _pubTypeLabel(AppLocalizations l10n, String type) {
+    switch (type) {
+      case _pubSponsored:
+        return l10n.sponsoredType;
+      case _pubFeatured:
+        return l10n.featuredType;
+      default:
+        return type;
+    }
+  }
+
+  String _durationLabel(AppLocalizations l10n, String duree) {
+    switch (duree) {
+      case _dureeOneWeek:
+        return l10n.oneWeek;
+      case _dureeTwoWeeks:
+        return l10n.twoWeeks;
+      case _dureeOneMonth:
+        return l10n.oneMonth;
+      case _dureeTwoMonths:
+        return l10n.twoMonths;
+      case _dureeThreeMonths:
+        return l10n.threeMonths;
+      default:
+        return duree;
+    }
+  }
+
+  String _conditionLabel(AppLocalizations l10n, String? value) {
+    if (value == _conditionNew) return l10n.newCondition;
+    if (value == _conditionUsed) return l10n.usedCondition;
+    return value ?? '';
+  }
+
+  String _fuelLabel(AppLocalizations l10n, String value) {
+    switch (value) {
+      case 'Essence':
+        return l10n.petrol;
+      case 'Gazoil':
+        return l10n.gazoil;
+      case 'Diesel':
+      case 'Diezel':
+        return l10n.diesel;
+      case 'Electrique':
+        return l10n.electric;
+      case 'Hybride':
+        return l10n.hybrid;
+      case _noEngine:
+        return l10n.noEngine;
+      default:
+        return value;
+    }
+  }
+
+  void _applyDefaultPlaceholders(AppLocalizations l10n) {
+    if (widget.articleId != null) return;
+    if (_carNameController.text == 'Nom de la voiture' ||
+        _carNameController.text.isEmpty) {
+      _carNameController.text = l10n.defaultCarName;
+    }
+    if (_carLocationController.text == 'Localisation' ||
+        _carLocationController.text.isEmpty) {
+      _carLocationController.text = l10n.defaultLocation;
+    }
+    if (_carPriceController.text == 'Prix' || _carPriceController.text.isEmpty) {
+      _carPriceController.text = l10n.defaultPrice;
+    }
+    if (_carDescriptionController.text == 'Description de la voiture' ||
+        _carDescriptionController.text.isEmpty) {
+      _carDescriptionController.text = l10n.defaultCarDescription;
+    }
+    if (_carCompanyController.text == "Nom de l'entreprise" ||
+        _carCompanyController.text.isEmpty) {
+      _carCompanyController.text = l10n.defaultCompanyName;
+    }
+    if (_carModelController.text == 'Marque' ||
+        _carModelController.text.isEmpty) {
+      _carModelController.text = l10n.defaultBrand;
+    }
+  }
 
   bool get _isPieceArticle =>
       (widget.articleType ?? '').toLowerCase() == 'piece';
@@ -140,24 +237,21 @@ class _UneState extends State<Une> {
     super.initState();
     _loadPrixConfig(); // Charger les prix depuis le backend
     if (widget.isStandalone) {
-      _selectedVoiture = 'À la une';
-      _descriptionController.text = 'Publicité À la une (flyer vitrine Tranoo)';
+      _selectedVoiture = _pubFeatured;
     }
     // Si on a un articleId, charger ses infos
     if (widget.articleId != null) {
       _loadArticleInfo();
     } else {
       // Pré-remplir les champs avec les paramètres passés ou des valeurs par défaut
-      _carNameController.text = widget.articleTitle ?? 'Nom de la voiture';
+      _carNameController.text = widget.articleTitle ?? '';
       _carYearController.text =
           widget.articleYear ?? DateTime.now().year.toString();
-      _carLocationController.text = widget.articleLocation ?? 'Localisation';
-      _carPriceController.text = widget.articlePrice ?? 'Prix';
-      _carDescriptionController.text =
-          widget.articleDescription ?? 'Description de la voiture';
-      _carCompanyController.text =
-          widget.articleCompany ?? 'Nom de l\'entreprise';
-      _carModelController.text = widget.articleModel ?? 'Marque';
+      _carLocationController.text = widget.articleLocation ?? '';
+      _carPriceController.text = widget.articlePrice ?? '';
+      _carDescriptionController.text = widget.articleDescription ?? '';
+      _carCompanyController.text = widget.articleCompany ?? '';
+      _carModelController.text = widget.articleModel ?? '';
       _selectedCarModel = _carModels.contains(widget.articleModel)
           ? widget.articleModel
           : 'Modèle1';
@@ -166,13 +260,23 @@ class _UneState extends State<Une> {
           : 'Essence';
       _selectedCarType = _carTypes.contains(widget.articlePieceType)
           ? widget.articlePieceType
-          : 'Nouveau';
+          : _conditionNew;
 
       // Charger les images si fournies
       if (widget.articleImages != null && widget.articleImages!.isNotEmpty) {
         _cloudinaryImageUrls = List<String>.from(widget.articleImages!);
       }
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final l10n = AppLocalizations.of(context)!;
+    if (widget.isStandalone && _descriptionController.text.isEmpty) {
+      _descriptionController.text = l10n.standaloneFeaturedDescriptionDefault;
+    }
+    _applyDefaultPlaceholders(l10n);
   }
 
   @override
@@ -257,16 +361,18 @@ class _UneState extends State<Une> {
         log(
           '[DEBUG] Erreur création article: ${response.statusCode} - ${response.body}',
         );
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la création de l\'article.')),
+          SnackBar(content: Text(l10n.articleCreateError)),
         );
         return null;
       }
     } catch (e) {
       log('[DEBUG] Exception création article: $e');
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur réseau lors de la création de l\'article: $e'),
+          content: Text(l10n.articleCreateNetworkError(e.toString())),
         ),
       );
       return null;
@@ -314,7 +420,7 @@ class _UneState extends State<Une> {
                   : 'Essence';
           _selectedCarType = _carTypes.contains(articleData['condition'])
               ? articleData['condition']
-              : 'Nouveau';
+              : _conditionNew;
 
           // Charger les images existantes
           if (articleData['photos'] != null) {
@@ -336,7 +442,7 @@ class _UneState extends State<Une> {
                   : 'Essence';
           _selectedCarType = _carTypes.contains(articleData['pieceType'])
               ? articleData['pieceType']
-              : 'Nouveau';
+              : _conditionNew;
 
           // Charger les images existantes
           if (articleData['photos'] != null) {
@@ -345,21 +451,23 @@ class _UneState extends State<Une> {
         }
 
         // Pré-remplir la description de la pub
-        _descriptionController.text = 'Publicité pour ${articleData['titre']}';
+        final l10n = AppLocalizations.of(context)!;
+        _descriptionController.text =
+            l10n.pubForTitle(articleData['titre']?.toString() ?? '');
 
         log('[DEBUG] Champs remplis avec les infos de l\'article');
       } else {
         log('[DEBUG] Erreur chargement article: ${response.statusCode}');
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors du chargement de l\'article')),
+          SnackBar(content: Text(l10n.articleLoadError)),
         );
       }
     } catch (e) {
       log('[DEBUG] Exception chargement article: $e');
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur réseau lors du chargement de l\'article'),
-        ),
+        SnackBar(content: Text(l10n.articleLoadNetworkError)),
       );
     } finally {
       setState(() {
@@ -438,11 +546,10 @@ class _UneState extends State<Une> {
       final int videoSize = await video.length();
       final double videoSizeMB = videoSize / (1024 * 1024);
       if (videoSize > maxSizeBytes) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'La vidéo est trop lourde (${videoSizeMB.toStringAsFixed(2)} Mo). Limite: 500 Mo.',
-            ),
+            content: Text(l10n.videoTooHeavy(videoSizeMB.toStringAsFixed(2))),
             backgroundColor: Colors.red,
           ),
         );
@@ -525,8 +632,9 @@ class _UneState extends State<Une> {
           !e.toString().contains('format') &&
           !e.toString().contains('timeout') &&
           !e.toString().contains('network')) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de l\'upload des médias: $e')),
+          SnackBar(content: Text(l10n.mediaUploadError(e.toString()))),
         );
       }
     } finally {
@@ -597,30 +705,29 @@ class _UneState extends State<Une> {
   int _getNombreJours(String? duree) {
     if (duree == null) return 0;
     switch (duree) {
-      case '1 semaine':
+      case _dureeOneWeek:
         return 7;
-      case '2 semaines':
+      case _dureeTwoWeeks:
         return 14;
-      case '1 mois':
+      case _dureeOneMonth:
         return 30;
-      case '2 mois':
+      case _dureeTwoMonths:
         return 60;
-      case '3 mois':
+      case _dureeThreeMonths:
         return 90;
       default:
         return 0;
     }
   }
 
-  // Récupérer le prix par jour selon le type de pub
   double _getPrixParJour(String? typePub) {
     if (typePub == null) return 0.0;
     double prix = 0.0;
     switch (typePub) {
-      case 'Sponsorisée':
+      case _pubSponsored:
         prix = _prixSponsoriseeParJour;
         break;
-      case 'À la une':
+      case _pubFeatured:
         prix = _prixALaUneParJour;
         break;
       default:
@@ -649,8 +756,9 @@ class _UneState extends State<Une> {
       } else {
         // Afficher juste le prix par jour quand seul le type est sélectionné
         final prixFormate = prixParJour.round();
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _prixController.text = '$prixFormate/jour';
+          _prixController.text = l10n.pricePerDayLabel('$prixFormate');
         });
 
         log('[DEBUG] Prix par jour: $prixParJour FCFA (formaté: $prixFormate)');
@@ -688,16 +796,17 @@ class _UneState extends State<Une> {
   }
 
   Future<void> _onPayer() async {
+    final l10n = AppLocalizations.of(context)!;
     debugPrint('🚀 [DEBUG] Début _onPayer - articleId: ${widget.articleId}');
     log('🚀 [DEBUG] Début _onPayer - articleId: ${widget.articleId}');
 
     final currentType =
-        _selectedVoiture ?? (widget.isStandalone ? 'À la une' : null);
+        _selectedVoiture ?? (widget.isStandalone ? _pubFeatured : null);
     if (!_formKey.currentState!.validate() ||
         currentType == null ||
         _selectedDuree == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez remplir tous les champs.')),
+        SnackBar(content: Text(l10n.fillAllFieldsShort)),
       );
       return;
     }
@@ -710,23 +819,18 @@ class _UneState extends State<Une> {
     final lien = lienValue.isEmpty ? null : lienValue;
     if (pubImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner au moins une image.'),
-        ),
+        SnackBar(content: Text(l10n.selectAtLeastOneImage)),
       );
       return;
     }
 
-    // Validation spécifique pour les annonces sponsorisées
-    final bool isSponsorisee = currentType == 'Sponsorisée';
-    final bool isALaUne = currentType == 'À la une';
+    final bool isSponsorisee = currentType == _pubSponsored;
+    final bool isALaUne = currentType == _pubFeatured;
 
     if (isSponsorisee) {
       if (_isAnyUploading) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Veuillez attendre la fin de l\'upload.'),
-          ),
+          SnackBar(content: Text(l10n.waitUploadFinish)),
         );
         return;
       }
@@ -740,23 +844,16 @@ class _UneState extends State<Une> {
           (_selectedCarModel == null || _selectedCarModel!.isEmpty) ||
           _selectedCarType == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Veuillez remplir tous les champs de la voiture.'),
-          ),
+          SnackBar(content: Text(l10n.fillCarFields)),
         );
         return;
       }
     }
 
-    // Validation pour "À la une" - image principale obligatoire
     if (isALaUne) {
       if (_cloudinaryImageUrls[0] == null || _cloudinaryImageUrls[0]!.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Veuillez ajouter une image principale pour "À la une".',
-            ),
-          ),
+          SnackBar(content: Text(l10n.addMainImageForFeatured)),
         );
         return;
       }
@@ -781,12 +878,12 @@ class _UneState extends State<Une> {
         // Préparation des données de publicité pour standalone
         final pubData = {
           'description': _descriptionController.text.trim().isEmpty
-              ? 'Publicité sans description'
+              ? l10n.noDescriptionAd
               : _descriptionController.text.trim(),
           'typePub': currentType,
           'duree': _selectedDuree,
           'prix': int.tryParse(_prixController.text) ?? 0,
-          'moyenPaiement': 'Paiement bancaire',
+          'moyenPaiement': _bankPayment,
           'media': pubImages, // Envoyer toutes les images uploadées
           'statut': 'en_attente',
           'vendeur': user?.uid,
@@ -833,9 +930,7 @@ class _UneState extends State<Une> {
             '[DEBUG] Erreur création publicité standalone: ${response.statusCode} - ${response.body}',
           );
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erreur lors de la création de la demande.'),
-            ),
+            SnackBar(content: Text(l10n.pubRequestCreateError)),
           );
         }
         return;
@@ -873,11 +968,7 @@ class _UneState extends State<Une> {
             '❌ [DEBUG] Article non trouvé - Status: ${checkResponse.statusCode}',
           );
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Cet article n\'existe pas, veuillez le créer et après validation par l\'admin vous pourrez le mettre en avant.',
-              ),
-            ),
+            SnackBar(content: Text(l10n.articleNotExistCreateFirst)),
           );
           setState(() {
             _isLoading = false;
@@ -886,18 +977,14 @@ class _UneState extends State<Une> {
         }
       } else {
         // Pour les pubs "Sponsorisée", créer automatiquement l'article
-        if (_selectedVoiture == 'Sponsorisée') {
+        if (_selectedVoiture == _pubSponsored) {
           log('📝 [DEBUG] Création automatique d\'article pour pub Sponsorisée');
           articleIdToUse = await _createArticle();
 
           if (articleIdToUse == null) {
             log('❌ [DEBUG] Échec de la création de l\'article');
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Erreur lors de la création de l\'article. Veuillez réessayer.',
-                ),
-              ),
+              SnackBar(content: Text(l10n.articleCreateRetryError)),
             );
             setState(() {
               _isLoading = false;
@@ -910,11 +997,7 @@ class _UneState extends State<Une> {
           // Pour les autres types de pub, nécessiter un article existant
           log('⚠️ [DEBUG] Aucun articleId fourni et type de pub non-Sponsorisée');
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Cet article n\'existe pas. Pour les pubs "À la une", veuillez d\'abord créer l\'article et après validation par l\'admin vous pourrez le mettre en avant.',
-              ),
-            ),
+            SnackBar(content: Text(l10n.articleNotExistFeaturedFirst)),
           );
           setState(() {
             _isLoading = false;
@@ -926,12 +1009,12 @@ class _UneState extends State<Une> {
       // Préparation des données de publicité
       final pubData = {
         'description': _descriptionController.text.trim().isEmpty
-            ? 'Publicité sans description'
+            ? l10n.noDescriptionAd
             : _descriptionController.text.trim(),
         'typePub': currentType,
         'duree': _selectedDuree,
         'prix': int.tryParse(_prixController.text) ?? 0,
-        'moyenPaiement': 'Paiement bancaire',
+        'moyenPaiement': _bankPayment,
         'media': pubImages, // Envoyer toutes les images uploadées
         'statut': 'en_attente',
         'vendeur': user?.uid,
@@ -965,14 +1048,14 @@ class _UneState extends State<Une> {
           '[DEBUG] Erreur création publicité: ${response.statusCode} - ${response.body}',
         );
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la création de la demande.')),
+          SnackBar(content: Text(l10n.pubRequestCreateError)),
         );
       }
     } catch (e) {
       log('[DEBUG] Exception lors de la création de la pub: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur réseau ou serveur: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorNetwork(e.toString()))),
+      );
     } finally {
       setState(() {
         _isLoading = false;
@@ -997,22 +1080,21 @@ class _UneState extends State<Une> {
         body: jsonEncode({'statut': 'payee'}),
       );
       if (response.statusCode == 200) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Paiement réussi, en attente de validation admin. Vous recevrez une notification dès validation.',
-            ),
-          ),
+          SnackBar(content: Text(l10n.paymentSuccessPendingValidation)),
         );
       } else {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la mise à jour du statut.')),
+          SnackBar(content: Text(l10n.statusUpdateError)),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur réseau ou serveur.')));
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.networkOrServerError)),
+      );
     } finally {
       setState(() {
         _isLoading = false;
@@ -1022,6 +1104,7 @@ class _UneState extends State<Une> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final mediaQuery = MediaQuery.of(context);
     final screenHeight = mediaQuery.size.height;
     final screenWidth = mediaQuery.size.width;
@@ -1068,9 +1151,7 @@ class _UneState extends State<Une> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.isStandalone
-                          ? 'Créer une publicité'
-                          : 'Demande de pub',
+                      widget.isStandalone ? l10n.createAd : l10n.adRequest,
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -1109,8 +1190,8 @@ class _UneState extends State<Une> {
                               const SizedBox(width: 8),
                               Text(
                                 widget.isStandalone
-                                    ? 'Publicité indépendante'
-                                    : 'Publicité d\'article existant',
+                                    ? l10n.standaloneAd
+                                    : l10n.existingArticleAd,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: widget.isStandalone
@@ -1123,10 +1204,10 @@ class _UneState extends State<Une> {
                           const SizedBox(height: 8),
                           Text(
                             widget.isStandalone
-                                ? 'Publicité À la une indépendante. Téléchargez un flyer (1080 x 1350 px recommandé) et ajoutez un lien optionnel vers votre site ou votre catalogue.'
+                                ? l10n.standaloneAdDesc
                                 : widget.articleId == null
-                                    ? 'Publication non existante. Vous créez une publication non existante. Les utilisateurs pourront cliquer pour voir les détails de votre offre.'
-                                    : 'Vous créez une publicité pour un article existant. Les utilisateurs pourront cliquer pour voir l\'article complet.',
+                                    ? l10n.nonExistingPubDesc
+                                    : l10n.existingArticlePubDesc,
                             style: TextStyle(
                               fontSize: 14,
                               color: widget.isStandalone
@@ -1160,7 +1241,7 @@ class _UneState extends State<Une> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Chargement des informations de l\'article...',
+                                l10n.loadingArticleInfo,
                                 style: TextStyle(
                                   color: Colors.blue.shade700,
                                   fontWeight: FontWeight.w500,
@@ -1193,7 +1274,7 @@ class _UneState extends State<Une> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Article chargé avec succès ! Vous pouvez maintenant faire une publicité pour cet article.',
+                                l10n.articleLoadedSuccess,
                                 style: TextStyle(
                                   color: Colors.green.shade700,
                                   fontWeight: FontWeight.w500,
@@ -1210,26 +1291,24 @@ class _UneState extends State<Une> {
                     TextFormField(
                       controller: _descriptionController,
                       maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.description,
+                        border: const OutlineInputBorder(),
                       ),
                       // Optionnel
                     ),
                     const SizedBox(height: 20),
 
                     if (widget.isStandalone ||
-                        (_selectedVoiture == 'À la une')) ...[
+                        (_selectedVoiture == _pubFeatured)) ...[
                       TextFormField(
                         controller: _linkController,
                         keyboardType: TextInputType.url,
-                        decoration: const InputDecoration(
-                          labelText: 'Lien cliquable (optionnel)',
-                          hintText:
-                              'Ex: https://wa.me/2250700000000 ou https://mon-site.com',
-                          helperText:
-                              'Permettre aux utilisateurs d\'ouvrir votre site, catalogue ou formulaire de paiement.',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.clickableLinkOptional,
+                          hintText: l10n.linkExampleHint,
+                          helperText: l10n.linkHelperText,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -1244,51 +1323,50 @@ class _UneState extends State<Une> {
                             .map(
                               (voiture) => DropdownMenuItem(
                                 value: voiture,
-                                child: Text(voiture),
+                                child: Text(_pubTypeLabel(l10n, voiture)),
                               ),
                             )
                             .toList(),
-                        decoration: const InputDecoration(
-                          labelText: 'Type de publicité',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.adType,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null) {
-                            return 'Veuillez sélectionner un type';
+                            return l10n.selectAdType;
                           }
                           return null;
                         },
                         onChanged: (value) {
                           setState(() {
                             _selectedVoiture = value;
-                            _updatePrix(); // Calculer le prix dynamiquement
-                            // Met à jour le prix selon le type de pub
-                            if (value == 'Sponsorisée') {
+                            _updatePrix();
+                            if (value == _pubSponsored) {
                               // Pré-remplir les champs si pas d'article existant
                               if (widget.articleId == null) {
                                 // Utiliser les paramètres passés ou des valeurs par défaut
                                 _carNameController.text =
-                                    widget.articleTitle ?? 'Nom de la voiture';
+                                    widget.articleTitle ?? l10n.defaultCarName;
                                 _carYearController.text = widget.articleYear ??
                                     DateTime.now().year.toString();
                                 _carLocationController.text =
-                                    widget.articleLocation ?? 'Localisation';
+                                    widget.articleLocation ?? l10n.defaultLocation;
                                 _carPriceController.text =
-                                    widget.articlePrice ?? 'Prix';
+                                    widget.articlePrice ?? l10n.defaultPrice;
                                 _carDescriptionController.text =
                                     widget.articleDescription ??
-                                        'Description de la voiture';
+                                        l10n.defaultCarDescription;
                                 _carCompanyController.text =
                                     widget.articleCompany ??
-                                        'Nom de l\'entreprise';
+                                        l10n.defaultCompanyName;
                                 _carModelController.text =
-                                    widget.articleModel ?? 'Marque';
+                                    widget.articleModel ?? l10n.defaultBrand;
                                 _selectedCarModel =
                                     widget.articleModel ?? 'Modèle1';
                                 _selectedCarFuelType =
                                     widget.articleFuelType ?? 'Essence';
                                 _selectedCarType =
-                                    widget.articlePieceType ?? 'Nouveau';
+                                    widget.articlePieceType ?? _conditionNew;
 
                                 // Charger les images si fournies
                                 if (widget.articleImages != null &&
@@ -1320,18 +1398,18 @@ class _UneState extends State<Une> {
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
+                                children: [
                                   Text(
-                                    'Publicité À la une',
-                                    style: TextStyle(
+                                    l10n.standaloneFeaturedTitle,
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
                                     ),
                                   ),
-                                  SizedBox(height: 4),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'Flyer dédié, pas besoin d\'article existant. Ajoutez simplement votre visuel et (optionnellement) un lien externe.',
-                                    style: TextStyle(fontSize: 13),
+                                    l10n.standaloneFeaturedDesc,
+                                    style: const TextStyle(fontSize: 13),
                                   ),
                                 ],
                               ),
@@ -1349,17 +1427,17 @@ class _UneState extends State<Une> {
                           .map(
                             (duree) => DropdownMenuItem(
                               value: duree,
-                              child: Text(duree),
+                              child: Text(_durationLabel(l10n, duree)),
                             ),
                           )
                           .toList(),
-                      decoration: const InputDecoration(
-                        labelText: 'Durée de la publicité',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.adDuration,
+                        border: const OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null) {
-                          return 'Veuillez sélectionner une durée';
+                          return l10n.selectDuration;
                         }
                         return null;
                       },
@@ -1376,9 +1454,9 @@ class _UneState extends State<Une> {
                     TextFormField(
                       controller: _prixController,
                       enabled: false,
-                      decoration: const InputDecoration(
-                        labelText: 'Prix (FCFA)',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.priceFcfa,
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                     if (prixEnLettres.isNotEmpty)
@@ -1395,11 +1473,11 @@ class _UneState extends State<Une> {
                     const SizedBox(height: 30),
 
                     // SECTION DYNAMIQUE : Informations concernant la voiture
-                    if (_selectedVoiture == 'Sponsorisée') ...[
+                    if (_selectedVoiture == _pubSponsored) ...[
                       const Divider(height: 40, thickness: 2),
-                      const Text(
-                        'Informations concernant la voiture',
-                        style: TextStyle(
+                      Text(
+                        l10n.carInfoSection,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1409,94 +1487,89 @@ class _UneState extends State<Une> {
                       // Nom de la pièce/voiture
                       TextFormField(
                         controller: _carNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom de la pièce/voiture',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.partOrCarName,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Veuillez entrer le nom';
+                            return l10n.enterName;
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 20),
 
-                      // Année
                       TextFormField(
                         controller: _carYearController,
-                        decoration: const InputDecoration(
-                          labelText: 'Année',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.year,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Veuillez entrer l\'année';
+                            return l10n.enterYearValidator;
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 20),
 
-                      // Localisation
                       TextFormField(
                         controller: _carLocationController,
-                        decoration: const InputDecoration(
-                          labelText: 'Localisation',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.defaultLocation,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Veuillez entrer la localisation';
+                            return l10n.enterLocationValidator;
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 20),
 
-                      // Prix
                       TextFormField(
                         controller: _carPriceController,
-                        decoration: const InputDecoration(
-                          labelText: 'Prix',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.price,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Veuillez entrer le prix';
+                            return l10n.enterPriceValidator;
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 20),
 
-                      // Description
                       TextFormField(
                         controller: _carDescriptionController,
                         maxLines: 3,
-                        decoration: const InputDecoration(
-                          labelText: 'Description de la voiture',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.carDescription,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Veuillez entrer une description';
+                            return l10n.enterDescriptionValidator;
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 20),
 
-                      // Entreprise
                       TextFormField(
                         controller: _carCompanyController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom de l\'entreprise',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.defaultCompanyName,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Veuillez entrer le nom de l\'entreprise';
+                            return l10n.enterCompanyValidator;
                           }
                           return null;
                         },
@@ -1510,17 +1583,17 @@ class _UneState extends State<Une> {
                             .map(
                               (type) => DropdownMenuItem(
                                 value: type,
-                                child: Text(type),
+                                child: Text(_fuelLabel(l10n, type)),
                               ),
                             )
                             .toList(),
-                        decoration: const InputDecoration(
-                          labelText: 'Type de moteur',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.engineType,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Veuillez sélectionner le type de moteur';
+                            return l10n.selectEngineTypeValidator;
                           }
                           return null;
                         },
@@ -1543,13 +1616,13 @@ class _UneState extends State<Une> {
                               ),
                             )
                             .toList(),
-                        decoration: const InputDecoration(
-                          labelText: 'Modèle',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.model,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Veuillez sélectionner le modèle';
+                            return l10n.selectModelValidator;
                           }
                           return null;
                         },
@@ -1568,17 +1641,17 @@ class _UneState extends State<Une> {
                             .map(
                               (type) => DropdownMenuItem(
                                 value: type,
-                                child: Text(type),
+                                child: Text(_conditionLabel(l10n, type)),
                               ),
                             )
                             .toList(),
-                        decoration: const InputDecoration(
-                          labelText: 'Type',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.typeLabel,
+                          border: const OutlineInputBorder(),
                         ),
                         validator: (value) {
                           if (value == null) {
-                            return 'Veuillez sélectionner le type';
+                            return l10n.selectTypeValidator;
                           }
                           return null;
                         },
@@ -1592,15 +1665,15 @@ class _UneState extends State<Une> {
                     ],
 
                     // Section conditionnelle selon le type de pub
-                    if (_selectedVoiture == 'À la une') ...[
-                      const Text(
-                        'Image principale (flyer)',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                    if (_selectedVoiture == _pubFeatured) ...[
+                      Text(
+                        l10n.mainFlyerImage,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
-                        'Dimensions recommandées : 1080 x 1350 px (PNG/JPG)',
-                        style: TextStyle(
+                      Text(
+                        l10n.recommendedDimensions,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,
                         ),
@@ -1647,9 +1720,9 @@ class _UneState extends State<Une> {
                                       size: 40,
                                     ),
                                     const SizedBox(height: 8),
-                                    const Text(
-                                      'Ajouter image principale',
-                                      style: TextStyle(color: Colors.grey),
+                                    Text(
+                                      l10n.addMainImage,
+                                      style: const TextStyle(color: Colors.grey),
                                     ),
                                   ],
                                 ),
@@ -1665,9 +1738,9 @@ class _UneState extends State<Une> {
                                     color: Colors.black.withOpacity(0.65),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: const Text(
-                                    '1080 x 1350 px',
-                                    style: TextStyle(
+                                  child: Text(
+                                    l10n.dimensions1080x1350,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
                                     ),
@@ -1717,9 +1790,9 @@ class _UneState extends State<Une> {
                         ),
                       ),
                     ] else ...[
-                      const Text(
-                        'Images supplémentaires (optionnel)',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      Text(
+                        l10n.additionalImagesOptional,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 10),
 
@@ -1857,8 +1930,8 @@ class _UneState extends State<Une> {
                                           const SizedBox(height: 6),
                                           Text(
                                             _videoUploadProgress < 0.85
-                                                ? 'Envoi...'
-                                                : 'Traitement...',
+                                                ? l10n.sending
+                                                : l10n.processing,
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 10,
@@ -1955,9 +2028,9 @@ class _UneState extends State<Une> {
                             ? const CircularProgressIndicator(
                                 color: Colors.black,
                               )
-                            : const Text(
-                                'Payer',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                            : Text(
+                                l10n.pay,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                       ),
                     ),

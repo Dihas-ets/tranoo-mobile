@@ -7,6 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../config/backend_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../utils/in_app_delivery_popup.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/order_status_l10n.dart';
 
 class OrderTrackingPageModern extends StatefulWidget {
   final String orderId;
@@ -23,6 +25,8 @@ class OrderTrackingPageModern extends StatefulWidget {
 }
 
 class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool _isLoading = true;
   String? _error;
   Map<String, dynamic>? _orderData;
@@ -62,7 +66,7 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        throw Exception('Utilisateur non connecté');
+        throw Exception(AppLocalizations.of(context)!.errorUserNotConnected);
       }
 
       final idToken = await user.getIdToken();
@@ -125,15 +129,20 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
       }
     } on DioException catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _error = 'Erreur API (${e.response?.statusCode}): ${e.response?.data ?? e.message}';
+          _error = l10n.apiErrorWithDetails(
+            '${e.response?.statusCode ?? ''}',
+            '${e.response?.data ?? e.message}',
+          );
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _error = 'Erreur: $e';
+          _error = l10n.errorGeneric(e.toString());
           _isLoading = false;
         });
       }
@@ -241,10 +250,11 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: widget.showAppBar ? AppBar(
         title: Text(
-          'Suivi de commande',
+          l10n.orderTracking,
           style: const TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -269,6 +279,7 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
   }
 
   Widget _buildErrorWidget() {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -294,7 +305,7 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
               backgroundColor: const Color(0xFFF8BF13),
               foregroundColor: Colors.black,
             ),
-            child: const Text('Réessayer'),
+            child: Text(l10n.retry),
           ),
         ],
       ),
@@ -458,7 +469,7 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Détails de la livraison',
+                  AppLocalizations.of(context)!.deliveryDetails,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -529,8 +540,8 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Livreur',
+                Text(
+                  AppLocalizations.of(context)!.driverLabel,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -538,7 +549,9 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
                   ),
                 ),
                 Text(
-                  hasLivreur ? nom : 'Affectation en cours',
+                  hasLivreur
+                      ? nom
+                      : AppLocalizations.of(context)!.driverAssignmentPending,
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.grey,
@@ -604,7 +617,10 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
     final itemsRaw = _orderData?['items'];
     final items = (itemsRaw is List) ? itemsRaw.whereType<Map>().toList() : const <Map>[];
     final first = items.isNotEmpty ? items.first : null;
-    final itemTitle = first?['title']?.toString() ?? first?['titre']?.toString() ?? 'Commande';
+    final l10n = AppLocalizations.of(context)!;
+    final itemTitle = first?['title']?.toString() ??
+        first?['titre']?.toString() ??
+        l10n.orderLabel;
     final qty = (first?['quantity'] as num?)?.toInt() ?? (first?['quantite'] as num?)?.toInt() ?? 1;
     final isDelivered = (deliveryStatus ?? '').toLowerCase() == 'livré' || (deliveryStatus ?? '').toLowerCase() == 'delivered';
     final colisRecupere = _deliveryData?['colisRecupere'] == true;
@@ -700,7 +716,7 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Qté: x$qty',
+                        l10n.quantityLabel(qty),
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.black.withOpacity(0.55),
@@ -795,33 +811,6 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
     }
   }
 
-  // Méthodes utilitaires
-  String _formatStatus(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return 'En attente';
-      case 'confirmed':
-        return 'Confirmée';
-      case 'preparing':
-        return 'En préparation';
-      case 'ready':
-        return 'Prête';
-      case 'delivering':
-      case 'commandé':
-      case 'assigné':
-      case 'en_cours':
-        return 'En livraison';
-      case 'delivered':
-      case 'livré':
-        return 'Livrée';
-      case 'cancelled':
-      case 'refusé':
-      case 'retour':
-        return 'Annulée';
-      default:
-        return status ?? 'Inconnu';
-    }
-  }
 }
 
 // (Painter supprimé: plus utilisé après refonte UI)

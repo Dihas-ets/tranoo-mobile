@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'dart:io';
-import 'historique_transit.dart'; // Importez la page HistoriqueTransitPage
+import 'historique_transit.dart';
 
 class FormulaireTransitPage extends StatefulWidget {
   const FormulaireTransitPage({super.key});
@@ -11,7 +12,8 @@ class FormulaireTransitPage extends StatefulWidget {
 }
 
 class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
-  // Contrôleurs pour les champs de texte
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   final TextEditingController _voitureController = TextEditingController();
   final TextEditingController _clientController = TextEditingController();
   final TextEditingController _portDepartController = TextEditingController();
@@ -19,10 +21,8 @@ class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
   final TextEditingController _dateTransitController = TextEditingController();
   final TextEditingController _statutController = TextEditingController();
 
-  // Liste des fichiers téléchargés
   final List<File> _documents = [];
 
-  // Fonction pour sélectionner un fichier
   Future<void> _pickFile() async {
     final picker = ImagePicker();
     final pickedFile =
@@ -35,9 +35,7 @@ class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
     }
   }
 
-  // Fonction pour soumettre le formulaire
   void _submitForm() {
-    // Ajoutez ici la logique pour mettre à jour les données dans historique_transit
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const HistoriqueTransitPage()),
@@ -46,6 +44,8 @@ class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -57,9 +57,9 @@ class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
             Navigator.pop(context);
           },
         ),
-        title: const Text(
-          "Formulaires de transit",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        title: Text(
+          l10n.transitFormTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
       ),
       body: SingleChildScrollView(
@@ -67,55 +67,48 @@ class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Champ "Nom de la voiture"
             _buildTextField(
+              l10n: l10n,
               controller: _voitureController,
-              label: "Nom de la voiture",
-              hintText: "Toyota Corolla 2018",
+              label: l10n.carNameLabel,
+              hintText: l10n.carNameExample,
             ),
             const SizedBox(height: 16),
-
-            // Champ "Client"
             _buildTextField(
+              l10n: l10n,
               controller: _clientController,
-              label: "Client",
-              hintText: "Marcel T",
+              label: l10n.clientField,
+              hintText: l10n.clientExample,
             ),
             const SizedBox(height: 16),
-
-            // Champ "Port de départ"
             _buildTextField(
+              l10n: l10n,
               controller: _portDepartController,
-              label: "Port de départ",
-              hintText: "Anvers, Belgique",
+              label: l10n.departurePortField,
+              hintText: l10n.departurePortExample,
             ),
             const SizedBox(height: 16),
-
-            // Champ "Port d'arrivée"
             _buildTextField(
+              l10n: l10n,
               controller: _portArriveeController,
-              label: "Port d'arrivée",
-              hintText: "Cotonou, Bénin",
+              label: l10n.arrivalPortField,
+              hintText: l10n.arrivalPortExample,
             ),
             const SizedBox(height: 16),
-
-            // Champ "Date de transit"
             _buildTextField(
+              l10n: l10n,
               controller: _dateTransitController,
-              label: "Date de transit",
-              hintText: "10 avril 2025",
+              label: l10n.transitDateField,
+              hintText: l10n.transitDateExample,
             ),
             const SizedBox(height: 16),
-
-            // Champ "Statut"
             _buildTextField(
+              l10n: l10n,
               controller: _statutController,
-              label: "Statut",
-              hintText: "En transit",
+              label: l10n.status,
+              hintText: l10n.inTransit,
             ),
             const SizedBox(height: 24),
-
-            // Section pour télécharger les documents
             Center(
               child: Column(
                 children: [
@@ -123,23 +116,19 @@ class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
                     onPressed: _pickFile,
                     icon: const Icon(Icons.camera_alt, color: Colors.black),
                   ),
-                  const Text(
-                    "Télécharger les documents",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.uploadDocuments,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
-
-            // Liste des documents téléchargés
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: _documents.map((file) {
                 return GestureDetector(
-                  onTap: () {
-                    // Action pour ouvrir le fichier
-                  },
+                  onTap: () {},
                   child: Text(
                     file.path.split('/').last,
                     style: const TextStyle(
@@ -151,8 +140,6 @@ class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
               }).toList(),
             ),
             const SizedBox(height: 24),
-
-            // Bouton "Soumettre"
             Center(
               child: SizedBox(
                 width: double.infinity,
@@ -165,9 +152,13 @@ class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    "Soumettre",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  child: Text(
+                    l10n.submit,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -178,8 +169,8 @@ class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
     );
   }
 
-  // Widget pour construire un champ de texte
   Widget _buildTextField({
+    required AppLocalizations l10n,
     required TextEditingController controller,
     required String label,
     required String hintText,
@@ -194,7 +185,7 @@ class _FormulaireTransitPageState extends State<FormulaireTransitPage> {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const Text(
-              " *",
+              ' *',
               style: TextStyle(color: Colors.red),
             ),
           ],

@@ -90,7 +90,10 @@ Widget buildNotificationLeadingAvatar({
   );
 }
 
-String notificationPreviewText(Map<String, dynamic> notif) {
+String notificationPreviewText(
+  Map<String, dynamic> notif, {
+  required String defaultLabel,
+}) {
   final data = notif['data'] is Map
       ? Map<String, dynamic>.from(notif['data'])
       : <String, dynamic>{};
@@ -98,7 +101,7 @@ String notificationPreviewText(Map<String, dynamic> notif) {
   final articleTitle = (data['articleTitle'] ?? '').toString().trim();
   if (articleTitle.isNotEmpty) return articleTitle;
   if (message.length > 90) return '${message.substring(0, 90)}...';
-  return message.isNotEmpty ? message : 'Notification';
+  return message.isNotEmpty ? message : defaultLabel;
 }
 
 String? notificationThumbUrl(Map<String, dynamic> notif) {

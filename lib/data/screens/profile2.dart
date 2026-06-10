@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 import 'package:tranoo/services/user_service.dart';
 
@@ -16,6 +17,8 @@ class Profile2 extends StatefulWidget {
 }
 
 class _Profile2State extends State<Profile2> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   File? _image;
   String? selectedGender = "Mâle";
   String? selectedCountry = "Mali";
@@ -47,7 +50,8 @@ class _Profile2State extends State<Profile2> {
         setState(() {
           loading = false;
           userData = null;
-          errorMsg = "Utilisateur non connecté.";
+          if (!mounted) return;
+          errorMsg = AppLocalizations.of(context)!.userNotConnected;
         });
         return;
       }
@@ -73,8 +77,8 @@ class _Profile2State extends State<Profile2> {
       setState(() {
         loading = false;
         userData = null;
-        errorMsg =
-            "Impossible de charger le profil. Vérifiez votre connexion ou vos droits.";
+        if (!mounted) return;
+        errorMsg = AppLocalizations.of(context)!.profileLoadError;
       });
     }
   }
@@ -114,12 +118,14 @@ class _Profile2State extends State<Profile2> {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) return Center(child: CircularProgressIndicator());
+    final l10n = AppLocalizations.of(context)!;
+    if (loading) return const Center(child: CircularProgressIndicator());
     if (errorMsg != null) return Center(child: Text(errorMsg!));
-    if (userData == null)
-      return Center(child: Text("Aucune donnée utilisateur"));
+    if (userData == null) {
+      return Center(child: Text(l10n.noUserData));
+    }
     if (userData != null && userData?['role'] != 'transitaire') {
-      return Center(child: Text("Accès réservé aux transitaires."));
+      return Center(child: Text(l10n.transitaireAccessOnly));
     }
     // Récupération des dimensions de l'écran
     final mediaQuery = MediaQuery.of(context);
@@ -136,7 +142,7 @@ class _Profile2State extends State<Profile2> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Mon compte",
+          l10n.myAccount,
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: fontSize * 1.2,
@@ -192,38 +198,38 @@ class _Profile2State extends State<Profile2> {
               // Champs dynamiques
               _buildTextField(
                 controller: _nomController,
-                hintText: "Nom complet",
+                hintText: l10n.fullName,
                 fontSize: fontSize,
               ),
               SizedBox(height: spacing),
               _buildTextField(
                 controller: _entrepriseController,
-                hintText: "Entreprise",
+                hintText: l10n.company,
                 fontSize: fontSize,
               ),
               SizedBox(height: spacing),
               _buildTextField(
                 controller: _emailController,
-                hintText: "Email",
+                hintText: l10n.email,
                 fontSize: fontSize,
               ),
               SizedBox(height: spacing),
               _buildTextField(
                 controller: _telephoneController,
-                hintText: "Téléphone",
+                hintText: l10n.phone,
                 fontSize: fontSize,
               ),
               SizedBox(height: spacing),
-              _buildCountryDropdown(fontSize),
+              _buildCountryDropdown(fontSize, l10n),
               SizedBox(height: spacing),
 
-              _buildGenderDropdown(fontSize),
+              _buildGenderDropdown(fontSize, l10n),
               SizedBox(height: spacing),
 
-              _buildPasswordField(fontSize),
+              _buildPasswordField(fontSize, l10n),
               SizedBox(height: spacing * 2),
 
-              _buildUpdateButton(context, fontSize),
+              _buildUpdateButton(context, fontSize, l10n),
             ],
           ),
         ),
@@ -269,7 +275,7 @@ class _Profile2State extends State<Profile2> {
     );
   }
 
-  Widget _buildCountryDropdown(double fontSize) {
+  Widget _buildCountryDropdown(double fontSize, AppLocalizations l10n) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -305,7 +311,7 @@ class _Profile2State extends State<Profile2> {
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: selectedCountry,
-                  hint: Text("Pays", style: TextStyle(fontSize: fontSize)),
+                  hint: Text(l10n.country, style: TextStyle(fontSize: fontSize)),
                   isExpanded: true,
                   items:
                       ["Bénin", "Gabon", "Mali", "Canada"].map((String value) {
@@ -331,7 +337,10 @@ class _Profile2State extends State<Profile2> {
     );
   }
 
-  Widget _buildGenderDropdown(double fontSize) {
+  Widget _buildGenderDropdown(double fontSize, AppLocalizations l10n) {
+    final options = [l10n.genderMale, l10n.genderFemale, l10n.genderOther];
+    final currentValue =
+        options.contains(selectedGender) ? selectedGender : options.first;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -354,16 +363,15 @@ class _Profile2State extends State<Profile2> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
-            value: selectedGender,
-            hint: Text("Genre", style: TextStyle(fontSize: fontSize)),
+            value: currentValue,
+            hint: Text(l10n.gender, style: TextStyle(fontSize: fontSize)),
             isExpanded: true,
-            items:
-                ["Mâle", "Femelle", "Autre"].map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value, style: TextStyle(fontSize: fontSize)),
-                  );
-                }).toList(),
+            items: options.map((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value, style: TextStyle(fontSize: fontSize)),
+              );
+            }).toList(),
             onChanged: (newValue) {
               setState(() {
                 selectedGender = newValue;
@@ -375,7 +383,7 @@ class _Profile2State extends State<Profile2> {
     );
   }
 
-  Widget _buildPasswordField(double fontSize) {
+  Widget _buildPasswordField(double fontSize, AppLocalizations l10n) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -399,7 +407,7 @@ class _Profile2State extends State<Profile2> {
         style: TextStyle(fontSize: fontSize),
         obscureText: !_showNewPassword,
         decoration: InputDecoration(
-          hintText: "Nouveau mot de passe",
+          hintText: l10n.newPassword,
           contentPadding: EdgeInsets.symmetric(
             horizontal: 16,
             vertical: fontSize,
@@ -477,17 +485,19 @@ class _Profile2State extends State<Profile2> {
       await fetchUser();
       if (mounted) {
         context.read<myauth.AuthProvider>().reloadUser();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Profil mis à jour.')));
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.profileUpdated)),
+        );
       }
     } on DioError catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               e.response?.data?['message']?.toString() ??
-                  'Erreur lors de la mise à jour',
+                  l10n.profileUpdateError,
             ),
           ),
         );
@@ -501,7 +511,11 @@ class _Profile2State extends State<Profile2> {
     }
   }
 
-  Widget _buildUpdateButton(BuildContext context, double fontSize) {
+  Widget _buildUpdateButton(
+    BuildContext context,
+    double fontSize,
+    AppLocalizations l10n,
+  ) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -514,7 +528,7 @@ class _Profile2State extends State<Profile2> {
           elevation: 0,
         ),
         child: Text(
-          isSaving ? "Enregistrement..." : "Mettre à jour le profil",
+          isSaving ? l10n.saving : l10n.updateProfile,
           style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500),
         ),
       ),

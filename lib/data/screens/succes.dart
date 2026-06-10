@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class SuccesScreen extends StatelessWidget {
   const SuccesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      extendBodyBehindAppBar: true, // Permet au contenu de passer sous l'AppBar
+      extendBodyBehindAppBar: true,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -34,7 +37,7 @@ class SuccesScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(32.0), // Padding augmenté
+                    padding: const EdgeInsets.all(32.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -43,34 +46,32 @@ class SuccesScreen extends StatelessWidget {
                           height: 120,
                           width: 120,
                         ),
-                        const SizedBox(height: 24), // Espacement augmenté
-                        const Text(
-                          'Woo hoo !!',
-                          style: TextStyle(
+                        const SizedBox(height: 24),
+                        Text(
+                          l10n.wooHoo,
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 24), // Espacement augmenté
+                        const SizedBox(height: 24),
                         RichText(
                           textAlign: TextAlign.center,
-                          text: const TextSpan(
-                            style: TextStyle(fontSize: 14, height: 1.5),
+                          text: TextSpan(
+                            style: const TextStyle(fontSize: 14, height: 1.5),
                             children: [
                               TextSpan(
-                                text:
-                                    'Cher client vous avez réussi à faire votre achat avec succès. ',
-                                style: TextStyle(color: Colors.black),
+                                text: l10n.purchaseSuccessMessage,
+                                style: const TextStyle(color: Colors.black),
                               ),
                               TextSpan(
-                                text:
-                                    'Votre produit vous sera livré au plus dans 5 jrs. Merci pour votre confiance !',
-                                style: TextStyle(color: Color(0xFF00D67D)),
+                                text: l10n.purchaseSuccessDelivery,
+                                style: const TextStyle(color: Color(0xFF00D67D)),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 32), // Espacement augmenté
+                        const SizedBox(height: 32),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -92,9 +93,9 @@ class SuccesScreen extends StatelessWidget {
                               ),
                               elevation: 2,
                             ),
-                            child: const Text(
-                              'Accéder à l\'accueil',
-                              style: TextStyle(
+                            child: Text(
+                              l10n.goToHome,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w500,
                                 fontSize: 16,
                               ),

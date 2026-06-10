@@ -10,6 +10,7 @@ import 'package:random_string/random_string.dart';
 import 'package:tranoo/data/screens/payment_success.dart';
 import 'package:tranoo/data/screens/payment_error.dart';
 import 'package:tranoo/utils/feexpay_callback_state.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 final fpToken = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
 final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
@@ -23,6 +24,8 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool isLoading = false;
   String? errorMessage;
   final String transKey = randomAlphaNumeric(15);
@@ -59,6 +62,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildPaymentMethodSelector() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -68,9 +72,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             children: [
               const Icon(Icons.payment, color: Colors.grey, size: 20),
               const SizedBox(width: 12),
-              const Text(
-                'Moyen de paiement',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              Text(
+                l10n.paymentMethod,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -85,16 +89,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _selectedPaymentMethod,
-                hint: const Text('À sélectionner'),
+                hint: Text(l10n.selectToChoose),
                 isExpanded: true,
-                items: const [
+                items: [
                   DropdownMenuItem(
-                    value: 'Paiement bancaire',
-                    child: Text('Paiement bancaire'),
+                    value: l10n.bankPayment,
+                    child: Text(l10n.bankPayment),
                   ),
                   DropdownMenuItem(
-                    value: 'Mobile Money',
-                    child: Text('Mobile Money'),
+                    value: l10n.mobileMoney,
+                    child: Text(l10n.mobileMoney),
                   ),
                 ],
                 onChanged: (value) {

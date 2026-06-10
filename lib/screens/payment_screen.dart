@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/feexpay_service.dart';
 
@@ -19,6 +20,8 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -45,7 +48,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (widget.orderId != null) {
       _customIdController.text = widget.orderId!;
     } else {
-      // Générer un ID unique par défaut
       _customIdController.text = 'CMD_${DateTime.now().millisecondsSinceEpoch}';
     }
   }
@@ -59,6 +61,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<void> _initializeFeexPay() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -68,10 +71,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       await FeexPayService.initialize();
       setState(() {
         _isLoading = false;
-        _successMessage = 'Service FeexPay initialisé avec succès';
+        _successMessage = l10n.feexpayInitSuccess;
       });
       
-      // Effacer le message de succès après 3 secondes
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) {
           setState(() {
@@ -82,12 +84,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Erreur lors de l\'initialisation: $e';
+        _errorMessage = l10n.feexpayInitError(e.toString());
       });
     }
   }
 
   Future<void> _processPayment() async {
+    final l10n = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -115,32 +118,31 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (result['status'] == 'success') {
         setState(() {
           _isLoading = false;
-          _successMessage = 'Paiement initialisé avec succès!';
+          _successMessage = l10n.paymentInitSuccess;
         });
 
-        // Ouvrir la page de paiement
         final paymentUrl = result['payment_url'];
         if (paymentUrl != null) {
           await _openPaymentPage(paymentUrl);
         }
 
-        // Afficher les détails de la transaction
         _showTransactionDetails(result);
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = result['message'] ?? 'Erreur lors du paiement';
+          _errorMessage = result['message'] ?? l10n.paymentFailed;
         });
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Erreur: $e';
+        _errorMessage = l10n.errorGeneric(e.toString());
       });
     }
   }
 
   Future<void> _openPaymentPage(String url) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       if (await canLaunchUrl(Uri.parse(url))) {
         await launchUrl(
@@ -149,38 +151,39 @@ class _PaymentScreenState extends State<PaymentScreen> {
         );
       } else {
         setState(() {
-          _errorMessage = 'Impossible d\'ouvrir la page de paiement';
+          _errorMessage = l10n.cannotOpenPaymentPage;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Erreur lors de l\'ouverture: $e';
+        _errorMessage = l10n.errorOpening(e.toString());
       });
     }
   }
 
   void _showTransactionDetails(Map<String, dynamic> result) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Détails de la transaction'),
+        title: Text(l10n.transactionDetailsTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('ID Transaction: ${result['transaction_id']}'),
+            Text('${l10n.labelTransactionId}: ${result['transaction_id']}'),
             const SizedBox(height: 8),
-            Text('Montant: ${_amountController.text} FCFA'),
+            Text('${l10n.amount}: ${l10n.valueAmountFcfa(_amountController.text)}'),
             const SizedBox(height: 8),
-            Text('Description: ${_descriptionController.text}'),
+            Text('${l10n.description}: ${_descriptionController.text}'),
             const SizedBox(height: 8),
-            Text('Type: $_selectedPaymentType'),
+            Text('${l10n.typeLabel}: $_selectedPaymentType'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fermer'),
+            child: Text(l10n.close),
           ),
         ],
       ),
@@ -189,9 +192,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Paiement FeexPay'),
+        title: Text(l10n.feexpayPaymentTitle),
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
       ),
@@ -202,7 +207,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Message de succès
               if (_successMessage != null)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -218,7 +222,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
                 ),
 
-              // Message d'erreur
               if (_errorMessage != null)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -234,85 +237,81 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
                 ),
 
-              // Montant
               TextFormField(
                 controller: _amountController,
-                decoration: const InputDecoration(
-                  labelText: 'Montant (FCFA)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.attach_money),
+                decoration: InputDecoration(
+                  labelText: l10n.priceFcfa,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.attach_money),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Veuillez saisir le montant';
+                    return l10n.enterAmount;
                   }
                   if (double.tryParse(value) == null) {
-                    return 'Veuillez saisir un montant valide';
+                    return l10n.enterValidAmount;
                   }
                   if (double.parse(value) <= 0) {
-                    return 'Le montant doit être supérieur à 0';
+                    return l10n.amountMustBePositive;
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
-              // Description
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description),
+                decoration: InputDecoration(
+                  labelText: l10n.description,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.description),
                 ),
                 maxLines: 2,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Veuillez saisir une description';
+                    return l10n.enterDescriptionRequired;
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
-              // ID personnalisé
               TextFormField(
                 controller: _customIdController,
-                decoration: const InputDecoration(
-                  labelText: 'ID de commande',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.receipt),
+                decoration: InputDecoration(
+                  labelText: l10n.commandIdLabel,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.receipt),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Veuillez saisir un ID de commande';
+                    return l10n.enterOrderId;
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
-              // Type de paiement
               DropdownButtonFormField<String>(
                 value: _selectedPaymentType,
-                decoration: const InputDecoration(
-                  labelText: 'Type de paiement',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.payment),
+                decoration: InputDecoration(
+                  labelText: l10n.paymentTypeLabel,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.payment),
                 ),
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: 'MOBILE',
-                    child: Text('Mobile Money (MTN, Moov, Orange)'),
+                    child: Text(l10n.mobileMoneyProviders),
                   ),
                   DropdownMenuItem(
                     value: 'CARD',
-                    child: Text('Carte bancaire (VISA, Mastercard)'),
+                    child: Text(l10n.bankCardPayment),
                   ),
                   DropdownMenuItem(
                     value: 'WALLET',
-                    child: Text('Portefeuille FeexPay'),
+                    child: Text(l10n.feexpayWallet),
                   ),
                 ],
                 onChanged: (value) {
@@ -323,11 +322,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Bouton d'initialisation
               ElevatedButton.icon(
                 onPressed: _isLoading ? null : _initializeFeexPay,
                 icon: const Icon(Icons.settings),
-                label: const Text('Initialiser FeexPay'),
+                label: Text(l10n.initializeFeexpay),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
@@ -336,7 +334,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Bouton de paiement
               ElevatedButton.icon(
                 onPressed: _isLoading ? null : _processPayment,
                 icon: _isLoading 
@@ -346,7 +343,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.payment),
-                label: Text(_isLoading ? 'Traitement...' : 'Payer maintenant'),
+                label: Text(_isLoading ? l10n.processing : l10n.payNow),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green[600],
                   foregroundColor: Colors.white,
@@ -355,7 +352,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Informations sur FeexPay
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -371,7 +367,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         Icon(Icons.info, color: Colors.blue[600]),
                         const SizedBox(width: 8),
                         Text(
-                          'À propos de FeexPay',
+                          l10n.aboutFeexpay,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.blue[800],
@@ -380,16 +376,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'FeexPay est un agrégateur de paiement sécurisé qui accepte :',
-                      style: TextStyle(fontSize: 12),
+                    Text(
+                      l10n.feexpayAboutDescription,
+                      style: const TextStyle(fontSize: 12),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      '• MTN Mobile Money, Moov Money, Orange Money\n'
-                      '• Cartes VISA et Mastercard\n'
-                      '• Portefeuilles numériques',
-                      style: TextStyle(fontSize: 12),
+                    Text(
+                      l10n.feexpayAcceptedMethods,
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ],
                 ),

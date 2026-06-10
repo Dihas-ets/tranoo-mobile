@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class ConditionUtilisations extends StatelessWidget {
   const ConditionUtilisations({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final mediaQuery = MediaQuery.of(context);
     final screenHeight = mediaQuery.size.height;
     final screenWidth = mediaQuery.size.width;
@@ -12,9 +14,9 @@ class ConditionUtilisations extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Conditions d\'utilisation',
-          style: TextStyle(color: Colors.black),
+        title: Text(
+          l10n.termsOfUse,
+          style: const TextStyle(color: Colors.black),
         ),
         backgroundColor: const Color(0xffF8BF13),
         centerTitle: true,
@@ -48,18 +50,15 @@ Bienvenue sur Tranoo, votre application de vente de voitures importées. En util
    - Toute activité frauduleuse entraînera une suspension du compte.
 
 4. **Transactions et Responsabilité**
-   - Tranoo agit en tant qu'intermédiaire et ne garantit pas la qualité des véhicules.
-   - Les transactions doivent être réalisées avec prudence et transparence.
+   - Tranoo n'est pas responsable des transactions entre utilisateurs.
+   - Les litiges doivent être résolus directement entre les parties concernées.
 
-5. **Confidentialité et Sécurité**
-   - Vos données sont protégées conformément à notre politique de confidentialité.
-   - Aucune information personnelle ne sera partagée sans votre consentement.
-
-6. **Modification des Conditions**
+5. **Modifications**
    - Nous nous réservons le droit de modifier ces conditions à tout moment.
+   - Les utilisateurs seront informés des changements importants.
 
-Merci d'utiliser Tranoo !
-          ''', textAlign: TextAlign.justify),
+En continuant à utiliser Tranoo, vous acceptez ces conditions d'utilisation.
+'''),
       ),
     );
   }

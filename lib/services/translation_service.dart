@@ -10,9 +10,7 @@ class TranslationService {
   static const Map<String, String> supportedLanguages = {
     'fr': 'Français',
     'en': 'English',
-    'es': 'Español',
-    'de': 'Deutsch',
-    'it': 'Italiano',
+    'ar': 'العربية',
   };
 
   static Future<String> translate(String text, String sourceLang, String targetLang) async {

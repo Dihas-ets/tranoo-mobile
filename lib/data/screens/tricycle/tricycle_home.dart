@@ -20,6 +20,8 @@ class TricycleHomePage extends StatefulWidget {
 }
 
 class _TricycleHomePageState extends State<TricycleHomePage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool _loading = true;
   String? _error;
   Position? _position;
@@ -362,9 +364,9 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
       if (!mounted) return;
       AuthMessagePopup.showError(
         context,
-        title: 'Vous devez vous connecter pour continuer.',
-        subtitle: 'Connectez-vous pour pouvoir commander un tricycle.',
-        buttonText: 'OK',
+        title: l10n.tricycleLoginRequiredTitle,
+        subtitle: l10n.tricycleLoginRequiredSubtitle,
+        buttonText: l10n.ok,
       );
       return;
     }
@@ -388,15 +390,15 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
       if (!mounted) return;
       AuthMessagePopup.showInfo(
         context,
-        title: 'Demande envoyée au chauffeur.',
+        title: l10n.tricycleRequestSentToDriver,
       );
     } catch (e) {
       if (!mounted) return;
       AuthMessagePopup.showError(
         context,
-        title: 'Une erreur est survenue.',
-        subtitle: 'Vérifiez votre connexion internet puis réessayez.',
-        buttonText: 'Réessayer',
+        title: l10n.errorOccurredTitle,
+        subtitle: l10n.checkConnectionRetry,
+        buttonText: l10n.retry,
       );
     }
   }
@@ -440,7 +442,7 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
         _pendingStatusTimer?.cancel();
         AuthMessagePopup.showSuccess(
           context,
-          title: 'Votre demande a été annulée.',
+          title: l10n.tricycleRequestCancelled,
         );
       } else if (res.statusCode == 403) {
         // On ne bloque l'annulation que si le serveur prouve une acceptation explicite.
@@ -471,7 +473,7 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
               _pendingStatusTimer?.cancel();
               AuthMessagePopup.showSuccess(
                 context,
-                title: 'Votre demande a été annulée.',
+                title: l10n.tricycleRequestCancelled,
               );
               return;
             }
@@ -480,24 +482,24 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
 
         AuthMessagePopup.showWarning(
           context,
-          title: 'La demande ne peut plus être annulée.',
-          subtitle: 'Le chauffeur a déjà accepté la demande.',
+          title: l10n.tricycleCannotCancel,
+          subtitle: l10n.tricycleDriverAlreadyAccepted,
         );
       } else {
         AuthMessagePopup.showError(
           context,
-          title: "Impossible d'annuler la demande.",
-          subtitle: 'Code: ${res.statusCode}. Veuillez réessayer.',
-          buttonText: 'Réessayer',
+          title: l10n.tricycleCancelFailed,
+          subtitle: l10n.tricycleCancelErrorCode(res.statusCode.toString()),
+          buttonText: l10n.retry,
         );
       }
     } catch (e) {
       if (mounted) {
         AuthMessagePopup.showError(
           context,
-          title: 'Erreur lors de l’annulation.',
-          subtitle: 'Vérifiez votre connexion puis réessayez.',
-          buttonText: 'Réessayer',
+          title: l10n.tricycleCancelError,
+          subtitle: l10n.checkConnectionAndRetry,
+          buttonText: l10n.retry,
         );
       }
     }
@@ -530,7 +532,7 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-            AppLocalizations.of(context)?.tricycle_home_title ?? 'Tricycles',
+            AppLocalizations.of(context)!.tricycle_home_title,
             style: const TextStyle(color: Color(0xFF000000)), // Titre en noir
         ),
         backgroundColor: const Color(0xFFF8BF13), // Jaune Tranoo
@@ -862,6 +864,8 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
     }
 
     final isSelectedPending = _pendingChauffeurId == selectedId;
+    final l10n = AppLocalizations.of(context)!;
+
     if (isSelectedPending) {
       if (_pendingAccepted) {
         return OutlinedButton(
@@ -873,9 +877,9 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
             ),
           ),
           onPressed: null,
-          child: const Text(
-            'Demande acceptée',
-            style: TextStyle(
+          child: Text(
+            l10n.tricycle_request_accepted,
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
               color: Color(0xFFB8860B),
@@ -895,9 +899,9 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
                 ),
               ),
               onPressed: null,
-              child: const Text(
-                'Demande envoyée',
-                style: TextStyle(
+              child: Text(
+                l10n.tricycle_request_sent,
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFFB8860B),
@@ -917,9 +921,9 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
                 ),
               ),
               onPressed: _cancelRequest,
-              child: const Text(
-                'Annuler',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              child: Text(
+                l10n.cancel,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -949,9 +953,9 @@ class _TricycleHomePageState extends State<TricycleHomePage> {
         ),
         onPressed: canContact ? _submitSelectedChauffeur : null,
         icon: const _PulseCallIcon(),
-        label: const Text(
-          'Commander · Tricycle',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        label: Text(
+          l10n.tricycle_order_command,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
       ),
     );

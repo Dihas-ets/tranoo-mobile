@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class SuccesVenteScreen extends StatefulWidget {
   const SuccesVenteScreen({super.key});
@@ -29,7 +30,6 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
     );
 
-    // Démarrer les animations
     _animationController.forward();
     _confettiController.play();
   }
@@ -43,6 +43,7 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -77,9 +78,9 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const Text(
-                    'Publication en ligne !',
-                    style: TextStyle(
+                  Text(
+                    l10n.publishedOnline,
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
@@ -107,25 +108,24 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                         const SizedBox(height: 12),
                         RichText(
                           textAlign: TextAlign.center,
-                          text: const TextSpan(
-                            style: TextStyle(
+                          text: TextSpan(
+                            style: const TextStyle(
                               fontSize: 16,
                               color: Colors.black87,
                               height: 1.5,
                             ),
                             children: [
                               TextSpan(
-                                  text: 'Votre article est publié et visible '),
+                                  text: l10n.listingPublishedVisiblePrefix),
                               TextSpan(
-                                text: 'immédiatement',
-                                style: TextStyle(
+                                text: l10n.immediately,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.green,
                                 ),
                               ),
                               TextSpan(
-                                text:
-                                    ' sur l\'application.\n\nVous pouvez déjà le retrouver dans les listes.',
+                                text: l10n.listingPublishedVisibleSuffix,
                               ),
                             ],
                           ),
@@ -150,7 +150,7 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Votre annonce est déjà en ligne.',
+                            l10n.listingAlreadyOnline,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[700],
@@ -182,9 +182,9 @@ class _SuccesVenteScreenState extends State<SuccesVenteScreen>
                         ),
                         elevation: 2,
                       ),
-                      child: const Text(
-                        'Retour à l\'accueil',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.returnHome,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),

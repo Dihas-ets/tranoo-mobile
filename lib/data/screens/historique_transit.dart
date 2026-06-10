@@ -1,58 +1,60 @@
 import 'package:flutter/material.dart';
-import 'formulaire_transit.dart'; // Importez la page formulaire_transit.dart
+import 'formulaire_transit.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class HistoriqueTransitPage extends StatelessWidget {
   const HistoriqueTransitPage({super.key});
 
+  List<Map<String, dynamic>> _transits(AppLocalizations l10n) => [
+        {
+          'voiture': 'Toyota Corolla 2018',
+          'client': 'Marcel T.',
+          'portDepart': 'Anvers, Belgique',
+          'portArrivee': 'Cotonou, Bénin',
+          'dateTransit': '10 avril 2025',
+          'statut': l10n.deliveredSuccessfully,
+          'statutCouleur': Colors.green,
+          'documents': [
+            l10n.billOfLading,
+            l10n.proformaInvoice,
+            l10n.transitCertificate,
+          ],
+          'couleurFond': Colors.yellow[100],
+        },
+        {
+          'voiture': 'BMW X5 2020',
+          'client': 'CarExpert Auto',
+          'portDepart': 'Hambourg, Allemagne',
+          'portArrivee': 'Lomé, Togo',
+          'dateTransit': '25 mars 2025',
+          'statut': l10n.inTransit,
+          'statutCouleur': Colors.blue,
+          'documents': [
+            l10n.billOfLading,
+            l10n.partialCustomsCertificate,
+          ],
+          'couleurFond': Colors.blue[100],
+        },
+        {
+          'voiture': 'Kia Picanto 2016',
+          'client': 'Aline K.',
+          'portDepart': 'Le Havre, France',
+          'portArrivee': 'Cotonou, Bénin',
+          'dateTransit': '15 mars 2025',
+          'statut': l10n.atCustoms,
+          'statutCouleur': Colors.orange,
+          'documents': [
+            l10n.proformaInvoice,
+            l10n.inspectionCertificate,
+          ],
+          'couleurFond': Colors.green[100],
+        },
+      ];
+
   @override
   Widget build(BuildContext context) {
-    // Liste des transits
-    final List<Map<String, dynamic>> transits = [
-      {
-        "voiture": "Toyota Corolla 2018",
-        "client": "Marcel T.",
-        "portDepart": "Anvers, Belgique",  
-        "portArrivee": "Cotonou, Bénin",
-        "dateTransit": "10 avril 2025",
-        "statut": "Livré avec succès",
-        "statutCouleur": Colors.green,
-        "documents": [
-          "Connaissement",
-          "Facture Proforma",
-          "Certificat de transit"
-        ],
-        "couleurFond": Colors.yellow[100],
-      },
-      {
-        "voiture": "BMW X5 2020",
-        "client": "CarExpert Auto",
-        "portDepart": "Hambourg, Allemagne",
-        "portArrivee": "Lomé, Togo",
-        "dateTransit": "25 mars 2025",
-        "statut": "En transit",
-        "statutCouleur": Colors.blue,
-        "documents": [
-          "Connaissement",
-          "Attestation de dédouanement partiel"
-        ],
-        "couleurFond": Colors.blue[100],
-      },
-      {
-        "voiture": "Kia Picanto 2016",
-        "client": "Aline K.",
-        "portDepart": "Le Havre, France",
-        "portArrivee": "Cotonou, Bénin",
-        "dateTransit": "15 mars 2025",
-        "statut": "En douane",
-        "statutCouleur": Colors.orange,
-        "documents": [
-          "Facture Proforma",
-          "Certificat d'inspection"
-        ],
-        "couleurFond": Colors.green[100],
-      },
-    ];
-
+    final l10n = AppLocalizations.of(context)!;
+    final transits = _transits(l10n);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -60,24 +62,23 @@ class HistoriqueTransitPage extends StatelessWidget {
         foregroundColor: Colors.black,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              "Historiques des transits",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            Text(
+              l10n.transitHistoryTitle,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
             IconButton(
               icon: const Icon(Icons.add, color: Colors.blue, size: 24),
               onPressed: () {
-                // Redirection vers la page formulaire_transit.dart
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const FormulaireTransitPage()),
+                  MaterialPageRoute(
+                    builder: (context) => const FormulaireTransitPage(),
+                  ),
                 );
               },
             ),
@@ -93,35 +94,35 @@ class HistoriqueTransitPage extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: transit["couleurFond"],
+              color: transit['couleurFond'] as Color?,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  transit["voiture"],
+                  transit['voiture'] as String,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text("Client : ${transit["client"]}"),
-                Text("Port de départ : ${transit["portDepart"]}"),
-                Text("Port d'arrivée : ${transit["portArrivee"]}"),
-                Text("Date de transit : ${transit["dateTransit"]}"),
+                Text(l10n.clientLabel(transit['client'] as String)),
+                Text(l10n.departurePortLabel(transit['portDepart'] as String)),
+                Text(l10n.arrivalPortLabel(transit['portArrivee'] as String)),
+                Text(l10n.transitDateLabel(transit['dateTransit'] as String)),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     Text(
-                      "Statut : ",
+                      '${l10n.status}: ',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      transit["statut"],
+                      transit['statut'] as String,
                       style: TextStyle(
-                        color: transit["statutCouleur"],
+                        color: transit['statutCouleur'] as Color?,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -130,11 +131,10 @@ class HistoriqueTransitPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
-                  children: transit["documents"].map<Widget>((doc) {
+                  children: (transit['documents'] as List<String>)
+                      .map<Widget>((doc) {
                     return GestureDetector(
-                      onTap: () {
-                        // Action pour ouvrir le document
-                      },
+                      onTap: () {},
                       child: Text(
                         doc,
                         style: const TextStyle(

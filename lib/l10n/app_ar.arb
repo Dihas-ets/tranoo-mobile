@@ -1,0 +1,2297 @@
+{
+  "@@locale": "ar",
+  "language": "اللغة",
+  "validate": "تأكيد",
+  "french": "الفرنسية",
+  "english": "الإنجليزية",
+  "arabic": "العربية",
+  "services": "الخدمات",
+  "service_sales_cars": "بيع (سيارات)",
+  "service_delivery_parts": "توصيل (قطع غيار)",
+  "service_tricycle": "دراجة ثلاثية العجلات",
+  "tricycle_location_required": "يرجى تفعيل الموقع لاستخدام خدمة الدراجة ثلاثية العجلات.",
+  "tricycle_permission_denied": "تم رفض إذن الموقع.",
+  "tricycle_permission_denied_forever": "إذن الموقع محظور. قم بتفعيله من الإعدادات.",
+  "tricycle_position_active_title": "الموقع نشط",
+  "tricycle_position_active_subtitle": "جاري تحديد الموقع… سيتم تحديث الدراجات القريبة تلقائياً.",
+  "tricycle_none_nearby": "لا توجد دراجات ثلاثية عجلات قريبة في الوقت الحالي.",
+  "tricycle_out_of_range": "خارج النطاق",
+  "retry": "إعادة المحاولة",
+  "enable_location": "تفعيل الموقع",
+  "open_settings": "فتح الإعدادات",
+  "refresh": "تحديث",
+  "call": "اتصال",
+  "message": "رسالة",
+  "tricycle_auth_required": "المصادقة مطلوبة",
+  "tricycle_connect_to_see": "سجّل الدخول للعرض",
+  "tricycle_connect_description": "يرجى تسجيل الدخول إلى حسابك لعرض هذا المحتوى",
+  "cancel": "إلغاء",
+  "delete": "حذف",
+  "ok": "موافق",
+  "confirm": "تأكيد",
+  "back": "رجوع",
+  "close": "إغلاق",
+  "apply": "تطبيق",
+  "reset": "إعادة التعيين",
+  "yes": "نعم",
+  "no": "لا",
+  "loading": "جاري التحميل...",
+  "understood": "فهمت",
+  "later": "لاحقاً",
+  "agree": "موافق",
+  "submit": "إرسال",
+  "share": "مشاركة",
+  "download": "تنزيل",
+  "home": "الرئيسية",
+  "profile": "الملف الشخصي",
+  "login": "تسجيل الدخول",
+  "logout": "تسجيل الخروج",
+  "account": "الحساب",
+  "myAccount": "حسابي",
+  "settings": "الإعدادات",
+  "notifications": "الإشعارات",
+  "currency": "العملة",
+  "chooseCurrency": "اختر عملة",
+  "currencyXof": "XOF",
+  "currencyEuro": "يورو",
+  "currencyDollars": "دولار",
+  "password": "كلمة المرور",
+  "email": "البريد الإلكتروني",
+  "phone": "الهاتف",
+  "fullName": "الاسم الكامل",
+  "firstName": "الاسم الأول",
+  "lastName": "اسم العائلة",
+  "security": "الأمان",
+  "description": "الوصف",
+  "price": "السعر",
+  "brand": "العلامة التجارية",
+  "model": "الطراز",
+  "year": "السنة",
+  "location": "الموقع",
+  "pieces": "قطع الغيار",
+  "vehicles": "المركبات",
+  "cars": "السيارات",
+  "noResults": "لا توجد نتائج",
+  "fillAllFields": "يرجى ملء جميع الحقول.",
+  "networkOrServerError": "خطأ في الشبكة أو الخادم.",
+  "invalidSessionReconnect": "جلسة غير صالحة. يرجى إعادة تسجيل الدخول.",
+  "profileUpdated": "تم تحديث الملف الشخصي",
+  "noUserData": "لا توجد بيانات مستخدم",
+  "pleaseSignIn": "يرجى تسجيل الدخول",
+  "addImages": "إضافة صور",
+  "filterByBudget": "تصفية حسب الميزانية",
+  "minLabel": "الحد الأدنى",
+  "maxLabel": "الحد الأقصى",
+  "confirmDeletion": "تأكيد الحذف",
+  "deletionError": "خطأ أثناء الحذف.",
+  "sendAlert": "إرسال التنبيه",
+  "alertSent": "تم إرسال التنبيه",
+  "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين.",
+  "errorGeneric": "خطأ: {error}",
+  "@errorGeneric": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorOpening": "خطأ أثناء الفتح: {error}",
+  "@errorOpening": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorDeletion": "خطأ في الحذف: {error}",
+  "@errorDeletion": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorPayment": "خطأ في الدفع: {error}",
+  "@errorPayment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorNetwork": "خطأ في الشبكة: {error}",
+  "@errorNetwork": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "vehiclesAvailableCount": "{count} مركبة متاحة",
+  "@vehiclesAvailableCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "partsAvailableCount": "{count} قطعة متاحة",
+  "@partsAvailableCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "signInTitle": "تسجيل الدخول",
+  "welcomeTranoo": "مرحباً بك في Tranoo",
+  "welcomeTranooPro": "مرحباً بك في Tranoo Pro",
+  "phoneTab": "رقم الهاتف",
+  "legacyEmailTab": "البريد (حساب قديم)",
+  "emailAddress": "عنوان البريد",
+  "emailExample": "exemple@mail.com",
+  "phoneNumber": "رقم الهاتف",
+  "forgotPassword": "نسيت كلمة المرور؟",
+  "noAccount": "ليس لديك حساب؟ ",
+  "signUp": "التسجيل",
+  "invalidEmailTitle": "بريد غير صالح",
+  "legacyEmailSubtitle": "اختر « البريد » وأدخل عنوانك القديم.",
+  "invalidPhoneTitle": "رقم غير صالح",
+  "invalidPhoneSubtitle": "أدخل {hint} لـ {country}.",
+  "@invalidPhoneSubtitle": {
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      },
+      "country": {
+        "type": "String"
+      }
+    }
+  },
+  "loginSuccessTitle": "تم تسجيل الدخول. مرحباً!",
+  "cannotLoginTitle": "تعذر تسجيل الدخول بهذه المعلومات.",
+  "noBuyerAccount": "لا يوجد حساب مشترٍ مرتبط بهذا الرقم.",
+  "checkCountryCode": "أنشئ حساباً أو تحقق من رمز الدولة.",
+  "wrongPassword": "كلمة مرور غير صحيحة.",
+  "verifyAndRetry": "تحقق من معلوماتك وأعد المحاولة.",
+  "wrongCredentials": "رقم أو بريد أو كلمة مرور غير صحيحة.",
+  "accountBlocked": "حسابك محظور مؤقتاً.",
+  "contactSupport": "اتصل بالدعم.",
+  "tooManyAttempts": "محاولات تسجيل دخول كثيرة جداً.",
+  "retryInMinutes": "أعد المحاولة بعد دقائق.",
+  "cannotReachServer": "تعذر الاتصال بالخادم.",
+  "checkInternet": "تحقق من اتصالك بالإنترنت.",
+  "serviceTemporaryIssue": "نواجه مشكلة مؤقتة في الخدمة.",
+  "tryAgainLater": "يرجى المحاولة لاحقاً.",
+  "sessionInitFailed": "تعذر تهيئة الجلسة. أعد المحاولة.",
+  "searchCountryOrCode": "ابحث عن دولة أو رمز",
+  "buyerBlockedTitle": "هذا التطبيق مخصص للمشترين فقط",
+  "buyerBlockedSubtitle": "استخدم Tranoo Pro لحسابات البائع أو السائق أو التوصيل.",
+  "noSellerAccount": "لا يوجد حساب بائع مرتبط بهذا الرقم.",
+  "useTranooForBuyer": "استخدم تطبيق Tranoo لحسابات المشترين.",
+  "findDreamCar": "اعثر على سيارة أحلامك!",
+  "referralCodeOptional": "رمز الإحالة (اختياري)",
+  "referralPlaceholder": "مثال: TRN-ABCD1234",
+  "searchCountryCode": "ابحث عن رمز الدولة",
+  "whatsappNumber": "رقم واتساب",
+  "whatsappHint": "واتساب · {hint}",
+  "@whatsappHint": {
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmPassword": "تأكيد كلمة المرور",
+  "retypePassword": "أعد كتابة كلمة المرور",
+  "passwordMin8": "8 أحرف كحد أدنى",
+  "missingFieldsTitle": "بعض الحقول مفقودة.",
+  "completeRequiredInfo": "يرجى إكمال المعلومات المطلوبة.",
+  "passwordMin8Title": "يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل.",
+  "accountCreatedTitle": "تم إنشاء حسابك بنجاح.",
+  "welcomeTranooExclaim": "مرحباً بك في Tranoo!",
+  "passwordWeak": "ضعيف",
+  "passwordMedium": "متوسط",
+  "passwordStrong": "قوي",
+  "passwordVeryStrong": "قوي جداً",
+  "personalInfo": "المعلومات الشخصية",
+  "nextStep": "التالي",
+  "createAccount": "إنشاء الحساب",
+  "alreadyHaveAccount": "لديك حساب بالفعل؟ ",
+  "forgotPasswordTitle": "نسيت كلمة المرور",
+  "searchCountry": "ابحث عن دولة",
+  "incompleteServerResponse": "استجابة الخادم غير مكتملة.",
+  "retryShortly": "أعد المحاولة بعد قليل.",
+  "codeSent": "تم إرسال الرمز",
+  "sendCode": "إرسال الرمز",
+  "verifyCodeTitle": "التحقق من الرمز",
+  "missingInfoTitle": "معلومات ناقصة.",
+  "restartFromForgotPassword": "ابدأ من صفحة نسيت كلمة المرور.",
+  "errorOccurredTitle": "حدث خطأ.",
+  "checkConnectionAndRetry": "تحقق من الاتصال وأعد المحاولة.",
+  "passwordTooShortTitle": "كلمة المرور قصيرة جداً.",
+  "passwordMinLength": "{count} أحرف كحد أدنى.",
+  "@passwordMinLength": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newPassword": "كلمة مرور جديدة",
+  "resetPassword": "إعادة تعيين كلمة المرور",
+  "whatsappNumberWarning": "استخدم رقماً متاحاً على واتساب: سيُستخدم لرمز التحقق والتواصل بين فريقنا والمستخدمين.",
+  "phoneDigitsExact": "{count} أرقام",
+  "@phoneDigitsExact": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "phoneDigitsRange": "من {min} إلى {max} أرقام",
+  "@phoneDigitsRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "passwordStrengthLabel": "قوة كلمة المرور: {label}",
+  "@passwordStrengthLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "stepInfo": "المعلومات",
+  "placeholderFirstName": "أحمد",
+  "placeholderLastName": "محمد",
+  "accountAlreadyExistsTitle": "يوجد حساب بالفعل بهذا الرقم.",
+  "accountAlreadyExistsSubtitle": "سجّل الدخول أو استخدم رقماً آخر.",
+  "referralCodeRegistered": "تم حفظ رمز الإحالة (الحالة: {status})",
+  "@referralCodeRegistered": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "accountCreatedAgentReferral": "تم إنشاء الحساب بنجاح، تم التحقق من إحالة الوكيل",
+  "forgotPasswordInstructions": "اختر بلدك، ثم أدخل الرقم الوطني\n(دون تكرار رمز +229).\nيُرسل الرمز إلى واتساب المسجل على الحساب.",
+  "enterYourPhone": "أدخل رقمك",
+  "invalidPhoneWithHint": "رقم غير صالح ({hint})",
+  "@invalidPhoneWithHint": {
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
+  "forgotPasswordBeninHint": "مثال لـ +229: أدخل 593XXXXXXX (8 أرقام)، وليس 01593XXXXXXX أو +229 في البداية.",
+  "forgotPasswordNationalHint": "أدخل الرقم الوطني فقط؛ رمز الدولة {code} محدد مسبقاً.",
+  "@forgotPasswordNationalHint": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "accountNotFoundForNumber": "لم يُعثر على حساب بهذا الرقم.",
+  "useSameWhatsappAsSignup": "استخدم نفس رقم واتساب المستخدم عند التسجيل (بدون 0 بعد +229).",
+  "errorTokenMissing": "رمز مفقود أو غير صالح.",
+  "errorTokenInvalid": "رمز غير صالح.",
+  "errorUserNotFound": "المستخدم غير موجود. يرجى تسجيل الدخول مرة أخرى.",
+  "errorAccountBlocked": "تم حظر حسابك. اتصل بالدعم.",
+  "errorSessionRequired": "جلسة الويب مطلوبة. يرجى تسجيل الدخول مرة أخرى.",
+  "errorSessionRevoked": "تم فتح جلستك في مكان آخر. يرجى تسجيل الدخول مرة أخرى.",
+  "errorSessionInactive": "انتهت الجلسة بسبب عدم النشاط. يرجى تسجيل الدخول مرة أخرى.",
+  "errorInvalidPhone": "رقم غير صالح. تحقق من رمز الدولة والرقم.",
+  "errorAppRequired": "التطبيق مطلوب (tranoo أو tranoo_pro).",
+  "errorAccountAmbiguous": "عدة حسابات تستخدم هذا الرقم. اتصل بالدعم.",
+  "errorAccountNotFound": "لم يُعثر على حساب بهذا الرقم.",
+  "errorOtpSendFailed": "تعذر إرسال الرمز. تحقق من الرقم أو أعد المحاولة.",
+  "errorMissingFields": "حقول مطلوبة مفقودة.",
+  "errorOtpInvalidOrExpired": "رمز غير صالح أو منتهي الصلاحية.",
+  "errorDeviceMismatch": "هذا الهاتف لا يطابق الطلب.",
+  "errorRequestInvalid": "طلب غير صالح.",
+  "errorOtpExpired": "انتهت صلاحية الرمز. اطلب رمزاً جديداً.",
+  "errorOtpLocked": "محاولات كثيرة جداً. اطلب رمزاً جديداً.",
+  "errorOtpIncorrect": "رمز غير صحيح.",
+  "errorVerifyFirst": "يرجى التحقق من الرمز أولاً.",
+  "errorPasswordTooShort": "كلمة المرور قصيرة جداً.",
+  "errorPasswordUpdateFailed": "تعذر تحديث كلمة المرور. اتصل بالدعم.",
+  "errorInternalError": "خطأ. يرجى المحاولة مرة أخرى.",
+  "errorValidationError": "بيانات غير صالحة.",
+  "errorConnectionFailed": "خطأ في الاتصال.",
+  "errorEnterPhoneNumber": "يرجى إدخال رقمك.",
+  "codeSentWhatsappDefault": "تم إرسال الرمز عبر واتساب إلى رقم حسابك.",
+  "enterCodePlease": "يرجى إدخال الرمز",
+  "otpMustBe6Digits": "يجب أن يتكون الرمز من 6 أرقام",
+  "invalidCode": "رمز غير صالح.",
+  "verifyCodeBanner": "أدخل الرمز المكون من 6 أرقام.\nصالح لمدة {minutes} دقيقة. تحقق من إشعار Tranoo أو واتساب على رقم الحساب.",
+  "@verifyCodeBanner": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "save": "حفظ",
+  "passwordChangedSuccess": "تم تغيير كلمة المرور بنجاح.",
+  "connectSupport": "الاتصال بالدعم",
+  "cannotOpenWhatsApp": "تعذر فتح واتساب.",
+  "installWhatsAppRetry": "ثبّت واتساب ثم أعد المحاولة.",
+  "preferences": "التفضيلات",
+  "geolocation": "الموقع الجغرافي",
+  "enableNotifications": "تفعيل الإشعارات",
+  "pushNotificationsSubtitle": "تلقي إشعارات الدفع",
+  "locationTracking": "تتبع الموقع",
+  "shareRealtimeLocation": "مشاركة موقعك في الوقت الفعلي",
+  "cfaFranc": "فرنك CFA",
+  "usDollar": "دولار أمريكي",
+  "createAccountToContinue": "أنشئ حساباً للمتابعة.",
+  "actionRequired": "إجراء مطلوب",
+  "uploadProfilePhotoRequired": "يرجى رفع صورة ملفك الشخصي للمتابعة.",
+  "proBuyerBlockedTitle": "حساب المشتري غير مسموح على Tranoo Pro",
+  "proBuyerBlockedSubtitle": "يستخدم المشترون تطبيق Tranoo.",
+  "thisCountry": "هذه الدولة",
+  "passwordDotsHint": "••••••••",
+  "continueButton": "متابعة",
+  "locationRequired": "الموقع مطلوب",
+  "authorizationRequired": "التفويض مطلوب",
+  "whatWeUse": "ما نستخدمه:",
+  "locationBackgroundWarning": "يُستخدم الموقع حتى عندما يكون التطبيق في الخلفية لضمان التتبع المستمر.",
+  "backgroundLocationTitle": "الموقع في الخلفية",
+  "backgroundLocationMessage": "لضمان تتبع مستمر لمهامك، نحتاج الوصول إلى موقعك حتى عندما يكون التطبيق في الخلفية.\n\nيمكنك تفعيل هذا الإذن في إعدادات جهازك.",
+  "deviceSettings": "الإعدادات",
+  "permissionDenied": "تم رفض الإذن",
+  "locationRequiredForRole": "الموقع مطلوب لاستخدام ميزات {role}. قد تكون بعض الميزات محدودة.",
+  "@locationRequiredForRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "permissionRequestError": "حدث خطأ أثناء طلب الإذن: {error}",
+  "@permissionRequestError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeTranooProExclaim": "مرحباً بك في Tranoo Pro!",
+  "locationAuthorization": "تفويض الموقع",
+  "locationUsageIntro": "للعمل بشكل صحيح، يستخدم Tranoo Pro موقعك من أجل:",
+  "locationBackgroundServicesWarning": "قد يُستخدم الموقع حتى عندما يكون التطبيق في الخلفية لضمان تتبع الخدمات بشكل مستمر.",
+  "changeDecisionLaterInSettings": "يمكنك تغيير هذا القرار لاحقاً في الإعدادات",
+  "authorizeLocationInSettings": "اسمح بالموقع في الإعدادات.",
+  "cannotGetPosition": "تعذر الحصول على الموقع.",
+  "yourCurrentPosition": "موقعك الحالي",
+  "positionUsageForListings": "تُستخدم لإعلاناتك وموقع المورد. يمكنك تحديثه في ملفك الشخصي.",
+  "saveCurrentPosition": "حفظ موقعي الحالي",
+  "refreshPosition": "تحديث الموقع",
+  "positionSavedGps": "تم حفظ الموقع (إحداثيات GPS)",
+  "profilePositionUpdated": "تم تحديث موقع الملف الشخصي",
+  "savePositionToContinue": "احفظ موقعك الحالي للمتابعة.",
+  "saveYourCurrentPosition": "احفظ موقعك الحالي.",
+  "sellerUpdateTitle": "تحديث البائع",
+  "sellerTypeChoiceIntro": "يتيح لك Tranoo Pro الآن اختيار نوع البائع: مركبات، قطع غيار أو مختلط.",
+  "sellerTypeChoiceHint": "اختر في الصفحة المخصصة لتخصيص قوائمك ومنشوراتك.",
+  "makeChoice": "اختر",
+  "professionalAccess": "وصول احترافي",
+  "useAlternativeAppForProfessionalRole": "استخدم {app} لدورك المهني",
+  "@useAlternativeAppForProfessionalRole": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionExpiresIn": "ينتهي اشتراكك خلال {days} يوماً.",
+  "@subscriptionExpiresIn": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "freeTrialEndsIn": "تنتهي فترتك المجانية خلال {days} يوماً.",
+  "@freeTrialEndsIn": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "currentPlanLabel": "الخطة الحالية: {plan}",
+  "@currentPlanLabel": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "unknown": "غير معروف",
+  "manageSubscription": "إدارة اشتراكي",
+  "historyLast10": "السجل (آخر 10)",
+  "noSubscriptionPayments": "لا توجد مدفوعات اشتراك حالياً.",
+  "serverTimeout": "يستغرق الخادم وقتاً طويلاً للرد. أعد المحاولة قريباً.",
+  "cannotReachServerDetailed": "تعذر الوصول إلى الخادم. تحقق من اتصالك وعنوان الخادم.",
+  "accountDeletionFailed": "فشل حذف الحساب. أعد المحاولة لاحقاً.",
+  "unexpectedDeletionError": "حدث خطأ غير متوقع أثناء الحذف.",
+  "myPurchases": "مشترياتي",
+  "myPurchasesSubtitle": "عرض سجل طلباتك",
+  "myReviews": "تقييماتي",
+  "myReviewsSubtitle": "عرض أو تعديل تعليقاتك",
+  "myInvoices": "فواتيري",
+  "myInvoicesSubtitle": "تنزيل إيصالات مشترياتك",
+  "accountCreatedSuccess": "تم إنشاء الحساب بنجاح.",
+  "fieldRequired": "هذا الحقل مطلوب.",
+  "address": "العنوان",
+  "deliveryAddress": "عنوان التوصيل",
+  "addDeliveryNote": "إضافة ملاحظة توصيل",
+  "chooseDate": "اختر التاريخ",
+  "packageLabel": "طرد",
+  "packagesToDeliver": "طرود للتوصيل",
+  "orderLabel": "طلب",
+  "qrContent": "محتوى QR",
+  "carDescription": "وصف السيارة",
+  "becomeCertifiedDriver": "كن سائقاً معتمداً",
+  "adDuration": "مدة الإعلان",
+  "inDelivery": "قيد التوصيل",
+  "inTransit": "قيد النقل",
+  "enterCompanyName": "أدخل اسم الشركة",
+  "enterVehicleName": "أدخل اسم المركبة",
+  "enterCarDescriptionOptional": "أدخل وصفاً لسيارتك (اختياري)",
+  "enterClientDestination": "أدخل وجهة العميل",
+  "enterBrand": "أدخل الماركة",
+  "enterModel": "أدخل الطراز",
+  "enterCustomModel": "أدخل طرازاً مخصصاً",
+  "enterDestinationDetails": "أدخل تفاصيل الوجهة هنا...",
+  "engineDisplacementExample": "مثال: 1600 أو 1.6",
+  "requirements": "المتطلبات",
+  "supplier": "المورد",
+  "supplierToBuyer": "المورد -> المشتري",
+  "deliveryEarnings": "أرباح التوصيل",
+  "vehicleInfoRequired": "التسجيل والنوع والعلامة والطراز مطلوبة.",
+  "vehicleInfoMissing": "معلومات المركبة ناقصة.",
+  "mileageHint": "المسافة (كم)، مثال: 12500 أو 12.5",
+  "externalLinkOptional": "رابط خارجي (اختياري)",
+  "partOrCarName": "اسم القطعة/السيارة",
+  "nameOnCard": "الاسم على البطاقة",
+  "seatCount": "عدد المقاعد",
+  "notProvided": "غير محدد",
+  "notificationDefault": "إشعار",
+  "orderNumber": "رقم الطلب",
+  "cashPayment": "دفع نقدي",
+  "positionRequired": "الموقع مطلوب",
+  "priceFcfa": "السعر (فرنك)",
+  "priceFcfaExample": "السعر بالفرنك (مثال: 1500000 أو 1.500.000,5)",
+  "offerDeliveryServices": "تقديم خدمات التوصيل",
+  "specifyModel": "حدد الطراز",
+  "searchCarHint": "ابحث عن سيارة (علامة، طراز، عنوان)...",
+  "summary": "ملخص",
+  "roleLabel": "الدور",
+  "titleLabel": "العنوان",
+  "typeLabel": "النوع",
+  "engineType": "نوع المحرك",
+  "adType": "نوع الإعلان",
+  "engineTypeShort": "المحرك",
+  "toBuyer": "إلى المشتري",
+  "toSupplier": "إلى المورد",
+  "pleaseEnterCompany": "يرجى إدخال شركتك.",
+  "deliverTo": "التوصيل إلى",
+  "conditionLabel": "الحالة",
+  "buyer": "مشتري",
+  "positionGpsSaved": "تم حفظ موقع GPS",
+  "enterLink": "أدخل الرابط",
+  "passwordSuperStrong": "قوي جداً",
+  "onboardingTagline1": "Tranoo\nاعثر على قطعك\nوسياراتك بسرعة",
+  "onboardingTagline2": "اكتشف مركبتك\nالمثالية في\nبضع نقرات",
+  "accountDeletion": "حذف الحساب",
+  "accountDeletionIrreversible": "هذا الإجراء لا رجعة فيه.",
+  "accountDeletionDataWarning": "سيتم حذف حسابك ووصولك للتطبيق والبيانات المرتبطة.",
+  "accountDeletionConfirmWarning": "تأكد أنك لم تعد بحاجة لهذا الحساب قبل التأكيد.",
+  "editAccountSubtitle": "تعديل معلومات حسابك",
+  "referral": "الإحالة",
+  "referralSubtitle": "اربح بدعوة أصدقائك",
+  "sellMyCar": "بيع سيارتي",
+  "sellMyPart": "بيع قطعتي",
+  "becomeSellerSubtitle": "كن بائعاً وبيع معنا",
+  "sellerAccessOnly": "الوصول مخصص للبائعين.",
+  "transitaireAccessOnly": "الوصول مخصص للوسطاء الجمركيين.",
+  "transitHistory": "سجل الشحنات",
+  "user": "مستخدم",
+  "userNotConnected": "مستخدم غير متصل",
+  "newAlertDefault": "تنبيه جديد",
+  "buyerSearchingPart": "مشترٍ يبحث عن قطعة.",
+  "buyerSearchingVehicle": "مشترٍ يبحث عن مركبة.",
+  "characteristics": "المواصفات:",
+  "noCharacteristicsProvided": "- لا توجد مواصفات",
+  "proposeOffer": "قدّم عرضاً",
+  "myCart": "سلتي",
+  "cartEmpty": "سلتك فارغة",
+  "cartEmptyHint": "أضف منتجات لبدء التسوق",
+  "checkout": "إتمام الطلب",
+  "carsOnline": "سيارات متاحة",
+  "carDeletedSuccess": "تم حذف السيارة بنجاح!",
+  "newCondition": "جديد",
+  "usedCondition": "مستعمل",
+  "budgetFcfa": "الميزانية (فرنك)",
+  "spareParts": "قطع الغيار",
+  "confirmDeletePart": "هل تريد حقاً حذف هذه القطعة؟",
+  "partDeletedSuccess": "تم حذف القطعة بنجاح!",
+  "searchPartHint": "ابحث عن قطعة...",
+  "searchVehiclesPartsHint": "ابحث عن مركبات، قطع...",
+  "deliveries": "التوصيل",
+  "tricycles": "الدراجات ثلاثية العجلات",
+  "fillMiniForm": "ملء النموذج المصغر",
+  "discussions": "المحادثات",
+  "noDiscussions": "لا توجد محادثات",
+  "startDiscussionWithSeller": "ابدأ محادثة مع بائع",
+  "typeMessageHint": "اكتب رسالتك...",
+  "messageSendError": "خطأ في إرسال الرسالة",
+  "noNotifications": "لا توجد إشعارات",
+  "markAllRead": "تعليم الكل كمقروء",
+  "notificationDetails": "تفاصيل الإشعار",
+  "myOrders": "طلباتي",
+  "noOrders": "لا توجد طلبات",
+  "orderDetails": "تفاصيل الطلب",
+  "orderTracking": "تتبع الطلب",
+  "filterAll": "الكل",
+  "filterInProgress": "قيد التنفيذ",
+  "filterCompleted": "مكتملة",
+  "myWallet": "محفظتي",
+  "withdrawal": "سحب",
+  "transactions": "المعاملات",
+  "paymentMethod": "طريقة الدفع",
+  "paymentSuccessful": "تم الدفع بنجاح!",
+  "paymentFailed": "فشل الدفع",
+  "pay": "ادفع",
+  "payNow": "ادفع الآن",
+  "returnToApp": "العودة للتطبيق",
+  "wooHoo": "واو!!",
+  "goToHome": "الذهاب للرئيسية",
+  "congratulations": "تهانينا!",
+  "publishedOnline": "منشور على الإنترنت!",
+  "returnHome": "العودة للرئيسية",
+  "referralTitle": "الإحالة",
+  "referralLinkCopied": "تم نسخ رابط الإحالة!",
+  "copyLink": "نسخ الرابط",
+  "yourStats": "إحصائياتك",
+  "pending": "قيد الانتظار",
+  "completed": "مكتمل",
+  "chooseLocation": "اختر الموقع",
+  "navigate": "التنقل",
+  "termsOfUse": "شروط الاستخدام",
+  "livreurHome": "الصفحة الرئيسية للموصل",
+  "chauffeurHome": "الصفحة الرئيسية للسائق",
+  "myDeliveries": "توصيلاتي",
+  "sellerSubscription": "اشتراك البائع",
+  "premiumSubscription": "اشتراك بريميوم",
+  "subscribeNow": "اشترك الآن",
+  "sellerWallet": "محفظة البائع",
+  "more": "المزيد",
+  "signInForProfile": "سجّل الدخول للوصول إلى ملفك الشخصي",
+  "profileLoadError": "تعذر تحميل الملف الشخصي. تحقق من اتصالك أو صلاحياتك.",
+  "profileSaveError": "خطأ أثناء حفظ الملف الشخصي",
+  "company": "الشركة",
+  "country": "البلد",
+  "gender": "الجنس",
+  "genderMale": "ذكر",
+  "genderFemale": "أنثى",
+  "genderOther": "آخر",
+  "saving": "جاري الحفظ...",
+  "updateProfile": "تحديث الملف الشخصي",
+  "profileUpdateError": "خطأ أثناء التحديث",
+  "restrictedAccess": "وصول مقيّد",
+  "roleNotAllowedOnApp": "دورك ({role}) غير مسموح به على {app}",
+  "@roleNotAllowedOnApp": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      },
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "useAlternativeAppForRole": "استخدم {app} لدورك",
+  "@useAlternativeAppForRole": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "googlePlay": "Google Play",
+  "appStore": "App Store",
+  "alertNotificationsTitle": "إشعارات التنبيهات",
+  "alertNotificationsDescription": "اسمح بالإشعارات لتلقي تنبيه عند رد بائع على تنبيهك، حتى عندما يكون التطبيق في الخلفية.",
+  "allowNotifications": "السماح بالإشعارات",
+  "referralLinkTitle": "رابط الإحالة الخاص بك",
+  "referralShareTitle": "مشاركة رابط الإحالة",
+  "others": "أخرى",
+  "total": "الإجمالي",
+  "yourReferrals": "إحالاتك",
+  "noReferralsYet": "لا توجد إحالات حالياً",
+  "shareReferralHint": "شارك رمزك مع أصدقائك للبدء!",
+  "referralShareMessage": "🚗 انضم إليّ على Tranoo!\n\nحمّل التطبيق عبر رابط الإحالة: {link}\n\nلنجد أفضل السيارات وقطع الغيار معاً! 🚙✨",
+  "@referralShareMessage": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "unexpectedError": "خطأ غير متوقع: {error}",
+  "@unexpectedError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "serverError": "خطأ في الخادم: {status} - {message}",
+  "@serverError": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelBrand": "العلامة: {value}",
+  "@alertLabelBrand": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelModel": "الطراز: {value}",
+  "@alertLabelModel": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelCondition": "الحالة: {value}",
+  "@alertLabelCondition": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelYear": "السنة: {value}",
+  "@alertLabelYear": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelYearMin": "الحد الأدنى للسنة: {value}",
+  "@alertLabelYearMin": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelYearMax": "الحد الأقصى للسنة: {value}",
+  "@alertLabelYearMax": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelBudgetMax": "الحد الأقصى للميزانية: {value} فرنك",
+  "@alertLabelBudgetMax": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelPart": "القطعة: {value}",
+  "@alertLabelPart": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelUrgency": "الاستعجال: {value}",
+  "@alertLabelUrgency": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelLocation": "الموقع: {value}",
+  "@alertLabelLocation": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelDetails": "التفاصيل: {value}",
+  "@alertLabelDetails": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmDeleteCar": "هل تريد حقاً حذف هذه السيارة؟",
+  "vehicleBrandLabel": "ماركة المركبة",
+  "partNameLabel": "اسم القطعة",
+  "urgencyLow": "منخفض",
+  "urgencyNormal": "عادي",
+  "urgencyHigh": "عاجل",
+  "alertSendError": "خطأ إرسال التنبيه: {error}",
+  "@alertSendError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "searchTypeTitle": "نوع البحث",
+  "whatDoYouWantToSearch": "ماذا تريد أن تبحث عنه؟",
+  "noArticleLinkedToAd": "لا يوجد منتج مرتبط بهذا الإعلان.",
+  "sellerPhoneUnavailable": "رقم البائع غير متاح",
+  "imageNotAvailable": "الصورة غير متاحة",
+  "requestValidatedWhatsApp": "تمت الموافقة على الطلب — فتح واتساب",
+  "requestRejected": "تم رفض الطلب",
+  "errorActionStatus": "خطأ في الإجراء: {status}",
+  "@errorActionStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsLoadError": "خطأ في تحميل الإشعارات",
+  "notificationDeleted": "تم حذف الإشعار",
+  "markedAsUnread": "تم التعليم كغير مقروء",
+  "markAsUnread": "تعليم كغير مقروء",
+  "confirmDeleteNotification": "حذف هذا الإشعار؟",
+  "orderSummary": "الملخص",
+  "selectAddress": "اختر عنواناً",
+  "direction": "الاتجاهات",
+  "track": "تتبع",
+  "orderPayment": "دفع الطلب",
+  "preparingPayment": "جاري تحضير الدفع...",
+  "noActiveOrderToTrack": "لا يوجد طلب نشط للتتبع",
+  "ordersLoadError": "خطأ في تحميل الطلبات",
+  "orderRegisteredDeliverySoon": "تم تسجيل طلبك. سيتولى سائق التوصيل قريباً.",
+  "driverAssignedTrackRealtime": "تم تعيين السائق. تتبع موقعه في الوقت الفعلي.",
+  "returnPackage": "إرجاع الطرد",
+  "pickupMyOrder": "استلام طلبي",
+  "deliveryNotFound": "التوصيل غير موجود.",
+  "orderPickedUpSuccess": "تم استلام الطلب بنجاح.",
+  "pickupError": "خطأ في الاستلام: {error}",
+  "@pickupError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "returnReasonHint": "مثال: قطعة غير مطابقة، عيب، خطأ في الطراز…",
+  "send": "إرسال",
+  "reasonRequired": "السبب مطلوب.",
+  "returnReportedPaymentRequired": "تم الإبلاغ عن الإرجاع. دفع رسوم التوصيل مطلوب.",
+  "returnError": "خطأ في الإرجاع: {error}",
+  "@returnError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentInterrupted": "تم إيقاف الدفع",
+  "paymentInterruptedMessage": "غادرت شاشة الدفع أو لم تكتمل المعاملة.",
+  "paymentInterruptedSubtitle": "لم يتم تسجيل أي خصم. يمكنك المحاولة مرة أخرى في أي وقت.",
+  "paymentErrorMessage": "حدث خطأ أثناء المعاملة.",
+  "paymentErrorRetrySupport": "يرجى المحاولة مرة أخرى أو الاتصال بالدعم.",
+  "transactionSuccessMessage": "تمت معاملتك بنجاح.",
+  "closePageReturnToApp": "يمكنك الآن إغلاق هذه الصفحة والعودة للتطبيق.",
+  "selectToChoose": "اختر",
+  "bankPayment": "الدفع البنكي",
+  "mobileMoney": "المال المحمول",
+  "paymentSuccessUpdatingStatus": "تم الدفع بنجاح! جاري تحديث الحالة...",
+  "adPaidSuccess": "تم دفع الإعلان بنجاح!",
+  "subscriptionActivatedSuccess": "تم تفعيل الاشتراك بنجاح!",
+  "redirecting": "جاري إعادة التوجيه...",
+  "verifyPayment": "التحقق من الدفع",
+  "finalizePayment": "إتمام الدفع",
+  "purchaseSuccessMessage": "عزيزي العميل، تمت عملية الشراء بنجاح. ",
+  "purchaseSuccessDelivery": "سيتم توصيل منتجك خلال 5 أيام كحد أقصى. شكراً لثقتكم!",
+  "articleCreatedPendingValidation": "أحسنت! أنشأت إعلانك. وهو قيد المراجعة.",
+  "almostThere": "أنت على وشك الانتهاء",
+  "spotlightCostPrefix": "تكلفة التمييز حوالي ",
+  "spotlightCostSuffix": " لهذه المركبة. أكمل الدفع لعرض مركبتك في أعلى القائمة.",
+  "saleSuccessTitle": "تم البيع بنجاح!",
+  "publishedSuccessMessage": "إعلانك متاح الآن على الإنترنت!",
+  "yourBalanceIs": "رصيدك هو:",
+  "entry": "إيداع",
+  "makeWithdrawal": "إجراء سحب",
+  "transferAccount": "حساب التحويل",
+  "cardNumber": "رقم البطاقة",
+  "month": "الشهر",
+  "securityCode": "رمز أمان البطاقة",
+  "codeHint": "الرمز",
+  "requestWithdrawal": "طلب سحب",
+  "myWithdrawals": "سحوباتي",
+  "withdrawalRequest": "طلب سحب",
+  "noMessage": "لا توجد رسالة",
+  "articleDefault": "منتج",
+  "justNow": "الآن",
+  "recent": "حديث",
+  "errorSendingImage": "خطأ في إرسال الصورة",
+  "errorSendingDocument": "خطأ في إرسال المستند",
+  "pdfLabel": "PDF",
+  "openingDocument": "جاري فتح المستند...",
+  "myTransits": "شحناتي",
+  "noArticlesInCategory": "لا توجد منتجات في هذه الفئة",
+  "discussionCreationError": "خطأ في إنشاء المحادثة",
+  "articleWithoutId": "منتج بدون معرف",
+  "contactTransitaire": "اتصل بالوسيط",
+  "finalizePurchase": "إتمام الشراء",
+  "chosenForwarderRate": "تعرفة الوسيط المختارة",
+  "additionalFees": "رسوم إضافية",
+  "totalPrice": "السعر الإجمالي",
+  "downloadInvoice": "تنزيل الفاتورة",
+  "chooseFormat": "اختر الصيغة:",
+  "imageFormat": "صورة",
+  "documentFormat": "مستند",
+  "imageGallery": "صورة (المعرض)",
+  "chooseDownloadFormat": "اختر صيغة التنزيل:",
+  "preparingShare": "جاري تحضير المشاركة...",
+  "invoiceReadyToShare": "الفاتورة جاهزة للمشاركة!",
+  "shareError": "خطأ في المشاركة: {error}",
+  "@shareError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "maxImagesReached": "تم الوصول للحد الأقصى 12 صورة",
+  "videoUploadedSuccess": "تم رفع الفيديو بنجاح!",
+  "waitUploadFinish": "يرجى انتظار انتهاء الرفع.",
+  "addAtLeastOneMedia": "يرجى إضافة صورة أو فيديو واحد على الأقل.",
+  "fillRequiredFields": "يرجى ملء جميع الحقول المطلوبة.",
+  "enterTitle": "أدخل العنوان",
+  "enterYear": "أدخل السنة (مثال: 2020)",
+  "enterCylinder": "أدخل السعة (مثال: 1600)",
+  "enterDistance": "أدخل المسافة (كم)",
+  "enterSeats": "أدخل عدد المقاعد",
+  "enterPrice": "أدخل السعر",
+  "enterCarDescription": "أدخل وصف سيارتك",
+  "uploadInProgress": "جاري الرفع...",
+  "publishListing": "نشر الإعلان",
+  "uploadImageFailed": "فشل رفع الصورة.",
+  "noImageSelected": "لم يتم اختيار صورة.",
+  "newOffer": "عرض جديد",
+  "selectAtLeastOneImage": "يرجى اختيار صورة واحدة على الأقل.",
+  "fillCarFields": "يرجى ملء جميع حقول السيارة.",
+  "requestCreationError": "خطأ في إنشاء الطلب.",
+  "statusUpdateError": "خطأ في تحديث الحالة.",
+  "clickableLinkOptional": "رابط قابل للنقر (اختياري)",
+  "itemName": "اسم القطعة/السيارة",
+  "companyName": "اسم الشركة",
+  "locationServicesDisabled": "خدمات الموقع معطلة",
+  "locationPermissionDenied": "تم رفض إذن الموقع",
+  "locationPermissionDeniedForever": "تم رفض إذن الموقع نهائياً",
+  "confirmThisLocation": "تأكيد هذا الموقع",
+  "useMyLocation": "استخدام موقعي",
+  "drivingLicense": "رخصة القيادة",
+  "yourMessage": "رسالتك",
+  "submitApplication": "إرسال الطلب",
+  "applicationSubmitted": "تم إرسال الطلب بنجاح!",
+  "applicationSubmitError": "خطأ في إرسال الطلب.",
+  "vendreTitle": "بيع",
+  "quantity": "الكمية",
+  "addToCart": "أضف إلى السلة",
+  "buyNow": "اشترِ الآن",
+  "contactSeller": "اتصل بالبائع",
+  "views": "المشاهدات",
+  "status": "الحالة",
+  "date": "التاريخ",
+  "amount": "المبلغ",
+  "details": "التفاصيل",
+  "search": "بحث",
+  "filter": "تصفية",
+  "seeAll": "عرض الكل",
+  "noData": "لا توجد بيانات",
+  "errorLoading": "خطأ في التحميل",
+  "continueAction": "متابعة",
+  "edit": "تعديل",
+  "remove": "إزالة",
+  "subtotal": "المجموع الفرعي",
+  "shipping": "الشحن",
+  "orderStatus": "حالة الطلب",
+  "orderDate": "تاريخ الطلب",
+  "delivered": "تم التوصيل",
+  "cancelled": "ملغاة",
+  "processing": "جاري المعالجة...",
+  "errorUserNotConnected": "خطأ: المستخدم غير متصل",
+  "adPaymentSuccessMessage": "تم الدفع بنجاح! ",
+  "adPaymentSuccessHighlight": "سيتم تمييز إعلانك بعد التحقق من فريقنا. ستتلقى إشعار تأكيد.",
+  "preparing": "جاري التحضير...",
+  "listingPublishedVisiblePrefix": "إعلانك منشور ومرئي ",
+  "immediately": "فوراً",
+  "listingPublishedVisibleSuffix": " على التطبيق.\n\nيمكنك بالفعل العثور عليه في القوائم.",
+  "listingAlreadyOnline": "إعلانك متاح بالفعل على الإنترنت.",
+  "noVehicleSearchResultHint": "لا توجد سيارة تطابق بحثك.\nأنشئ تنبيهاً مصغراً للتواصل معك بسرعة.",
+  "noPartSearchResultHint": "لا توجد قطعة تطابق بحثك.\nأنشئ تنبيهاً مصغراً للتواصل معك بسرعة.",
+  "priceFcfaLabel": "السعر (فرنك)",
+  "vehicleAlert": "تنبيه مركبة",
+  "partAlert": "تنبيه قطعة",
+  "takePhoto": "التقاط صورة",
+  "vehicleCondition": "حالة المركبة",
+  "brandRequired": "الماركة مطلوبة",
+  "modelRequired": "الطراز مطلوب",
+  "yearRequired": "السنة مطلوبة",
+  "budgetRequired": "الميزانية مطلوبة",
+  "alertRegisteredFeedback": "تم تسجيل طلبك. ستتلقى ردود البائعين قريباً جداً.",
+  "whatsappOpenDetailed": "تعذر فتح واتساب. تحقق من تثبيت التطبيق أو متصفح على هاتفك.",
+  "noVideoAvailable": "لا يوجد فيديو متاح",
+  "cannotMakeCall": "تعذر إجراء مكالمة",
+  "cylinder": "الأسطوانات",
+  "fuel": "الوقود",
+  "airConditioner": "مكيف الهواء",
+  "distanceKm": "المسافة",
+  "seats": "المقاعد",
+  "doors": "الأبواب",
+  "gearbox": "علبة التروس",
+  "customsClearance": "التخليص الجمركي",
+  "inConsumption": "للاستهلاك",
+  "chooseCountry": "اختر بلداً",
+  "additionalDetails": "تفاصيل إضافية",
+  "signInForVerification": "سجّل الدخول لطلب التحقق",
+  "signInForDelivery": "سجّل الدخول للطلب مع التوصيل",
+  "signInToBuyThisCar": "سجّل الدخول لشراء هذه السيارة",
+  "chooseDeliveryMode": "يرجى اختيار وضع التوصيل (للاستهلاك أو في العبور).",
+  "selectLocationPlease": "يرجى اختيار موقع.",
+  "verificationInProgress": "التحقق جارٍ",
+  "verificationChecksPrefix": "سيتم إجراء الفحوصات وإرسالها إليك خلال ",
+  "tenBusinessDays": "10 أيام",
+  "verificationChecksMiddle": ". للبدء، يرجى دفع ",
+  "verificationFeesLabel": "رسوم التحقق",
+  "payVerificationFees": "دفع رسوم التحقق",
+  "requestVerification": "طلب تحقق",
+  "buyThisCar": "شراء هذه السيارة",
+  "sampleCarDescription": "تيسلا موديل 3 سيارة سيدان كهربائية متوسطة الحجم معروفة بأدائها وتسارعها ومدى بطاريتها.",
+  "chooseCondition": "اختر الحالة",
+  "chooseBrand": "اختر العلامة",
+  "chooseModel": "اختر الطراز",
+  "chooseDoorCount": "اختر عدد الأبواب",
+  "chooseGearbox": "اختر علبة التروس",
+  "chooseFuel": "اختر الوقود",
+  "chooseAirConditioner": "اختر المكيف",
+  "brandsLabel": "العلامات",
+  "doorSingular": "باب",
+  "seatSingular": "مقعد",
+  "selectedColorLabel": "اللون المحدد: {color}",
+  "@selectedColorLabel": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "companyBlOwner": "اسم الشركة حامل بوليصة الشحن",
+  "imagesOptionalMax12": "صور (اختياري، 12 كحد أقصى)",
+  "videoOptionalMax500": "فيديو (اختياري، 500 ميجا كحد أقصى)",
+  "addImagesButton": "إضافة صور",
+  "videoReady": "الفيديو جاهز",
+  "mediaSlot": "الموضع {index}",
+  "@mediaSlot": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "tapToAddVideo": "اضغط للإضافة",
+  "sending": "جاري الإرسال...",
+  "videoTooHeavy": "الفيديو كبير جداً ({size} ميجا). الحد: 500 ميجا.",
+  "@videoTooHeavy": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "videoUploadError": "خطأ في رفع الفيديو. يرجى المحاولة مرة أخرى.",
+  "maxMediaCount": "يمكنك اختيار {count} وسائط كحد أقصى.",
+  "@maxMediaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "manualTransmission": "يدوي",
+  "automaticTransmission": "أوتوماتيك",
+  "petrol": "بنزين",
+  "diesel": "ديزل",
+  "electric": "كهربائي",
+  "hybrid": "هجين",
+  "otherOption": "آخر",
+  "pieceName": "اسم القطعة",
+  "enterYearShort": "أدخل السنة",
+  "placement": "الموقع",
+  "enterPartDescription": "أدخل وصف قطعتك",
+  "verificationAction": "تحقق",
+  "uploadFailed": "فشل الرفع: {error}",
+  "@uploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "videoUploadFailed": "فشل رفع الفيديو: {error}",
+  "@videoUploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "selectedModelLabel": "الطراز المحدد: {model}",
+  "@selectedModelLabel": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "customModelLabel": "طراز مخصص: {model}",
+  "@customModelLabel": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "enterEngineType": "أدخل نوع المحرك",
+  "noEngine": "لا شيء",
+  "gazoil": "غازويل",
+  "addVideo": "إضافة فيديو",
+  "videoUploadedLabel": "تم رفع الفيديو",
+  "beforeContactSeller": "قبل الاتصال بالبائع",
+  "contactSellerTips": "• أكّد السعر وأي رسوم\n• تحقق من الموقع والتوفر\n• ناقش حالة المنتج بوضوح\n• فضّل مكاناً آمناً للمعاملة",
+  "orderWithDelivery": "اطلب مع التوصيل",
+  "buyViaApp": "الشراء عبر التطبيق",
+  "secureOrderViaCart": "طلب آمن عبر سلة Tranoo (التوصيل متاح).",
+  "partTypeLabel": "نوع القطعة",
+  "ratingOutOf5": "0 / 5",
+  "mastervacSampleDescription": "مكوّن أساسي في نظام الفرامل، يضخم معزز الفرامل قوة الدواسة لتسهيل الكبح.",
+  "rare": "نادر",
+  "sellYourPart": "بع قطعتك",
+  "newBadge": "جديد",
+  "createAd": "إنشاء إعلان",
+  "adRequest": "طلب إعلان",
+  "standaloneAd": "إعلان مستقل",
+  "existingArticleAd": "إعلان منتج موجود",
+  "standaloneAdDesc": "إعلان مميز مستقل. ارفع ملصقاً (1080×1350 بكسل موصى به) وأضف رابطاً اختيارياً لموقعك أو كتالوجك.",
+  "nonExistingPubDesc": "إعلان غير موجود. أنت تنشئ عرضاً جديداً. يمكن للمستخدمين النقر لرؤية تفاصيل عرضك.",
+  "existingArticlePubDesc": "أنت تنشئ إعلاناً لمنتج موجود. يمكن للمستخدمين النقر لرؤية المنتج كاملاً.",
+  "loadingArticleInfo": "جاري تحميل معلومات المنتج...",
+  "articleLoadedSuccess": "تم تحميل المنتج بنجاح! يمكنك الآن الإعلان عن هذا المنتج.",
+  "linkExampleHint": "مثال: https://wa.me/2250700000000 أو https://mon-site.com",
+  "linkHelperText": "اسمح للمستخدمين بفتح موقعك أو كتالوجك أو نموذج الدفع.",
+  "selectAdType": "يرجى اختيار نوع",
+  "selectDuration": "يرجى اختيار مدة",
+  "sponsoredType": "مدعوم",
+  "featuredType": "في الواجهة",
+  "oneWeek": "أسبوع واحد",
+  "twoWeeks": "أسبوعان",
+  "oneMonth": "شهر واحد",
+  "twoMonths": "شهران",
+  "threeMonths": "3 أشهر",
+  "pricePerDayLabel": "{price}/يوم",
+  "@pricePerDayLabel": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "carInfoSection": "معلومات المركبة",
+  "enterName": "يرجى إدخال الاسم",
+  "enterYearValidator": "يرجى إدخال السنة",
+  "enterLocationValidator": "يرجى إدخال الموقع",
+  "enterPriceValidator": "يرجى إدخال السعر",
+  "enterDescriptionValidator": "يرجى إدخال وصف",
+  "enterCompanyValidator": "يرجى إدخال اسم الشركة",
+  "selectEngineTypeValidator": "يرجى اختيار نوع المحرك",
+  "selectModelValidator": "يرجى اختيار الطراز",
+  "selectTypeValidator": "يرجى اختيار النوع",
+  "mainFlyerImage": "الصورة الرئيسية (ملصق)",
+  "recommendedDimensions": "الأبعاد الموصى بها: 1080×1350 بكسل (PNG/JPG)",
+  "addMainImage": "إضافة الصورة الرئيسية",
+  "dimensions1080x1350": "1080 x 1350 px",
+  "additionalImagesOptional": "صور إضافية (اختياري)",
+  "standaloneFeaturedTitle": "إعلان مميز",
+  "standaloneFeaturedDesc": "ملصق مخصص، لا حاجة لمنتج موجود. أضف صورتك و(اختيارياً) رابطاً خارجياً.",
+  "addMainImageForFeatured": "يرجى إضافة صورة رئيسية لـ \"في الواجهة\".",
+  "articleCreateError": "خطأ في إنشاء المنتج.",
+  "articleCreateNetworkError": "خطأ شبكة أثناء إنشاء المنتج: {error}",
+  "@articleCreateNetworkError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "articleLoadError": "خطأ في تحميل المنتج",
+  "articleLoadNetworkError": "خطأ شبكة أثناء تحميل المنتج",
+  "mediaUploadError": "خطأ في رفع الوسائط: {error}",
+  "@mediaUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fillAllFieldsShort": "يرجى ملء جميع الحقول.",
+  "articleNotExistCreateFirst": "هذا المنتج غير موجود، أنشئه وبعد موافقة المشرف يمكنك تمييزه.",
+  "articleNotExistFeaturedFirst": "هذا المنتج غير موجود. لإعلانات \"في الواجهة\"، أنشئ المنتج أولاً وبعد موافقة المشرف يمكنك تمييزه.",
+  "articleCreateRetryError": "خطأ في إنشاء المنتج. يرجى المحاولة مرة أخرى.",
+  "paymentSuccessPendingValidation": "تم الدفع بنجاح، في انتظار موافقة المشرف. ستتلقى إشعاراً عند الموافقة.",
+  "pubForTitle": "إعلان لـ {title}",
+  "@pubForTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "noDescriptionAd": "إعلان بدون وصف",
+  "defaultCarName": "اسم السيارة",
+  "defaultLocation": "الموقع",
+  "defaultPrice": "السعر",
+  "defaultCarDescription": "وصف السيارة",
+  "defaultCompanyName": "اسم الشركة",
+  "defaultBrand": "العلامة",
+  "standaloneFeaturedDescriptionDefault": "إعلان مميز (ملصق واجهة Tranoo)",
+  "perMonth": "شهرياً",
+  "boostVisibilitySubtitle": "عزّز ظهورك لدى العملاء",
+  "premiumBenefits": "مزايا بريميوم",
+  "prioritySpotlight": "تمييز أولوي",
+  "prioritySpotlightDesc": "اظهر أولاً في نتائج البحث",
+  "premiumBadge": "شارة بريميوم",
+  "premiumBadgeDesc": "شارة ذهبية ظاهرة على ملفك",
+  "boostedVisibility": "ظهور معزز",
+  "boostedVisibilityDesc": "المزيد من العملاء يتواصلون معك",
+  "prioritySupport": "دعم أولوي",
+  "prioritySupportDesc": "مساعدة مخصصة 24/7",
+  "monthlySubscription": "اشتراك شهري",
+  "subscriptionAutoRenewNote": "يتجدد اشتراكك تلقائياً كل شهر. يمكنك الإلغاء في أي وقت.",
+  "subscribeNowPrice": "اشترك الآن - {price} فرنك",
+  "@subscribeNowPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "userNotLoggedIn": "المستخدم غير متصل",
+  "feexpayConfigMissing": "إعداد FeexPay مفقود",
+  "feexpayConfigMissingDetailed": "إعداد FeexPay مفقود (FP_TOKEN_FEEXPAY / ID_USER_FEEXPAY)",
+  "verificationFeesTitle": "رسوم التحقق",
+  "documentVerification": "التحقق من المستندات",
+  "verifyDocumentsAuthenticity": "تحقق من صحة مستنداتك",
+  "includedServices": "الخدمات المشمولة",
+  "fullVerification": "تحقق كامل",
+  "fullVerificationDesc": "مراجعة جميع مستنداتك الرسمية",
+  "fastProcessing": "معالجة سريعة",
+  "fastProcessingDesc": "النتائج خلال 10 أيام عمل",
+  "oneTimePayment": "دفع لمرة واحدة",
+  "verificationPaymentNote": "بعد الدفع، ستتلقى ملخصاً وستُنجز الفحوصات خلال 10 أيام عمل.",
+  "proceedToPayment": "المتابعة للدفع - {price} فرنك",
+  "@proceedToPayment": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentReceivedIncompleteRecord": "تم استلام الدفع لكن السجل على الخادم غير مكتمل. أعد المحاولة أو اتصل بالدعم.",
+  "paymentReceivedVerificationProcessing": "تم استلام الدفع. طلب التحقق قيد المعالجة.",
+  "paymentCancelledNotConfirmed": "تم إلغاء الدفع أو لم يُؤكد. أعد المحاولة إذا لزم.",
+  "cannotLoadData": "تعذر تحميل البيانات",
+  "recommendedForwarders": "وسطاء شحن موصى بهم",
+  "forwarderSubscription": "اشتراك الوسيط",
+  "activateMonthlySubscription": "فعّل اشتراكاً شهرياً ليظهر حسابك للمشترين.",
+  "pricePerMonth": "{price} فرنك / شهر",
+  "@pricePerMonth": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "activatedOn": "مفعّل في: {date}",
+  "@activatedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "expiresOn": "ينتهي في: {date}",
+  "@expiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "manage": "إدارة",
+  "visibility": "الظهور",
+  "boosted": "معزز",
+  "spotlight": "تمييز",
+  "subscriptionStatus": "حالة الاشتراك",
+  "active": "نشط",
+  "inactive": "غير نشط",
+  "noActiveSubscription": "لا يوجد اشتراك نشط",
+  "performances": "الأداء",
+  "ordersDeliveredPerMonth": "طلبات مُسلّمة / شهر",
+  "clientDistribution": "توزيع العملاء",
+  "chartBuyers": "مشترون",
+  "chartDrivers": "سائقون",
+  "chartOthers": "أخرى",
+  "discuss": "ناقش",
+  "priceWithValue": "السعر: {price}",
+  "@priceWithValue": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "priceNotSpecified": "غير محدد",
+  "sellerInfoError": "خطأ: تعذر استرجاع معلومات البائع",
+  "transitHistoryTitle": "سجل الشحنات",
+  "clientLabel": "العميل: {name}",
+  "@clientLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "departurePortLabel": "ميناء المغادرة: {port}",
+  "@departurePortLabel": {
+    "placeholders": {
+      "port": {
+        "type": "String"
+      }
+    }
+  },
+  "arrivalPortLabel": "ميناء الوصول: {port}",
+  "@arrivalPortLabel": {
+    "placeholders": {
+      "port": {
+        "type": "String"
+      }
+    }
+  },
+  "transitDateLabel": "تاريخ العبور: {date}",
+  "@transitDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "statusWithValue": "الحالة: {status}",
+  "@statusWithValue": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveredSuccessfully": "تم التسليم بنجاح",
+  "atCustoms": "في الجمارك",
+  "billOfLading": "بوليصة الشحن",
+  "proformaInvoice": "فاتورة أولية",
+  "transitCertificate": "شهادة عبور",
+  "partialCustomsCertificate": "شهادة تخليص جمركي جزئي",
+  "inspectionCertificate": "شهادة فحص",
+  "transitFormTitle": "نماذج العبور",
+  "carNameLabel": "اسم السيارة",
+  "clientField": "العميل",
+  "departurePort": "ميناء المغادرة",
+  "arrivalPort": "ميناء الوصول",
+  "transitDate": "تاريخ العبور",
+  "uploadDocuments": "رفع المستندات",
+  "registrationForm": "نموذج التسجيل",
+  "familyName": "اسم العائلة",
+  "enterYourName": "أدخل اسمك",
+  "enterYourFirstName": "أدخل اسمك الأول",
+  "typeYourPhone": "أدخل رقم هاتفك",
+  "enterYourEmail": "أدخل بريدك",
+  "licenseNumber": "رقم الرخصة",
+  "enterLicenseNumber": "أدخل رقم رخصتك",
+  "messages": "الرسائل",
+  "writeYourMessage": "اكتب رسالتك",
+  "uploadImagesLabel": "رفع صور",
+  "myLicensePdf": "رخصتي PDF",
+  "fillFieldsAndUploadLicense": "يرجى ملء جميع الحقول المطلوبة ورفع رخصتك.",
+  "requestSentSuccess": "تم إرسال الطلب بنجاح!",
+  "sendErrorWithBody": "خطأ في الإرسال: {body}",
+  "@sendErrorWithBody": {
+    "placeholders": {
+      "body": {
+        "type": "String"
+      }
+    }
+  },
+  "timeAgoDays": "منذ {count} يوم/أيام",
+  "@timeAgoDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeAgoHours": "منذ {count} س",
+  "@timeAgoHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeAgoMinutes": "منذ {count} د",
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkingPermissions": "جاري التحقق من الأذونات...",
+  "redirectingIfNeeded": "جاري إعادة التوجيه عند الحاجة",
+  "unauthorizedAccess": "وصول غير مصرح به",
+  "tricycle_home_title": "الدراجات ثلاثية العجلات",
+  "tricycle_request_accepted": "تم قبول الطلب",
+  "tricycle_request_sent": "تم إرسال الطلب",
+  "tricycle_order_command": "طلب · دراجة ثلاثية",
+  "feexpayPaymentTitle": "دفع FeexPay",
+  "feexpayInitSuccess": "تم تهيئة خدمة FeexPay بنجاح",
+  "feexpayInitError": "خطأ أثناء التهيئة: {error}",
+  "@feexpayInitError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentInitSuccess": "تم بدء الدفع بنجاح!",
+  "cannotOpenPaymentPage": "تعذر فتح صفحة الدفع",
+  "transactionDetailsTitle": "تفاصيل المعاملة",
+  "labelTransactionId": "معرف المعاملة",
+  "valueAmountFcfa": "{amount} فرنك",
+  "@valueAmountFcfa": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "enterAmount": "يرجى إدخال المبلغ",
+  "enterValidAmount": "يرجى إدخال مبلغ صالح",
+  "amountMustBePositive": "يجب أن يكون المبلغ أكبر من 0",
+  "enterDescriptionRequired": "يرجى إدخال وصف",
+  "enterOrderId": "يرجى إدخال معرف الطلب",
+  "commandIdLabel": "معرف الطلب",
+  "paymentTypeLabel": "نوع الدفع",
+  "mobileMoneyProviders": "المال المحمول (MTN, Moov, Orange)",
+  "bankCardPayment": "بطاقة بنكية (VISA, Mastercard)",
+  "feexpayWallet": "محفظة FeexPay",
+  "initializeFeexpay": "تهيئة FeexPay",
+  "aboutFeexpay": "حول FeexPay",
+  "feexpayAboutDescription": "FeexPay هو مجمّع دفع آمن يقبل:",
+  "feexpayAcceptedMethods": "• MTN Mobile Money وMoov Money وOrange Money\n• بطاقات VISA وMastercard\n• المحافظ الرقمية",
+  "feexpayTransactionsTitle": "معاملات FeexPay",
+  "transactionsLoadError": "خطأ أثناء التحميل: {error}",
+  "@transactionsLoadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "processRefundTitle": "إجراء استرداد",
+  "transactionWithId": "معاملة: {id}",
+  "@transactionWithId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "refundAmountFcfa": "مبلغ الاسترداد (فرنك)",
+  "refundReason": "سبب الاسترداد",
+  "refundAction": "استرداد",
+  "invalidAmount": "مبلغ غير صالح",
+  "refundSuccess": "تم الاسترداد بنجاح",
+  "transactionHistory": "سجل المعاملات",
+  "transactionCount": "{count} معاملة",
+  "@transactionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountBalanceLabel": "رصيد الحساب",
+  "currencyWithValue": "العملة: {currency}",
+  "@currencyWithValue": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "noTransactionsFound": "لم يتم العثور على معاملات",
+  "transactionsEmptyHint": "ستظهر المعاملات هنا بعد أول مدفوعاتك",
+  "transactionNoDescription": "معاملة بدون وصف",
+  "idWithValue": "المعرف: {id}",
+  "@idWithValue": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "dateWithValue": "التاريخ: {date}",
+  "@dateWithValue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "methodWithValue": "الطريقة: {method}",
+  "@methodWithValue": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "unknownDate": "تاريخ غير معروف",
+  "customerEmailLabel": "بريد العميل",
+  "accountBlockedTitle": "الحساب محظور",
+  "accountBlockedDialogMessage": "لا يمكنك الوصول إلى التطبيق لأن المسؤول حظرك مؤقتاً.",
+  "contactSupportTeam": "اتصل بفريق الدعم لمزيد من المعلومات.",
+  "driverArrivedTitle": "وصل سائق التوصيل",
+  "chooseAnAction": "اختر إجراءً.",
+  "orderTotalLabel": "إجمالي الطلب",
+  "deliveryFeesLabel": "رسوم التوصيل",
+  "payMyOrder": "ادفع طلبي",
+  "returnReasonRequiredTitle": "سبب الإرجاع (إلزامي)",
+  "partsOrderPaymentLabel": "دفع طلب القطع",
+  "deliveryFeePaymentLabel": "دفع رسوم التوصيل",
+  "fileDownloadFailed": "تعذر تنزيل الملف",
+  "tranooDocumentShare": "مستند Tranoo",
+  "refWithId": "المرجع {id}",
+  "@refWithId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "attachedImages": "صور مرفقة",
+  "attachedDocuments": "مستندات مرفقة",
+  "stampAndSignature": "الختم والتوقيع",
+  "reject": "رفض",
+  "downloadReportPdf": "تنزيل تقرير PDF",
+  "imageWithIndex": "صورة {index}",
+  "@imageWithIndex": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "documentWithIndex": "مستند {index}",
+  "@documentWithIndex": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "buyerAlert": "تنبيه المشتري",
+  "swipeUpOrTap": "اسحب لأعلى أو اضغط",
+  "decline": "رفض",
+  "answer": "رد",
+  "newAlertTitle": "تنبيه جديد",
+  "sellerRespondedToAlert": "رد بائع على تنبيهك",
+  "videoAvailable": "فيديو متاح",
+  "withdrawalProcessingMessage": "طلبك قيد المعالجة وستتلقى تأكيداً عند اكتمال السحب. إذا كانت لديك أسئلة أو ترغب في تعديل طلبك، تواصل معنا. شكراً لثقتك.",
+  "departurePortField": "ميناء المغادرة",
+  "arrivalPortField": "ميناء الوصول",
+  "transitDateField": "تاريخ العبور",
+  "carNameExample": "Toyota Corolla 2018",
+  "clientExample": "Marcel T",
+  "departurePortExample": "أنتويرب، بلجيكا",
+  "arrivalPortExample": "كوتونو، بنين",
+  "transitDateExample": "10 أبريل 2025",
+  "timeAgoMinutesLong": "منذ {count} دقيقة",
+  "@timeAgoMinutesLong": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsSelectedCount": "{count} محددة",
+  "@notificationsSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmDeleteNotificationsCount": "حذف {count} إشعار؟",
+  "@confirmDeleteNotificationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newRequest": "طلب جديد",
+  "budgetAmountFcfa": "الميزانية {amount} فرنك",
+  "@budgetAmountFcfa": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "alertProposalForYourAlert": "عرض لتنبيهك",
+  "whatsappInterestWithRef": "مرحباً Tranoo، أؤكد اهتمامي بشراء: {title} (مرجع {articleId}).",
+  "@whatsappInterestWithRef": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "articleId": {
+        "type": "String"
+      }
+    }
+  },
+  "whatsappInterestNoRef": "مرحباً Tranoo، أؤكد اهتمامي بشراء: {title}.",
+  "@whatsappInterestNoRef": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultVehicleTitle": "مركبة",
+  "cannotLoadOrders": "تعذر تحميل طلباتك",
+  "noOrdersYetHint": "لم تقم بأي طلب بعد",
+  "filterRejected": "مرفوضة",
+  "filterTracking": "التتبع",
+  "finishedOrdersHiddenHint": "الطلبات المكتملة أو الملغاة لا تظهر هنا",
+  "orderCmdNumber": "طلب #{id}",
+  "@orderCmdNumber": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "orderStatusPending": "قيد الانتظار",
+  "orderStatusConfirmed": "مؤكدة",
+  "orderStatusPreparing": "قيد التحضير",
+  "orderStatusReady": "جاهزة",
+  "orderStatusDelivering": "قيد التوصيل",
+  "orderStatusDelivered": "تم التوصيل",
+  "orderStatusCancelled": "ملغاة",
+  "orderStatusDriverAssigned": "تم تعيين السائق",
+  "tranooDelivery": "توصيل Tranoo",
+  "driverLabel": "السائق",
+  "addressNotSpecified": "العنوان غير محدد",
+  "quantityLabel": "الكمية: x{qty}",
+  "@quantityLabel": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
+  },
+  "deliveryDetails": "تفاصيل التوصيل",
+  "driverAssignmentPending": "التعيين قيد التنفيذ",
+  "defaultLocationCotonou": "كوتونو، بنين",
+  "apiErrorWithDetails": "خطأ API ({status}): {details}",
+  "@apiErrorWithDetails": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "monthJan": "ينا",
+  "monthFeb": "فبر",
+  "monthMar": "مار",
+  "monthApr": "أبر",
+  "monthMay": "ماي",
+  "monthJun": "يون",
+  "monthJul": "يول",
+  "monthAug": "أغس",
+  "monthSep": "سبت",
+  "monthOct": "أكت",
+  "monthNov": "نوف",
+  "monthDec": "ديس",
+  "fetchingLocation": "جاري الجلب...",
+  "fetchMyLocation": "استخدام موقعي",
+  "chooseOnMap": "اختر على الخريطة",
+  "currentPositionLabel": "الموقع الحالي",
+  "selectedPositionLabel": "الموقع المحدد",
+  "coordinatesLabel": "خط العرض: {lat}\nخط الطول: {lng}",
+  "@coordinatesLabel": {
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "availability": "التوفر",
+  "deliveryFeeLabel": "رسوم التوصيل",
+  "processingOrder": "جاري المعالجة...",
+  "supplierCoordsUnavailable": "إحداثيات المورد غير متاحة لحساب التوصيل.",
+  "invalidCoordinates": "إحداثيات غير صالحة",
+  "selectionCancelled": "تم إلغاء الاختيار",
+  "mapSelectionError": "خطأ في اختيار الخريطة: {error}",
+  "@mapSelectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationRetrievedSuccess": "تم جلب الموقع الحالي بنجاح!",
+  "deliveryAddressSelectedOnMap": "تم اختيار عنوان التوصيل على الخريطة!",
+  "enableLocationInSettingsMsg": "فعّل الموقع في الإعدادات",
+  "locationError": "خطأ في الموقع: {error}",
+  "@locationError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidDeliveryAddress": "عنوان توصيل غير صالح",
+  "selectDeliveryAddressPlease": "يرجى اختيار عنوان التوصيل",
+  "confirmYourOrder": "تأكيد طلبك",
+  "totalToPay": "المجموع للدفع: {amount} F",
+  "@totalToPay": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "transactionFailedNotSaved": "فشلت/أُلغيت المعاملة. لم يُحفظ الطلب.",
+  "orderConfirmedTitle": "تم تأكيد الطلب!",
+  "orderSavedSuccess": "تم حفظ طلبك بنجاح.",
+  "deliveryExpected": "التوصيل المتوقع",
+  "deliveryBetween3And7Days": "خلال 3 إلى 7 أيام عمل",
+  "youWillReceiveNotification": "ستتلقى إشعاراً",
+  "availAvailable": "متاح",
+  "avail15to30min": "خلال 15-30 دقيقة",
+  "avail1to2h": "خلال 1-2 ساعة",
+  "availBefore12": "قبل 12",
+  "availBefore18": "قبل 18",
+  "availBefore20": "قبل 20",
+  "availFlexible": "مرن",
+  "supplierDefault": "المورد",
+  "supplierAddressDefault": "عنوان المورد",
+  "orderSaveError": "خطأ في حفظ الطلب: {error}",
+  "@orderSaveError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "positionCoords": "الموقع: {lat}, {lng}",
+  "@positionCoords": {
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "orderPaymentTranooDescription": "دفع طلب Tranoo",
+  "mobileMoneyPayment": "دفع Mobile Money",
+  "adDetailsTitle": "تفاصيل إعلانك",
+  "amountToPay": "المبلغ للدفع",
+  "viaMobileMoney": "عبر Mobile Money",
+  "supportedOperators": "المشغلون المدعومون",
+  "afterPaymentAdValidationNote": "بعد الدفع، سيُرسل إعلانك للتحقق من الإدارة قبل النشر.",
+  "payAmountFcfa": "ادفع {amount} فرنك",
+  "@payAmountFcfa": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "adForYourListing": "إعلان لمنتجك",
+  "adPaymentMobileDescription": "دفع إعلان (mobile money) {pubId}",
+  "@adPaymentMobileDescription": {
+    "placeholders": {
+      "pubId": {
+        "type": "String"
+      }
+    }
+  },
+  "durationLabel": "المدة",
+  "invoicesLoadError": "تعذر تحميل الفواتير",
+  "signInForInvoices": "سجّل الدخول للوصول إلى فواتيرك",
+  "noInvoicesYet": "ليس لديك فواتير حالياً.",
+  "unreadLabel": "غير مقروء",
+  "filterByDate": "تصفية حسب التاريخ",
+  "filterAllDates": "الكل",
+  "filterToday": "اليوم",
+  "filterThisWeek": "هذا الأسبوع",
+  "filterThisMonth": "هذا الشهر",
+  "filterCustom": "مخصص",
+  "selectedDateLabel": "التاريخ المحدد: {date}",
+  "@selectedDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "invoicePreview": "معاينة الفاتورة",
+  "transactionSuccessTitle": "نجاح المعاملة",
+  "transactionNumber": "رقم المعاملة {ref}",
+  "@transactionNumber": {
+    "placeholders": {
+      "ref": {
+        "type": "String"
+      }
+    }
+  },
+  "dateTimeLabel": "التاريخ والوقت",
+  "productLabel": "المنتج",
+  "sellerLabel": "البائع",
+  "shopLabel": "المتجر",
+  "fundsSourceLabel": "مصدر الأموال",
+  "destinationLabel": "الوجهة",
+  "referenceLabel": "المرجع",
+  "productDetails": "تفاصيل المنتجات:",
+  "productPriceLabel": "سعر المنتج",
+  "deliveryPriceLabel": "سعر التوصيل",
+  "vatLabel": "ضريبة القيمة المضافة",
+  "totalTransaction": "إجمالي المعاملة",
+  "tranooSupport": "دعم Tranoo",
+  "thankYouForTrust": "شكراً لثقتكم ",
+  "officialInvoiceDisclaimer": "هذه الفاتورة وثيقة رسمية. في حالة النزاع، يرجى الاتصال بالدعم.",
+  "saveInvoiceImage": "حفظ الفاتورة (صورة)",
+  "saveInvoiceDocument": "حفظ الفاتورة (مستند)",
+  "imageSavedSuccess": "تم حفظ الصورة بنجاح",
+  "imageSaveFailed": "فشل حفظ الصورة",
+  "documentSavedSuccess": "تم حفظ مستند PDF بنجاح",
+  "documentSaveFailed": "فشل حفظ مستند PDF",
+  "captureUnavailable": "التقاط غير متاح",
+  "imageGenerationFailed": "تعذر إنشاء الصورة",
+  "paidStatus": "مدفوعة",
+  "pendingPaymentStatus": "قيد الانتظار",
+  "sellerDefault": "بائع",
+  "shopDefault": "متجر",
+  "invoiceTitle": "فاتورة {number}",
+  "@invoiceTitle": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "purchasesLoadError": "خطأ في تحميل المشتريات",
+  "purchaseStatusLabel": "الحالة: {status}",
+  "@purchaseStatusLabel": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryDateLabel": "تاريخ التوصيل: {date}",
+  "@deliveryDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryLocationLabel": "مكان التوصيل: {location}",
+  "@deliveryLocationLabel": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "fuelTypeLabel": "نوع الوقود: {type}",
+  "@fuelTypeLabel": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "colorLabel": "اللون: {color}",
+  "@colorLabel": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "publishedOn": "نُشر في {date}",
+  "@publishedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "ratingOutOf": "{rating}/5",
+  "@ratingOutOf": {
+    "placeholders": {
+      "rating": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesAgo2": "منذ دقيقتين",
+  "inProgressStatus": "قيد التنفيذ",
+  "yearDropdown": "السنة",
+  "cardPlaceholderName": "أحمد محمد",
+  "cardNumberPlaceholder": "0000 0000 0000 0000",
+  "paymentFormFor": "نموذج الدفع لـ {name}",
+  "@paymentFormFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "partNameLabelShort": "اسم القطعة: {name}",
+  "@partNameLabelShort": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "untitled": "بدون عنوان",
+  "unknownCompany": "شركة غير معروفة",
+  "piecesLoadError": "خطأ في تحميل القطع",
+  "carsLoadError": "خطأ في تحميل السيارات",
+  "adsLoadError": "خطأ في تحميل الإعلانات",
+  "dataFormatError": "خطأ في تنسيق البيانات",
+  "filterModelsTab": "الطرازات",
+  "filterLocationTab": "الموقع",
+  "filterBudgetTab": "الميزانية",
+  "noCarsAvailable": "لا توجد سيارات متاحة حالياً.",
+  "noPartsAvailableOnline": "لا توجد قطع متاحة على الإنترنت حالياً",
+  "noCarsOnlineSeller": "ليس لديك سيارات على الإنترنت",
+  "noPartsOnlineSeller": "ليس لديك قطع على الإنترنت حالياً",
+  "doorsCountLabel": "{count} أبواب",
+  "@doorsCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsoredLabel": "ممول",
+  "chooseTypeTitle": "اختر النوع",
+  "youTyped": "كتبت: \"{text}\"",
+  "@youTyped": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "whatArticleTypeSearch": "ما نوع المنتج الذي تبحث عنه؟",
+  "vehicleSingular": "مركبة",
+  "partSingular": "قطعة",
+  "unknownArticleType": "نوع منتج غير معروف.",
+  "urgencyLevel": "مستوى الاستعجال",
+  "partNameRequired": "اسم القطعة مطلوب",
+  "showVehiclesCount": "عرض {count} مركبة",
+  "@showVehiclesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "buyerSearchingPartShort": "مشترٍ يبحث عن قطعة",
+  "buyerSearchingVehicleShort": "مشترٍ يبحث عن مركبة",
+  "validateLocation": "تأكيد",
+  "colorField": "اللون",
+  "pubRequestCreateError": "خطأ في إنشاء الطلب.",
+  "videoOptional": "فيديو (اختياري)",
+  "viewListing": "عرض الإعلان",
+  "enlarge": "تكبير",
+  "networkError": "خطأ في الشبكة",
+  "cannotGenerateImage": "تعذر إنشاء الصورة",
+  "errorLoadingArticle": "خطأ في تحميل المنتج.",
+  "conditionNew": "جديد",
+  "budgetLabel": "الميزانية",
+  "addressLabel": "العنوان",
+  "tvaLabel": "ضريبة القيمة المضافة",
+  "deliveryLabelShort": "التوصيل",
+  "totalLabelShort": "الإجمالي",
+  "articleLabel": "منتج",
+  "urgencyLabel": "الاستعجال",
+  "invoicesLoadErrorDetail": "تعذر تحميل الفواتير ({status}): {message}",
+  "@invoicesLoadErrorDetail": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyProPermissions": "جاري التحقق من الصلاحيات المهنية...",
+  "advertisingLabel": "الإعلان",
+  "sellerTypeLabel": "نوع البائع",
+  "deliveryToLabel": "التوصيل إلى",
+  "cashLabel": "نقدي",
+  "onlineLabel": "عبر الإنترنت",
+  "placeOrderButton": "اطلب • {total} F",
+  "@placeOrderButton": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "cashOnDeliveryTitle": "الدفع عند التوصيل",
+  "cashOnDeliveryChosen": "اخترت الدفع عند التوصيل.",
+  "cashOnDeliveryBilled": "سيتم تحصيل المبلغ عند استلام طلبك.",
+  "previewLabel": "معاينة",
+  "changesSaved": "تم حفظ التعديلات.",
+  "saveErrorStatus": "خطأ في الحفظ: {status}",
+  "@saveErrorStatus": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "saveErrorGeneric": "خطأ في الحفظ: {error}",
+  "@saveErrorGeneric": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "itemAddedToCart": "تمت إضافة المنتج إلى السلة",
+  "modifyPart": "تعديل القطعة",
+  "someImagesNotAdded": "تعذرت إضافة بعض الصور:",
+  "imagesAddedSuccess": "تمت إضافة {count} صورة بنجاح",
+  "@imagesAddedSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unsupportedFormat": "صيغة غير مدعومة. المقبولة: {formats}",
+  "@unsupportedFormat": {
+    "placeholders": {
+      "formats": {
+        "type": "String"
+      }
+    }
+  },
+  "loadingProfile": "جاري تحميل الملف...",
+  "phoneWithNumber": "هاتف {number}",
+  "@phoneWithNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "phoneNotProvided": "الهاتف غير مذكور — أكمل ملفك الشخصي",
+  "locationMissingProfile": "الموقع مفقود — حدّث موقعك في الملف الشخصي.",
+  "profileContactLocationHint": "الهاتف والموقع من التسجيل. حدّث ملفك إذا لزم.",
+  "vehicleLocationLabel": "موقع المركبة",
+  "profileLocationReuse": "يستخدم موقعك المسجل عند التسجيل (الملف الشخصي).",
+  "noProfileLocation": "لا يوجد موقع في الملف — حدّث موقعك في الملف الشخصي.",
+  "descriptionNotProvided": "الوصف غير مذكور",
+  "mileageLabel": "المسافة المقطوعة",
+  "maxImages12": "تم الوصول للحد الأقصى 12 صورة",
+  "maxImages10": "تم الوصول للحد الأقصى 10 صور",
+  "cameraError": "خطأ في الكاميرا: {error}",
+  "@cameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "selectionError": "خطأ في الاختيار: {error}",
+  "@selectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "imageAdded": "تمت إضافة الصورة: {name}",
+  "@imageAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "imageUploaded": "تم رفع الصورة: {name}",
+  "@imageUploaded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadError": "خطأ في الرفع: {error}",
+  "@uploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorDetail": "خطأ تفصيلي: {error}",
+  "@errorDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationDetailTitle": "تفاصيل التحقق",
+  "recipientLabel": "المستلم",
+  "cannotOpenDocument": "تعذر فتح المستند",
+  "featureNoLongerAvailable": "هذه الميزة لم تعد متاحة",
+  "articleNotFound": "المنتج غير موجود",
+  "sessionExpiredReconnect": "انتهت الجلسة. سجّل الدخول مجدداً.",
+  "cannotLoadProposal": "تعذر تحميل العرض.",
+  "searchDetails": "تفاصيل البحث",
+  "proposeOfferButton": "تقديم عرض",
+  "specialPromotion": "عرض خاص",
+  "viewProposal": "عرض الاقتراح",
+  "partSearched": "القطعة المطلوبة",
+  "articleNotFoundVerification": "المنتج غير موجود للتحقق",
+  "noUserForNotifications": "لا يوجد مستخدم متصل. تعذر تحميل الإشعارات.",
+  "verifySubscriptionPlan": "تعذر التحقق من خطة الاشتراك.",
+  "viewSubscription": "عرض الاشتراك",
+  "addPartTitle": "إضافة قطعة",
+  "myCarsTitle": "سياراتي",
+  "noCarsPublished": "لم تنشر أي سيارة",
+  "myPartsTitle": "قطعي",
+  "recommendedLabel": "موصى به",
+  "priceNotCommunicated": "السعر غير معلن",
+  "noSponsoredCars": "لا توجد سيارات مدعومة.",
+  "linkedArticleNotFound": "المنتج المرتبط غير موجود لهذا الإعلان.",
+  "cannotLoadAdDetails": "تعذر تحميل تفاصيل هذا الإعلان.",
+  "verifiedLabel": "موثقة",
+  "vehiclesPending": "مركبات قيد الانتظار",
+  "noVehiclesPending": "لا توجد مركبات بانتظار الموافقة.",
+  "statsForSellersOnly": "الإحصائيات التفصيلية مخصصة للبائعين.",
+  "saleCreditsRegistered": "تم تسجيل {count} رصيد بيع",
+  "@saleCreditsRegistered": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "vehiclesOnlineStat": "مركبات متاحة",
+  "partsOnlineStat": "قطع متاحة",
+  "vehiclesSoldStat": "مركبات مباعة",
+  "partsSoldStat": "قطع مباعة",
+  "articlesMarkedSold": "منتجات معلمة كمباعة",
+  "viewsRecorded": "مشاهدات مسجلة",
+  "topVehiclesViews": "أفضل المركبات (مشاهدات)",
+  "globalViewsHint": "ستظهر المشاهدات الإجمالية هنا عند مشاهدة مركباتك.",
+  "activities": "الأنشطة",
+  "inTransitStatus": "في العبور",
+  "placeLabel": "المكان",
+  "packageDelivered": "تم توصيل الطرد",
+  "arrivalNotified": "تم إخطار المشتري بالوصول",
+  "arrivalError": "خطأ في الوصول: {error}",
+  "@arrivalError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "validateOnSiteFirst": "أكّد \"في الموقع\" عند المورد قبل خطوة المشتري.",
+  "doorToDoor": "من الباب إلى الباب",
+  "geolocateSupplier": "تحديد موقع المورد",
+  "geolocateBuyer": "تحديد موقع المشتري",
+  "contactButton": "اتصال",
+  "cashOnDeliveryShort": "نقداً عند التوصيل",
+  "onSite": "في الموقع",
+  "finishedLabel": "منتهي",
+  "rejectedTabLabel": "مرفوض",
+  "addMultipleImages": "إضافة صور متعددة",
+  "imageTooLarge": "الصورة كبيرة جداً: {size} ميجا (الحد: 5 ميجا)",
+  "@imageTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "formatNotSupportedExt": "صيغة غير مدعومة: {ext}. الصيغ: {formats}",
+  "@formatNotSupportedExt": {
+    "placeholders": {
+      "ext": {
+        "type": "String"
+      },
+      "formats": {
+        "type": "String"
+      }
+    }
+  },
+  "articleNetworkCreateError": "خطأ شبكة عند إنشاء المنتج: {error}",
+  "@articleNetworkCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "searchingAddress": "جاري البحث عن العنوان...",
+  "saveProfileError": "خطأ في تحديث الملف الشخصي.",
+  "backToSettings": "العودة إلى الإعدادات",
+  "sellerTypeUpdatedSuccess": "تم تحديث نوع البائع بنجاح!",
+  "updateError": "خطأ في التحديث: {error}",
+  "@updateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionPaymentSuccess": "تم الدفع: تم تفعيل الاشتراك بنجاح.",
+  "subscriptionPaymentFailed": "فشل الدفع أو التفعيل.",
+  "deliveryAcceptedSuccess": "تم قبول التوصيل بنجاح!",
+  "tricycleLoginRequiredTitle": "يجب تسجيل الدخول للمتابعة.",
+  "tricycleLoginRequiredSubtitle": "سجّل الدخول لطلب دراجة ثلاثية.",
+  "tricycleRequestSentToDriver": "تم إرسال الطلب للسائق.",
+  "tricycleRequestCancelled": "تم إلغاء طلبك.",
+  "tricycleCannotCancel": "لا يمكن إلغاء الطلب.",
+  "tricycleDriverAlreadyAccepted": "السائق قبل الطلب بالفعل.",
+  "tricycleCancelFailed": "تعذر إلغاء الطلب.",
+  "tricycleCancelErrorCode": "الرمز: {code}. أعد المحاولة.",
+  "@tricycleCancelErrorCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "tricycleCancelError": "خطأ أثناء الإلغاء.",
+  "tricycleRequestAcceptedChat": "تم قبول الطلب. يمكنك المحادثة الآن.",
+  "tricycleRequestRejected": "تم رفض الطلب.",
+  "checkConnectionRetry": "تحقق من اتصالك بالإنترنت وأعد المحاولة.",
+  "pageNotAvailableForRole": "الصفحة غير متاحة لهذا الدور",
+  "errorDetailed": "خطأ تفصيلي: {error}",
+  "@errorDetailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "videoUploadErrorRetry": "خطأ في رفع الفيديو. أعد المحاولة.",
+  "maxMediaSlots": "يمكنك اختيار {count} وسائط كحد أقصى.",
+  "@maxMediaSlots": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "driverRegistrationFormTitle": "نموذج التسجيل",
+  "imagesNotAllAddedWarning": "تعذر إضافة بعض الصور:",
+  "addedToCart": "تمت إضافة المنتج إلى السلة",
+  "payOnline": "عبر الإنترنت",
+  "orderCommandTotal": "اطلب • {total} F",
+  "@orderCommandTotal": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationSaveError": "خطأ في الحفظ: {error}",
+  "@registrationSaveError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
+}

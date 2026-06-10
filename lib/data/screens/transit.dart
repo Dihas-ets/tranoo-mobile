@@ -4,6 +4,7 @@ import '../../services/user_service.dart';
 import '../../services/chat_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'discussion.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class Transit extends StatefulWidget {
   const Transit({super.key});
@@ -132,10 +133,11 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
   }
 
   void _openDiscussion(Map<String, dynamic> article) async {
+    final l10n = AppLocalizations.of(context)!;
     if (currentUserId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erreur: Utilisateur non connecté'),
+        SnackBar(
+          content: Text(l10n.errorUserNotConnected),
           backgroundColor: Colors.red,
         ),
       );
@@ -152,8 +154,8 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
 
       if (articleId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur: Article sans ID'),
+          SnackBar(
+            content: Text(l10n.articleWithoutId),
             backgroundColor: Colors.red,
           ),
         );
@@ -169,10 +171,8 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
 
       if (vendeurId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Erreur: Impossible de récupérer les informations du vendeur',
-            ),
+          SnackBar(
+            content: Text(l10n.sellerInfoError),
             backgroundColor: Colors.red,
           ),
         );
@@ -197,8 +197,8 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de la création de la discussion'),
+          SnackBar(
+            content: Text(l10n.discussionCreationError),
             backgroundColor: Colors.red,
           ),
         );
@@ -206,7 +206,10 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
     } catch (e) {
       print('Erreur lors de l\'ouverture de la discussion: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(l10n.errorGeneric(e.toString())),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -219,10 +222,11 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Mes Transits'),
+        title: Text(l10n.myTransits),
         backgroundColor: const Color(0xFFF8BF13),
         foregroundColor: Colors.black,
         elevation: 0,
@@ -231,7 +235,10 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
           labelColor: Colors.black,
           unselectedLabelColor: Colors.grey[600],
           indicatorColor: Colors.black,
-          tabs: const [Tab(text: 'En Transit'), Tab(text: 'En Consommation')],
+          tabs: [
+            Tab(text: l10n.inTransit),
+            Tab(text: l10n.inConsumption),
+          ],
         ),
       ),
       backgroundColor: Colors.white,
@@ -246,12 +253,13 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildTransitList(List<Map<String, dynamic>> list) {
+    final l10n = AppLocalizations.of(context)!;
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (list.isEmpty) {
-      return const Center(child: Text('Aucun article dans cette catégorie'));
+      return Center(child: Text(l10n.noArticlesInCategory));
     }
 
     return ListView.builder(
@@ -303,7 +311,11 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
                 Text(item['description'] ?? ''),
                 const SizedBox(height: 4),
                 Text(
-                  'Prix: ${item['price'] ?? 'Non spécifié'}',
+                  l10n.priceWithValue(
+                    item['price']?.toString().isNotEmpty == true
+                        ? item['price'].toString()
+                        : l10n.priceNotSpecified,
+                  ),
                   style: const TextStyle(
                     color: Colors.amber,
                     fontWeight: FontWeight.bold,
@@ -323,9 +335,9 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
-                'Discuter',
-                style: TextStyle(
+              child: Text(
+                l10n.discuss,
+                style: const TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,

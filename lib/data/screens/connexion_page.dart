@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
@@ -20,6 +21,8 @@ class ConnexionPage extends StatefulWidget {
 }
 
 class _ConnexionPageState extends State<ConnexionPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool isPhoneFocused = false;
   bool isPasswordFocused = false;
   final userService = UserService();
@@ -44,6 +47,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
   }
 
   Future<void> _openCountryPicker() async {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     var filtered = List<PhoneCountryConfig>.from(kPhoneCountries);
 
@@ -79,7 +83,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                       child: TextField(
                         controller: controller,
                         decoration: InputDecoration(
-                          hintText: 'Rechercher un pays ou indicatif',
+                          hintText: l10n.searchCountryOrCode,
                           prefixIcon: const Icon(Icons.search),
                           filled: true,
                           fillColor: Colors.grey.shade100,
@@ -153,7 +157,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Récupération des dimensions de l'écran
+    final l10n = AppLocalizations.of(context)!;
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
     final screenHeight = mediaQuery.size.height;
@@ -182,7 +186,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
               ),
               SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
               Text(
-                "Se connecter",
+                l10n.signInTitle,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: screenWidth * (isPortrait ? 0.06 : 0.04),
@@ -190,7 +194,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
               ),
               SizedBox(height: screenHeight * 0.02),
               Text(
-                "Bienvenue sur Tranoo",
+                l10n.welcomeTranoo,
                 style: TextStyle(
                   fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
                 ),
@@ -198,11 +202,11 @@ class _ConnexionPageState extends State<ConnexionPage> {
               SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
 
               SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(value: false, label: Text('Numéro')),
+                segments: [
+                  ButtonSegment(value: false, label: Text(l10n.phoneTab)),
                   ButtonSegment(
                     value: true,
-                    label: Text('Email (ancien compte)'),
+                    label: Text(l10n.legacyEmailTab),
                   ),
                 ],
                 selected: {_useLegacyEmail},
@@ -228,8 +232,8 @@ class _ConnexionPageState extends State<ConnexionPage> {
                     keyboardType: TextInputType.emailAddress,
                     autocorrect: false,
                     decoration: InputDecoration(
-                      labelText: 'Adresse email',
-                      hintText: 'exemple@mail.com',
+                      labelText: l10n.emailAddress,
+                      hintText: l10n.emailExample,
                       filled: true,
                       fillColor: Colors.white,
                       contentPadding: EdgeInsets.symmetric(
@@ -297,7 +301,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         decoration: InputDecoration(
-                          labelText: 'Numéro de téléphone',
+                          labelText: l10n.phoneNumber,
                           hintText: _phoneCountry.digitHint,
                           filled: true,
                           fillColor: Colors.white,
@@ -334,7 +338,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                   controller: _passwordController,
                   obscureText: _obscurePasswordLogin,
                   decoration: InputDecoration(
-                    labelText: 'Mot de passe',
+                    labelText: l10n.password,
                     labelStyle: TextStyle(
                       color: Colors.grey,
                       fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
@@ -390,7 +394,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                   Navigator.pushNamed(context, '/auth/forgot-password');
                 },
                 child: Text(
-                  "Mot de passe oublié ?",
+                  l10n.forgotPassword,
                   style: TextStyle(
                     fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
                     color: Colors.black,
@@ -407,15 +411,13 @@ class _ConnexionPageState extends State<ConnexionPage> {
                   onPressed: _isLoading
                       ? null
                       : () async {
-                          // Vérification des champs obligatoires
+                          final loginL10n = AppLocalizations.of(context)!;
                           final identifier = _phoneController.text.trim();
                           final password = _passwordController.text.trim();
                           if (identifier.isEmpty || password.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                  'Veuillez remplir tous les champs.',
-                                ),
+                                content: Text(loginL10n.fillAllFields),
                               ),
                             );
                             return;
@@ -428,9 +430,8 @@ class _ConnexionPageState extends State<ConnexionPage> {
                               if (!identifier.contains('@')) {
                                 AuthMessagePopup.showWarning(
                                   context,
-                                  title: 'Email invalide',
-                                  subtitle:
-                                      'Sélectionnez « Email » et saisissez votre ancienne adresse.',
+                                  title: loginL10n.invalidEmailTitle,
+                                  subtitle: loginL10n.legacyEmailSubtitle,
                                 );
                                 setState(() => _isLoading = false);
                                 return;
@@ -444,9 +445,11 @@ class _ConnexionPageState extends State<ConnexionPage> {
                                   .isValidNationalNumber(identifier)) {
                                 AuthMessagePopup.showWarning(
                                   context,
-                                  title: 'Numéro invalide',
-                                  subtitle:
-                                      'Entrez ${_phoneCountry.digitHint} pour ${selectedCountry ?? 'ce pays'}.',
+                                  title: loginL10n.invalidPhoneTitle,
+                                  subtitle: loginL10n.invalidPhoneSubtitle(
+                                    _phoneCountry.digitHint,
+                                    selectedCountry ?? '',
+                                  ),
                                 );
                                 setState(() => _isLoading = false);
                                 return;
@@ -474,9 +477,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                             }
 
                             if (auth.user == null) {
-                              throw Exception(
-                                "La session n'a pas pu être initialisée. Réessayez.",
-                              );
+                              throw Exception(loginL10n.sessionInitFailed);
                             }
                             final userRole =
                                 auth.user?['role']?.toString().toLowerCase();
@@ -485,9 +486,9 @@ class _ConnexionPageState extends State<ConnexionPage> {
                               if (!mounted) return;
                               AuthMessagePopup.showError(
                                 context,
-                                title: kTranooBuyerBlockedTitle,
-                                subtitle: kTranooBuyerBlockedSubtitle,
-                                buttonText: 'Compris',
+                                title: loginL10n.buyerBlockedTitle,
+                                subtitle: loginL10n.buyerBlockedSubtitle,
+                                buttonText: loginL10n.understood,
                               );
                               return;
                             }
@@ -502,7 +503,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                             if (!mounted) return;
                             AuthMessagePopup.showSuccess(
                               context,
-                              title: 'Connexion réussie. Bienvenue !',
+                              title: loginL10n.loginSuccessTitle,
                             );
 
                             if (!mounted) return;
@@ -518,52 +519,50 @@ class _ConnexionPageState extends State<ConnexionPage> {
                             _logger.warning(
                               'Erreur lors de la connexion Firebase: ${e.toString()}',
                             );
-                            String title =
-                                'Impossible de se connecter avec ces informations.';
+                            String title = loginL10n.cannotLoginTitle;
                             String? subtitle;
                             if (e.toString().contains('user-not-found')) {
-                              title =
-                                  'Aucun compte acheteur n\'est associé à ce numéro.';
-                              subtitle = 'Créez un compte ou vérifiez l\'indicatif pays.';
+                              title = loginL10n.noBuyerAccount;
+                              subtitle = loginL10n.checkCountryCode;
                             } else if (e.toString().contains(
                                   'wrong-password',
                                 )) {
-                              title = 'Mot de passe incorrect.';
-                              subtitle =
-                                  'Vérifiez vos informations et réessayez.';
+                              title = loginL10n.wrongPassword;
+                              subtitle = loginL10n.verifyAndRetry;
                             } else if (e.toString().contains(
                                   'invalid-credential',
                                 )) {
-                              title =
-                                  'Numéro, email ou mot de passe incorrect.';
-                              subtitle =
-                                  'Vérifiez vos informations et réessayez.';
+                              title = loginL10n.wrongCredentials;
+                              subtitle = loginL10n.verifyAndRetry;
                             } else if (e.toString().contains('user-disabled')) {
-                              title = 'Votre compte est temporairement bloqué.';
-                              subtitle = 'Contactez l\'assistance.';
+                              title = loginL10n.accountBlocked;
+                              subtitle = loginL10n.contactSupport;
                             } else if (e
                                 .toString()
                                 .contains('too-many-requests')) {
-                              title = 'Trop de tentatives de connexion.';
-                              subtitle = 'Réessayez dans quelques minutes.';
+                              title = loginL10n.tooManyAttempts;
+                              subtitle = loginL10n.retryInMinutes;
                             } else if (e.toString().contains('network') ||
                                 e.toString().contains('SocketException') ||
                                 e.toString().contains('Failed host lookup')) {
-                              title = 'Impossible de se connecter au serveur.';
-                              subtitle = 'Vérifiez votre connexion internet.';
+                              title = loginL10n.cannotReachServer;
+                              subtitle = loginL10n.checkInternet;
                             } else if (e.toString().contains('server') ||
                                 e.toString().contains('500') ||
                                 e.toString().contains('503')) {
-                              title =
-                                  'Notre service rencontre un problème temporaire.';
-                              subtitle = 'Veuillez réessayer plus tard.';
+                              title = loginL10n.serviceTemporaryIssue;
+                              subtitle = loginL10n.tryAgainLater;
+                            } else if (e.toString().contains(
+                                  loginL10n.sessionInitFailed,
+                                )) {
+                              title = loginL10n.sessionInitFailed;
                             }
                             if (!mounted) return;
                             AuthMessagePopup.showError(
                               context,
                               title: title,
                               subtitle: subtitle,
-                              buttonText: 'Réessayer',
+                              buttonText: loginL10n.retry,
                             );
                           } finally {
                             setState(() {
@@ -584,7 +583,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.black)
                       : Text(
-                          'Se connecter',
+                          l10n.signInTitle,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize:
@@ -601,7 +600,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "Vous n'avez pas de compte ? ",
+                    l10n.noAccount,
                     style: TextStyle(
                       color: Colors.grey,
                       fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
@@ -617,7 +616,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                       );
                     },
                     child: Text(
-                      "S'inscrire",
+                      l10n.signUp,
                       style: TextStyle(
                         color: const Color(0xFF0461B6),
                         fontWeight: FontWeight.bold,

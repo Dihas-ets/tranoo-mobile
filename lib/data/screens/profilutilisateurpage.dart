@@ -12,7 +12,11 @@ import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/utils/cloudinary_upload.dart';
 import 'package:provider/provider.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/languesentreprise.dart';
 import 'package:tranoo/providers/auth_provider.dart' as local_auth;
+import 'package:tranoo/providers/locale_provider.dart';
+import 'package:tranoo/utils/locale_helper.dart';
 
 void main() {
   runApp(const MyApp());
@@ -39,7 +43,6 @@ class ProfilUtilisateurPage extends StatefulWidget {
 
 class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
   File? _image;
-  String selectedLanguage = "Français";
   String selectedCurrencyValue = "XOF";
   Map<String, dynamic>? userData;
   bool loading = true;
@@ -59,10 +62,12 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
           loading = false;
           userData = null;
-          errorMsg = "Utilisateur non connecté.";
+          errorMsg = l10n.userNotConnected;
         });
         return;
       }
@@ -81,11 +86,12 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
         errorMsg = null;
       });
     } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
         loading = false;
         userData = null;
-        errorMsg =
-            "Impossible de charger le profil. Vérifiez votre connexion ou vos droits.";
+        errorMsg = l10n.profileLoadError;
       });
     }
   }
@@ -126,40 +132,39 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
   }
 
   Future<void> _deleteAccount() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red),
-            SizedBox(width: 8),
-            Expanded(child: Text('Suppression du compte')),
+            const Icon(Icons.warning_amber_rounded, color: Colors.red),
+            const SizedBox(width: 8),
+            Expanded(child: Text(l10n.accountDeletion)),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Cette action est irreversible.',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              l10n.accountDeletionIrreversible,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
+            Text(l10n.accountDeletionDataWarning),
+            const SizedBox(height: 12),
             Text(
-              'Votre compte, votre acces a l\'application et vos donnees liees seront supprimes.',
-            ),
-            SizedBox(height: 12),
-            Text(
-              'Assurez-vous de ne plus avoir besoin de ce compte avant de confirmer.',
-              style: TextStyle(color: Colors.black54),
+              l10n.accountDeletionConfirmWarning,
+              style: const TextStyle(color: Colors.black54),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -167,7 +172,7 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Supprimer'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -193,8 +198,9 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
       if (idToken == null) {
         if (context.mounted) Navigator.of(context).pop();
         if (context.mounted) {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Session invalide. Reconnectez-vous.')),
+            SnackBar(content: Text(l10n.invalidSessionReconnect)),
           );
         }
         return;
@@ -219,8 +225,9 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
       );
     } catch (e) {
       if (context.mounted) Navigator.of(context).pop();
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur suppression: ${e.toString()}')),
+        SnackBar(content: Text(l10n.errorDeletion(e.toString()))),
       );
     }
   }
@@ -274,20 +281,21 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) return Center(child: CircularProgressIndicator());
+    final l10n = AppLocalizations.of(context)!;
+    if (loading) return const Center(child: CircularProgressIndicator());
     if (errorMsg != null) return Center(child: Text(errorMsg!));
     if (userData == null) {
-      return Center(child: Text("Aucune donnée utilisateur"));
+      return Center(child: Text(l10n.noUserData));
     }
     if (userData != null && userData?['role'] != 'vendeur') {
-      return Center(child: Text("Accès réservé aux vendeurs."));
+      return Center(child: Text(l10n.sellerAccessOnly));
     }
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text(
-          "Compte",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        title: Text(
+          l10n.account,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -396,14 +404,14 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
               ),
             ),
             const SizedBox(height: 50),
-            _buildAccountOptions(),
+            _buildAccountOptions(l10n),
             const SizedBox(height: 20),
-            const Text(
-              "Plus",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              l10n.more,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            _buildMoreOptions(),
+            _buildMoreOptions(l10n),
           ],
         ),
       ),
@@ -432,7 +440,7 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
     );
   }
 
-  Widget _buildAccountOptions() {
+  Widget _buildAccountOptions(AppLocalizations l10n) {
     final vendeurType = (userData?['vendeurType'] ?? '')
         .toString()
         .trim()
@@ -451,8 +459,8 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
       child: Column(
         children: [
           _buildListTile(
-            title: "Mon compte",
-            subtitle: "Apporter des modifications à votre compte",
+            title: l10n.myAccount,
+            subtitle: l10n.editAccountSubtitle,
             icon: Icons.person,
             onTap: () async {
               await Navigator.push(
@@ -464,8 +472,8 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
           ),
           if (canSellVehicles)
             _buildListTile(
-              title: "Vendre ma voiture",
-              subtitle: "Devenir titulaire et vendez avec nous",
+              title: l10n.sellMyCar,
+              subtitle: l10n.becomeSellerSubtitle,
               icon: Icons.car_rental,
               onTap: () {
                 Navigator.push(
@@ -476,8 +484,8 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
             ),
           if (canSellPieces)
             _buildListTile(
-              title: "Vendre ma pièce",
-              subtitle: "Devenir titulaire et vendez avec nous",
+              title: l10n.sellMyPart,
+              subtitle: l10n.becomeSellerSubtitle,
               icon: Icons.build,
               onTap: () {
                 Navigator.push(
@@ -487,13 +495,13 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
               },
             ),
           _buildListTile(
-            title: "Suppression de compte",
+            title: l10n.accountDeletion,
             icon: Icons.delete_forever,
             color: Colors.red,
             onTap: () => _deleteAccount(),
           ),
           _buildListTile(
-            title: "Déconnexion",
+            title: l10n.logout,
             icon: Icons.logout,
             color: Color(0xFFFFCE31),
             onTap: () {
@@ -508,14 +516,14 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
     );
   }
 
-  Widget _buildMoreOptions() {
+  Widget _buildMoreOptions(AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(16),
       color: Colors.white,
       child: Column(
         children: [
           _buildOption(
-            "Notifications",
+            l10n.notifications,
             "",
             Icons.notifications,
             badge: true,
@@ -526,18 +534,33 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
               );
             },
           ),
-          _buildOption(
-            "Langue",
-            selectedLanguage,
-            Icons.language,
-            trailing: IconButton(
-              icon: const Icon(Icons.arrow_forward_ios),
-              onPressed: () => _showLanguageDialog(context),
-            ),
+          Consumer<LocaleProvider>(
+            builder: (context, localeProvider, _) {
+              final l10n = AppLocalizations.of(context)!;
+              return _buildOption(
+                l10n.language,
+                LocaleHelper.languageLabel(
+                  localeProvider.languageCode,
+                  l10n,
+                ),
+                Icons.language,
+                trailing: IconButton(
+                  icon: const Icon(Icons.arrow_forward_ios),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LanguesEntreprise(),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
           ),
           _buildOption(
-            "Devise",
-            selectedCurrencyValue,
+            l10n.currency,
+            LocaleHelper.currencyLabel(selectedCurrencyValue, l10n),
             Icons.monetization_on,
             trailing: IconButton(
               icon: const Icon(Icons.arrow_forward_ios),
@@ -585,64 +608,27 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
     );
   }
 
-  void _showLanguageDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Choisir une langue'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var lang in [
-                "Français",
-                "Anglais",
-                "Espagnol",
-                "Allemand",
-                "Italien",
-              ])
-                ListTile(
-                  title: Text(lang),
-                  onTap: () {
-                    setState(() {
-                      selectedLanguage = lang;
-                    });
-                    Navigator.pop(context);
-                  },
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   void _showCurrencyDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text('Choisir une devise'),
+          title: Text(l10n.chooseCurrency),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                title: const Text('XOF'),
-                onTap: () {
-                  Navigator.pop(context, 'XOF');
-                },
+                title: Text(l10n.currencyXof),
+                onTap: () => Navigator.pop(dialogContext, 'XOF'),
               ),
               ListTile(
-                title: const Text('Euro'),
-                onTap: () {
-                  Navigator.pop(context, 'Euro');
-                },
+                title: Text(l10n.currencyEuro),
+                onTap: () => Navigator.pop(dialogContext, 'Euro'),
               ),
               ListTile(
-                title: const Text('Dollars'),
-                onTap: () {
-                  Navigator.pop(context, 'Dollars');
-                },
+                title: Text(l10n.currencyDollars),
+                onTap: () => Navigator.pop(dialogContext, 'Dollars'),
               ),
             ],
           ),

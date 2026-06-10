@@ -11,6 +11,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:flutter/rendering.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 void _showInvoiceToast(
   BuildContext context, {
@@ -50,6 +51,8 @@ class MesFacturesPage extends StatefulWidget {
 }
 
 class _MesFacturesPageState extends State<MesFacturesPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   final Color primaryColor = const Color(0xFFF8BF13);
   List<Map<String, String>> factures = [];
   bool _isLoading = true;
@@ -58,7 +61,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
 
   int selectedTab = 1; // 0 = pending, 1 = completed, 2 = canceled
   DateTime? selectedDate;
-  String selectedFilter = 'Toutes';
+  String selectedFilter = 'all';
   bool _authDialogShown = false;
 
   @override
@@ -78,12 +81,15 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
     return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
   }
 
-  List<Map<String, String>> _mapInvoicesToUi(List<Map<String, dynamic>> invoices) {
+  List<Map<String, String>> _mapInvoicesToUi(
+    List<Map<String, dynamic>> invoices,
+    AppLocalizations l10n,
+  ) {
     return invoices.map((inv) {
       final items = (inv['items'] as List?) ?? const [];
       final firstTitle = items.isNotEmpty
-          ? (items.first as Map)['title']?.toString() ?? 'Article'
-          : 'Article';
+          ? (items.first as Map)['title']?.toString() ?? l10n.articleLabel
+          : l10n.articleLabel;
       final subtotal = (inv['subtotal'] as num?)?.toDouble() ?? 0;
       final deliveryFee = (inv['deliveryFee'] as num?)?.toDouble() ?? 0;
       final total = (inv['total'] as num?)?.toDouble() ?? 0;
@@ -93,9 +99,12 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
         "date": _formatDate(inv['issueDate'] ?? inv['createdAt']),
         "produit": firstTitle,
         "montant": _formatAmount(total),
-        "statut": (inv['paymentStatus'] == 'paid') ? 'Payée' : 'En attente',
-        "vendeur": (inv['sellerName'] ?? 'Vendeur').toString(),
-        "boutique": (inv['shopName'] ?? inv['company'] ?? 'Boutique').toString(),
+        "statut": (inv['paymentStatus'] == 'paid')
+            ? l10n.paidStatus
+            : l10n.pendingPaymentStatus,
+        "vendeur": (inv['sellerName'] ?? l10n.sellerDefault).toString(),
+        "boutique":
+            (inv['shopName'] ?? inv['company'] ?? l10n.shopDefault).toString(),
         "entreprise": (inv['shopName'] ?? inv['company'] ?? 'Tranoo').toString(),
         "prixProduit": _formatAmount(subtotal),
         "livraison": _formatAmount(deliveryFee),
@@ -140,7 +149,8 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
               (data['invoices'] as List).whereType<Map>(),
             )
           : <Map<String, dynamic>>[];
-      final mapped = _mapInvoicesToUi(invoices);
+      final l10n = AppLocalizations.of(context)!;
+      final mapped = _mapInvoicesToUi(invoices, l10n);
       if (!mounted) return;
       setState(() {
         factures = mapped;
@@ -172,11 +182,13 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
           final message = (e.response?.data is Map<String, dynamic>)
               ? (e.response?.data['message']?.toString() ?? '')
               : '';
-          _loadError = 'Impossible de charger les factures'
-              '${status != null ? ' ($status)' : ''}'
-              '${message.isNotEmpty ? ': $message' : '.'}';
+          final l10n = AppLocalizations.of(context)!;
+          _loadError = message.isNotEmpty
+              ? l10n.invoicesLoadErrorDetail(
+                  '${status ?? ''}', message)
+              : l10n.invoicesLoadError;
         } else {
-          _loadError = 'Impossible de charger les factures.';
+          _loadError = AppLocalizations.of(context)!.invoicesLoadError;
         }
       });
     } finally {
@@ -195,7 +207,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
       if (!mounted) return;
       showAuthDialog(
         context,
-        message: 'Connectez-vous pour accéder à vos factures',
+        message: AppLocalizations.of(context)!.signInForInvoices,
       );
     });
   }
@@ -237,8 +249,24 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
     } catch (_) {}
   }
 
+  String _dateFilterLabel(AppLocalizations l10n, String key) {
+    switch (key) {
+      case 'today':
+        return l10n.filterToday;
+      case 'week':
+        return l10n.filterThisWeek;
+      case 'month':
+        return l10n.filterThisMonth;
+      case 'custom':
+        return l10n.filterCustom;
+      default:
+        return l10n.filterAllDates;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: primaryColor,
       appBar: AppBar(
@@ -247,8 +275,8 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
         automaticallyImplyLeading: false, // Pas de flèche back
         title: Center(
           child: Text(
-            "Mes Factures",
-            style: TextStyle(
+            l10n.myInvoices,
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
@@ -276,7 +304,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
               ),
             ),
           IconButton(
-            tooltip: 'Tout marquer lu',
+            tooltip: l10n.markAllRead,
             onPressed: _unreadCount > 0 ? _markAllInvoicesAsRead : null,
             icon: const Icon(Icons.done_all, color: Colors.black),
           ),
@@ -303,10 +331,10 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
                   : _loadError != null
                       ? Center(child: Text(_loadError!))
                       : factures.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Text(
-                                'Vous n\'avez aucune facture pour le moment.',
-                                style: TextStyle(
+                                l10n.noInvoicesYet,
+                                style: const TextStyle(
                                   color: Colors.black54,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -397,9 +425,9 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
                                       color: Colors.redAccent,
                                       borderRadius: BorderRadius.circular(10),
                                     ),
-                                    child: const Text(
-                                      'Non lue',
-                                      style: TextStyle(
+                                    child: Text(
+                                      l10n.unreadLabel,
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
@@ -433,9 +461,9 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                             ),
-                            child: const Text(
-                              "Télécharger",
-                              style: TextStyle(
+                            child: Text(
+                              l10n.download,
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -502,9 +530,9 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Filtrer par date",
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.filterByDate,
+            style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
@@ -513,7 +541,8 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: ['Toutes', 'Aujourd\'hui', 'Cette semaine', 'Ce mois', 'Personnalisée'].map((filter) {
+              children: ['all', 'today', 'week', 'month', 'custom'].map((filter) {
+                final l10n = AppLocalizations.of(context)!;
                 final isSelected = filter == selectedFilter;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -521,11 +550,11 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
                     label: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (filter == 'Personnalisée')
+                        if (filter == 'custom')
                           Icon(Icons.calendar_today, size: 14, color: isSelected ? Colors.white : primaryColor),
-                        if (filter == 'Personnalisée') const SizedBox(width: 4),
+                        if (filter == 'custom') const SizedBox(width: 4),
                         Text(
-                          filter,
+                          _dateFilterLabel(l10n, filter),
                           style: TextStyle(
                             color: isSelected ? Colors.white : primaryColor,
                             fontSize: 12,
@@ -538,7 +567,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
                     onSelected: (selected) {
                       setState(() {
                         selectedFilter = filter;
-                        if (filter == 'Personnalisée') {
+                        if (filter == 'custom') {
                           _selectCustomDate();
                         }
                       });
@@ -567,7 +596,9 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Date sélectionnée: ${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                    AppLocalizations.of(context)!.selectedDateLabel(
+                      '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                    ),
                     style: TextStyle(
                       fontSize: 12,
                       color: primaryColor,
@@ -608,26 +639,27 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
 
   /// ⚙️ OPTIONS TELECHARGEMENT
   void _showDownloadOptionsFromList(Map<String, String> facture) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Télécharger la facture'),
-          content: const Text('Choisissez le format :'),
+          title: Text(l10n.downloadInvoice),
+          content: Text(l10n.chooseFormat),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _downloadInvoiceAsImage(facture);
               },
-              child: const Text('Image'),
+              child: Text(l10n.imageFormat),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _downloadInvoiceAsPDF(facture);
               },
-              child: const Text('Document'),
+              child: Text(l10n.documentFormat),
             ),
           ],
         );
@@ -635,7 +667,10 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
     );
   }
 
-  Future<Uint8List> _buildInvoiceImageBytes(Map<String, String> facture) async {
+  Future<Uint8List> _buildInvoiceImageBytes(
+    Map<String, String> facture,
+    AppLocalizations l10n,
+  ) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     const width = 1080.0;
@@ -657,17 +692,21 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
       tp.paint(canvas, Offset(x, y));
     }
 
-    draw('FACTURE ${facture["numero"] ?? "--"}', 40, 52, size: 42, w: FontWeight.bold);
-    draw('Date: ${facture["date"] ?? "--"}', 40, 190);
-    draw('Produit: ${facture["produit"] ?? "--"}', 40, 260);
-    draw('Vendeur: ${facture["vendeur"] ?? "--"}', 40, 330);
-    draw('Boutique: ${facture["boutique"] ?? "--"}', 40, 400);
-    draw('Adresse: ${facture["adresse"] ?? "--"}', 40, 470, size: 30);
-    draw('Sous-total: ${facture["prixProduit"] ?? "--"}', 40, 560);
-    draw('Livraison: ${facture["livraison"] ?? "--"}', 40, 630);
-    draw('TVA: ${facture["tva"] ?? "--"}', 40, 700);
-    draw('Total: ${facture["montant"] ?? "--"}', 40, 790, size: 44, w: FontWeight.w800);
-    draw('Référence: ${facture["reference"] ?? "--"}', 40, 880, size: 28, c: Colors.black54);
+    draw(l10n.invoiceTitle(facture['numero'] ?? '--'), 40, 52,
+        size: 42, w: FontWeight.bold);
+    draw('${l10n.dateTimeLabel}: ${facture['date'] ?? '--'}', 40, 190);
+    draw('${l10n.productLabel}: ${facture['produit'] ?? '--'}', 40, 260);
+    draw('${l10n.sellerLabel}: ${facture['vendeur'] ?? '--'}', 40, 330);
+    draw('${l10n.shopLabel}: ${facture['boutique'] ?? '--'}', 40, 400);
+    draw('${l10n.addressLabel}: ${facture['adresse'] ?? '--'}', 40, 470,
+        size: 30);
+    draw('${l10n.subtotal}: ${facture['prixProduit'] ?? '--'}', 40, 560);
+    draw('${l10n.deliveryLabelShort}: ${facture['livraison'] ?? '--'}', 40, 630);
+    draw('${l10n.tvaLabel}: ${facture['tva'] ?? '--'}', 40, 700);
+    draw('${l10n.totalLabelShort}: ${facture['montant'] ?? '--'}', 40, 790,
+        size: 44, w: FontWeight.w800);
+    draw('${l10n.referenceLabel}: ${facture['reference'] ?? '--'}', 40, 880,
+        size: 28, c: Colors.black54);
 
     final image = await recorder.endRecording().toImage(width.toInt(), height.toInt());
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -675,10 +714,11 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
   }
 
   Future<void> _downloadInvoiceAsImage(Map<String, String> facture) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
-      final bytes = await _buildInvoiceImageBytes(facture);
+      final bytes = await _buildInvoiceImageBytes(facture, l10n);
       final path = await FilePicker.saveFile(
-        dialogTitle: 'Enregistrer la facture (image)',
+        dialogTitle: l10n.saveInvoiceImage,
         fileName:
             'facture_${facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.png',
         bytes: bytes,
@@ -687,7 +727,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
       if (mounted) {
         _showInvoiceToast(
           context,
-          message: 'Image sauvegardée avec succès',
+          message: l10n.imageSavedSuccess,
           success: true,
         );
       }
@@ -695,7 +735,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
       if (mounted) {
         _showInvoiceToast(
           context,
-          message: 'Échec de sauvegarde de l\'image',
+          message: l10n.imageSaveFailed,
           success: false,
         );
       }
@@ -703,8 +743,9 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
   }
 
   Future<void> _downloadInvoiceAsPDF(Map<String, String> facture) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
-      final imageBytes = await _buildInvoiceImageBytes(facture);
+      final imageBytes = await _buildInvoiceImageBytes(facture, l10n);
       final doc = pw.Document();
       final img = pw.MemoryImage(imageBytes);
       doc.addPage(
@@ -717,7 +758,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
       );
       final bytes = await doc.save();
       final path = await FilePicker.saveFile(
-        dialogTitle: 'Enregistrer la facture (document)',
+        dialogTitle: l10n.saveInvoiceDocument,
         fileName:
             'facture_${facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.pdf',
         bytes: bytes,
@@ -726,7 +767,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
       if (mounted) {
         _showInvoiceToast(
           context,
-          message: 'Document PDF sauvegardé avec succès',
+          message: l10n.documentSavedSuccess,
           success: true,
         );
       }
@@ -734,7 +775,7 @@ class _MesFacturesPageState extends State<MesFacturesPage> {
       if (mounted) {
         _showInvoiceToast(
           context,
-          message: 'Échec de sauvegarde du document PDF',
+          message: l10n.documentSaveFailed,
           success: false,
         );
       }
@@ -757,24 +798,28 @@ class InvoicePreviewPage extends StatefulWidget {
 }
 
 class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   final GlobalKey _ticketCaptureKey = GlobalKey();
 
   Future<Uint8List> _captureTicketBytes() async {
     final boundary = _ticketCaptureKey.currentContext?.findRenderObject()
         as RenderRepaintBoundary?;
+    final l10n = AppLocalizations.of(context)!;
     if (boundary == null) {
-      throw Exception('Capture indisponible');
+      throw Exception(l10n.captureUnavailable);
     }
     final image = await boundary.toImage(pixelRatio: 3);
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     if (byteData == null) {
-      throw Exception('Impossible de générer l\'image');
+      throw Exception(l10n.cannotGenerateImage);
     }
     return byteData.buffer.asUint8List();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFF0B1022),
       appBar: AppBar(
@@ -782,9 +827,9 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
         elevation: 0,
         automaticallyImplyLeading: false, // Pas de flèche back
         centerTitle: true,
-        title: const Text(
-          'Aperçu facture',
-          style: TextStyle(
+        title: Text(
+          l10n.invoicePreview,
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
@@ -802,6 +847,7 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
   }
 
   Widget _buildTicketPage() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         RepaintBoundary(
@@ -817,7 +863,7 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
                   _shareInvoice();
                 },
                 icon: const Icon(Icons.share_outlined),
-                label: const Text('Partager'),
+                label: Text(l10n.share),
                 style: OutlinedButton.styleFrom(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
@@ -832,7 +878,7 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
                   _showDownloadOptions();
                 },
                 icon: const Icon(Icons.download_rounded),
-                label: const Text('Télécharger'),
+                label: Text(l10n.download),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: widget.accentColor,
                   foregroundColor: Colors.white,
@@ -850,6 +896,7 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
   }
 
   Widget _buildTicketContent() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: 360,
       decoration: BoxDecoration(
@@ -869,9 +916,10 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
                   children: [
                     const Icon(Icons.verified, color: Colors.black, size: 18),
                     const SizedBox(width: 6),
-                    const Text(
-                      'Transaction Success',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black),
+                    Text(
+                      l10n.transactionSuccessTitle,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, color: Colors.black),
                     ),
                     const Spacer(),
                     Text(
@@ -895,7 +943,7 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "Transaction number ${widget.facture["reference"] ?? "-"}",
+                  l10n.transactionNumber(widget.facture['reference'] ?? '-'),
                   style: const TextStyle(color: Colors.black87),
                 ),
               ],
@@ -908,22 +956,22 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _row('Date & time', widget.facture["date"] ?? "-"),
-                _row('Produit', widget.facture["produit"] ?? "-"),
-                _row('Vendeur', widget.facture["vendeur"] ?? "-"),
-                _row('Boutique', widget.facture["boutique"] ?? "-"),
-                _row('Source de fonds', widget.facture["paiement"] ?? "-"),
-                _row('Destination', widget.facture["adresse"] ?? "-"),
-                _row('Référence', widget.facture["reference"] ?? "-"),
+                _row(l10n.dateTimeLabel, widget.facture['date'] ?? '-'),
+                _row(l10n.productLabel, widget.facture['produit'] ?? '-'),
+                _row(l10n.sellerLabel, widget.facture['vendeur'] ?? '-'),
+                _row(l10n.shopLabel, widget.facture['boutique'] ?? '-'),
+                _row(l10n.fundsSourceLabel, widget.facture['paiement'] ?? '-'),
+                _row(l10n.destinationLabel, widget.facture['adresse'] ?? '-'),
+                _row(l10n.referenceLabel, widget.facture['reference'] ?? '-'),
                 
                 // Exemple multi-produits (démo)
                 if (widget.facture["numero"] == "FAC-2026-001") ...[
                   const SizedBox(height: 16),
                   const Divider(height: 20, thickness: 1),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Détails des produits:',
-                    style: TextStyle(
+                  Text(
+                    l10n.productDetails,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       color: Color(0xFF0A1F44),
@@ -943,16 +991,16 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
           _sectionCard(
             child: Column(
               children: [
-                _row('Prix du produit', widget.facture["prixProduit"] ?? "-"),
-                _row('Prix de livraison', widget.facture["livraison"] ?? "-"),
-                _row('TVA', widget.facture["tva"] ?? "-"),
+                _row(l10n.productPriceLabel, widget.facture['prixProduit'] ?? '-'),
+                _row(l10n.deliveryPriceLabel, widget.facture['livraison'] ?? '-'),
+                _row(l10n.tvaLabel, widget.facture['tva'] ?? '-'),
                 const Divider(height: 24, thickness: 1),
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Total transaction',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                        l10n.totalTransaction,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
                     Text(
@@ -1092,6 +1140,7 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
 
   // Pied de page de la facture
   Widget _buildFooter() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
@@ -1110,9 +1159,9 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
           ),
           
           // Titre du support
-          const Text(
-            'Support Tranoo',
-            style: TextStyle(
+          Text(
+            l10n.tranooSupport,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: Color(0xFF0A1F44),
@@ -1183,18 +1232,18 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFF0EA5E9).withOpacity(0.2)),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Merci pour votre confiance ',
-                  style: TextStyle(
+                  l10n.thankYouForTrust,
+                  style: const TextStyle(
                     fontSize: 13,
                     color: Color(0xFF0A1F44),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Text(
+                const Text(
                   '❤️',
                   style: TextStyle(fontSize: 14),
                 ),
@@ -1213,9 +1262,9 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
           const SizedBox(height: 12),
           
           // Message légal
-          const Text(
-            'Cette facture est un document officiel. En cas de litige, veuillez contacter notre support.',
-            style: TextStyle(
+          Text(
+            l10n.officialInvoiceDisclaimer,
+            style: const TextStyle(
               fontSize: 11,
               color: Color(0xFF64748B),
               fontStyle: FontStyle.italic,
@@ -1229,32 +1278,33 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
 
   // Fonction pour afficher les options de téléchargement
   void _showDownloadOptions() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Télécharger la facture'),
-          content: const Text('Choisissez le format de téléchargement:'),
+          title: Text(l10n.downloadInvoice),
+          content: Text(l10n.chooseDownloadFormat),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _downloadInvoiceAsImage();
               },
-              child: const Text('Image (Galerie)'),
+              child: Text(l10n.imageGallery),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _downloadInvoiceAsPDF();
               },
-              child: const Text('Document'),
+              child: Text(l10n.documentFormat),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Annuler'),
+              child: Text(l10n.cancel),
             ),
           ],
         );
@@ -1264,18 +1314,19 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
 
   // Fonction pour partager la facture
   void _shareInvoice() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Row(
             children: [
-              Icon(Icons.share, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Préparation du partage...'),
+              const Icon(Icons.share, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(l10n.preparingShare),
             ],
           ),
-          backgroundColor: Color(0xFF10B981),
-          duration: Duration(seconds: 2),
+          backgroundColor: const Color(0xFF10B981),
+          duration: const Duration(seconds: 2),
         ),
       );
 
@@ -1284,16 +1335,16 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Text('Facture prête à partager !'),
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(AppLocalizations.of(context)!.invoiceReadyToShare),
               ],
             ),
-            backgroundColor: Color(0xFF10B981),
-            duration: Duration(seconds: 3),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -1305,7 +1356,9 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
               children: [
                 const Icon(Icons.error, color: Colors.white),
                 const SizedBox(width: 8),
-                Expanded(child: Text('Erreur lors du partage: ${e.toString()}')),
+                Expanded(
+                    child: Text(
+                        AppLocalizations.of(context)!.shareError('$e'))),
               ],
             ),
             backgroundColor: const Color(0xFFEF4444),
@@ -1316,51 +1369,12 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
     }
   }
 
-  // Fonction pour télécharger en image
-  Future<Uint8List> _buildInvoiceImageBytes(Map<String, String> facture) async {
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    const width = 1080.0;
-    const height = 1350.0;
-    canvas.drawRect(
-      const Rect.fromLTWH(0, 0, width, height),
-      Paint()..color = Colors.white,
-    );
-    canvas.drawRect(
-      const Rect.fromLTWH(0, 0, width, 160),
-      Paint()..color = const Color(0xFFF8BF13),
-    );
-    final tp = TextPainter(textDirection: TextDirection.ltr);
-    void draw(String text, double x, double y,
-        {double size = 36, FontWeight w = FontWeight.w500, Color c = Colors.black}) {
-      tp.text = TextSpan(
-        text: text,
-        style: TextStyle(fontSize: size, fontWeight: w, color: c),
-      );
-      tp.layout(maxWidth: width - 80);
-      tp.paint(canvas, Offset(x, y));
-    }
-    draw('FACTURE ${facture["numero"] ?? "--"}', 40, 52, size: 42, w: FontWeight.bold);
-    draw('Date: ${facture["date"] ?? "--"}', 40, 190);
-    draw('Produit: ${facture["produit"] ?? "--"}', 40, 260);
-    draw('Vendeur: ${facture["vendeur"] ?? "--"}', 40, 330);
-    draw('Boutique: ${facture["boutique"] ?? "--"}', 40, 400);
-    draw('Adresse: ${facture["adresse"] ?? "--"}', 40, 470, size: 30);
-    draw('Sous-total: ${facture["prixProduit"] ?? "--"}', 40, 560);
-    draw('Livraison: ${facture["livraison"] ?? "--"}', 40, 630);
-    draw('TVA: ${facture["tva"] ?? "--"}', 40, 700);
-    draw('Total: ${facture["montant"] ?? "--"}', 40, 790, size: 44, w: FontWeight.w800);
-    draw('Référence: ${facture["reference"] ?? "--"}', 40, 880, size: 28, c: Colors.black54);
-    final image = await recorder.endRecording().toImage(width.toInt(), height.toInt());
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
-  }
-
   void _downloadInvoiceAsImage() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final bytes = await _captureTicketBytes();
       final path = await FilePicker.saveFile(
-        dialogTitle: 'Enregistrer la facture (image)',
+        dialogTitle: l10n.saveInvoiceImage,
         fileName:
             'facture_${widget.facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.png',
         bytes: bytes,
@@ -1369,14 +1383,14 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
       if (!mounted) return;
       _showInvoiceToast(
         context,
-        message: 'Image sauvegardée avec succès',
+        message: l10n.imageSavedSuccess,
         success: true,
       );
     } catch (e) {
       if (mounted) {
         _showInvoiceToast(
           context,
-          message: 'Échec de sauvegarde de l\'image',
+          message: l10n.imageSaveFailed,
           success: false,
         );
       }
@@ -1385,6 +1399,7 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
 
   // Fonction pour télécharger en PDF
   void _downloadInvoiceAsPDF() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final imageBytes = await _captureTicketBytes();
       final doc = pw.Document();
@@ -1399,7 +1414,7 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
       );
       final bytes = await doc.save();
       final path = await FilePicker.saveFile(
-        dialogTitle: 'Enregistrer la facture (document)',
+        dialogTitle: l10n.saveInvoiceDocument,
         fileName:
             'facture_${widget.facture["numero"] ?? DateTime.now().millisecondsSinceEpoch}.pdf',
         bytes: bytes,
@@ -1408,14 +1423,14 @@ class _InvoicePreviewPageState extends State<InvoicePreviewPage> {
       if (!mounted) return;
       _showInvoiceToast(
         context,
-        message: 'Document PDF sauvegardé avec succès',
+        message: l10n.documentSavedSuccess,
         success: true,
       );
     } catch (e) {
       if (mounted) {
         _showInvoiceToast(
           context,
-          message: 'Échec de sauvegarde du document PDF',
+          message: l10n.documentSaveFailed,
           success: false,
         );
       }

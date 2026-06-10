@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/data/screens/paymentscreen.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class SuccesScreen5 extends StatelessWidget {
   const SuccesScreen5({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.white,
       extendBodyBehindAppBar: true,
@@ -44,9 +47,9 @@ class SuccesScreen5 extends StatelessWidget {
                           width: 120,
                         ),
                         const SizedBox(height: 24),
-                        const Text(
-                          'Vous y êtes presque',
-                          style: TextStyle(
+                        Text(
+                          l10n.almostThere,
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -54,25 +57,20 @@ class SuccesScreen5 extends StatelessWidget {
                         const SizedBox(height: 24),
                         RichText(
                           textAlign: TextAlign.center,
-                          text: const TextSpan(
-                            style: TextStyle(fontSize: 12, height: 1.5),
+                          text: TextSpan(
+                            style: const TextStyle(fontSize: 12, height: 1.5),
                             children: [
                               TextSpan(
-                                text: 'Votre mise en lumière coûtera environ ',
-                                style: TextStyle(color: Colors.black),
+                                text: l10n.spotlightCostPrefix,
+                                style: const TextStyle(color: Colors.black),
                               ),
-                              TextSpan(
+                              const TextSpan(
                                 text: '15.000 XOF ',
                                 style: TextStyle(color: Color(0xFF007AFF)),
                               ),
                               TextSpan(
-                                text:
-                                    'pour ce véhicule. Continuez et finalisez votre paiement pour voir votre véhicule en ',
-                                style: TextStyle(color: Colors.black),
-                              ),
-                              TextSpan(
-                                text: 'tête de liste de nos produits',
-                                style: TextStyle(color: Color(0xFF007AFF)),
+                                text: l10n.spotlightCostSuffix,
+                                style: const TextStyle(color: Colors.black),
                               ),
                             ],
                           ),
@@ -99,9 +97,9 @@ class SuccesScreen5 extends StatelessWidget {
                               ),
                               elevation: 2,
                             ),
-                            child: const Text(
-                              'Finaliser le paiement',
-                              style: TextStyle(
+                            child: Text(
+                              l10n.finalizePayment,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w500,
                                 fontSize: 16,
                               ),

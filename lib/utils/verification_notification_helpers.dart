@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Palette unique — jaune doux Tranoo.
@@ -82,7 +83,11 @@ Future<void> openRemoteAttachment(
         name: name.contains('.') ? name : '$name.pdf',
         mimeType: _guessMime(name),
       );
-      await Share.shareXFiles([xfile], text: 'Document Tranoo');
+      final l10n = AppLocalizations.of(context);
+      await Share.shareXFiles(
+        [xfile],
+        text: l10n?.tranooDocumentShare ?? 'Document Tranoo',
+      );
       return;
     } catch (_) {}
   }
@@ -98,8 +103,9 @@ Future<void> openRemoteAttachment(
     } catch (_) {}
   }
   if (!context.mounted) return;
+  final l10n = AppLocalizations.of(context)!;
   ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Impossible de télécharger le fichier')),
+    SnackBar(content: Text(l10n.fileDownloadFailed)),
   );
 }
 
@@ -136,6 +142,7 @@ void showVerificationImagePreview(
   required String url,
   required String title,
 }) {
+  final l10n = AppLocalizations.of(context)!;
   showDialog<void>(
     context: context,
     builder: (ctx) => Dialog(
@@ -186,7 +193,7 @@ void showVerificationImagePreview(
                 openRemoteAttachment(context, url, label: title);
               },
               icon: const Icon(Icons.download_outlined, size: 20),
-              label: const Text('Télécharger'),
+              label: Text(l10n.download),
             ),
           ),
         ],
@@ -256,7 +263,8 @@ Widget buildVerificationNotificationContent({
   VoidCallback? onApprove,
   VoidCallback? onReject,
 }) {
-  final title = notifString(notification, 'title') ?? 'Vérification';
+  final l10n = AppLocalizations.of(context)!;
+  final title = notifString(notification, 'title') ?? l10n.verificationAction;
   final details = notifString(notification, 'details');
   final status = notifString(notification, 'status') ?? 'pending';
   final date = notification['date'];
@@ -299,7 +307,7 @@ Widget buildVerificationNotificationContent({
         if (articleId != null) ...[
           const SizedBox(height: 4),
           Text(
-            'Réf. $articleId',
+            l10n.refWithId(articleId),
             style: const TextStyle(fontSize: 12, color: kVerifyTextMuted),
           ),
         ],
@@ -312,9 +320,9 @@ Widget buildVerificationNotificationContent({
         buildVerificationHtmlBody(bodyHtml),
         if (images.isNotEmpty) ...[
           const SizedBox(height: 12),
-          const Text(
-            'Images jointes',
-            style: TextStyle(
+          Text(
+            l10n.attachedImages,
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: kVerifyText,
@@ -322,7 +330,10 @@ Widget buildVerificationNotificationContent({
           ),
           const SizedBox(height: 6),
           ...images.asMap().entries.map((e) {
-            final label = _fileLabel(e.value, 'Image ${e.key + 1}');
+            final label = _fileLabel(
+              e.value,
+              l10n.imageWithIndex(e.key + 1),
+            );
             return Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: _compactAttachmentTile(
@@ -340,9 +351,9 @@ Widget buildVerificationNotificationContent({
         ],
         if (docsOnly.isNotEmpty) ...[
           const SizedBox(height: 10),
-          const Text(
-            'Documents joints',
-            style: TextStyle(
+          Text(
+            l10n.attachedDocuments,
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: kVerifyText,
@@ -350,7 +361,10 @@ Widget buildVerificationNotificationContent({
           ),
           const SizedBox(height: 6),
           ...docsOnly.asMap().entries.map((e) {
-            final label = _fileLabel(e.value, 'Document ${e.key + 1}');
+            final label = _fileLabel(
+              e.value,
+              l10n.documentWithIndex(e.key + 1),
+            );
             final isPdf = label.toLowerCase().endsWith('.pdf');
             return Padding(
               padding: const EdgeInsets.only(bottom: 6),
@@ -365,9 +379,9 @@ Widget buildVerificationNotificationContent({
         ],
         if (stamp != null || signature != null) ...[
           const SizedBox(height: 14),
-          const Text(
-            'Cachet et signature',
-            style: TextStyle(
+          Text(
+            l10n.stampAndSignature,
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: kVerifyText,
@@ -418,7 +432,7 @@ Widget buildVerificationNotificationContent({
                     side: const BorderSide(color: kVerifyYellowBorder),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  child: const Text('Rejeter'),
+                  child: Text(l10n.reject),
                 ),
               ),
               const SizedBox(width: 10),
@@ -431,8 +445,10 @@ Widget buildVerificationNotificationContent({
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  child: const Text('Valider',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  child: Text(
+                    l10n.validate,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],
@@ -447,7 +463,7 @@ Widget buildVerificationNotificationContent({
               label: 'rapport-verification-tranoo.pdf',
             ),
             icon: const Icon(Icons.picture_as_pdf_outlined, size: 20),
-            label: const Text('Télécharger le rapport PDF'),
+            label: Text(l10n.downloadReportPdf),
             style: OutlinedButton.styleFrom(
               foregroundColor: kVerifyText,
               side: const BorderSide(color: kVerifyYellow),
@@ -504,15 +520,16 @@ Widget buildVerificationHtmlBody(String bodyHtml) {
 }
 
 /// AppBar + fond écran vérification.
-PreferredSizeWidget buildVerificationAppBar() {
+PreferredSizeWidget buildVerificationAppBar(BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
   return AppBar(
     backgroundColor: kVerifyYellowSoft,
     foregroundColor: kVerifyText,
     elevation: 0,
     surfaceTintColor: Colors.transparent,
-    title: const Text(
-      'Vérification',
-      style: TextStyle(
+    title: Text(
+      l10n.verificationAction,
+      style: const TextStyle(
         fontWeight: FontWeight.w600,
         fontSize: 17,
         color: kVerifyText,

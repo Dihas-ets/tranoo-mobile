@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import '../services/feexpay_service.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -9,6 +10,8 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   List<Map<String, dynamic>> _transactions = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -27,7 +30,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     });
 
     try {
-      // Charger le solde du compte
       final balanceResult = await FeexPayService.getAccountBalance();
       if (balanceResult['status'] == 'success') {
         setState(() {
@@ -35,7 +37,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         });
       }
 
-      // Charger l'historique des transactions
       final transactions = await FeexPayService.getTransactionHistory(
         limit: 50,
         offset: 0,
@@ -46,9 +47,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Erreur lors du chargement: $e';
+        _errorMessage = l10n.transactionsLoadError(e.toString());
       });
     }
   }
@@ -58,6 +60,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Future<void> _showRefundDialog(Map<String, dynamic> transaction) async {
+    final l10n = AppLocalizations.of(context)!;
     final amountController = TextEditingController(
       text: transaction['amount']?.toString() ?? '0',
     );
@@ -66,26 +69,28 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Effectuer un reversement'),
+        title: Text(l10n.processRefundTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Transaction: ${transaction['transaction_id']}'),
+            Text(l10n.transactionWithId(
+              transaction['transaction_id']?.toString() ?? '',
+            )),
             const SizedBox(height: 16),
             TextFormField(
               controller: amountController,
-              decoration: const InputDecoration(
-                labelText: 'Montant à rembourser (FCFA)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.refundAmountFcfa,
+                border: const OutlineInputBorder(),
               ),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: reasonController,
-              decoration: const InputDecoration(
-                labelText: 'Raison du remboursement',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.refundReason,
+                border: const OutlineInputBorder(),
               ),
               maxLines: 2,
             ),
@@ -94,14 +99,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.of(context).pop();
-              await _processRefund(transaction, amountController.text, reasonController.text);
+              await _processRefund(
+                transaction,
+                amountController.text,
+                reasonController.text,
+              );
             },
-            child: const Text('Rembourser'),
+            child: Text(l10n.refundAction),
           ),
         ],
       ),
@@ -113,10 +122,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     String amountText,
     String reason,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final amount = double.tryParse(amountText);
       if (amount == null || amount <= 0) {
-        _showSnackBar('Montant invalide', isError: true);
+        _showSnackBar(l10n.invalidAmount, isError: true);
         return;
       }
 
@@ -127,13 +137,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       );
 
       if (result['status'] == 'success') {
-        _showSnackBar('Remboursement effectué avec succès');
-        await _refreshData(); // Recharger les données
+        _showSnackBar(l10n.refundSuccess);
+        await _refreshData();
       } else {
-        _showSnackBar(result['message'] ?? 'Erreur lors du remboursement', isError: true);
+        _showSnackBar(
+          result['message'] ?? l10n.paymentFailed,
+          isError: true,
+        );
       }
     } catch (e) {
-      _showSnackBar('Erreur: $e', isError: true);
+      _showSnackBar(l10n.errorGeneric(e.toString()), isError: true);
     }
   }
 
@@ -162,14 +175,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
-  String _formatAmount(dynamic amount) {
-    if (amount == null) return '0 FCFA';
+  String _formatAmount(dynamic amount, AppLocalizations l10n) {
+    if (amount == null) return l10n.valueAmountFcfa('0');
     final numAmount = double.tryParse(amount.toString()) ?? 0;
-    return '${numAmount.toStringAsFixed(0)} FCFA';
+    return l10n.valueAmountFcfa(numAmount.toStringAsFixed(0));
   }
 
-  String _formatDate(dynamic date) {
-    if (date == null) return 'Date inconnue';
+  String _formatDate(dynamic date, AppLocalizations l10n) {
+    if (date == null) return l10n.unknownDate;
     try {
       final dateTime = DateTime.parse(date.toString());
       return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute}';
@@ -180,9 +193,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Transactions FeexPay'),
+        title: Text(l10n.feexpayTransactionsTitle),
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
         actions: [
@@ -195,12 +210,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-              ? _buildErrorView()
-              : _buildTransactionsView(),
+              ? _buildErrorView(l10n)
+              : _buildTransactionsView(l10n),
     );
   }
 
-  Widget _buildErrorView() {
+  Widget _buildErrorView(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -215,50 +230,47 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _loadData,
-            child: const Text('Réessayer'),
+            child: Text(l10n.retry),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTransactionsView() {
+  Widget _buildTransactionsView(AppLocalizations l10n) {
     return RefreshIndicator(
       onRefresh: _refreshData,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Solde du compte
-          if (_accountBalance != null) _buildBalanceCard(),
+          if (_accountBalance != null) _buildBalanceCard(l10n),
           const SizedBox(height: 16),
-
-          // En-tête des transactions
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Historique des transactions',
+                l10n.transactionHistory,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               Text(
-                '${_transactions.length} transaction(s)',
+                l10n.transactionCount(_transactions.length),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
           ),
           const SizedBox(height: 16),
-
-          // Liste des transactions
           if (_transactions.isEmpty)
-            _buildEmptyState()
+            _buildEmptyState(l10n)
           else
-            ..._transactions.map((transaction) => _buildTransactionCard(transaction)),
+            ..._transactions.map(
+              (transaction) => _buildTransactionCard(transaction, l10n),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildBalanceCard() {
+  Widget _buildBalanceCard(AppLocalizations l10n) {
     return Card(
       color: Colors.blue[50],
       child: Padding(
@@ -271,7 +283,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 Icon(Icons.account_balance_wallet, color: Colors.blue[600]),
                 const SizedBox(width: 8),
                 Text(
-                  'Solde du compte',
+                  l10n.accountBalanceLabel,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.blue[800],
@@ -281,7 +293,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              _formatAmount(_accountBalance!['balance']),
+              _formatAmount(_accountBalance!['balance'], l10n),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 color: Colors.blue[800],
                 fontWeight: FontWeight.bold,
@@ -289,7 +301,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
             if (_accountBalance!['currency'] != null)
               Text(
-                'Devise: ${_accountBalance!['currency']}',
+                l10n.currencyWithValue(_accountBalance!['currency'].toString()),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
           ],
@@ -298,14 +310,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Column(
         children: [
           Icon(Icons.receipt_long, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            'Aucune transaction trouvée',
+            l10n.noTransactionsFound,
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 16,
@@ -313,7 +325,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Les transactions apparaîtront ici après vos premiers paiements',
+            l10n.transactionsEmptyHint,
             style: TextStyle(
               color: Colors.grey[500],
               fontSize: 14,
@@ -325,7 +337,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildTransactionCard(Map<String, dynamic> transaction) {
+  Widget _buildTransactionCard(
+    Map<String, dynamic> transaction,
+    AppLocalizations l10n,
+  ) {
     final status = transaction['status']?.toString() ?? 'unknown';
     final amount = transaction['amount'];
     final date = transaction['created_at'] ?? transaction['date'];
@@ -341,17 +356,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
         ),
         title: Text(
-          transaction['description'] ?? 'Transaction sans description',
+          transaction['description'] ?? l10n.transactionNoDescription,
           style: const TextStyle(fontWeight: FontWeight.w500),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            Text('ID: ${transaction['transaction_id'] ?? 'N/A'}'),
-            Text('Date: ${_formatDate(date)}'),
+            Text(l10n.idWithValue(
+              transaction['transaction_id']?.toString() ?? 'N/A',
+            )),
+            Text(l10n.dateWithValue(_formatDate(date, l10n))),
             if (transaction['payment_method'] != null)
-              Text('Méthode: ${transaction['payment_method']}'),
+              Text(l10n.methodWithValue(
+                transaction['payment_method'].toString(),
+              )),
           ],
         ),
         trailing: Column(
@@ -359,7 +378,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              _formatAmount(amount),
+              _formatAmount(amount, l10n),
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -382,39 +401,69 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ],
         ),
-        onTap: () => _showTransactionDetails(transaction),
+        onTap: () => _showTransactionDetails(transaction, l10n),
       ),
     );
   }
 
-  void _showTransactionDetails(Map<String, dynamic> transaction) {
+  void _showTransactionDetails(
+    Map<String, dynamic> transaction,
+    AppLocalizations l10n,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Détails de la transaction'),
+        title: Text(l10n.transactionDetailsTitle),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailRow('ID', transaction['transaction_id'] ?? 'N/A'),
-              _buildDetailRow('Montant', _formatAmount(transaction['amount'])),
-              _buildDetailRow('Statut', transaction['status'] ?? 'N/A'),
-              _buildDetailRow('Description', transaction['description'] ?? 'N/A'),
-              _buildDetailRow('Date', _formatDate(transaction['created_at'] ?? transaction['date'])),
+              _buildDetailRow(
+                l10n.labelTransactionId,
+                transaction['transaction_id']?.toString() ?? 'N/A',
+              ),
+              _buildDetailRow(
+                l10n.amount,
+                _formatAmount(transaction['amount'], l10n),
+              ),
+              _buildDetailRow(
+                l10n.status,
+                transaction['status']?.toString() ?? 'N/A',
+              ),
+              _buildDetailRow(
+                l10n.description,
+                transaction['description']?.toString() ?? 'N/A',
+              ),
+              _buildDetailRow(
+                l10n.date,
+                _formatDate(
+                  transaction['created_at'] ?? transaction['date'],
+                  l10n,
+                ),
+              ),
               if (transaction['payment_method'] != null)
-                _buildDetailRow('Méthode', transaction['payment_method']),
+                _buildDetailRow(
+                  l10n.paymentMethod,
+                  transaction['payment_method'].toString(),
+                ),
               if (transaction['customer_email'] != null)
-                _buildDetailRow('Email client', transaction['customer_email']),
+                _buildDetailRow(
+                  l10n.customerEmailLabel,
+                  transaction['customer_email'].toString(),
+                ),
               if (transaction['customer_phone'] != null)
-                _buildDetailRow('Téléphone', transaction['customer_phone']),
+                _buildDetailRow(
+                  l10n.phone,
+                  transaction['customer_phone'].toString(),
+                ),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fermer'),
+            child: Text(l10n.close),
           ),
           if (transaction['status']?.toString().toLowerCase() == 'success')
             ElevatedButton(
@@ -423,7 +472,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 _showRefundDialog(transaction);
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-              child: const Text('Rembourser'),
+              child: Text(l10n.refundAction),
             ),
         ],
       ),

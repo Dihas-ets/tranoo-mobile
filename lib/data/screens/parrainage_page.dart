@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import '../../services/user_service.dart';
 
 class ParrainagePage extends StatefulWidget {
@@ -14,6 +15,8 @@ class ParrainagePage extends StatefulWidget {
 }
 
 class _ParrainagePageState extends State<ParrainagePage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   String? _referralCode;
   int _totalReferrals = 0;
   int _completedReferrals = 0;
@@ -37,7 +40,7 @@ class _ParrainagePageState extends State<ParrainagePage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        throw Exception('Utilisateur non connecté');
+        throw Exception(AppLocalizations.of(context)!.userNotConnected);
       }
 
       final token = await user.getIdToken();
@@ -70,13 +73,20 @@ class _ParrainagePageState extends State<ParrainagePage> {
         });
       }
     } on DioException catch (e) {
-      _errorMessage = 'Erreur réseau: ${e.message}';
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      _errorMessage = l10n.errorNetwork(e.message ?? '');
       if (e.response != null) {
-        _errorMessage =
-            'Erreur serveur: ${e.response?.statusCode} - ${e.response?.data['message'] ?? e.response?.data}';
+        _errorMessage = l10n.serverError(
+          e.response?.statusCode?.toString() ?? '',
+          e.response?.data['message']?.toString() ??
+              e.response?.data?.toString() ??
+              '',
+        );
       }
     } catch (e) {
-      _errorMessage = 'Erreur inattendue: $e';
+      if (!mounted) return;
+      _errorMessage = AppLocalizations.of(context)!.unexpectedError('$e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -90,9 +100,10 @@ class _ParrainagePageState extends State<ParrainagePage> {
           'https://play.google.com/store/apps/details?id=tech.dihas.tramoo&referral=$_referralCode';
       await Clipboard.setData(ClipboardData(text: referralLink));
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lien de parrainage copié !'),
+          SnackBar(
+            content: Text(l10n.referralLinkCopied),
             backgroundColor: Colors.green,
           ),
         );
@@ -105,13 +116,8 @@ class _ParrainagePageState extends State<ParrainagePage> {
       // Créer le lien de parrainage personnalisé
       final referralLink =
           'https://play.google.com/store/apps/details?id=tech.dihas.tramoo&referral=$_referralCode';
-      final shareText = '''
-🚗 Rejoins-moi sur Tranoo !
-
-Télécharge l'app via mon lien de parrainage: $referralLink
-
-Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
-      ''';
+      final l10n = AppLocalizations.of(context)!;
+      final shareText = l10n.referralShareMessage(referralLink);
 
       // Afficher les options de partage
       await _showShareOptions(shareText, referralLink);
@@ -119,17 +125,18 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
   }
 
   Future<void> _showShareOptions(String shareText, String referralLink) async {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder:
-          (context) => Container(
+          (sheetContext) => Container(
             padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Partager votre lien de parrainage',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.referralShareTitle,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -148,7 +155,7 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                       () => _shareToFacebook(referralLink),
                     ),
                     _buildShareButton(
-                      'Autres',
+                      l10n.others,
                       Icons.share,
                       Colors.grey,
                       () => _shareToOthers(shareText),
@@ -238,9 +245,10 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Parrainage'),
+        title: Text(l10n.referralTitle),
         backgroundColor: Colors.amber,
         foregroundColor: Colors.black,
       ),
@@ -268,7 +276,7 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: _loadReferralData,
-                        child: const Text('Réessayer'),
+                        child: Text(l10n.retry),
                       ),
                     ],
                   ),
@@ -302,9 +310,9 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                               ),
                             ),
                             const SizedBox(height: 16),
-                            const Text(
-                              'Votre Lien de Parrainage',
-                              style: TextStyle(
+                            Text(
+                              l10n.referralLinkTitle,
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -328,7 +336,7 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                                     child: Text(
                                       _referralCode != null
                                           ? 'https://play.google.com/store/apps/details?id=tech.dihas.tramoo&referral=$_referralCode'
-                                          : 'Chargement...',
+                                          : l10n.loading,
                                     style: const TextStyle(
                                         fontSize: 14,
                                       fontWeight: FontWeight.bold,
@@ -340,7 +348,7 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                                   IconButton(
                                     onPressed: _copyReferralCode,
                                     icon: const Icon(Icons.copy),
-                                    tooltip: 'Copier le lien',
+                                    tooltip: l10n.copyLink,
                                   ),
                                 ],
                               ),
@@ -352,7 +360,7 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                                   child: ElevatedButton.icon(
                                     onPressed: _copyReferralCode,
                                     icon: const Icon(Icons.copy),
-                                    label: const Text('Copier le lien'),
+                                    label: Text(l10n.copyLink),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.blue,
                                       foregroundColor: Colors.white,
@@ -364,7 +372,7 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                                   child: ElevatedButton.icon(
                                     onPressed: _shareReferralCode,
                                     icon: const Icon(Icons.share),
-                                    label: const Text('Partager'),
+                                    label: Text(l10n.share),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green,
                                       foregroundColor: Colors.white,
@@ -393,7 +401,7 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                       children: [
                         Expanded(
                           child: _buildStatCard(
-                            'Total',
+                            l10n.total,
                             _totalReferrals.toString(),
                             Icons.people,
                             Colors.blue,
@@ -402,7 +410,7 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildStatCard(
-                            'Complétés',
+                            l10n.completed,
                             _completedReferrals.toString(),
                             Icons.check_circle,
                             Colors.green,
@@ -411,7 +419,7 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildStatCard(
-                            'En Attente',
+                            l10n.pending,
                             _pendingReferrals.toString(),
                             Icons.pending,
                             Colors.orange,
@@ -423,9 +431,9 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                     const SizedBox(height: 20),
 
                     // Liste des parrainages
-                    const Text(
-                      'Vos Parrainages',
-                      style: TextStyle(
+                    Text(
+                      l10n.yourReferrals,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -443,17 +451,17 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                                 color: Colors.grey,
                               ),
                               const SizedBox(height: 12),
-                              const Text(
-                                'Aucun parrainage pour le moment',
-                                style: TextStyle(
+                              Text(
+                                l10n.noReferralsYet,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   color: Colors.grey,
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              const Text(
-                                'Partagez votre code avec vos amis pour commencer !',
-                                style: TextStyle(
+                              Text(
+                                l10n.shareReferralHint,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey,
                                 ),
@@ -501,8 +509,8 @@ Ensemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨
                                 children: [
                                   Text(
                                     referral['status'] == 'completed'
-                                        ? 'Complété'
-                                        : 'En attente',
+                                        ? l10n.completed
+                                        : l10n.pending,
                                     style: TextStyle(
                                       color:
                                           referral['status'] == 'completed'

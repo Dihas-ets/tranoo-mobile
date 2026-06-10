@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tranoo/config/backend_config.dart';
 import 'order_details_page.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -12,6 +13,8 @@ class OrdersPage extends StatefulWidget {
 }
 
 class _OrdersPageState extends State<OrdersPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   List<dynamic> _orders = [];
   bool _isLoading = true;
   String? _error;
@@ -106,12 +109,14 @@ class _OrdersPageState extends State<OrdersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F3F7),
       appBar: AppBar(
-        title: const Text(
-          'Mes Commandes',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          l10n.myOrders,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFFF8BF13),
         foregroundColor: const Color(0xFF0A1F44),
@@ -145,7 +150,7 @@ class _OrdersPageState extends State<OrdersPage> {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: _loadOrders,
-                          child: const Text('Réessayer'),
+                          child: Text(l10n.retry),
                         ),
                       ],
                     ),

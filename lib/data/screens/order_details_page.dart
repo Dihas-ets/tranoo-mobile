@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'order_tracking_page_modern.dart';
 import '../../config/backend_config.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/order_status_l10n.dart';
 
 class OrderDetailsPage extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -20,33 +22,11 @@ class OrderDetailsPage extends StatefulWidget {
 }
 
 class _OrderDetailsPageState extends State<OrderDetailsPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   Map<String, dynamic>? _order;
   Map<String, dynamic>? _delivery;
   bool _loading = false;
-
-  String _statusText(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'En attente';
-      case 'confirmed':
-        return 'Confirmée';
-      case 'preparing':
-        return 'En préparation';
-      case 'ready':
-        return 'Prête';
-      case 'delivering':
-      case 'en_cours':
-        return 'En livraison';
-      case 'assigné':
-        return 'Livreur assigné';
-      case 'delivered':
-        return 'Livrée';
-      case 'cancelled':
-        return 'Annulée';
-      default:
-        return status;
-    }
-  }
 
   @override
   void initState() {
@@ -105,6 +85,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final accentColor = widget.accentColor;
     final status = _delivery?['statut']?.toString() ??
         _order?['status']?.toString() ??
@@ -118,7 +99,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
     final total = (_order?['total'] as num?)?.toDouble() ?? 0;
     final createdAt = _order?['createdAt']?.toString();
     final deliveryAddress =
-        _order?['deliveryAddress']?.toString() ?? 'Adresse non spécifiée';
+        _order?['deliveryAddress']?.toString() ?? l10n.addressNotSpecified;
     final items = (_order?['items'] as List<dynamic>? ?? []);
 
     return Scaffold(
@@ -127,7 +108,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF0A1F44),
         elevation: 0,
-        title: const Text('Détails de commande'),
+        title: Text(l10n.orderDetails),
         actions: [
           IconButton(
             onPressed: _reload,
@@ -163,13 +144,15 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Tranoo Delivery',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      Text(
+                        l10n.tranooDelivery,
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'CMD ${orderId.length > 10 ? orderId.substring(0, 10).toUpperCase() : orderId.toUpperCase()}',
+                        l10n.orderCmdNumber(orderId.length > 10
+                            ? orderId.substring(0, 10).toUpperCase()
+                            : orderId.toUpperCase()),
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
@@ -178,7 +161,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        _statusText(status),
+                        localizedOrderStatus(l10n, status),
                         style:
                             const TextStyle(color: Colors.white, fontSize: 14),
                       ),
@@ -244,9 +227,9 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Pas de nom livreur dans order payload → on affiche seulement le rôle
-                            const Text(
-                              'Livreur',
-                              style: TextStyle(
+                            Text(
+                              l10n.driverLabel,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 14,
                                 color: Color(0xFF0A1F44),
@@ -256,7 +239,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Tranoo Delivery',
+                              l10n.tranooDelivery,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.black.withOpacity(0.55),
@@ -305,7 +288,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                   Builder(builder: (context) {
                     if (items.isEmpty) return const SizedBox.shrink();
                     final first = items.first as Map<String, dynamic>;
-                    final title = first['title']?.toString() ?? 'Article';
+                    final title = first['title']?.toString() ?? l10n.articleDefault;
                     final qty = (first['quantity'] as num?)?.toInt() ?? 1;
                     // Infos non présentes dans le payload → masquées (comme demandé)
                     // final code = first['code']?.toString();
@@ -370,7 +353,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
-                              _statusText(status),
+                              localizedOrderStatus(l10n, status),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
@@ -387,7 +370,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
 
                   // Adresse (garde la même info, mais UI plus compacte)
                   Text(
-                    'Adresse de livraison',
+                    l10n.deliveryAddress,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: Colors.black.withOpacity(0.70),
@@ -404,8 +387,9 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
 
                   Row(
                     children: [
-                      _meta('Date', createdAt ?? '-'),
-                      _meta('Statut', _statusText(status), color: accentColor),
+                      _meta(l10n.date, createdAt ?? '-'),
+                      _meta(l10n.status, localizedOrderStatus(l10n, status),
+                          color: accentColor),
                     ],
                   ),
                 ],
@@ -425,7 +409,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                         ),
                       );
                     },
-                    child: const Text('Direction'),
+                    child: Text(l10n.direction),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -442,7 +426,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                         ),
                       );
                     },
-                    child: const Text('Traquer'),
+                    child: Text(l10n.track),
                   ),
                 ),
               ],

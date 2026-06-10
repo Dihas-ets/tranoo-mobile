@@ -17,6 +17,7 @@ import 'package:tranoo/utils/auth_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/utils/auth_dialog.dart';
 import 'package:tranoo/utils/article_view_helper.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -96,6 +97,8 @@ class CarsInfo extends StatefulWidget {
 }
 
 class _CarsinfoState extends State<CarsInfo> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   late int _currentImageIndex; // Gère l'image actuelle affichée
   late PageController _pageController;
   late List<String> _videos; // Vidéos associées
@@ -144,6 +147,28 @@ class _CarsinfoState extends State<CarsInfo> {
   }
 
   String get _verificationPriceLabel => '${_formatFcfa(_verificationPrice)} FCFA';
+
+  bool _isNewCondition(String? value) {
+    final lower = (value ?? '').toLowerCase();
+    return lower == 'nouveau' || lower == 'neuf' || lower == 'new';
+  }
+
+  String _conditionLabel(AppLocalizations l10n, String? value) {
+    if (_isNewCondition(value)) return l10n.newCondition;
+    final lower = (value ?? '').toLowerCase();
+    if (lower == 'occasion' || lower == 'used') return l10n.usedCondition;
+    return value ?? l10n.notProvided;
+  }
+
+  String _specValue(AppLocalizations l10n, String? value) {
+    if (value != null && value.isNotEmpty) return value;
+    return l10n.notProvided;
+  }
+
+  String _yesNoValue(AppLocalizations l10n, bool? value) {
+    if (value == null) return l10n.notProvided;
+    return value ? l10n.yes : l10n.no;
+  }
 
   Future<void> _loadVerificationPrice() async {
     try {
@@ -295,17 +320,15 @@ class _CarsinfoState extends State<CarsInfo> {
     }
 
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Impossible d\'ouvrir WhatsApp. Vérifiez que l\'application ou un navigateur est installé sur votre téléphone.',
-        ),
-      ),
+      SnackBar(content: Text(l10n.whatsappOpenDetailed)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // On garde uniquement les acheteurs, donc toujours true
     final isAcheteurOuChauffeur = true;
 
@@ -329,8 +352,8 @@ class _CarsinfoState extends State<CarsInfo> {
         child: ListView(
           physics: const BouncingScrollPhysics(),
           children: [
-            _buildImageSection(screenWidth, screenHeight),
-            _buildContentSection(screenWidth, isAcheteurOuChauffeur),
+            _buildImageSection(screenWidth, screenHeight, l10n),
+            _buildContentSection(screenWidth, isAcheteurOuChauffeur, l10n),
           ],
         ),
       ),
@@ -350,7 +373,11 @@ class _CarsinfoState extends State<CarsInfo> {
   }
 
   // Affiche l'image principale sélectionnée
-  Widget _buildImageSection(double screenWidth, double screenHeight) {
+  Widget _buildImageSection(
+    double screenWidth,
+    double screenHeight,
+    AppLocalizations l10n,
+  ) {
     log(
       '[CarsInfo][_buildImageSection] widget.images.length = ${widget.images.length}',
     );
@@ -397,8 +424,8 @@ class _CarsinfoState extends State<CarsInfo> {
                               errorBuilder: (context, error, stackTrace) =>
                                   Container(
                                 color: Colors.grey[300],
-                                child: const Center(
-                                  child: Text('Image non disponible'),
+                                child: Center(
+                                  child: Text(l10n.imageNotAvailable),
                                 ),
                               ),
                             ),
@@ -453,17 +480,13 @@ class _CarsinfoState extends State<CarsInfo> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: ((widget.condition ?? '').toLowerCase() == 'nouveau' ||
-                      (widget.condition ?? '').toLowerCase() == 'neuf')
+              color: _isNewCondition(widget.condition)
                   ? Colors.purple
                   : const Color(0xFFF8BF13),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              ((widget.condition ?? '').toLowerCase() == 'nouveau' ||
-                      (widget.condition ?? '').toLowerCase() == 'neuf')
-                  ? 'Nouveau'
-                  : 'Occasion',
+              _conditionLabel(l10n, widget.condition),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -533,7 +556,7 @@ class _CarsinfoState extends State<CarsInfo> {
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Aucune vidéo disponible')),
+                      SnackBar(content: Text(l10n.noVideoAvailable)),
                     );
                   }
                 },
@@ -579,8 +602,7 @@ class _CarsinfoState extends State<CarsInfo> {
                     await launchUrl(uri);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Impossible de passer un appel')),
+                      SnackBar(content: Text(l10n.cannotMakeCall)),
                     );
                   }
                 },
@@ -660,7 +682,11 @@ class _CarsinfoState extends State<CarsInfo> {
   }
 
   // Section des détails et spécifications
-  Widget _buildContentSection(double screenWidth, bool isAcheteur) {
+  Widget _buildContentSection(
+    double screenWidth,
+    bool isAcheteur,
+    AppLocalizations l10n,
+  ) {
     final bool shouldShowDeliveryOptions =
         isAcheteur || (widget.fromPub == true);
     return Padding(
@@ -668,32 +694,28 @@ class _CarsinfoState extends State<CarsInfo> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(screenWidth), // En-tête avec le modèle et le prix
+          _buildHeader(screenWidth, l10n),
           const SizedBox(height: 16),
-          _buildDescription(screenWidth), // Description de la voiture
+          _buildDescription(l10n),
           const SizedBox(height: 24),
-          _buildSpecifications(screenWidth), // Liste des spécifications
+          _buildSpecifications(l10n),
           const SizedBox(height: 24),
-          _buildCheckboxes(
-            screenWidth,
-            shouldShowDeliveryOptions,
-          ), // Cases à cocher (si applicable)
+          _buildCheckboxes(screenWidth, shouldShowDeliveryOptions, l10n),
           const SizedBox(height: 24),
-          _buildActionButton(isAcheteur), // Bouton d'action dynamique
+          _buildActionButton(isAcheteur, l10n),
         ],
       ),
     );
   }
 
-  // En-tête avec le nom de la voiture et le prix
-  Widget _buildHeader(double screenWidth) {
+  Widget _buildHeader(double screenWidth, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           (widget.titre != null && widget.titre!.isNotEmpty)
               ? widget.titre!
-              : 'Non renseigné',
+              : l10n.notProvided,
           style: TextStyle(
             fontSize: screenWidth * 0.06,
             fontWeight: FontWeight.bold,
@@ -713,7 +735,7 @@ class _CarsinfoState extends State<CarsInfo> {
         Text(
           (widget.prix != null && widget.prix!.isNotEmpty)
               ? '${formatPrice(widget.prix!)} FCFA'
-              : 'Non renseigné',
+              : l10n.notProvided,
           style: TextStyle(
             fontSize: screenWidth * 0.05,
             fontWeight: FontWeight.bold,
@@ -725,16 +747,14 @@ class _CarsinfoState extends State<CarsInfo> {
   }
 
   // Description de la voiture
-  Widget _buildDescription(double screenWidth) {
+  Widget _buildDescription(AppLocalizations l10n) {
     return Text(
-      widget.description ??
-          'La Tesla Model 3 est une berline électrique de taille moyenne, reconnue pour ses performances impressionnantes, son accélération et son autonomie.',
-      style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
+      widget.description ?? l10n.sampleCarDescription,
+      style: const TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
     );
   }
 
-  // Spécifications de la voiture sous forme de grille
-  Widget _buildSpecifications(double screenWidth) {
+  Widget _buildSpecifications(AppLocalizations l10n) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -744,67 +764,49 @@ class _CarsinfoState extends State<CarsInfo> {
       crossAxisSpacing: 16,
       children: [
         _buildSpecCard(
-          'Cylindre',
-          (widget.cylindre != null && widget.cylindre!.isNotEmpty)
-              ? widget.cylindre!
-              : 'Non renseigné',
+          l10n.cylinder,
+          _specValue(l10n, widget.cylindre),
           Icons.settings,
         ),
         _buildSpecCard(
-          'Carburant',
-          (widget.carburant != null && widget.carburant!.isNotEmpty)
-              ? widget.carburant!
-              : 'Non renseigné',
+          l10n.fuel,
+          _specValue(l10n, widget.carburant),
           Icons.local_gas_station,
         ),
         _buildSpecCard(
-          'Climatiseur',
-          (widget.climatiseur != null && widget.climatiseur!.isNotEmpty)
-              ? widget.climatiseur!
-              : 'Non renseigné',
+          l10n.airConditioner,
+          _specValue(l10n, widget.climatiseur),
           Icons.ac_unit,
         ),
         _buildSpecCard(
-          'Distance',
-          (widget.distance != null && widget.distance!.isNotEmpty)
-              ? widget.distance!
-              : 'Non renseigné',
+          l10n.distanceKm,
+          _specValue(l10n, widget.distance),
           Icons.speed,
         ),
         _buildSpecCard(
-          'Sièges',
-          (widget.sieges != null && widget.sieges!.isNotEmpty)
-              ? widget.sieges!
-              : 'Non renseigné',
+          l10n.seats,
+          _specValue(l10n, widget.sieges),
           Icons.event_seat,
         ),
         _buildSpecCard(
-          'Portes',
-          (widget.portes != null && widget.portes!.isNotEmpty)
-              ? widget.portes!
-              : 'Non renseigné',
+          l10n.doors,
+          _specValue(l10n, widget.portes),
           Icons.door_front_door,
         ),
         _buildSpecCard(
-          'Boîte à vitesse',
-          (widget.boiteVitesse != null && widget.boiteVitesse!.isNotEmpty)
-              ? widget.boiteVitesse!
-              : 'Non renseigné',
+          l10n.gearbox,
+          _specValue(l10n, widget.boiteVitesse),
           Icons.settings,
         ),
         _buildSpecCardWithColor(
-          'Couleur',
-          (widget.couleur != null && widget.couleur!.isNotEmpty)
-              ? widget.couleur!
-              : 'Non renseigné',
+          l10n.colorField,
+          _specValue(l10n, widget.couleur),
           Icons.palette,
           widget.couleur,
         ),
         _buildSpecCard(
-          'Dédouanement',
-          widget.dedouanement != null
-              ? (widget.dedouanement! ? 'Oui' : 'Non')
-              : 'Non renseigné',
+          l10n.customsClearance,
+          _yesNoValue(l10n, widget.dedouanement),
           Icons.check_circle,
         ),
       ],
@@ -961,7 +963,11 @@ class _CarsinfoState extends State<CarsInfo> {
   bool _isEnTransitChecked = false;
   final TextEditingController _detailsController = TextEditingController();
 
-  Widget _buildCheckboxes(double screenWidth, bool shouldShowDeliveryOptions) {
+  Widget _buildCheckboxes(
+    double screenWidth,
+    bool shouldShowDeliveryOptions,
+    AppLocalizations l10n,
+  ) {
     if (!shouldShowDeliveryOptions) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -978,7 +984,7 @@ class _CarsinfoState extends State<CarsInfo> {
               },
               activeColor: Colors.black,
             ),
-            const Text('En Consommation'),
+            Text(l10n.inConsumption),
             const SizedBox(width: 16),
             Checkbox(
               value: _isEnTransitChecked,
@@ -990,11 +996,11 @@ class _CarsinfoState extends State<CarsInfo> {
               },
               activeColor: Colors.black,
             ),
-            const Text('En Transit'),
+            Text(l10n.inTransit),
           ],
         ),
         const SizedBox(height: 12),
-        const Text('Lieu', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text(l10n.location, style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         Container(
           decoration: BoxDecoration(
@@ -1004,9 +1010,9 @@ class _CarsinfoState extends State<CarsInfo> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _selectedCountry,
-              hint: const Text(
-                'Choisissez un pays',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
+              hint: Text(
+                l10n.chooseCountry,
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
               ),
               isExpanded: true,
               items: africanCountries
@@ -1019,15 +1025,15 @@ class _CarsinfoState extends State<CarsInfo> {
           ),
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Détails supplémentaires',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        Text(
+          l10n.additionalDetails,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 6),
         TextField(
           controller: _detailsController,
           decoration: InputDecoration(
-            hintText: 'Entrez vos détails concernant la destination ici...',
+            hintText: l10n.enterDestinationDetails,
             filled: true,
             fillColor: const Color(0xFFF2F2F2),
             border: OutlineInputBorder(
@@ -1046,36 +1052,27 @@ class _CarsinfoState extends State<CarsInfo> {
   }
 
   // Bouton d'action dynamique - Toujours afficher les 2 boutons (bleu + jaune) pour les acheteurs
-  Widget _buildActionButton(bool isAcheteurOuChauffeur) {
-    // Toujours afficher les 2 boutons pour les acheteurs
+  Widget _buildActionButton(bool isAcheteurOuChauffeur, AppLocalizations l10n) {
     return Row(
       children: [
         Expanded(
           child: ElevatedButton(
             onPressed: () {
-              // Vérifier l'authentification avant de continuer
               final firebaseUser = FirebaseAuth.instance.currentUser;
               if (firebaseUser == null) {
-                showAuthDialog(context,
-                    message: 'Connectez-vous pour demander une vérification');
+                showAuthDialog(context, message: l10n.signInForVerification);
                 return;
               }
 
               if (!_isEnConsommationChecked && !_isEnTransitChecked) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Veuillez choisir un mode de livraison (En Consommation ou En Transit).',
-                    ),
-                  ),
+                  SnackBar(content: Text(l10n.chooseDeliveryMode)),
                 );
                 return;
               }
               if (_selectedCountry == null || _selectedCountry!.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Veuillez sélectionner un lieu.'),
-                  ),
+                  SnackBar(content: Text(l10n.selectLocationPlease)),
                 );
                 return;
               }
@@ -1126,9 +1123,9 @@ class _CarsinfoState extends State<CarsInfo> {
                           width: 80,
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Contrôle en cours',
-                          style: TextStyle(
+                        Text(
+                          l10n.verificationInProgress,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -1136,35 +1133,30 @@ class _CarsinfoState extends State<CarsInfo> {
                         const SizedBox(height: 12),
                         RichText(
                           textAlign: TextAlign.center,
-                          text: const TextSpan(
-                            style: TextStyle(
+                          text: TextSpan(
+                            style: const TextStyle(
                               color: Colors.black,
                               fontSize: 14,
                               height: 1.5,
                             ),
                             children: [
+                              TextSpan(text: l10n.verificationChecksPrefix),
                               TextSpan(
-                                text:
-                                    'Les vérifications seront effectuées et vous seront envoyées sous ',
-                              ),
-                              TextSpan(
-                                text: '10 jours',
-                                style: TextStyle(
+                                text: l10n.tenBusinessDays,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFFFFA000),
                                 ),
                               ),
+                              TextSpan(text: l10n.verificationChecksMiddle),
                               TextSpan(
-                                text: '. Pour démarrer, veuillez payer les ',
-                              ),
-                              TextSpan(
-                                text: 'frais de vérification',
-                                style: TextStyle(
+                                text: l10n.verificationFeesLabel,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF00A86B),
                                 ),
                               ),
-                              TextSpan(text: '.'),
+                              const TextSpan(text: '.'),
                             ],
                           ),
                         ),
@@ -1201,8 +1193,7 @@ class _CarsinfoState extends State<CarsInfo> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child:
-                                const Text('Payer les frais de vérification'),
+                            child: Text(l10n.payVerificationFees),
                           ),
                         ),
                       ],
@@ -1218,10 +1209,10 @@ class _CarsinfoState extends State<CarsInfo> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                'Demander une vérification',
-                style: TextStyle(
+                l10n.requestVerification,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -1238,8 +1229,7 @@ class _CarsinfoState extends State<CarsInfo> {
               // Vérifier l'authentification avant de continuer
               final firebaseUser = FirebaseAuth.instance.currentUser;
               if (firebaseUser == null) {
-                showAuthDialog(context,
-                    message: 'Connectez-vous pour acheter cette voiture');
+                showAuthDialog(context, message: l10n.signInToBuyThisCar);
                 return;
               }
 
@@ -1252,9 +1242,9 @@ class _CarsinfoState extends State<CarsInfo> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: const Text(
-              'Acheter cette voiture',
-              style: TextStyle(
+            child: Text(
+              l10n.buyThisCar,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,

@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tranoo/data/screens/inscription_page.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class ThirdPage extends StatelessWidget {
   const ThirdPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Stack(
         children: [
-          // 📸 Image d'arrière-plan
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage(
                   'assets/images/image_background.png',
-                ), // Remplace par ton image
+                ),
                 fit: BoxFit.cover,
               ),
             ),
           ),
-
-          // 🌫️ Dégradé sombre pour rendre le texte plus lisible
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -32,8 +32,6 @@ class ThirdPage extends StatelessWidget {
               ),
             ),
           ),
-
-          // 📄 Texte et bouton
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 20.0,
@@ -47,8 +45,8 @@ class ThirdPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Découvrez votre\nvéhicule idéal en\nquelques clics',
-                      style: TextStyle(
+                      l10n.onboardingTagline2,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -58,28 +56,26 @@ class ThirdPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // 🔘 Bouton fléché
                 Row(
                   children: [
-                    Expanded(child: SizedBox()),
+                    const Expanded(child: SizedBox()),
                     Container(
                       decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
-                            color: Color(0xffF8BF13).withAlpha(50),
+                            color: const Color(0xffF8BF13).withAlpha(50),
                             spreadRadius: 0,
                             blurRadius: 50,
-                            offset: Offset(2, 4),
+                            offset: const Offset(2, 4),
                           ),
                         ],
                       ),
                       child: IconButton(
                         onPressed: () async {
-                          // Marquer l'onboarding comme vu
                           final prefs = await SharedPreferences.getInstance();
                           await prefs.setBool('hasSeenOnboarding', true);
 
+                          if (!context.mounted) return;
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -87,7 +83,7 @@ class ThirdPage extends StatelessWidget {
                             ),
                           );
                         },
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.arrow_circle_right,
                           color: Color(0xffF8BF13),
                           size: 60,

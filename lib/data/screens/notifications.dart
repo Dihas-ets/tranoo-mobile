@@ -10,9 +10,11 @@ import '../../services/user_service.dart';
 import '../../providers/counter_provider.dart';
 import 'cars_info.dart';
 import 'mastervacpage.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/widgets/notification_list_ui.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:tranoo/utils/verification_notification_helpers.dart';
+import 'package:tranoo/utils/order_status_l10n.dart';
 
 // --------- HELPERS SÉCURISÉS ----------
 String stripHtmlDocumentWrapper(String html) {
@@ -153,18 +155,19 @@ class VerificationDetailPage extends StatelessWidget {
     Map<String, dynamic> notification,
   ) async {
     await _postVerificationActionStatic(context, notification, 'approve');
-    final title = _safeGetStringLocal(notification, 'title') ?? 'véhicule';
+    final l10n = AppLocalizations.of(context)!;
+    final title = _safeGetStringLocal(notification, 'title') ?? l10n.vehicleSingular;
     final articleId = _safeGetStringLocal(
             notification['verificationData'], 'articleId') ??
         _safeGetStringLocal(notification['relatedId'], '_id') ??
         _safeGetStringLocal(notification, 'relatedId');
     final waText = articleId != null && articleId.isNotEmpty
-        ? 'Bonjour Tranoo, je confirme mon intérêt pour l\'achat : $title (réf. $articleId).'
-        : 'Bonjour Tranoo, je confirme mon intérêt pour l\'achat : $title.';
+        ? l10n.whatsappInterestWithRef(title, articleId)
+        : l10n.whatsappInterestNoRef(title);
     await openTranooWhatsApp(text: waText);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Demande validée — ouverture WhatsApp')),
+      SnackBar(content: Text(l10n.requestValidatedWhatsApp)),
     );
     Navigator.pop(context);
   }
@@ -176,7 +179,7 @@ class VerificationDetailPage extends StatelessWidget {
     await _postVerificationActionStatic(context, notification, 'reject');
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Demande rejetée')),
+      SnackBar(content: Text(AppLocalizations.of(context)!.requestRejected)),
     );
     Navigator.pop(context);
   }
@@ -202,14 +205,16 @@ class VerificationDetailPage extends StatelessWidget {
       );
       if (resp.statusCode < 200 || resp.statusCode >= 300) {
         if (!context.mounted) return;
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur action: ${resp.statusCode}')),
+          SnackBar(content: Text(l10n.errorActionStatus(resp.statusCode))),
         );
       }
     } catch (e) {
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e')),
+        SnackBar(content: Text(l10n.errorGeneric('$e'))),
       );
     }
   }
@@ -240,7 +245,7 @@ class VerificationDetailPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: kVerifyYellowSoft,
-      appBar: buildVerificationAppBar(),
+      appBar: buildVerificationAppBar(context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: buildVerificationNotificationContent(
@@ -253,7 +258,8 @@ class VerificationDetailPage extends StatelessWidget {
           signatureUrl: signatureUrl,
           pdfUrl: pdfUrl,
           showLogo: true,
-          formatDate: _formatDateStatic,
+          formatDate: (d) =>
+              formatRelativeTime(AppLocalizations.of(context)!, d),
           onApprove: (_safeGetStringLocal(notification, 'status') ?? 'pending') ==
                   'pending'
               ? () => _handleVerificationApprove(context, notification)
@@ -265,13 +271,6 @@ class VerificationDetailPage extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  static String _formatDateStatic(DateTime d) {
-    final diff = DateTime.now().difference(d);
-    if (diff.inDays > 0) return 'Il y a ${diff.inDays} jours';
-    if (diff.inHours > 0) return 'Il y a ${diff.inHours}h';
-    return 'Il y a ${diff.inMinutes} minutes';
   }
 
   // Méthode helper sécurisée pour récupérer les strings
@@ -501,6 +500,8 @@ class NotificationsBody extends StatefulWidget {
 }
 
 class _NotificationsBodyState extends State<NotificationsBody> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   final Set<String> _selectedNotificationIds = <String>{};
 
   bool get _selectionMode => _selectedNotificationIds.isNotEmpty;
@@ -593,6 +594,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final provider = Provider.of<NotificationProvider>(context);
     final user = FirebaseAuth.instance.currentUser;
 
@@ -600,15 +602,15 @@ class _NotificationsBodyState extends State<NotificationsBody> {
       appBar: AppBar(
         leading: _selectionMode
             ? IconButton(
-                tooltip: 'Annuler',
+                tooltip: l10n.cancel,
                 icon: const Icon(Icons.close),
                 onPressed: _clearSelection,
               )
             : null,
         title: Text(
           _selectionMode
-              ? '${_selectedNotificationIds.length} sélectionnée(s)'
-              : 'Notifications',
+              ? l10n.notificationsSelectedCount(_selectedNotificationIds.length)
+              : l10n.notifications,
         ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -616,20 +618,21 @@ class _NotificationsBodyState extends State<NotificationsBody> {
         actions: [
           if (_selectionMode)
             IconButton(
-              tooltip: 'Supprimer',
+              tooltip: l10n.delete,
               icon: const Icon(Icons.delete_outline),
               onPressed: () async {
                 final ok = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('Supprimer'),
+                    title: Text(l10n.delete),
                     content: Text(
-                      'Supprimer ${_selectedNotificationIds.length} notification(s) ?',
+                      l10n.confirmDeleteNotificationsCount(
+                          _selectedNotificationIds.length),
                     ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Annuler'),
+                        child: Text(l10n.cancel),
                       ),
                       ElevatedButton(
                         onPressed: () => Navigator.pop(ctx, true),
@@ -637,7 +640,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                           backgroundColor: const Color(0xFFE57373),
                           foregroundColor: Colors.white,
                         ),
-                        child: const Text('Supprimer'),
+                        child: Text(l10n.delete),
                       ),
                     ],
                   ),
@@ -652,10 +655,10 @@ class _NotificationsBodyState extends State<NotificationsBody> {
       body: provider.loading
           ? SkeletonPresets.notificationList()
           : provider.notifications.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
-                    'Aucune notification',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    l10n.noNotifications,
+                    style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 )
               : RefreshIndicator(
@@ -757,17 +760,14 @@ class _NotificationsBodyState extends State<NotificationsBody> {
       );
     } catch (e) {
       print('Erreur _buildNotificationsList: $e');
-      return const Center(
-        child: Text('Erreur lors du chargement des notifications'),
+      return Center(
+        child: Text(AppLocalizations.of(context)!.notificationsLoadError),
       );
     }
   }
 
   String _formatDate(DateTime d) {
-    final diff = DateTime.now().difference(d);
-    if (diff.inDays > 0) return 'Il y a ${diff.inDays} jours';
-    if (diff.inHours > 0) return 'Il y a ${diff.inHours}h';
-    return 'Il y a ${diff.inMinutes} minutes';
+    return formatRelativeTime(AppLocalizations.of(context)!, d);
   }
 
   Map<String, dynamic> _notifDataMap(Map<String, dynamic> notif) {
@@ -789,6 +789,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
   }
 
   String _alertPreviewText(Map<String, dynamic> notif) {
+    final l10n = AppLocalizations.of(context)!;
     final data = _notifDataMap(notif);
     final requestType = (data['requestType'] ?? '').toString();
     final isPiece = requestType == 'piece_search';
@@ -802,12 +803,12 @@ class _NotificationsBodyState extends State<NotificationsBody> {
       if (piece.isNotEmpty) parts.add(piece);
     } else {
       final budget = (data['budget'] ?? data['budgetMax'] ?? '').toString().trim();
-      if (budget.isNotEmpty) parts.add('Budget $budget FCFA');
+      if (budget.isNotEmpty) parts.add(l10n.budgetAmountFcfa(budget));
     }
     if (parts.isNotEmpty) return parts.join(' · ');
     final msg = (_safeGetString(notif, 'message') ?? '').trim();
     if (msg.length > 90) return '${msg.substring(0, 90)}...';
-    return msg.isNotEmpty ? msg : 'Nouvelle demande';
+    return msg.isNotEmpty ? msg : l10n.newRequest;
   }
 
   Widget _alertThumbnail(String? url, {bool isPiece = false}) {
@@ -855,7 +856,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
       if (ok) {
         _syncUnreadCountWithHeader(provider);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notification supprimée')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.notificationDeleted)),
         );
       }
       return;
@@ -866,7 +867,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
       if (!mounted) return;
       _syncUnreadCountWithHeader(provider);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Marquée comme non lue')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.markedAsUnread)),
       );
     }
   }
@@ -923,12 +924,16 @@ class _NotificationsBodyState extends State<NotificationsBody> {
   }) {
     final kind = resolveNotificationVisualKind(notif);
     final imageUrl = notificationThumbUrl(notif) ?? _alertImageUrl(notif);
-    final title = _safeGetString(notif, 'title') ?? 'Notification';
+    final l10n = AppLocalizations.of(context)!;
+    final title = _safeGetString(notif, 'title') ?? l10n.notificationDefault;
     final preview = _isProposalNotification(notif)
-        ? (_safeGetString(notif, 'message') ?? 'Proposition pour votre alerte')
+        ? (_safeGetString(notif, 'message') ?? l10n.alertProposalForYourAlert)
         : _isAlertNotification(notif)
             ? _alertPreviewText(notif)
-            : notificationPreviewText(notif);
+            : notificationPreviewText(
+                notif,
+                defaultLabel: AppLocalizations.of(context)!.notificationDefault,
+              );
     final dateStr =
         notif['date'] is DateTime ? _formatDate(notif['date'] as DateTime) : '';
 
@@ -1013,14 +1018,14 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                 notif: notif,
                 provider: provider,
               ),
-              itemBuilder: (_) => const [
+              itemBuilder: (ctx) => [
                 PopupMenuItem(
                   value: 'unread',
-                  child: Text('Marquer comme non lue'),
+                  child: Text(l10n.markAsUnread),
                 ),
                 PopupMenuItem(
                   value: 'delete',
-                  child: Text('Supprimer'),
+                  child: Text(l10n.delete),
                 ),
               ],
             ),
@@ -1129,7 +1134,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de l\'ouverture: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorOpening('$e'))),
       );
     }
   }
@@ -1268,11 +1273,12 @@ class _NotificationsBodyState extends State<NotificationsBody> {
 
   Widget _buildAlertContent(
       Map<String, dynamic> notification, String bodyHtml) {
+    final l10n = AppLocalizations.of(context)!;
     final dataMap = _notifDataMap(notification);
     final requestType = (dataMap['requestType'] ?? '').toString();
     final isPiece = requestType == 'piece_search';
     final imageUrl = _alertImageUrl(notification);
-    final title = _safeGetString(notification, 'title') ?? 'Alerte';
+    final title = _safeGetString(notification, 'title') ?? l10n.newAlertDefault;
     final preview = _alertPreviewText(notification);
     final description = (dataMap['description'] ?? '').toString();
     final anneeVal = _alertAnneeValue(dataMap, isPiece);
@@ -1283,15 +1289,15 @@ class _NotificationsBodyState extends State<NotificationsBody> {
 
     final details = <MapEntry<String, String>>[
       if ((dataMap['marque'] ?? '').toString().trim().isNotEmpty)
-        MapEntry('Marque', (dataMap['marque'] ?? '').toString().trim()),
+        MapEntry(l10n.brand, (dataMap['marque'] ?? '').toString().trim()),
       if ((dataMap['modele'] ?? '').toString().trim().isNotEmpty)
-        MapEntry('Modèle', (dataMap['modele'] ?? '').toString().trim()),
+        MapEntry(l10n.model, (dataMap['modele'] ?? '').toString().trim()),
       if (isPiece && (dataMap['pieceName'] ?? '').toString().trim().isNotEmpty)
-        MapEntry('Pièce', (dataMap['pieceName'] ?? '').toString().trim()),
-      if (anneeVal != null) MapEntry('Année', anneeVal),
-      if (budgetVal != null) MapEntry('Budget', '$budgetVal FCFA'),
+        MapEntry(l10n.partSingular, (dataMap['pieceName'] ?? '').toString().trim()),
+      if (anneeVal != null) MapEntry(l10n.year, anneeVal),
+      if (budgetVal != null) MapEntry(l10n.budgetLabel, '$budgetVal FCFA'),
       if ((dataMap['urgence'] ?? '').toString().trim().isNotEmpty)
-        MapEntry('Urgence', (dataMap['urgence'] ?? '').toString().trim()),
+        MapEntry(l10n.urgencyLabel, (dataMap['urgence'] ?? '').toString().trim()),
     ];
 
     return Column(
@@ -1332,14 +1338,14 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                       color: Colors.black.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.zoom_in, color: Colors.white, size: 16),
-                        SizedBox(width: 4),
+                        const Icon(Icons.zoom_in, color: Colors.white, size: 16),
+                        const SizedBox(width: 4),
                         Text(
-                          'Agrandir',
-                          style: TextStyle(color: Colors.white, fontSize: 12),
+                          l10n.enlarge,
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
                         ),
                       ],
                     ),
@@ -1379,9 +1385,9 @@ class _NotificationsBodyState extends State<NotificationsBody> {
           const SizedBox(height: 18),
           const Divider(height: 1),
           const SizedBox(height: 14),
-          const Text(
-            'Détails de la recherche',
-            style: TextStyle(
+          Text(
+            l10n.searchDetails,
+            style: const TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 14,
               color: Colors.black,
@@ -1458,7 +1464,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            '🎉 Promotion spéciale',
+            '🎉 ${AppLocalizations.of(context)!.specialPromotion}',
             style: TextStyle(
               color: Colors.yellow[900],
               fontWeight: FontWeight.bold,
@@ -1566,8 +1572,8 @@ class _NotificationsBodyState extends State<NotificationsBody> {
               icon: const Icon(Icons.visibility),
               label: Text(
                 action == 'view_article'
-                    ? 'Voir l\'annonce'
-                    : 'Voir la proposition',
+                    ? AppLocalizations.of(context)!.viewListing
+                    : AppLocalizations.of(context)!.viewProposal,
               ),
             ),
           ],

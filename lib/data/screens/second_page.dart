@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tranoo/data/screens/inscription_page.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class SecondPage extends StatefulWidget {
   const SecondPage({super.key});
@@ -43,7 +44,6 @@ class SecondPageState extends State<SecondPage>
       _currentImageIndex = (_currentImageIndex + 1) % _images.length;
     });
 
-    // Continuer le défilement
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) _nextImage();
     });
@@ -58,10 +58,11 @@ class SecondPageState extends State<SecondPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Stack(
         children: [
-          // 📸 Images d'arrière-plan qui défilent
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 800),
             child: Container(
@@ -74,8 +75,6 @@ class SecondPageState extends State<SecondPage>
               ),
             ),
           ),
-
-          // 🌫️ Dégradé sombre pour rendre le texte lisible
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -85,8 +84,6 @@ class SecondPageState extends State<SecondPage>
               ),
             ),
           ),
-
-          // 📄 Texte et bouton
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 20.0,
@@ -100,8 +97,8 @@ class SecondPageState extends State<SecondPage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Tranoo \nTrouvez vos pièces et\nvéhicules rapidement',
-                      style: TextStyle(
+                      l10n.onboardingTagline1,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -111,28 +108,26 @@ class SecondPageState extends State<SecondPage>
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // 🔘 Bouton fléché
                 Row(
                   children: [
-                    Expanded(child: SizedBox()),
+                    const Expanded(child: SizedBox()),
                     Container(
                       decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
-                            color: Color(0xffF8BF13).withAlpha(50),
+                            color: const Color(0xffF8BF13).withAlpha(50),
                             spreadRadius: 0,
                             blurRadius: 50,
-                            offset: Offset(2, 4),
+                            offset: const Offset(2, 4),
                           ),
                         ],
                       ),
                       child: IconButton(
                         onPressed: () async {
-                          // Marquer l'onboarding comme vu
                           final prefs = await SharedPreferences.getInstance();
                           await prefs.setBool('hasSeenOnboarding', true);
 
+                          if (!context.mounted) return;
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
@@ -140,7 +135,7 @@ class SecondPageState extends State<SecondPage>
                             ),
                           );
                         },
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.arrow_circle_right,
                           color: Color(0xffF8BF13),
                           size: 60,

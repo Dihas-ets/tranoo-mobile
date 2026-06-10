@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import '../data/screens/second_page.dart';
 
 class BlockedUserService {
@@ -17,15 +18,17 @@ class BlockedUserService {
   static void showBlockedDialog(String message) {
     if (_context == null) return;
 
+    final l10n = AppLocalizations.of(_context!)!;
+
     showDialog(
       context: _context!,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.block, color: Colors.red, size: 24),
-            SizedBox(width: 8),
-            Text('Compte Bloqué'),
+            const Icon(Icons.block, color: Colors.red, size: 24),
+            const SizedBox(width: 8),
+            Text(l10n.accountBlockedTitle),
           ],
         ),
         content: Column(
@@ -38,13 +41,13 @@ class BlockedUserService {
             ),
             const SizedBox(height: 16),
             Text(
-              'Vous ne pouvez pas accéder à l\'application car l\'administrateur vous a temporairement bloqué.',
+              l10n.accountBlockedDialogMessage,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 12),
             Text(
-              'Contactez l\'équipe support pour plus d\'informations.',
+              l10n.contactSupportTeam,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
@@ -59,7 +62,7 @@ class BlockedUserService {
                 (route) => false,
               );
             },
-            child: const Text('Compris'),
+            child: Text(l10n.understood),
           ),
         ],
       ),
@@ -68,13 +71,11 @@ class BlockedUserService {
 
   static Future<void> _handleLogout() async {
     try {
-      // Déconnexion Firebase
       await FirebaseAuth.instance.signOut();
-      
-      // Nettoyage SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
     } catch (e) {
+      // debug only
       print('Erreur lors de la déconnexion: $e');
     }
   }
@@ -83,9 +84,6 @@ class BlockedUserService {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
-
-      // Cette vérification sera faite automatiquement par l'intercepteur
-      // lors des appels API
     } catch (e) {
       print('Erreur lors de la vérification du statut: $e');
     }

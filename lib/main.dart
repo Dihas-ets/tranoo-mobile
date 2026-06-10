@@ -500,6 +500,8 @@ class _CartPaymentCallbackPage extends StatefulWidget {
 }
 
 class _CartPaymentCallbackPageState extends State<_CartPaymentCallbackPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool _handled = false;
 
   @override
@@ -578,6 +580,8 @@ class SubscriptionSuccessPage extends StatefulWidget {
 }
 
 class _SubscriptionSuccessPageState extends State<SubscriptionSuccessPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool _handled = false;
 
   Future<num> _resolveSubscriptionAmount() async {
@@ -754,6 +758,8 @@ class VerificationSuccessPage extends StatefulWidget {
 }
 
 class _VerificationSuccessPageState extends State<VerificationSuccessPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   String? htmlContent;
 
   @override
@@ -816,6 +822,8 @@ class VerificationErrorPage extends StatefulWidget {
 }
 
 class _VerificationErrorPageState extends State<VerificationErrorPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   String? htmlContent;
 
   @override
@@ -879,6 +887,8 @@ class AppInitializer extends StatefulWidget {
 }
 
 class _AppInitializerState extends State<AppInitializer> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   @override
   void initState() {
     super.initState();

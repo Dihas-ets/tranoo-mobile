@@ -4,8 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
-import 'RetraitScreen.dart'; // Assure-toi que ce fichier existe bien
+import 'RetraitScreen.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -21,10 +22,10 @@ class WalletScreenState extends State<WalletScreen> {
   bool _loading = true;
   String? _error;
 
-  // (supprimé) ancien enregistrement local d'un retrait
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -33,14 +34,14 @@ class WalletScreenState extends State<WalletScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Mon portefeuille",
-          style: TextStyle(color: Colors.black),
+        title: Text(
+          l10n.myWallet,
+          style: const TextStyle(color: Colors.black),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.share, color: Colors.black),
-            onPressed: () {}, // Ajoute ton action ici
+            onPressed: () {},
           ),
         ],
       ),
@@ -49,9 +50,9 @@ class WalletScreenState extends State<WalletScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Votre solde est de :",
-              style: TextStyle(color: Colors.grey, fontSize: 16),
+            Text(
+              l10n.yourBalanceIs,
+              style: const TextStyle(color: Colors.grey, fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 5),
@@ -74,17 +75,10 @@ class WalletScreenState extends State<WalletScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // _actionButton(
-                //   context,
-                //   Icons.send,
-                //   "Transfert",
-                //   Colors.blue,
-                //   null,
-                // ),
                 _actionButton(
                   context,
                   Icons.account_balance_wallet,
-                  "Retrait",
+                  l10n.withdrawal,
                   Colors.orange,
                   () {
                     Navigator.push(
@@ -93,13 +87,6 @@ class WalletScreenState extends State<WalletScreen> {
                     );
                   },
                 ),
-                // _actionButton(
-                //   context,
-                //   Icons.more_horiz,
-                //   "Plus",
-                //   Colors.green,
-                //   null,
-                // ),
               ],
             ),
             const SizedBox(height: 20),
@@ -115,11 +102,11 @@ class WalletScreenState extends State<WalletScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
                       child: Text(
-                        "Transactions",
-                        style: TextStyle(
+                        l10n.transactions,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.grey,
@@ -134,7 +121,7 @@ class WalletScreenState extends State<WalletScreen> {
                           vertical: 8,
                         ),
                         itemBuilder: (context, index) {
-                          return _transactionItem(index);
+                          return _transactionItem(index, l10n);
                         },
                       ),
                     ),
@@ -175,7 +162,7 @@ class WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  Widget _transactionItem(int index) {
+  Widget _transactionItem(int index, AppLocalizations l10n) {
     final tx = _transactions[index];
     final dateStr =
         tx['date'] != null
@@ -198,7 +185,7 @@ class WalletScreenState extends State<WalletScreen> {
               alignment: Alignment.center,
               child: Text(
                 (tx['type'] == 'in' ? 'E' : 'R'),
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -211,7 +198,8 @@ class WalletScreenState extends State<WalletScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    tx['label'] ?? (tx['type'] == 'in' ? 'Entrée' : 'Retrait'),
+                    tx['label'] ??
+                        (tx['type'] == 'in' ? l10n.entry : l10n.withdrawal),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   Text(
@@ -235,8 +223,6 @@ class WalletScreenState extends State<WalletScreen> {
       ),
     );
   }
-
-  // (supprimé) ancienne pop-up locale
 
   @override
   void initState() {

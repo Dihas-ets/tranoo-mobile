@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/services/push_otp_service.dart';
+import 'package:tranoo/utils/api_error_message.dart';
 import 'package:tranoo/utils/auth_config.dart';
 import 'package:tranoo/widgets/auth_message_popup.dart';
 import 'package:tranoo/widgets/otp_pin_input.dart';
@@ -40,6 +42,7 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage>
     if (_argsLoaded) return;
     _argsLoaded = true;
 
+    final l10n = AppLocalizations.of(context)!;
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map) {
       _requestId = (args['requestId'] as String?) ?? '';
@@ -59,9 +62,9 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage>
         if (!mounted) return;
         AuthMessagePopup.showError(
           context,
-          title: 'Informations manquantes.',
-          subtitle: 'Veuillez recommencer depuis la page mot de passe oublié.',
-          buttonText: 'OK',
+          title: l10n.missingInfoTitle,
+          subtitle: l10n.restartFromForgotPassword,
+          buttonText: l10n.ok,
         ).then((_) {
           if (mounted) Navigator.of(context).pop();
         });
@@ -111,30 +114,31 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage>
     } catch (_) {}
   }
 
-  String? _validateCode() {
+  String? _validateCode(AppLocalizations l10n) {
     final code = _effectiveCode;
-    if (code.isEmpty) return 'Veuillez entrer le code';
+    if (code.isEmpty) return l10n.enterCodePlease;
     if (!AuthConfig.otpPattern.hasMatch(code)) {
-      return 'Le code doit contenir 6 chiffres';
+      return l10n.otpMustBe6Digits;
     }
     return null;
   }
 
   Future<void> _verifyCode() async {
     if (_loading) return;
+    final l10n = AppLocalizations.of(context)!;
     _code = _effectiveCode;
-    final err = _validateCode();
+    final err = _validateCode(l10n);
     if (err != null) {
-      AuthMessagePopup.showError(context, title: err, buttonText: 'OK');
+      AuthMessagePopup.showError(context, title: err, buttonText: l10n.ok);
       return;
     }
 
     if (_requestId.isEmpty || _deviceId.isEmpty) {
       AuthMessagePopup.showError(
         context,
-        title: 'Informations manquantes.',
-        subtitle: 'Veuillez recommencer depuis la page mot de passe oublié.',
-        buttonText: 'OK',
+        title: l10n.missingInfoTitle,
+        subtitle: l10n.restartFromForgotPassword,
+        buttonText: l10n.ok,
       ).then((_) {
         if (mounted) Navigator.of(context).pop();
       });
@@ -161,36 +165,33 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage>
           },
         );
       } else {
-        final msg = result['message'] as String? ?? 'Code invalide.';
         AuthMessagePopup.showError(
           context,
-          title: msg,
-          buttonText: 'Réessayer',
+          title: ApiErrorMessage.fromMap(l10n, result),
+          buttonText: l10n.retry,
         );
       }
     } catch (e) {
       if (!mounted) return;
       AuthMessagePopup.showError(
         context,
-        title: 'Une erreur est survenue.',
-        subtitle: 'Vérifiez votre connexion et réessayez.',
-        buttonText: 'Réessayer',
+        title: l10n.errorOccurredTitle,
+        subtitle: l10n.checkConnectionAndRetry,
+        buttonText: l10n.retry,
       );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  String get _validityHint {
-    final min = (_expiresInSeconds / 60).ceil();
-    return 'Valide $min min. Vérifiez la notification Tranoo ou WhatsApp au numéro du compte.';
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final validityMinutes = (_expiresInSeconds / 60).ceil();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vérifier le code'),
+        title: Text(l10n.verifyCodeTitle),
         centerTitle: true,
         backgroundColor: const Color(0xFFF9FAFB),
         foregroundColor: Colors.black,
@@ -216,7 +217,7 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Saisissez le code à 6 chiffres.\n$_validityHint',
+                    l10n.verifyCodeBanner(validityMinutes),
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.black),
                   ),
@@ -255,9 +256,9 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage>
                               color: Colors.black,
                             ),
                           )
-                        : const Text(
-                            'Vérifier le code',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                        : Text(
+                            l10n.verifyCodeTitle,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                   ),
                 ),

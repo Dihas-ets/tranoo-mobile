@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/services/push_otp_service.dart';
 import 'package:tranoo/utils/auth_config.dart';
+import 'package:tranoo/utils/api_error_message.dart';
 import 'package:tranoo/utils/phone_country_config.dart';
 import 'package:tranoo/widgets/auth_message_popup.dart';
 
@@ -14,6 +16,8 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   final _formKey = GlobalKey<FormState>();
   final _identifierCtrl = TextEditingController();
   String? selectedCountry;
@@ -31,7 +35,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     selectedCountry = kPhoneCountries.first.name;
     selectedCountryCode = kPhoneCountries.first.code;
     PushOTPService.setupNotificationHandlers();
-    // Prépare le token FCM même sans connexion préalable (mot de passe oublié)
     PushOTPService.getFCMToken();
   }
 
@@ -60,6 +63,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   Future<void> _openCountryPicker() async {
+    final l10n = AppLocalizations.of(context)!;
     final search = TextEditingController();
     var filtered = List<PhoneCountryConfig>.from(kPhoneCountries);
     await showModalBottomSheet(
@@ -77,9 +81,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 padding: const EdgeInsets.all(16),
                 child: TextField(
                   controller: search,
-                  decoration: const InputDecoration(
-                    hintText: 'Rechercher un pays',
-                    prefixIcon: Icon(Icons.search),
+                  decoration: InputDecoration(
+                    hintText: l10n.searchCountry,
+                    prefixIcon: const Icon(Icons.search),
                   ),
                   onChanged: (v) {
                     final q = v.trim().toLowerCase();
@@ -120,21 +124,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     );
   }
 
-  String _passwordResetErrorTitle(String? raw) {
-    final msg = (raw ?? '').trim();
-    final lower = msg.toLowerCase();
-    if (lower.contains('aucun compte') ||
-        lower.contains('trouvé pour') ||
-        lower.contains('pas trouvé') ||
-        lower.contains('introuvable') ||
-        lower.contains('n\'existe pas')) {
-      return 'Aucun compte trouvé pour ce numéro.';
-    }
-    if (msg.isEmpty) return 'Une erreur est survenue.';
-    return msg;
-  }
-
   Future<void> _requestOtp() async {
+    final l10n = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
@@ -162,17 +153,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             sessionDeviceId.isEmpty) {
           AuthMessagePopup.showError(
             context,
-            title: 'Réponse serveur incomplète.',
-            subtitle: 'Réessayez dans quelques instants.',
-            buttonText: 'Réessayer',
+            title: l10n.incompleteServerResponse,
+            subtitle: l10n.retryShortly,
+            buttonText: l10n.retry,
           );
           return;
         }
-        final msg = result['message'] as String? ??
-            'Code envoyé sur WhatsApp au numéro de votre compte.';
+        final msg = result['message'] as String? ?? l10n.codeSentWhatsappDefault;
         await AuthMessagePopup.showInfo(
           context,
-          title: 'Code envoyé',
+          title: l10n.codeSent,
           subtitle: msg,
         );
         if (!mounted) return;
@@ -188,15 +178,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           },
         );
       } else {
-        final msg = result['message'] as String?;
+        final code = result['code'] as String?;
+        final title = ApiErrorMessage.fromMap(l10n, result);
         AuthMessagePopup.showError(
           context,
-          title: _passwordResetErrorTitle(msg),
-          subtitle: _passwordResetErrorTitle(msg) ==
-                  'Aucun compte trouvé pour ce numéro.'
-              ? 'Utilisez le même numéro WhatsApp qu\'à l\'inscription (sans 0 après +229).'
-              : null,
-          buttonText: 'Réessayer',
+          title: title,
+          subtitle: ApiErrorMessage.subtitleForCode(l10n, code),
+          buttonText: l10n.retry,
         );
       }
     } catch (e) {
@@ -208,11 +196,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           err.contains('connection');
       AuthMessagePopup.showError(
         context,
-        title: isNetwork
-            ? 'Impossible de se connecter au serveur.'
-            : 'Une erreur est survenue.',
-        subtitle: isNetwork ? 'Vérifiez votre connexion internet.' : null,
-        buttonText: 'Réessayer',
+        title: isNetwork ? l10n.cannotReachServer : l10n.errorOccurredTitle,
+        subtitle: isNetwork ? l10n.checkInternet : null,
+        buttonText: l10n.retry,
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -221,9 +207,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mot de passe oublié'),
+        title: Text(l10n.forgotPasswordTitle),
         centerTitle: true,
         backgroundColor: const Color(0xFFF9FAFB),
         foregroundColor: Colors.black,
@@ -250,10 +238,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       color: const Color(0xFFF8BF13),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      'Choisissez votre pays, puis entrez le numéro national\n(sans répéter l\'indicatif +229).\nLe code part sur le WhatsApp enregistré sur le compte.',
+                    child: Text(
+                      l10n.forgotPasswordInstructions,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.black),
+                      style: const TextStyle(color: Colors.black),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -292,8 +280,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             FilteringTextInputFormatter.digitsOnly,
                           ],
                           decoration: InputDecoration(
-                            labelText: 'Numéro WhatsApp',
-                            hintText: 'WhatsApp · ${_phoneCountry.digitHint}',
+                            labelText: l10n.whatsappNumber,
+                            hintText: l10n.whatsappHint(_phoneCountry.digitHint),
                             prefixIcon: AuthConfig.whatsAppPhonePrefixIcon(),
                             filled: true,
                             fillColor: Colors.white,
@@ -304,9 +292,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                           ),
                           validator: (v) {
                             final val = v?.trim() ?? '';
-                            if (val.isEmpty) return 'Entrez votre numéro';
+                            if (val.isEmpty) return l10n.enterYourPhone;
                             if (!_phoneCountry.isValidNationalNumber(val)) {
-                              return 'Numéro invalide (${_phoneCountry.digitHint})';
+                              return l10n.invalidPhoneWithHint(
+                                _phoneCountry.digitHint,
+                              );
                             }
                             return null;
                           },
@@ -334,8 +324,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         Expanded(
                           child: Text(
                             selectedCountryCode == '+229'
-                                ? 'Ex. pour +229 : saisissez 593XXXXXXX (8 chiffres), pas 01593XXXXXXX ni +229 devant.'
-                                : 'Saisissez uniquement le numéro national ; l\'indicatif ${selectedCountryCode ?? '+229'} est déjà choisi.',
+                                ? l10n.forgotPasswordBeninHint
+                                : l10n.forgotPasswordNationalHint(
+                                    selectedCountryCode ?? '+229',
+                                  ),
                             style: const TextStyle(
                               color: Color(0xFF8A6D3B),
                               fontWeight: FontWeight.w600,
@@ -367,7 +359,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                 color: Colors.black,
                               ),
                             )
-                          : const Text('Envoyer le code'),
+                          : Text(l10n.sendCode),
                     ),
                   ),
                 ],

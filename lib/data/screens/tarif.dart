@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'dart:developer' as developer;
 import 'package:tranoo/services/user_service.dart';
 import 'subscription_payment.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class Tarif extends StatefulWidget {
   const Tarif({super.key});
@@ -13,6 +14,8 @@ class Tarif extends StatefulWidget {
 }
 
 class _TarifState extends State<Tarif> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool loading = false;
   String? errorMsg;
   final UserService _userService = UserService();
@@ -42,7 +45,9 @@ class _TarifState extends State<Tarif> {
         await _loadTransitaires();
       }
     } catch (e) {
-      errorMsg = 'Impossible de charger les données';
+      if (mounted) {
+        errorMsg = AppLocalizations.of(context)!.cannotLoadData;
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -165,6 +170,7 @@ class _TarifState extends State<Tarif> {
   }
 
   Widget _buildAcheteurView() {
+    final l10n = AppLocalizations.of(context)!;
     if (errorMsg != null) return Center(child: Text(errorMsg!));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,9 +186,9 @@ class _TarifState extends State<Tarif> {
             ),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Text(
-            'Transitaires recommandés',
-            style: TextStyle(
+          child: Text(
+            l10n.recommendedForwarders,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -226,6 +232,7 @@ class _TarifState extends State<Tarif> {
 
   // Cette méthode n'est plus utilisée - seuls les acheteurs sont autorisés
   Widget _buildTransitaireView() {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -245,9 +252,9 @@ class _TarifState extends State<Tarif> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Abonnement Transitaire',
-                  style: TextStyle(
+                Text(
+                  l10n.forwarderSubscription,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -255,13 +262,13 @@ class _TarifState extends State<Tarif> {
                 ),
                 const SizedBox(height: 8),
                 if (!_hasSubscription) ...[
-                  const Text(
-                    "Activez un abonnement mensuel pour être mis en avant auprès des acheteurs.",
-                    style: TextStyle(color: Colors.white70),
+                  Text(
+                    l10n.activateMonthlySubscription,
+                    style: const TextStyle(color: Colors.white70),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "${_prixMensuel.toInt()} FCFA / mois",
+                    l10n.pricePerMonth('${_prixMensuel.toInt()}'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -295,7 +302,7 @@ class _TarifState extends State<Tarif> {
                         ),
                       ),
                       child: Text(
-                          'Souscrire maintenant - ${_prixMensuel.toInt()} FCFA'),
+                          l10n.subscribeNowPrice('${_prixMensuel.toInt()}')),
                     ),
                   ),
                 ] else ...[
@@ -309,13 +316,17 @@ class _TarifState extends State<Tarif> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'Activé le: ${_activatedAt?.day}/${_activatedAt?.month}/${_activatedAt?.year}',
+                                l10n.activatedOn(
+                                  '${_activatedAt?.day}/${_activatedAt?.month}/${_activatedAt?.year}',
+                                ),
                                 style: const TextStyle(
                                     color: Colors.white, fontSize: 12),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                'Expire le: ${_expiresAt?.day}/${_expiresAt?.month}/${_expiresAt?.year}',
+                                l10n.expiresOn(
+                                  '${_expiresAt?.day}/${_expiresAt?.month}/${_expiresAt?.year}',
+                                ),
                                 style: const TextStyle(
                                     color: Colors.white, fontSize: 12),
                                 overflow: TextOverflow.ellipsis,
@@ -337,8 +348,8 @@ class _TarifState extends State<Tarif> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Text('Gérer',
-                                style: TextStyle(fontSize: 12)),
+                            child: Text(l10n.manage,
+                                style: const TextStyle(fontSize: 12)),
                           ),
                         ),
                       ],
@@ -349,33 +360,33 @@ class _TarifState extends State<Tarif> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildSubscriptionProgressCard(),
+          _buildSubscriptionProgressCard(l10n),
           const SizedBox(height: 16),
           IntrinsicHeight(
             child: Row(
               children: [
                 Expanded(
                   child: _miniStatCard(
-                    'Visibilité',
-                    'Boostée',
+                    l10n.visibility,
+                    l10n.boosted,
                     Icons.trending_up,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                    child: _miniStatCard('Mises en avant', '—', Icons.star)),
+                    child: _miniStatCard(l10n.spotlight, '—', Icons.star)),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          _buildChartsSection(),
+          _buildChartsSection(l10n),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {},
               icon: const Icon(Icons.add),
-              label: const Text('Nouvelle offre'),
+              label: Text(l10n.newOffer),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: const Color(0xFFF8BF13),
@@ -437,7 +448,7 @@ class _TarifState extends State<Tarif> {
     );
   }
 
-  Widget _buildSubscriptionProgressCard() {
+  Widget _buildSubscriptionProgressCard(AppLocalizations l10n) {
     final now = DateTime.now();
     final totalDays = 30;
     int remaining = 0;
@@ -465,9 +476,9 @@ class _TarifState extends State<Tarif> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Statut d\'abonnement',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(_hasSubscription ? 'Actif' : 'Inactif',
+              Text(l10n.subscriptionStatus,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(_hasSubscription ? l10n.active : l10n.inactive,
                   style: TextStyle(
                       color: _hasSubscription
                           ? const Color(0xFF188100)
@@ -488,20 +499,20 @@ class _TarifState extends State<Tarif> {
           const SizedBox(height: 8),
           Text(
               _expiresAt != null
-                  ? 'Votre abonnement expire dans $remaining jours'
-                  : 'Aucun abonnement actif',
+                  ? l10n.subscriptionExpiresIn(remaining)
+                  : l10n.noActiveSubscription,
               style: const TextStyle(color: Colors.grey)),
         ],
       ),
     );
   }
 
-  Widget _buildChartsSection() {
+  Widget _buildChartsSection(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Performances',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(l10n.performances,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
@@ -520,20 +531,20 @@ class _TarifState extends State<Tarif> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Commandes livrées / mois',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(l10n.ordersDeliveredPerMonth,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              const _BarChart(
-                  values: [4, 8, 6, 10, 7, 12],
-                  labels: ['J', 'F', 'M', 'A', 'M', 'J']),
+              _BarChart(
+                  values: const [4, 8, 6, 10, 7, 12],
+                  labels: const ['J', 'F', 'M', 'A', 'M', 'J']),
               const SizedBox(height: 16),
-              const Text('Répartition des clients',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(l10n.clientDistribution,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              const _PieChart(
-                  values: [40, 35, 25],
-                  colors: [Color(0xFFF8BF13), Colors.black, Colors.grey],
-                  legends: ['Acheteurs', 'Chauffeurs', 'Autres']),
+              _PieChart(
+                  values: const [40, 35, 25],
+                  colors: const [Color(0xFFF8BF13), Colors.black, Colors.grey],
+                  legends: [l10n.chartBuyers, l10n.chartDrivers, l10n.chartOthers]),
             ],
           ),
         ),

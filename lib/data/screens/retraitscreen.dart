@@ -1,31 +1,29 @@
 import 'package:flutter/material.dart';
-import 'mesretraitspage.dart'; // Vérifie si ce chemin est correct et que MesRetraitsPage existe
+import 'package:tranoo/l10n/app_localizations.dart';
+import 'mesretraitspage.dart';
 
 class RetraitScreen extends StatelessWidget {
   const RetraitScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Effectuer un retrait",
-          style: TextStyle(color: Colors.black),
+        title: Text(
+          l10n.makeWithdrawal,
+          style: const TextStyle(color: Colors.black),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed:
-              () => Navigator.pop(context), // Retour à la page précédente
+          onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.share, color: Colors.black),
-            onPressed: () {}, // Tu peux ajouter un événement pour ce bouton
+            onPressed: () {},
           ),
         ],
       ),
@@ -48,38 +46,31 @@ class RetraitScreen extends StatelessWidget {
                   ),
                   spreadRadius: 5,
                   blurRadius: 10,
-                  offset: const Offset(0, 3), // Ombre subtile
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
             child: Column(
-              mainAxisSize: MainAxisSize.min, // Utiliser l'espace nécessaire
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .center, // Centrer les éléments horizontalement
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
-                  "Retrait",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.withdrawal,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
-                const Text("Compte de virement"),
-                // Regrouper les images avec un espacement réduit
+                Text(l10n.transferAccount),
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey, width: 1),
-                    borderRadius: BorderRadius.circular(8), // Coins arrondis
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment
-                            .center, // Centrer les images horizontalement
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _buildImage('assets/images/American Express.png'),
-                      const SizedBox(
-                        width: 10,
-                      ), // Espacement réduit entre les images
+                      const SizedBox(width: 10),
                       _buildImage('assets/images/Visa.png'),
                       const SizedBox(width: 10),
                       _buildImage('assets/images/American Express.png'),
@@ -89,43 +80,46 @@ class RetraitScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 30),
-                _buildTextField("Nom sur la carte", "Rencontrez Patel"),
+                _buildTextField(l10n.nameOnCard, l10n.cardPlaceholderName),
                 const SizedBox(height: 35),
-                _buildTextField("Numéro de carte", "0000 0000 0000 0000"),
+                _buildTextField(l10n.cardNumber, l10n.cardNumberPlaceholder),
                 const SizedBox(height: 35),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildDropdown("Mois", ["01", "02", "03", "04"]),
+                      child: _buildDropdown(l10n.month, const ['01', '02', '03', '04']),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: _buildDropdown("Année", ["2024", "2025", "2026"]),
+                      child: _buildDropdown(
+                        l10n.yearDropdown,
+                        const ['2024', '2025', '2026'],
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 35),
                 _buildTextField(
-                  "Code de sécurité de la carte",
-                  "Code",
+                  l10n.securityCode,
+                  l10n.codeHint,
                   obscureText: true,
                 ),
                 const SizedBox(height: 30),
-                // Le bouton est dans un conteneur rectangulaire sans bord arrondi
                 ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: screenWidth < 600 ? screenWidth * 0.9 : 600,
+                    maxWidth: MediaQuery.sizeOf(context).width < 600
+                        ? MediaQuery.sizeOf(context).width * 0.9
+                        : 600,
                   ),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0Xfff8bf13),
                       padding: EdgeInsets.symmetric(
-                        vertical: screenHeight < 600 ? 5 : 15,
-                        horizontal: screenWidth < 600 ? 10 : 60,
+                        vertical: MediaQuery.sizeOf(context).height < 600 ? 5 : 15,
+                        horizontal: MediaQuery.sizeOf(context).width < 600 ? 10 : 60,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.zero, // Enlever les coins arrondis
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
                       ),
                     ),
                     onPressed: () {
@@ -133,12 +127,12 @@ class RetraitScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => const MesRetraitsPage(),
-                        ), // Navigation vers la page MesRetraitsPage
+                        ),
                       );
                     },
-                    child: const Text(
-                      "Demander un Retrait",
-                      style: TextStyle(color: Colors.white),
+                    child: Text(
+                      l10n.requestWithdrawal,
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
                 ),
@@ -150,7 +144,6 @@ class RetraitScreen extends StatelessWidget {
     );
   }
 
-  // Widget pour le champ de texte
   Widget _buildTextField(
     String label,
     String hint, {
@@ -159,8 +152,8 @@ class RetraitScreen extends StatelessWidget {
     return TextField(
       obscureText: obscureText,
       decoration: InputDecoration(
-        labelText: label, // Le texte du label est maintenant en dehors du champ
-        hintText: hint, // Le placeholder à l'intérieur du champ
+        labelText: label,
+        hintText: hint,
         border: const OutlineInputBorder(),
         contentPadding: const EdgeInsets.symmetric(
           vertical: 10,
@@ -170,33 +163,30 @@ class RetraitScreen extends StatelessWidget {
     );
   }
 
-  // Widget pour le menu déroulant
   Widget _buildDropdown(String hint, List<String> items) {
     return DropdownButtonFormField(
       decoration: InputDecoration(
-        labelText: hint, // Le texte du label est en dehors du champ
+        labelText: hint,
         border: const OutlineInputBorder(),
         contentPadding: const EdgeInsets.symmetric(
           vertical: 10,
           horizontal: 12,
         ),
       ),
-      items:
-          items
-              .map((item) => DropdownMenuItem(value: item, child: Text(item)))
-              .toList(),
+      items: items
+          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+          .toList(),
       onChanged: (value) {},
     );
   }
 
-  // Widget personnalisé pour afficher l'image
   Widget _buildImage(String imagePath) {
     return SizedBox(
-      height: 30, // Taille de l'image
-      width: 50, // Largeur réduite pour la taille de la case
+      height: 30,
+      width: 50,
       child: Image.asset(
         imagePath,
-        fit: BoxFit.contain, // Ajuster l'image dans le container
+        fit: BoxFit.contain,
       ),
     );
   }

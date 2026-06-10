@@ -4,10 +4,10 @@ import 'dart:io';
 import '../../utils/cloudinary_upload.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:tranoo/services/user_service.dart'; // Ajout pour getBaseUrl
+import 'package:tranoo/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class DriverCertifiedPage extends StatefulWidget {
   const DriverCertifiedPage({super.key});
@@ -29,9 +29,9 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
   bool _isSubmitting = false;
 
   Future<void> _pickImage() async {
+    final l10n = AppLocalizations.of(context)!;
     final ImagePicker picker = ImagePicker();
-    final XFile? image =
-        await picker.pickImage(source: ImageSource.gallery);
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
       setState(() {
@@ -39,14 +39,12 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
       });
       String? url;
       if (kIsWeb) {
-        // Web : lire les bytes et uploader
         final bytes = await image.readAsBytes();
         url = await uploadImageToCloudinary(
           bytes,
           folder: CloudinaryFolders.verificationDocs,
         );
       } else {
-        // Mobile : utiliser File
         _uploadedImage = File(image.path);
         url = await uploadImageToCloudinary(
           _uploadedImage!,
@@ -58,18 +56,21 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
           _cloudinaryUrl = url;
         });
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Échec de l\'upload de l\'image.')),
+          SnackBar(content: Text(l10n.uploadImageFailed)),
         );
       }
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucune image sélectionnée.')),
+        SnackBar(content: Text(l10n.noImageSelected)),
       );
     }
   }
 
   Future<void> _submitForm() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSubmitting = true;
     });
@@ -90,11 +91,7 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
         _isSubmitting = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Veuillez remplir tous les champs obligatoires et uploader votre permis.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.fillFieldsAndUploadLicense)),
       );
       return;
     }
@@ -102,7 +99,7 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
       final response = await http.post(
-        Uri.parse(getBaseUrl() + '/chauffeurs/demandes'),
+        Uri.parse('${getBaseUrl()}/chauffeurs/demandes'),
         headers: {
           'Content-Type': 'application/json',
           if (idToken != null) 'Authorization': 'Bearer $idToken',
@@ -112,14 +109,15 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
           'prenom': firstName,
           'telephone': phone,
           'email': email,
-          'numeroPermit': permit, // <-- correction ici
+          'numeroPermit': permit,
           'message': message,
-          'permisFile': permitUrl, // <-- correction ici
+          'permisFile': permitUrl,
         }),
       );
+      if (!mounted) return;
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Demande envoyée avec succès !')),
+          SnackBar(content: Text(l10n.requestSentSuccess)),
         );
         _lastNameController.clear();
         _firstNameController.clear();
@@ -135,26 +133,30 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de l\'envoi : \\${response.body}'),
+            content: Text(l10n.sendErrorWithBody(response.body)),
           ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur réseau : $e')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorNetwork(e.toString()))),
+      );
     } finally {
-      setState(() {
-        _isSubmitting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Formulaire d’inscription'),
+        title: Text(l10n.registrationForm),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
@@ -163,67 +165,50 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Nom de famille
-            _buildLabel('Nom de famille *'),
+            _buildLabel(l10n.familyName),
             const SizedBox(height: 8),
             TextField(
               controller: _lastNameController,
-              decoration: _buildInputDecoration('Entrer votre nom'),
+              decoration: _buildInputDecoration(l10n.enterYourName),
             ),
             const SizedBox(height: 16),
-
-            // Prénom
-            _buildLabel('Prénom *'),
+            _buildLabel(l10n.firstName),
             const SizedBox(height: 8),
             TextField(
               controller: _firstNameController,
-              decoration: _buildInputDecoration('Entrer votre prénom'),
+              decoration: _buildInputDecoration(l10n.enterYourFirstName),
             ),
             const SizedBox(height: 16),
-
-            // Numéro de Téléphone
-            _buildLabel('Numéro de Téléphone *'),
+            _buildLabel(l10n.phoneNumber),
             const SizedBox(height: 8),
             TextField(
               controller: _phoneController,
-              decoration: _buildInputDecoration(
-                'Tapez votre numéro de Téléphone',
-              ),
+              decoration: _buildInputDecoration(l10n.typeYourPhone),
             ),
             const SizedBox(height: 16),
-
-            // E-mail
-            _buildLabel('E-mail *'),
+            _buildLabel(l10n.email),
             const SizedBox(height: 8),
             TextField(
               controller: _emailController,
-              decoration: _buildInputDecoration('Entrer votre mail'),
+              decoration: _buildInputDecoration(l10n.enterYourEmail),
             ),
             const SizedBox(height: 16),
-
-            // Numéro de permit
-            _buildLabel('Numéro de permit *'),
+            _buildLabel(l10n.licenseNumber),
             const SizedBox(height: 8),
             TextField(
               controller: _permitController,
-              decoration: _buildInputDecoration(
-                'Entrer votre numéro de permit',
-              ),
+              decoration: _buildInputDecoration(l10n.enterLicenseNumber),
             ),
             const SizedBox(height: 16),
-
-            // Messages
-            _buildLabel('Messages'),
+            _buildLabel(l10n.messages),
             const SizedBox(height: 8),
             TextField(
               controller: _messageController,
               maxLines: 5,
-              decoration: _buildInputDecoration('Écrivez votre message'),
+              decoration: _buildInputDecoration(l10n.writeYourMessage),
             ),
             const SizedBox(height: 16),
-
-            // Télécharger des images
-            _buildLabel('Télécharger des images'),
+            _buildLabel(l10n.uploadImagesLabel),
             const SizedBox(height: 8),
             GestureDetector(
               onTap: _pickImage,
@@ -238,7 +223,7 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
                     const Icon(Icons.upload, color: Colors.blue),
                     const SizedBox(width: 8),
                     Text(
-                      _uploadedFileName ?? 'Mon permis pdf',
+                      _uploadedFileName ?? l10n.myLicensePdf,
                       style: const TextStyle(color: Colors.black),
                     ),
                   ],
@@ -246,8 +231,6 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Affichage de l'image uploadée depuis Cloudinary
             if (_cloudinaryUrl != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -257,8 +240,6 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
                   fit: BoxFit.cover,
                 ),
               ),
-
-            // Bouton de soumission
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -280,7 +261,7 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text('Soumettre'),
+                    : Text(l10n.submit),
               ),
             ),
           ],
@@ -291,7 +272,7 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
 
   Widget _buildLabel(String text) {
     return Text(
-      text,
+      '$text *',
       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
     );
   }

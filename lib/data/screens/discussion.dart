@@ -25,6 +25,8 @@ class Discussion extends StatefulWidget {
 }
 
 class _DiscussionState extends State<Discussion> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   final TextEditingController _messageController = TextEditingController();
   final List<Map<String, dynamic>> messages = [];
   final ImagePicker _picker = ImagePicker();
@@ -127,9 +129,10 @@ class _DiscussionState extends State<Discussion> {
         }
       } catch (e) {
         print('Erreur lors de l\'envoi du message: $e');
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de l\'envoi du message'),
+          SnackBar(
+            content: Text(l10n.messageSendError),
             backgroundColor: Colors.red,
           ),
         );
@@ -163,9 +166,10 @@ class _DiscussionState extends State<Discussion> {
       }
     } catch (e) {
       print('Erreur lors de l\'envoi de l\'image: $e');
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erreur lors de l\'envoi de l\'image'),
+        SnackBar(
+          content: Text(l10n.errorSendingImage),
           backgroundColor: Colors.red,
         ),
       );
@@ -206,9 +210,10 @@ class _DiscussionState extends State<Discussion> {
       }
     } catch (e) {
       print('Erreur lors de l\'envoi du document: $e');
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erreur lors de l\'envoi du document'),
+        SnackBar(
+          content: Text(l10n.errorSendingDocument),
           backgroundColor: Colors.red,
         ),
       );
@@ -279,6 +284,8 @@ class _DiscussionState extends State<Discussion> {
       topRight: Radius.circular(18),
       bottomRight: Radius.circular(4),
     );
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
@@ -488,8 +495,8 @@ class _DiscussionState extends State<Discussion> {
                     ),
                     child: TextField(
                       controller: _messageController,
-                      decoration: const InputDecoration(
-                        hintText: 'Tapez votre message...',
+                      decoration: InputDecoration(
+                        hintText: l10n.typeMessageHint,
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 16,
@@ -531,6 +538,7 @@ class _DiscussionState extends State<Discussion> {
   }
 
   Widget _buildFilePreview(String fileUrl) {
+    final l10n = AppLocalizations.of(context)!;
     if (fileUrl.endsWith('.jpg') ||
         fileUrl.endsWith('.jpeg') ||
         fileUrl.endsWith('.png')) {
@@ -576,7 +584,7 @@ class _DiscussionState extends State<Discussion> {
             children: [
               Icon(Icons.picture_as_pdf, color: Colors.red[700]),
               const SizedBox(width: 8),
-              const Text('PDF', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(l10n.pdfLabel, style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -595,9 +603,9 @@ class _DiscussionState extends State<Discussion> {
             children: [
               Icon(Icons.file_present, color: Colors.blue[700]),
               const SizedBox(width: 8),
-              const Text(
-                'Document',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                l10n.documentFormat,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -607,6 +615,7 @@ class _DiscussionState extends State<Discussion> {
   }
 
   void _showImagePreview(String imageUrl) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -630,7 +639,7 @@ class _DiscussionState extends State<Discussion> {
                   : Image.asset(imageUrl, fit: BoxFit.cover),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Fermer'),
+                child: Text(l10n.close),
               ),
             ],
           ),

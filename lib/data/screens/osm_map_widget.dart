@@ -3,9 +3,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
-/// Carte gratuite OpenStreetMap (Flutter Map) pour affichage + bouton "Naviguer"
-/// vers Google Maps / Waze pour la navigation voix.
+/// OpenStreetMap widget for display + navigate button to Google Maps / Waze.
 class OsmMapWidget extends StatelessWidget {
   final LatLng center;
   final double zoom;
@@ -24,13 +24,11 @@ class OsmMapWidget extends StatelessWidget {
     this.navigateToDestination,
   });
 
-  /// Ouvre Google Maps ou Waze pour la navigation vers [destination].
-  /// [destination] ex: LatLng(14.716677, -17.467686)
   static Future<void> openNavigation(LatLng destination,
       {bool useWaze = false}) async {
     final lat = destination.latitude;
     final lng = destination.longitude;
-    Uri uri;
+    final Uri uri;
     if (useWaze) {
       uri = Uri.parse('https://waze.com/ul?ll=$lat,$lng&navigate=yes');
     } else {
@@ -45,6 +43,7 @@ class OsmMapWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -113,15 +112,17 @@ class OsmMapWidget extends StatelessWidget {
               child: InkWell(
                 onTap: () => openNavigation(navigateToDestination!),
                 borderRadius: BorderRadius.circular(8),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.directions, color: Colors.blue),
-                      SizedBox(width: 8),
-                      Text('Naviguer',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      const Icon(Icons.directions, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.navigate,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
                     ],
                   ),
                 ),
@@ -141,10 +142,8 @@ class OsmMarkerData {
   OsmMarkerData({required this.point, this.iconData, this.color});
 }
 
-/// Convertit les coordonnées [Position] (geolocator) en [LatLng] (latlong2).
 LatLng positionToLatLng(Position p) => LatLng(p.latitude, p.longitude);
 
-/// Crée un [LatLng] depuis un map (ex: lieuDepart / lieuDestination).
 LatLng? latLngFromMap(Map<String, dynamic>? place) {
   if (place == null) return null;
   final lat = place['latitude'] as num?;

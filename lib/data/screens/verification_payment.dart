@@ -11,6 +11,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
 import 'package:tranoo/utils/feexpay_result_utils.dart';
 import 'package:tranoo/utils/feexpay_callback_state.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 String get _fpToken {
   final a = (dotenv.env['FP_TOKEN_FEEXPAY'] ?? '').trim();
@@ -38,6 +39,8 @@ class VerificationPaymentScreen extends StatefulWidget {
 }
 
 class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool isLoading = false;
   String? errorMessage;
   late final String transKey;
@@ -88,6 +91,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -97,9 +101,9 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Frais de vérification',
-          style: TextStyle(
+        title: Text(
+          l10n.verificationFeesTitle,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 16,
             fontWeight: FontWeight.w500,
@@ -132,18 +136,18 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
                             color: Colors.white,
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Vérification de documents',
-                            style: TextStyle(
+                          Text(
+                            l10n.documentVerification,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Vérifiez l\'authenticité de vos documents',
-                            style: TextStyle(
+                          Text(
+                            l10n.verifyDocumentsAuthenticity,
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 14,
                             ),
@@ -155,9 +159,9 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
                     const SizedBox(height: 24),
 
                     // Avantages de la vérification
-                    const Text(
-                      'Services inclus',
-                      style: TextStyle(
+                    Text(
+                      l10n.includedServices,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -166,13 +170,13 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
 
                     _buildAdvantageItem(
                       Icons.security,
-                      'Vérification complète',
-                      'Contrôle de tous vos documents officiels',
+                      l10n.fullVerification,
+                      l10n.fullVerificationDesc,
                     ),
                     _buildAdvantageItem(
                       Icons.schedule,
-                      'Traitement rapide',
-                      'Résultats sous 10 jours ouvrables',
+                      l10n.fastProcessing,
+                      l10n.fastProcessingDesc,
                     ),
 
                     const SizedBox(height: 24),
@@ -188,9 +192,9 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
                       ),
                       child: Column(
                         children: [
-                          const Text(
-                            'Frais de vérification',
-                            style: TextStyle(
+                          Text(
+                            l10n.verificationFeesTitle,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -204,9 +208,9 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
                               color: Color(0xFF00A86B),
                             ),
                           ),
-                          const Text(
-                            'paiement unique',
-                            style: TextStyle(
+                          Text(
+                            l10n.oneTimePayment,
+                            style: const TextStyle(
                               fontSize: 14,
                               color: Colors.grey,
                             ),
@@ -218,9 +222,9 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
                     const SizedBox(height: 16),
 
                     // Note
-                    const Text(
-                      'Après paiement, vous recevrez un récapitulatif et les vérifications seront effectuées sous 10 jours ouvrables.',
-                      style: TextStyle(
+                    Text(
+                      l10n.verificationPaymentNote,
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
                       ),
@@ -249,7 +253,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
                         strokeWidth: 2,
                       )
                     : Text(
-                          'Procéder au paiement - ${_formatFcfa(_verificationPrice)} FCFA',
+                          l10n.proceedToPayment(_formatFcfa(_verificationPrice)),
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
@@ -327,6 +331,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
   }
 
   Future<void> _processVerification() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       isLoading = true;
       errorMessage = null;
@@ -335,13 +340,11 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        throw Exception('Utilisateur non connecté');
+        throw Exception(l10n.userNotLoggedIn);
       }
 
       if (_fpToken.isEmpty || _idUser.isEmpty) {
-        throw Exception(
-          'Configuration FeexPay manquante (FP_TOKEN_FEEXPAY / ID_USER_FEEXPAY)',
-        );
+        throw Exception(l10n.feexpayConfigMissingDetailed);
       }
 
       FeexPayCallbackState.clearPendingAtNewCheckout();
@@ -395,8 +398,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
         if (!recorded) {
           if (mounted) {
             setState(() {
-              errorMessage =
-                  'Paiement reçu mais enregistrement serveur incomplet. Réessayez ou contactez le support.';
+              errorMessage = l10n.paymentReceivedIncompleteRecord;
             });
           }
           return;
@@ -408,11 +410,9 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
         }
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Paiement reçu. Votre demande de vérification est en cours de traitement.',
-            ),
-            backgroundColor: Color(0xFF00A86B),
+          SnackBar(
+            content: Text(l10n.paymentReceivedVerificationProcessing),
+            backgroundColor: const Color(0xFF00A86B),
           ),
         );
         Navigator.of(context).pushAndRemoveUntil(
@@ -422,8 +422,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
       } else {
         if (mounted) {
           setState(() {
-            errorMessage =
-                'Paiement annulé ou non confirmé. Réessayez si besoin.';
+            errorMessage = l10n.paymentCancelledNotConfirmed;
           });
         }
       }
@@ -431,7 +430,7 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
       debugPrint('[VerificationPayment] erreur flux: $e');
       if (mounted) {
         setState(() {
-          errorMessage = 'Erreur: $e';
+          errorMessage = l10n.errorGeneric(e.toString());
         });
       }
     } finally {
@@ -549,13 +548,14 @@ class _ResultHtmlPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: const SizedBox.shrink(),
         title: Text(
-          success ? 'Paiement réussi' : 'Paiement échoué',
+          success ? l10n.paymentSuccessful : l10n.paymentFailed,
           style: const TextStyle(
               color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),
         ),
@@ -573,13 +573,13 @@ class _ResultHtmlPage extends StatelessWidget {
                         color: success ? const Color(0xFF00A86B) : Colors.red),
                     const SizedBox(height: 12),
                     Text(
-                      success ? 'Paiement réussi' : 'Paiement échoué',
+                      success ? l10n.paymentSuccessful : l10n.paymentFailed,
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    const Text('Redirection en cours...',
-                        style: TextStyle(color: Colors.grey)),
+                    Text(l10n.redirecting,
+                        style: const TextStyle(color: Colors.grey)),
                   ],
                 ),
         ),

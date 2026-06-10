@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/services/alert_display_permission_service.dart';
 
 /// Demande l'autorisation notifications pour les réponses vendeur aux alertes.
@@ -25,6 +26,7 @@ class AlertDisplayPermissionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -50,7 +52,7 @@ class AlertDisplayPermissionDialog extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    'Notifications d\'alertes',
+                    l10n.alertNotificationsTitle,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -59,10 +61,9 @@ class AlertDisplayPermissionDialog extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Autorisez les notifications pour être alerté quand un vendeur '
-              'répond à votre alerte, même lorsque l\'application est en arrière-plan.',
-              style: TextStyle(height: 1.45),
+            Text(
+              l10n.alertNotificationsDescription,
+              style: const TextStyle(height: 1.45),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -70,7 +71,7 @@ class AlertDisplayPermissionDialog extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: () => _onActivate(context),
                 icon: const Icon(Icons.notifications),
-                label: const Text('Autoriser les notifications'),
+                label: Text(l10n.allowNotifications),
               ),
             ),
             const SizedBox(height: 8),
@@ -78,7 +79,7 @@ class AlertDisplayPermissionDialog extends StatelessWidget {
               width: double.infinity,
               child: TextButton(
                 onPressed: () => _onLater(context),
-                child: const Text('Plus tard'),
+                child: Text(l10n.later),
               ),
             ),
           ],

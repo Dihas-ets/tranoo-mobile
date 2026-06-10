@@ -9,6 +9,7 @@ import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/utils/cloudinary_upload.dart'; // Importer le composant d'upload Cloudinary
 import 'package:provider/provider.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/providers/auth_provider.dart' as local_auth;
 
 class Profile extends StatefulWidget {
@@ -19,6 +20,8 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   String? selectedGender;
   String? selectedCountry;
   File? _image; // Pour stocker l'image sélectionnée
@@ -57,7 +60,8 @@ class _ProfileState extends State<Profile> {
         setState(() {
           loading = false;
           userData = null;
-          errorMsg = "Utilisateur non connecté.";
+          if (!mounted) return;
+          errorMsg = AppLocalizations.of(context)!.userNotConnected;
         });
         return;
       }
@@ -82,8 +86,8 @@ class _ProfileState extends State<Profile> {
       setState(() {
         loading = false;
         userData = null;
-        errorMsg =
-            "Impossible de charger le profil. Vérifiez votre connexion ou vos droits.";
+        if (!mounted) return;
+        errorMsg = AppLocalizations.of(context)!.profileLoadError;
       });
     }
   }
@@ -168,15 +172,17 @@ class _ProfileState extends State<Profile> {
           isSaving = false;
           isEditingName = false;
         });
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profil mis à jour')),
+          SnackBar(content: Text(l10n.profileUpdated)),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => isSaving = false);
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la sauvegarde du profil')),
+          SnackBar(content: Text(l10n.profileSaveError)),
         );
       }
     }
@@ -204,12 +210,9 @@ class _ProfileState extends State<Profile> {
       setState(() {
         isSaving = false;
       });
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Le mot de passe doit contenir au moins ${minLen.toString()} caractères.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.passwordMinLength(minLen))),
       );
       return;
     }
@@ -219,13 +222,15 @@ class _ProfileState extends State<Profile> {
       isSaving = false;
       newPassword = null;
     });
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Mot de passe modifié avec succès.')),
+      SnackBar(content: Text(l10n.passwordChangedSuccess)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final mediaQuery = MediaQuery.of(context);
     final screenHeight = mediaQuery.size.height;
     final isPortrait = mediaQuery.orientation == Orientation.portrait;
@@ -234,9 +239,9 @@ class _ProfileState extends State<Profile> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text(
-          "Compte",
-          style: TextStyle(
+        title: Text(
+          l10n.account,
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
             color: Colors.black,
@@ -252,7 +257,7 @@ class _ProfileState extends State<Profile> {
               : errorMsg != null
               ? Center(child: Text(errorMsg!))
               : userData == null
-              ? Center(child: Text("Aucune donnée utilisateur"))
+              ? Center(child: Text(l10n.noUserData))
               : SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -321,8 +326,8 @@ class _ProfileState extends State<Profile> {
                                         controller: TextEditingController(
                                           text: editedName,
                                         ),
-                                        decoration: const InputDecoration(
-                                          labelText: "Nom complet",
+                                        decoration: InputDecoration(
+                                          labelText: l10n.fullName,
                                         ),
                                       )
                                     : Text(
@@ -339,8 +344,8 @@ class _ProfileState extends State<Profile> {
                                         controller: TextEditingController(
                                           text: editedEmail,
                                         ),
-                                        decoration: const InputDecoration(
-                                          labelText: "Email",
+                                        decoration: InputDecoration(
+                                          labelText: l10n.email,
                                         ),
                                       )
                                     : Text(
@@ -358,8 +363,8 @@ class _ProfileState extends State<Profile> {
                                         controller: TextEditingController(
                                           text: editedPhone,
                                         ),
-                                        decoration: const InputDecoration(
-                                          labelText: "Téléphone",
+                                        decoration: InputDecoration(
+                                          labelText: l10n.phone,
                                         ),
                                       )
                                     : Text(
@@ -420,24 +425,24 @@ class _ProfileState extends State<Profile> {
                       // Section informations personnelles (readonly)
                       _buildProfileSection(
                         context,
-                        title: "Informations personnelles",
+                        title: l10n.personalInfo,
                         items: [
                           _buildProfileItem(
                             context,
                             icon: Icons.person,
-                            label: "Nom complet",
+                            label: l10n.fullName,
                             value: "********",
                           ),
                           _buildProfileItem(
                             context,
                             icon: Icons.email,
-                            label: "Email",
+                            label: l10n.email,
                             value: "********",
                           ),
                           _buildProfileItem(
                             context,
                             icon: Icons.phone,
-                            label: "Téléphone",
+                            label: l10n.phone,
                             value: "********",
                           ),
                         ],
@@ -445,12 +450,12 @@ class _ProfileState extends State<Profile> {
                       SizedBox(height: spacing * 2),
                       _buildProfileSection(
                         context,
-                        title: "Sécurité",
+                        title: l10n.security,
                         items: [
                           _buildProfileItem(
                             context,
                             icon: Icons.lock,
-                            label: "Mot de passe",
+                            label: l10n.password,
                             value: "********",
                             showEdit: false,
                           ),

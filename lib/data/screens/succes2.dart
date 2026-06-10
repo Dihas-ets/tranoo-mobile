@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class SuccesScreen2 extends StatelessWidget {
   const SuccesScreen2({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Définir la barre d'état en noir avec des icônes blanches
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      extendBodyBehindAppBar: true, // Permet au contenu de passer sous l'AppBar
+      extendBodyBehindAppBar: true,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -23,7 +25,7 @@ class SuccesScreen2 extends StatelessWidget {
                   borderRadius: BorderRadius.circular(32),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.amber.withAlpha(40), // Changé en amber
+                      color: Colors.amber.withAlpha(40),
                       blurRadius: 40,
                       spreadRadius: 15,
                     ),
@@ -35,7 +37,7 @@ class SuccesScreen2 extends StatelessWidget {
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(32.0), // Padding augmenté
+                    padding: const EdgeInsets.all(32.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -44,33 +46,21 @@ class SuccesScreen2 extends StatelessWidget {
                           height: 120,
                           width: 120,
                         ),
-                        const SizedBox(height: 24), // Espacement augmenté
-                        const Text(
-                          'Woo hoo !!',
-                          style: TextStyle(
+                        const SizedBox(height: 24),
+                        Text(
+                          l10n.wooHoo,
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 24), // Espacement augmenté
-                        RichText(
+                        const SizedBox(height: 24),
+                        Text(
+                          l10n.articleCreatedPendingValidation,
                           textAlign: TextAlign.center,
-                          text: const TextSpan(
-                            style: TextStyle(fontSize: 14, height: 1.5),
-                            children: [
-                              TextSpan(
-                                text:
-                                    'Bravo! Vous avez réussi à créer votre article. C est en cours de \n validation ',
-                                style: TextStyle(color: Colors.black),
-                              ),
-                              //TextSpan(
-                              //  text: 'Votre produit vous sera livré au plus dans 5 jrs. Merci pour votre confiance !',
-                              // style: TextStyle(color: Colors.amber), // Changé en amber
-                              //),
-                            ],
-                          ),
+                          style: const TextStyle(fontSize: 14, height: 1.5),
                         ),
-                        const SizedBox(height: 32), // Espacement augmenté
+                        const SizedBox(height: 32),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -84,7 +74,7 @@ class SuccesScreen2 extends StatelessWidget {
                               );
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.amber, // Changé en amber
+                              backgroundColor: Colors.amber,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
@@ -92,9 +82,9 @@ class SuccesScreen2 extends StatelessWidget {
                               ),
                               elevation: 2,
                             ),
-                            child: const Text(
-                              'Accéder à l\'accueil',
-                              style: TextStyle(
+                            child: Text(
+                              l10n.goToHome,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w500,
                                 fontSize: 16,
                               ),

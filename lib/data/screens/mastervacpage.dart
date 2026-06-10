@@ -18,6 +18,7 @@ import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/utils/article_view_helper.dart';
 import 'package:tranoo/utils/auth_config.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -75,6 +76,8 @@ class MastervacPage extends StatefulWidget {
 }
 
 class _MastervacPageState extends State<MastervacPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   int _currentImageIndex = 0;
   late PageController _pageController;
   // SUPPRIME la liste statique _images
@@ -114,13 +117,15 @@ class _MastervacPageState extends State<MastervacPage> {
 
   void _showSellerContactUnavailable() {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Numéro du vendeur indisponible')),
+      SnackBar(content: Text(l10n.sellerPhoneUnavailable)),
     );
   }
 
   Future<void> _showContactSellerDialog() async {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     await showDialog<void>(
       context: context,
       barrierDismissible: true,
@@ -133,22 +138,19 @@ class _MastervacPageState extends State<MastervacPage> {
             children: [
               Icon(Icons.handshake_outlined, size: 44, color: Colors.amber[800]),
               const SizedBox(height: 12),
-              const Text(
-                'Avant de contacter le vendeur',
+              Text(
+                l10n.beforeContactSeller,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1E293B),
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                '• Confirmez le prix et les frais éventuels\n'
-                '• Vérifiez la localisation et la disponibilité\n'
-                '• Échangez clairement sur l\'état du bien\n'
-                '• Privilégiez un lieu sûr pour la transaction',
-                style: TextStyle(
+              Text(
+                l10n.contactSellerTips,
+                style: const TextStyle(
                   fontSize: 14,
                   height: 1.5,
                   color: Color(0xFF475569),
@@ -171,9 +173,9 @@ class _MastervacPageState extends State<MastervacPage> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'D\'accord',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.agree,
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -208,17 +210,19 @@ class _MastervacPageState extends State<MastervacPage> {
       if (ok) return;
     } catch (_) {}
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Impossible d\'ouvrir WhatsApp')),
+      SnackBar(content: Text(l10n.cannotOpenWhatsApp)),
     );
   }
 
   Future<void> _startDeliveryFlow() async {
+    final l10n = AppLocalizations.of(context)!;
     final firebaseUser = FirebaseAuth.instance.currentUser;
     if (firebaseUser == null) {
       showAuthDialog(
         context,
-        message: 'Connectez-vous pour commander avec livraison',
+        message: l10n.signInForDelivery,
       );
       return;
     }
@@ -280,14 +284,14 @@ class _MastervacPageState extends State<MastervacPage> {
 
   @override
   Widget build(BuildContext context) {
-    // On ne passe plus de booléen, on déduit le rôle ici
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: _buildAppBar(),
       floatingActionButton: FloatingActionButton(
         onPressed: _startDeliveryFlow,
         backgroundColor: Colors.blue,
-        tooltip: 'Commander avec livraison',
+        tooltip: l10n.orderWithDelivery,
         child: const Icon(Icons.local_shipping, color: Colors.white),
       ),
       body: ListView(
@@ -366,6 +370,7 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Widget _buildImageSection() {
+    final l10n = AppLocalizations.of(context)!;
     final hasImages = widget.images.isNotEmpty;
     final hasVideo = widget.video != null && widget.video!.isNotEmpty;
     
@@ -387,8 +392,8 @@ class _MastervacPageState extends State<MastervacPage> {
                       fit: BoxFit.cover,
                       errorBuilder: (c, e, s) => Container(
                         color: Colors.grey[300],
-                        child: const Center(
-                          child: Text('Image non disponible'),
+                        child: Center(
+                          child: Text(l10n.imageNotAvailable),
                         ),
                       ),
                     )
@@ -398,8 +403,8 @@ class _MastervacPageState extends State<MastervacPage> {
                           fit: BoxFit.cover,
                           errorBuilder: (c, e, s) => Container(
                             color: Colors.grey[300],
-                            child: const Center(
-                              child: Text('Image non disponible'),
+                            child: Center(
+                              child: Text(l10n.imageNotAvailable),
                             ),
                           ),
                         )
@@ -570,6 +575,7 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -577,7 +583,7 @@ class _MastervacPageState extends State<MastervacPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              widget.title.isNotEmpty ? widget.title : 'Non renseigné',
+              widget.title.isNotEmpty ? widget.title : l10n.notProvided,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Text(
@@ -590,7 +596,9 @@ class _MastervacPageState extends State<MastervacPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          widget.price.isNotEmpty ? '${formatPrice(widget.price)} FCFA' : 'Non renseigné',
+          widget.price.isNotEmpty
+              ? '${formatPrice(widget.price)} FCFA'
+              : l10n.notProvided,
           style: TextStyle(
             fontSize: 20,
             color: Colors.grey[800],
@@ -603,13 +611,16 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Widget _buildDescription() {
+    final l10n = AppLocalizations.of(context)!;
     return Text(
-      (widget.description.isNotEmpty) ? widget.description : 'Non renseigné',
+      (widget.description.isNotEmpty) ? widget.description : l10n.notProvided,
       style: const TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
     );
   }
 
   Widget _buildSpecifications() {
+    final l10n = AppLocalizations.of(context)!;
+    final notProvided = l10n.notProvided;
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -619,29 +630,29 @@ class _MastervacPageState extends State<MastervacPage> {
       crossAxisSpacing: 12,
       children: [
         _buildSpecCard(
-          'Modèle',
+          l10n.model,
           (widget.model != null && widget.model!.isNotEmpty)
               ? widget.model!
-              : 'Non renseigné',
+              : notProvided,
           Icons.settings,
         ),
         _buildSpecCard(
-          'Type de pièce',
+          l10n.partTypeLabel,
           (widget.pieceType != null && widget.pieceType!.isNotEmpty)
               ? widget.pieceType!
-              : 'Non renseigné',
+              : notProvided,
           Icons.category,
         ),
         _buildSpecCard(
-          'Type moteur',
+          l10n.engineType,
           (widget.fuelType != null && widget.fuelType!.isNotEmpty)
               ? widget.fuelType!
-              : 'Non renseigné',
+              : notProvided,
           Icons.local_gas_station,
         ),
         _buildSpecCard(
-          'Année',
-          widget.year.isNotEmpty ? widget.year : 'Non renseigné',
+          l10n.year,
+          widget.year.isNotEmpty ? widget.year : notProvided,
           Icons.calendar_today,
         ),
         _buildLocationSpecCard(),
@@ -683,12 +694,14 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Widget _buildLocationSpecCard() {
+    final l10n = AppLocalizations.of(context)!;
     final loc = widget.location.trim();
     if (loc.isEmpty) {
-      return _buildSpecCard('Localisation', 'Non renseigné', Icons.location_on);
+      return _buildSpecCard(
+          l10n.location, l10n.notProvided, Icons.location_on);
     }
     if (loc.length <= 56) {
-      return _buildSpecCard('Localisation', loc, Icons.location_on);
+      return _buildSpecCard(l10n.location, loc, Icons.location_on);
     }
     return Container(
       decoration: BoxDecoration(
@@ -701,9 +714,9 @@ class _MastervacPageState extends State<MastervacPage> {
           tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           leading: const Icon(Icons.location_on, size: 20, color: Colors.black87),
-          title: const Text(
-            'Localisation',
-            style: TextStyle(
+          title: Text(
+            l10n.location,
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -734,6 +747,7 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Widget _buildActionButton() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -750,9 +764,9 @@ class _MastervacPageState extends State<MastervacPage> {
             ),
             onPressed: _showContactSellerDialog,
             icon: const Icon(Icons.chat_bubble_outline),
-            label: const Text(
-              'Contacter le vendeur',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            label: Text(
+              l10n.contactSeller,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),
         ),
@@ -771,15 +785,15 @@ class _MastervacPageState extends State<MastervacPage> {
             ),
             onPressed: _startDeliveryFlow,
             icon: const Icon(Icons.shopping_cart_outlined),
-            label: const Text(
-              'Acheter via l\'application',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            label: Text(
+              l10n.buyViaApp,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          'Commande sécurisée via le panier Tranoo (livraison disponible).',
+          l10n.secureOrderViaCart,
           style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           textAlign: TextAlign.center,
         ),

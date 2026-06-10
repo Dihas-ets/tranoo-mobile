@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/config/backend_config.dart';
 import 'package:tranoo/utils/feexpay_callback_state.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class OrderPaymentScreen extends StatefulWidget {
   final double amount;
@@ -24,6 +25,8 @@ class OrderPaymentScreen extends StatefulWidget {
 }
 
 class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool _looksLikeFeexPayId(String value) {
     final v = value.trim();
     final uuid = RegExp(
@@ -215,11 +218,7 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
           '(FP_TOKEN_FEEXPAY/FEEXPAY_API_TOKEN or '
           'ID_USER_FEEXPAY/FEEXPAY_SHOP_ID)',
         );
-        throw Exception(
-          'Configuration FeexPay manquante: '
-          'FP_TOKEN_FEEXPAY|FEEXPAY_API_TOKEN et '
-          'ID_USER_FEEXPAY|FEEXPAY_SHOP_ID',
-        );
+        throw Exception(AppLocalizations.of(context)!.feexpayConfigMissing);
       }
 
       final txKey = 'ORDER_${randomAlphaNumeric(15)}';
@@ -277,7 +276,7 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
       developer.log('[OrderPayment] payment error=$e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur de paiement: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorPayment(e.toString()))),
       );
       Navigator.pop(context, false);
     } finally {
@@ -295,16 +294,17 @@ class _OrderPaymentScreenState extends State<OrderPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Paiement commande'),
+        title: Text(l10n.orderPayment),
         backgroundColor: const Color(0xFFF8BF13),
         foregroundColor: Colors.black,
       ),
       body: Center(
         child: _isLoading
             ? const CircularProgressIndicator()
-            : const Text('Préparation du paiement...'),
+            : Text(l10n.preparingPayment),
       ),
     );
   }

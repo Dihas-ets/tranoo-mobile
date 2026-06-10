@@ -19,6 +19,7 @@ import 'package:tranoo/utils/page_refresh_registry.dart';
 import 'package:tranoo/widgets/page_pull_refresh.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:tranoo/utils/catalog_display.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -189,35 +190,37 @@ class _VoituresPageState extends State<VoituresPage>
           isLoading = false;
         });
       } else {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          error = 'Erreur lors du chargement des voitures';
+          error = l10n.carsLoadError;
           isLoading = false;
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        error = 'Erreur réseau';
+        error = AppLocalizations.of(context)!.networkError;
         isLoading = false;
       });
     }
   }
 
   Future<void> _deleteVoiture(String articleId, int index) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmer la suppression'),
-        content: const Text(
-          'Voulez-vous vraiment supprimer cette voiture ?',
-        ),
+        title: Text(l10n.confirmDeletion),
+        content: Text(l10n.confirmDeleteCar),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Supprimer'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -239,17 +242,17 @@ class _VoituresPageState extends State<VoituresPage>
       );
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Voiture supprimée avec succès !')),
+          SnackBar(content: Text(l10n.carDeletedSuccess)),
         );
         fetchVoitures();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la suppression.')),
+          SnackBar(content: Text(l10n.deletionError)),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur réseau ou serveur.')),
+        SnackBar(content: Text(l10n.networkOrServerError)),
       );
     }
     setState(() {
@@ -595,13 +598,14 @@ class _VoituresPageState extends State<VoituresPage>
             ),
           ),
           onPressed: _openBudgetSheet,
-          child: const Text('Filtrer par budget'),
+          child: Text(AppLocalizations.of(context)!.filterByBudget),
         ),
       ),
     );
   }
 
   void _openBudgetSheet() {
+    final l10n = AppLocalizations.of(context)!;
     final List<double> prixList = voitures
         .map((v) => double.tryParse(
             (v['prix'] ?? '').toString().replaceAll(RegExp(r'[^0-9.]'), '')))
@@ -661,9 +665,9 @@ class _VoituresPageState extends State<VoituresPage>
                         ),
                       ),
                     ),
-                    const Text(
-                      'Prix (FCFA)',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    Text(
+                      l10n.priceFcfaLabel,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -673,7 +677,7 @@ class _VoituresPageState extends State<VoituresPage>
                             controller: minCtl,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: 'Min.',
+                              labelText: l10n.minLabel,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
@@ -692,7 +696,7 @@ class _VoituresPageState extends State<VoituresPage>
                             controller: maxCtl,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: 'Max.',
+                              labelText: l10n.maxLabel,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
@@ -708,7 +712,7 @@ class _VoituresPageState extends State<VoituresPage>
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Text('$disponibles véhicule(s) disponible(s)'),
+                    Text(l10n.vehiclesAvailableCount(disponibles)),
                     const SizedBox(height: 16),
                     Row(
                       children: [
@@ -721,7 +725,7 @@ class _VoituresPageState extends State<VoituresPage>
                               });
                               Navigator.pop(context);
                             },
-                            child: const Text('Réinitialiser'),
+                            child: Text(l10n.reset),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -738,7 +742,7 @@ class _VoituresPageState extends State<VoituresPage>
                               });
                               Navigator.pop(context);
                             },
-                            child: const Text('Appliquer'),
+                            child: Text(l10n.apply),
                           ),
                         ),
                       ],
@@ -769,6 +773,7 @@ class _VoituresPageState extends State<VoituresPage>
   }
 
   Future<void> _showVehicleMiniForm() async {
+    final l10n = AppLocalizations.of(context)!;
     final formKey = GlobalKey<FormState>();
     final marqueController = TextEditingController();
     final modeleController = TextEditingController();
@@ -820,9 +825,9 @@ class _VoituresPageState extends State<VoituresPage>
                                   ),
                                 ),
                                 const SizedBox(height: 14),
-                                const Text(
-                                  'Alerte vehicule',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                Text(
+                                  l10n.vehicleAlert,
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 14),
                                 Row(
@@ -855,7 +860,7 @@ class _VoituresPageState extends State<VoituresPage>
                                         icon: const Icon(
                                             Icons.add_photo_alternate,
                                             size: 20),
-                                        label: const Text('Ajouter des images'),
+                                        label: Text(l10n.addImages),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor:
                                               const Color(0xFFF8BF13),
@@ -864,7 +869,7 @@ class _VoituresPageState extends State<VoituresPage>
                                       ),
                                     ),
                                     IconButton(
-                                      tooltip: 'Prendre une photo',
+                                      tooltip: l10n.takePhoto,
                                       onPressed: alertPhotosUploading
                                           ? null
                                           : () async {
@@ -922,45 +927,45 @@ class _VoituresPageState extends State<VoituresPage>
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: marqueController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Marque',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: l10n.brand,
+                                    border: const OutlineInputBorder(),
                                   ),
                                   validator: (v) => (v == null || v.trim().isEmpty)
-                                      ? 'Marque requise'
+                                      ? l10n.brandRequired
                                       : null,
                                 ),
                                 const SizedBox(height: 10),
                                 TextFormField(
                                   controller: modeleController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Modele',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: l10n.model,
+                                    border: const OutlineInputBorder(),
                                   ),
                                   validator: (v) => (v == null || v.trim().isEmpty)
-                                      ? 'Modele requis'
+                                      ? l10n.modelRequired
                                       : null,
                                 ),
                                 const SizedBox(height: 10),
                                 TextFormField(
                                   controller: anneeController,
                                   keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Annee',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: l10n.year,
+                                    border: const OutlineInputBorder(),
                                   ),
                                   validator: (v) => (v == null || v.trim().isEmpty)
-                                      ? 'Annee requise'
+                                      ? l10n.yearRequired
                                       : null,
                                 ),
                                 const SizedBox(height: 10),
-                                const Text(
-                                  'Etat du vehicule',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                Text(
+                                  l10n.vehicleCondition,
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
                                 ),
                                 RadioListTile<String>(
                                   contentPadding: EdgeInsets.zero,
-                                  title: const Text('Neuf'),
+                                  title: Text(l10n.newCondition),
                                   value: 'neuf',
                                   groupValue: etat,
                                   onChanged: (value) =>
@@ -968,7 +973,7 @@ class _VoituresPageState extends State<VoituresPage>
                                 ),
                                 RadioListTile<String>(
                                   contentPadding: EdgeInsets.zero,
-                                  title: const Text('Occasion'),
+                                  title: Text(l10n.usedCondition),
                                   value: 'occasion',
                                   groupValue: etat,
                                   onChanged: (value) =>
@@ -978,12 +983,12 @@ class _VoituresPageState extends State<VoituresPage>
                                 TextFormField(
                                   controller: budgetController,
                                   keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Budget (FCFA)',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: l10n.budgetFcfa,
+                                    border: const OutlineInputBorder(),
                                   ),
                                   validator: (v) => (v == null || v.trim().isEmpty)
-                                      ? 'Budget requis'
+                                      ? l10n.budgetRequired
                                       : null,
                                 ),
                                 const SizedBox(height: 10),
@@ -1024,23 +1029,21 @@ class _VoituresPageState extends State<VoituresPage>
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(16),
                                       ),
-                                      title: const Row(
+                                      title: Row(
                                         children: [
-                                          Icon(
+                                          const Icon(
                                             Icons.check_circle,
                                             color: Color(0xFF16A34A),
                                           ),
-                                          SizedBox(width: 8),
-                                          Text('Alerte envoyée'),
+                                          const SizedBox(width: 8),
+                                          Text(l10n.alertSent),
                                         ],
                                       ),
-                                      content: const Text(
-                                        'Votre demande a bien ete enregistree. Vous recevrez les retours des vendeurs tres bientot.',
-                                      ),
+                                      content: Text(l10n.alertRegisteredFeedback),
                                       actions: [
                                         TextButton(
                                           onPressed: () => Navigator.of(context).pop(),
-                                          child: const Text('OK'),
+                                          child: Text(l10n.ok),
                                         ),
                                       ],
                                     ),
@@ -1049,12 +1052,12 @@ class _VoituresPageState extends State<VoituresPage>
                                   if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Erreur envoi alerte: $e'),
+                                      content: Text(l10n.alertSendError('$e')),
                                     ),
                                   );
                                 }
                               },
-                              child: const Text('Envoyer l\'alerte'),
+                              child: Text(l10n.sendAlert),
                             ),
                           ),
                         ),
@@ -1073,26 +1076,25 @@ class _VoituresPageState extends State<VoituresPage>
   void _showNoResultDialog() {
     if (!mounted || _noResultDialogShown) return;
     _noResultDialogShown = true;
+    final l10n = AppLocalizations.of(context)!;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.search_off, color: Color(0xFFB45309)),
-              SizedBox(width: 8),
-              Text('Aucun resultat'),
+              const Icon(Icons.search_off, color: Color(0xFFB45309)),
+              const SizedBox(width: 8),
+              Text(l10n.noResults),
             ],
           ),
-          content: const Text(
-            'Aucune voiture ne correspond a votre recherche.\nCreez une mini alerte pour etre contacte rapidement.',
-          ),
+          content: Text(l10n.noVehicleSearchResultHint),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Plus tard'),
+              child: Text(l10n.later),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1103,7 +1105,7 @@ class _VoituresPageState extends State<VoituresPage>
                 backgroundColor: const Color(0xFFF8BF13),
                 foregroundColor: Colors.black,
               ),
-              child: const Text('Remplir mini form'),
+              child: Text(l10n.fillMiniForm),
             ),
           ],
         ),
@@ -1113,6 +1115,7 @@ class _VoituresPageState extends State<VoituresPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final hasActiveCriteria = _searchText.trim().isNotEmpty ||
         _selectedBrand != null ||
         _selectedModel != null ||
@@ -1134,7 +1137,7 @@ class _VoituresPageState extends State<VoituresPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Voitures en ligne'),
+        title: Text(l10n.carsOnline),
         backgroundColor: Colors.amber,
         actions: const [],
       ),
@@ -1161,8 +1164,7 @@ class _VoituresPageState extends State<VoituresPage>
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText:
-                              'Rechercher une voiture (marque, modèle, titre)...',
+                          hintText: l10n.searchCarHint,
                           prefixIcon: const Icon(Icons.search),
                           filled: true,
                           fillColor: Colors.grey[200],
@@ -1446,8 +1448,8 @@ class _VoituresPageState extends State<VoituresPage>
                                                                               .toString()
                                                                               .toLowerCase() ==
                                                                           'neuf')
-                                                                  ? 'Nouveau'
-                                                                  : 'Occasion',
+                                                                  ? l10n.conditionNew
+                                                                  : l10n.usedCondition,
                                                               style:
                                                                   const TextStyle(
                                                                 color:
@@ -1507,7 +1509,7 @@ class _VoituresPageState extends State<VoituresPage>
                                                                             .settings,
                                                                         voiture['boiteVitesse']
                                                                                 ?.toString() ??
-                                                                            'Automatique',
+                                                                            l10n.automaticTransmission,
                                                                       ),
                                                                     ),
                                                                     const SizedBox(

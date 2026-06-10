@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import '../services/auth_service.dart';
 import '../services/user_role_service.dart';
 import '../widgets/role_restriction_dialog.dart';
@@ -97,6 +98,30 @@ class RoleMiddleware {
     );
   }
 
+  static Widget _accessDeniedPlaceholder(BuildContext context, Color iconColor) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.block, size: 64, color: iconColor),
+            const SizedBox(height: 16),
+            Text(
+              l10n.checkingPermissions,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.redirectingIfNeeded,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Widget wrapper pour protéger les routes
   static Widget TranooRouteGuard({required Widget child}) {
     return FutureBuilder<bool>(
@@ -112,27 +137,7 @@ class RoleMiddleware {
           return child;
         }
 
-        // Si l'accès est refusé, afficher un écran de chargement ou d'erreur
-        return const Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.block, size: 64, color: Colors.red),
-                SizedBox(height: 16),
-                Text(
-                  'Vérification des autorisations...',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Redirection en cours si nécessaire',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-        );
+        return _accessDeniedPlaceholder(context, Colors.red);
       },
     );
   }
@@ -152,27 +157,7 @@ class RoleMiddleware {
           return child;
         }
 
-        // Si l'accès est refusé, afficher un écran de chargement ou d'erreur
-        return const Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.block, size: 64, color: Colors.orange),
-                SizedBox(height: 16),
-                Text(
-                  'Vérification des autorisations...',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Redirection en cours si nécessaire',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-        );
+        return _accessDeniedPlaceholder(context, Colors.orange);
       },
     );
   }
@@ -184,17 +169,21 @@ class _LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Connexion')),
-      body: const Center(
+      appBar: AppBar(title: Text(l10n.login)),
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.login, size: 64),
-            SizedBox(height: 16),
-            Text('Veuillez vous connecter'),
-            SizedBox(height: 8),
-            Text('Redirection en cours...', style: TextStyle(color: Colors.grey)),
+            const Icon(Icons.login, size: 64),
+            const SizedBox(height: 16),
+            Text(l10n.pleaseSignIn),
+            const SizedBox(height: 8),
+            Text(
+              l10n.redirecting,
+              style: const TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       ),

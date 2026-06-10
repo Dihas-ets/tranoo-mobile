@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class ProductCard extends StatelessWidget {
   final String imagePath;
@@ -16,6 +17,7 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Container(
         width: 300,
@@ -29,7 +31,6 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image principale dynamique
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
@@ -40,8 +41,6 @@ class ProductCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-
-            // Miniatures statiques (tu peux les rendre dynamiques aussi si besoin)
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: List.generate(
@@ -61,10 +60,7 @@ class ProductCard extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 12),
-
-            // Titre + note
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -75,29 +71,26 @@ class ProductCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const Row(
+                Row(
                   children: [
-                    Text("0 / 5", style: TextStyle(color: Colors.blue)),
-                    Icon(Icons.star_border, color: Colors.blue),
+                    Text(l10n.ratingOutOf5,
+                        style: const TextStyle(color: Colors.blue)),
+                    const Icon(Icons.star_border, color: Colors.blue),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 4),
-
             const Text(
               "10,000 ₣",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-
-            const Text(
-              "Composant essentiel du système de freinage, le mastervac amplifie la force exercée sur la pédale de frein pour faciliter le freinage.",
-              style: TextStyle(color: Colors.grey),
+            Text(
+              l10n.mastervacSampleDescription,
+              style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 12),
-
-            // Infos Modèle et Type
             Row(
               children: [
                 Expanded(
@@ -107,13 +100,13 @@ class ProductCard extends StatelessWidget {
                       color: Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.precision_manufacturing),
-                        SizedBox(height: 4),
-                        Text("Modèle"),
-                        Text(
+                        const Icon(Icons.precision_manufacturing),
+                        const SizedBox(height: 4),
+                        Text(l10n.model),
+                        const Text(
                           "124-CFDS",
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
@@ -129,15 +122,15 @@ class ProductCard extends StatelessWidget {
                       color: Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.label_important),
-                        SizedBox(height: 4),
-                        Text("Type"),
+                        const Icon(Icons.label_important),
+                        const SizedBox(height: 4),
+                        Text(l10n.typeLabel),
                         Text(
-                          "Rare",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          l10n.rare,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -145,22 +138,17 @@ class ProductCard extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
-
-            // Badges
             Row(
-              children: const [
-                Badge(text: "New"),
-                SizedBox(width: 6),
-                Badge(text: "2023"),
-                SizedBox(width: 6),
-                Badge(text: "Bénin"),
+              children: [
+                Badge(text: l10n.newBadge),
+                const SizedBox(width: 6),
+                const Badge(text: "2023"),
+                const SizedBox(width: 6),
+                const Badge(text: "Bénin"),
               ],
             ),
             const SizedBox(height: 16),
-
-            // Bouton
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -172,7 +160,7 @@ class ProductCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text("Vendez votre pièce"),
+                child: Text(l10n.sellYourPart),
               ),
             ),
           ],

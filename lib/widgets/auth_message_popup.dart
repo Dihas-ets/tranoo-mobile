@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Popup coloré et non agressif pour les messages d'authentification.
@@ -83,7 +84,9 @@ class AuthMessagePopup {
     return showDialog<void>(
       context: context,
       barrierDismissible: true,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) {
+        final l10n = AppLocalizations.of(dialogContext)!;
+        return AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         backgroundColor: Colors.white,
         contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
@@ -129,11 +132,11 @@ class AuthMessagePopup {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  Navigator.of(context).pop();
-                  await _openSupportWhatsApp(context);
+                  Navigator.of(dialogContext).pop();
+                  await _openSupportWhatsApp(dialogContext);
                 },
                 icon: const Icon(Icons.chat, size: 22),
-                label: const Text('Connecter l\'assistance'),
+                label: Text(l10n.connectSupport),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF25D366),
                   foregroundColor: Colors.white,
@@ -147,7 +150,8 @@ class AuthMessagePopup {
             ),
           ],
         ),
-      ),
+      );
+      },
     );
   }
 
@@ -249,11 +253,12 @@ class AuthMessagePopup {
     }
 
     if (!context.mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     await showError(
       context,
-      title: "Impossible d'ouvrir WhatsApp.",
-      subtitle: "Installez WhatsApp puis réessayez.",
-      buttonText: 'OK',
+      title: l10n.cannotOpenWhatsApp,
+      subtitle: l10n.installWhatsAppRetry,
+      buttonText: l10n.ok,
     );
   }
 

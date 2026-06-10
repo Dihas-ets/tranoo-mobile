@@ -126,7 +126,11 @@ class PushOTPService {
   }) async {
     try {
       if (telephone.trim().isEmpty) {
-        return {'success': false, 'message': 'Veuillez entrer votre numéro.'};
+        return {
+          'success': false,
+          'code': 'MISSING_FIELDS',
+          'message': 'Veuillez entrer votre numéro.',
+        };
       }
 
       // Token FCM de cet appareil (fallback si WhatsApp invisible)
@@ -168,6 +172,7 @@ class PushOTPService {
             deviceId.isEmpty) {
           return {
             'success': false,
+            'code': 'ACCOUNT_NOT_FOUND',
             'message':
                 'Aucun compte trouvé pour ce numéro WhatsApp. Vérifiez le numéro utilisé à l\'inscription.',
           };
@@ -186,11 +191,16 @@ class PushOTPService {
       } else {
         return {
           'success': false,
+          'code': data['code'] as String?,
           'message': data['message'] as String? ?? 'Erreur inconnue',
         };
       }
     } catch (e) {
-      return {'success': false, 'message': 'Erreur de connexion: $e'};
+      return {
+        'success': false,
+        'code': 'INTERNAL_ERROR',
+        'message': 'Erreur de connexion: $e',
+      };
     }
   }
 
@@ -221,12 +231,17 @@ class PushOTPService {
       } else {
         return {
           'success': false,
+          'code': data['code'] as String?,
           'message': data['message'] ?? 'Erreur inconnue',
         };
       }
     } catch (e) {
       developer.log('[RESET] verify error: $e', name: 'PushOTPService');
-      return {'success': false, 'message': 'Erreur de connexion: $e'};
+      return {
+        'success': false,
+        'code': 'INTERNAL_ERROR',
+        'message': 'Erreur de connexion: $e',
+      };
     }
   }
 
@@ -257,12 +272,17 @@ class PushOTPService {
       } else {
         return {
           'success': false,
+          'code': data['code'] as String?,
           'message': data['message'] ?? 'Erreur inconnue',
         };
       }
     } catch (e) {
       developer.log('[RESET] reset-password error: $e', name: 'PushOTPService');
-      return {'success': false, 'message': 'Erreur de connexion: $e'};
+      return {
+        'success': false,
+        'code': 'INTERNAL_ERROR',
+        'message': 'Erreur de connexion: $e',
+      };
     }
   }
 

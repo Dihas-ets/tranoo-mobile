@@ -16,6 +16,7 @@ import 'package:tranoo/utils/page_refresh_registry.dart';
 import 'package:tranoo/widgets/page_pull_refresh.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:tranoo/utils/catalog_display.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -116,15 +117,15 @@ class _PiecePageState extends State<PiecePage>
     super.dispose();
   }
 
-  String _pieceDisplayTitle(dynamic piece) {
+  String _pieceDisplayTitle(AppLocalizations l10n, dynamic piece) {
     final t = piece['titre'];
     if (t != null && t.toString().trim().isNotEmpty) return t.toString();
     final pt = piece['pieceType'];
     if (pt != null && pt.toString().trim().isNotEmpty) return pt.toString();
-    return 'Sans titre';
+    return l10n.untitled;
   }
 
-  String _pieceDisplayCompany(dynamic piece) {
+  String _pieceDisplayCompany(AppLocalizations l10n, dynamic piece) {
     final e = piece['entreprise'];
     if (e != null && e.toString().trim().isNotEmpty) return e.toString();
     final v = piece['vendeur'];
@@ -136,7 +137,7 @@ class _PiecePageState extends State<PiecePage>
       final both = '${n ?? ''} ${p ?? ''}'.trim();
       if (both.isNotEmpty) return both;
     }
-    return 'Entreprise inconnue';
+    return l10n.unknownCompany;
   }
 
   String _pieceDisplayLocation(dynamic piece) {
@@ -196,36 +197,40 @@ class _PiecePageState extends State<PiecePage>
       } else {
         debugPrint(
             '[PIECES_PUBLIC] HTTP ${response.statusCode}: ${response.body}');
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
           error = response.statusCode == 401
-              ? 'Session expirée. Reconnectez-vous.'
-              : 'Erreur lors du chargement des pièces';
+              ? l10n.sessionExpiredReconnect
+              : l10n.piecesLoadError;
           isLoading = false;
         });
       }
     } catch (e) {
       debugPrint('[PIECES_PUBLIC] fetchPieces exception: $e');
+      if (!mounted) return;
       setState(() {
-        error = 'Erreur réseau';
+        error = AppLocalizations.of(context)!.networkError;
         isLoading = false;
       });
     }
   }
 
   Future<void> _deletePiece(String articleId, int index) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmer la suppression'),
-        content: const Text('Voulez-vous vraiment supprimer cette pièce ?'),
+        title: Text(l10n.confirmDeletion),
+        content: Text(l10n.confirmDeletePart),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Supprimer'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -247,17 +252,17 @@ class _PiecePageState extends State<PiecePage>
       );
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pièce supprimée avec succès !')),
+          SnackBar(content: Text(l10n.partDeletedSuccess)),
         );
         fetchPieces();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la suppression.')),
+          SnackBar(content: Text(l10n.deletionError)),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur réseau ou serveur.')),
+        SnackBar(content: Text(l10n.networkOrServerError)),
       );
     }
   }
@@ -573,7 +578,7 @@ class _PiecePageState extends State<PiecePage>
             ),
           ),
           onPressed: _openBudgetSheet,
-          child: const Text('Filtrer par budget'),
+          child: Text(AppLocalizations.of(context)!.filterByBudget),
         ),
       ),
     );
@@ -612,6 +617,7 @@ class _PiecePageState extends State<PiecePage>
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
         return StatefulBuilder(
           builder: (context, setModalState) {
             final disponibles = compterDansIntervalle(currentMin, currentMax);
@@ -639,10 +645,10 @@ class _PiecePageState extends State<PiecePage>
                         ),
                       ),
                     ),
-                    const Text(
-                      'Prix (FCFA)',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    Text(
+                      l10n.priceFcfa,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -652,7 +658,7 @@ class _PiecePageState extends State<PiecePage>
                             controller: minCtl,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: 'Min.',
+                              labelText: l10n.minLabel,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
@@ -671,7 +677,7 @@ class _PiecePageState extends State<PiecePage>
                             controller: maxCtl,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: 'Max.',
+                              labelText: l10n.maxLabel,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
@@ -687,7 +693,7 @@ class _PiecePageState extends State<PiecePage>
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Text('$disponibles pièce(s) disponible(s)'),
+                    Text(l10n.partsAvailableCount(disponibles)),
                     const SizedBox(height: 16),
                     Row(
                       children: [
@@ -700,7 +706,7 @@ class _PiecePageState extends State<PiecePage>
                               });
                               Navigator.pop(context);
                             },
-                            child: const Text('Réinitialiser'),
+                            child: Text(l10n.reset),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -717,7 +723,7 @@ class _PiecePageState extends State<PiecePage>
                               });
                               Navigator.pop(context);
                             },
-                            child: const Text('Appliquer'),
+                            child: Text(l10n.apply),
                           ),
                         ),
                       ],
@@ -766,6 +772,7 @@ class _PiecePageState extends State<PiecePage>
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx)!;
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             return SafeArea(
@@ -799,9 +806,9 @@ class _PiecePageState extends State<PiecePage>
                                   ),
                                 ),
                                 const SizedBox(height: 14),
-                                const Text(
-                                  'Alerte piece',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.partAlert,
+                                  style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold),
                                 ),
@@ -836,7 +843,7 @@ class _PiecePageState extends State<PiecePage>
                                         icon: const Icon(
                                             Icons.add_photo_alternate,
                                             size: 20),
-                                        label: const Text('Ajouter des images'),
+                                        label: Text(l10n.addImages),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor:
                                               const Color(0xFFE57373),
@@ -845,7 +852,7 @@ class _PiecePageState extends State<PiecePage>
                                       ),
                                     ),
                                     IconButton(
-                                      tooltip: 'Prendre une photo',
+                                      tooltip: l10n.takePhoto,
                                       onPressed: alertPhotosUploading
                                           ? null
                                           : () async {
@@ -903,60 +910,60 @@ class _PiecePageState extends State<PiecePage>
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: marqueController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Marque du vehicule',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: l10n.vehicleBrandLabel,
+                                    border: const OutlineInputBorder(),
                                   ),
                                   validator: (v) =>
                                       (v == null || v.trim().isEmpty)
-                                          ? 'Marque requise'
+                                          ? l10n.brandRequired
                                           : null,
                                 ),
                                 const SizedBox(height: 10),
                                 TextFormField(
                                   controller: modeleController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Modele',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: l10n.model,
+                                    border: const OutlineInputBorder(),
                                   ),
                                   validator: (v) =>
                                       (v == null || v.trim().isEmpty)
-                                          ? 'Modele requis'
+                                          ? l10n.modelRequired
                                           : null,
                                 ),
                                 const SizedBox(height: 10),
                                 TextFormField(
                                   controller: anneeController,
                                   keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Annee',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: l10n.year,
+                                    border: const OutlineInputBorder(),
                                   ),
                                   validator: (v) =>
                                       (v == null || v.trim().isEmpty)
-                                          ? 'Annee requise'
+                                          ? l10n.yearRequired
                                           : null,
                                 ),
                                 const SizedBox(height: 10),
                                 TextFormField(
                                   controller: pieceNameController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Nom de la piece',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: l10n.partNameLabel,
+                                    border: const OutlineInputBorder(),
                                   ),
                                   validator: (v) =>
                                       (v == null || v.trim().isEmpty)
-                                          ? 'Nom de la piece requis'
+                                          ? l10n.partNameRequired
                                           : null,
                                 ),
                                 const SizedBox(height: 10),
-                                const Text(
-                                  'Niveau d\'urgence',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                Text(
+                                  l10n.urgencyLevel,
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
                                 ),
                                 RadioListTile<String>(
                                   contentPadding: EdgeInsets.zero,
-                                  title: const Text('Faible'),
+                                  title: Text(l10n.urgencyLow),
                                   value: 'faible',
                                   groupValue: urgence,
                                   onChanged: (value) => setSheetState(
@@ -964,7 +971,7 @@ class _PiecePageState extends State<PiecePage>
                                 ),
                                 RadioListTile<String>(
                                   contentPadding: EdgeInsets.zero,
-                                  title: const Text('Normale'),
+                                  title: Text(l10n.urgencyNormal),
                                   value: 'normale',
                                   groupValue: urgence,
                                   onChanged: (value) => setSheetState(
@@ -972,7 +979,7 @@ class _PiecePageState extends State<PiecePage>
                                 ),
                                 RadioListTile<String>(
                                   contentPadding: EdgeInsets.zero,
-                                  title: const Text('Urgente'),
+                                  title: Text(l10n.urgencyHigh),
                                   value: 'urgente',
                                   groupValue: urgence,
                                   onChanged: (value) => setSheetState(
@@ -1019,24 +1026,22 @@ class _PiecePageState extends State<PiecePage>
                                           borderRadius:
                                               BorderRadius.circular(16),
                                         ),
-                                        title: const Row(
+                                        title: Row(
                                           children: [
-                                            Icon(
+                                            const Icon(
                                               Icons.check_circle,
                                               color: Color(0xFF16A34A),
                                             ),
-                                            SizedBox(width: 8),
-                                            Text('Alerte envoyée'),
+                                            const SizedBox(width: 8),
+                                            Text(l10n.alertSent),
                                           ],
                                         ),
-                                        content: const Text(
-                                          'Votre demande a bien ete enregistree. Vous recevrez les retours des vendeurs tres bientot.',
-                                        ),
+                                        content: Text(l10n.alertRegisteredFeedback),
                                         actions: [
                                           TextButton(
                                             onPressed: () =>
                                                 Navigator.of(context).pop(),
-                                            child: const Text('OK'),
+                                            child: Text(l10n.ok),
                                           ),
                                         ],
                                       ),
@@ -1045,14 +1050,14 @@ class _PiecePageState extends State<PiecePage>
                                     if (!context.mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content:
-                                            Text('Erreur envoi alerte: $e'),
+                                        content: Text(
+                                            l10n.alertSendError('$e')),
                                       ),
                                     );
                                   }
                                 }();
                               },
-                              child: const Text('Envoyer l\'alerte'),
+                              child: Text(l10n.sendAlert),
                             ),
                           ),
                         ),
@@ -1073,25 +1078,24 @@ class _PiecePageState extends State<PiecePage>
     _noResultDialogShown = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.search_off, color: Color(0xFFB45309)),
-              SizedBox(width: 8),
-              Text('Aucun resultat'),
+              const Icon(Icons.search_off, color: Color(0xFFB45309)),
+              const SizedBox(width: 8),
+              Text(l10n.noResults),
             ],
           ),
-          content: const Text(
-            'Aucune piece ne correspond a votre recherche.\nCreez une mini alerte ciblee pour les vendeurs.',
-          ),
+          content: Text(l10n.noPartSearchResultHint),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Plus tard'),
+              child: Text(l10n.later),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1102,7 +1106,7 @@ class _PiecePageState extends State<PiecePage>
                 backgroundColor: const Color(0xFFF8BF13),
                 foregroundColor: Colors.black,
               ),
-              child: const Text('Remplir mini form'),
+              child: Text(l10n.fillMiniForm),
             ),
           ],
         ),
@@ -1112,6 +1116,7 @@ class _PiecePageState extends State<PiecePage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final hasActiveCriteria = _searchText.trim().isNotEmpty ||
         _selectedBrand != null ||
         _selectedModel != null ||
@@ -1128,7 +1133,7 @@ class _PiecePageState extends State<PiecePage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pièces détachées'),
+        title: Text(l10n.spareParts),
         backgroundColor: Colors.amber,
       ),
       body: PagePullRefresh(
@@ -1154,7 +1159,7 @@ class _PiecePageState extends State<PiecePage>
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Rechercher une pièce...',
+                          hintText: l10n.searchPartHint,
                           prefixIcon: const Icon(Icons.search),
                           filled: true,
                           fillColor: Colors.grey[200],
@@ -1277,14 +1282,14 @@ class _PiecePageState extends State<PiecePage>
                                                         ?.toString(),
                                                     isAcheteur: true,
                                                     title: _pieceDisplayTitle(
-                                                        piece),
+                                                        l10n, piece),
                                                     year: piece['annee'] ?? '',
                                                     description:
                                                         piece['description'] ??
                                                             '',
                                                     company:
                                                         _pieceDisplayCompany(
-                                                            piece),
+                                                            l10n, piece),
                                                     location:
                                                         _pieceDisplayLocation(
                                                             piece),
@@ -1389,7 +1394,7 @@ class _PiecePageState extends State<PiecePage>
                                                   ),
                                                   const SizedBox(height: 8),
                                                   Text(
-                                                    _pieceDisplayTitle(piece),
+                                                    _pieceDisplayTitle(l10n, piece),
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,
@@ -1401,7 +1406,7 @@ class _PiecePageState extends State<PiecePage>
                                                   ),
                                                   const SizedBox(height: 2),
                                                   Text(
-                                                    _pieceDisplayCompany(piece),
+                                                    _pieceDisplayCompany(l10n, piece),
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,

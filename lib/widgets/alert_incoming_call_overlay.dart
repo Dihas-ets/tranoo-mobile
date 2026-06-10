@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tranoo/data/screens/notifications.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/services/alert_call_payload.dart';
 import 'package:tranoo/services/urgent_fcm_utils.dart';
 import 'package:tranoo/services/notification_ringtone_player.dart';
@@ -99,6 +100,7 @@ class _AlertIncomingCallOverlayState extends State<AlertIncomingCallOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final data = widget.payload.data;
     final title = widget.payload.title;
     final body = widget.payload.body;
@@ -171,15 +173,15 @@ class _AlertIncomingCallOverlayState extends State<AlertIncomingCallOverlay>
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: Colors.white24),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.notifications_active,
+                      const Icon(Icons.notifications_active,
                           color: Colors.white, size: 16),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
-                        'Alerte acheteur',
-                        style: TextStyle(
+                        l10n.buyerAlert,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.5,
@@ -252,7 +254,7 @@ class _AlertIncomingCallOverlayState extends State<AlertIncomingCallOverlay>
                 ],
                 const Spacer(),
                 Text(
-                  'Glissez vers le haut ou appuyez',
+                  l10n.swipeUpOrTap,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.45),
                     fontSize: 12,
@@ -266,7 +268,7 @@ class _AlertIncomingCallOverlayState extends State<AlertIncomingCallOverlay>
                     children: [
                       _SwipeCallButton(
                         icon: Icons.call_end,
-                        label: 'Refuser',
+                        label: l10n.decline,
                         color: const Color(0xFFE53935),
                         dragOffset: _rejectDrag,
                         onDragUpdate: (d) =>
@@ -275,7 +277,7 @@ class _AlertIncomingCallOverlayState extends State<AlertIncomingCallOverlay>
                       ),
                       _SwipeCallButton(
                         icon: Icons.call,
-                        label: 'Répondre',
+                        label: l10n.answer,
                         color: const Color(0xFF43A047),
                         dragOffset: _acceptDrag,
                         onDragUpdate: (d) =>
@@ -512,10 +514,15 @@ class AlertIncomingCallService {
     if (launchData == null || launchData.isEmpty) return;
     if (_alreadyHandled(launchData)) return;
 
+    final ctx = navigatorKey.currentContext;
+    final l10n = ctx != null ? AppLocalizations.of(ctx) : null;
+
     await showPayload(
       AlertCallPayload(
-        title: launchData['title'] ?? 'Nouvelle alerte',
-        body: launchData['message'] ?? 'Un vendeur a répondu à votre alerte',
+        title: launchData['title'] ?? l10n?.newAlertTitle ?? 'Nouvelle alerte',
+        body: launchData['message'] ??
+            l10n?.sellerRespondedToAlert ??
+            'Un vendeur a répondu à votre alerte',
         data: launchData,
       ),
       navigatorKey: navigatorKey,

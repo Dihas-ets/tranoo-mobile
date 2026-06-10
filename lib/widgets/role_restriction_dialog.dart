@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import '../services/auth_service.dart';
 
 /// Popup attractif pour les restrictions d'accès par rôle
@@ -21,6 +22,7 @@ class RoleRestrictionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Dialog(
@@ -71,7 +73,7 @@ class RoleRestrictionDialog extends StatelessWidget {
             
             // Titre
             Text(
-              'Accès Restreint',
+              l10n.restrictedAccess,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -83,7 +85,7 @@ class RoleRestrictionDialog extends StatelessWidget {
             
             // Message principal
             Text(
-              'Votre rôle ($requiredRole) n\'est pas autorisé sur $currentApp',
+              l10n.roleNotAllowedOnApp(requiredRole, currentApp),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -95,7 +97,7 @@ class RoleRestrictionDialog extends StatelessWidget {
             
             // Message d'alternative
             Text(
-              'Utilisez plutôt $alternativeApp pour votre rôle',
+              l10n.useAlternativeAppForRole(alternativeApp),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -113,14 +115,14 @@ class RoleRestrictionDialog extends StatelessWidget {
                 // Bouton Google Play
                 _StoreButton(
                   icon: 'assets/images/google.png',
-                  label: 'Google Play',
+                  label: l10n.googlePlay,
                   onPressed: () => _launchURL(playStoreUrl),
                 ),
                 
                 // Bouton App Store
                 _StoreButton(
                   icon: 'assets/images/app.png',
-                  label: 'App Store',
+                  label: l10n.appStore,
                   onPressed: () => _launchURL(appStoreUrl),
                 ),
               ],
@@ -144,9 +146,9 @@ class RoleRestrictionDialog extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text(
-                  'Se déconnecter',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                child: Text(
+                  l10n.logout,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
               ),
             ),

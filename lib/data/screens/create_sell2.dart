@@ -7,6 +7,7 @@ import 'mastervacpage.dart'; // Importez la page MastervacPage
 import '../../utils/cloudinary_upload.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'dart:developer';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class CreateSellPage2 extends StatefulWidget {
   const CreateSellPage2({super.key});
@@ -17,6 +18,10 @@ class CreateSellPage2 extends StatefulWidget {
 
 class CreateSellPage2State extends State<CreateSellPage2> {
   static const int _maxMediaSlots = 12;
+  static const String _conditionNew = 'Nouveau';
+  static const String _conditionUsed = 'Occasion';
+  static const String _otherOption = 'Autre';
+  static const String _noEngine = 'Aucun';
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _anneeController = TextEditingController();
   final TextEditingController _fournisseurTelController = TextEditingController();
@@ -44,16 +49,41 @@ class CreateSellPage2State extends State<CreateSellPage2> {
   bool get _isAnyUploading =>
       _isUploadingImage.contains(true) || _isUploadingVideo;
 
-  final List<String> _pieceTypes = ['Nouveau', 'Occasion'];
+  final List<String> _pieceTypes = [_conditionNew, _conditionUsed];
   final List<String> _fuelTypes = [
     'Essence',
     'Gazoil',
     'Diezel',
     'Electrique',
     'Hybride',
-    'Aucun',
+    _noEngine,
   ];
-  final List<String> _models = ['Modèle1', 'Modèle2', 'Autre'];
+  final List<String> _models = ['Modèle1', 'Modèle2', _otherOption];
+
+  String _conditionLabel(AppLocalizations l10n, String value) {
+    if (value == _conditionNew) return l10n.newCondition;
+    if (value == _conditionUsed) return l10n.usedCondition;
+    return value;
+  }
+
+  String _fuelLabel(AppLocalizations l10n, String value) {
+    switch (value) {
+      case 'Essence':
+        return l10n.petrol;
+      case 'Gazoil':
+        return l10n.gazoil;
+      case 'Diezel':
+        return l10n.diesel;
+      case 'Electrique':
+        return l10n.electric;
+      case 'Hybride':
+        return l10n.hybrid;
+      case _noEngine:
+        return l10n.noEngine;
+      default:
+        return value;
+    }
+  }
   String? _customFuelType;
   String? _customModel;
 
@@ -61,8 +91,9 @@ class CreateSellPage2State extends State<CreateSellPage2> {
     final emptyIndex = _cloudinaryUrls.indexWhere((u) => u == null);
     if (emptyIndex == -1) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Maximum de 12 images atteint')),
+          SnackBar(content: Text(l10n.maxImagesReached)),
         );
       }
       return;
@@ -91,8 +122,9 @@ class CreateSellPage2State extends State<CreateSellPage2> {
       }
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload échoué: $e')),
+        SnackBar(content: Text(l10n.uploadFailed(e.toString()))),
       );
       setState(() => _uploadedImages[index] = null);
     } finally {
@@ -154,17 +186,16 @@ class CreateSellPage2State extends State<CreateSellPage2> {
           _cloudinaryVideoUrl = url;
         });
       } else {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Erreur lors de l\'upload de la vidéo. Veuillez réessayer.'),
-          ),
+          SnackBar(content: Text(l10n.videoUploadError)),
         );
       }
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload vidéo échoué: $e')),
+        SnackBar(content: Text(l10n.videoUploadFailed(e.toString()))),
       );
     } finally {
       if (!mounted) return;
@@ -177,6 +208,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 400;
     final isMediumScreen = screenWidth >= 400 && screenWidth < 800;
@@ -193,7 +225,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
             children: [
                     // Titre
                     _buildLabel(
-                      'Nom de la pièce',
+                      l10n.pieceName,
                       isSmallScreen,
                       isMediumScreen,
                       isLargeScreen,
@@ -202,7 +234,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                     TextField(
                       controller: _titleController,
                       decoration: InputDecoration(
-                        hintText: 'Nom de la pièce',
+                        hintText: l10n.pieceName,
                         filled: true,
                         fillColor: const Color(0xFFF2F2F2),
                         border: OutlineInputBorder(
@@ -225,7 +257,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel(
-                                'Type',
+                                l10n.typeLabel,
                                 isSmallScreen,
                                 isMediumScreen,
                                 isLargeScreen,
@@ -267,14 +299,14 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                                                           .shrinkWrap, // Réduit la zone de toucher
                                                 ),
                                                 Text(
-                                                  type,
+                                                  _conditionLabel(l10n, type),
                                                   style: TextStyle(
                                                     fontSize:
                                                         isSmallScreen
                                                             ? 14
                                                             : isMediumScreen
                                                             ? 16
-                                                            : 18, // Ajustement de la taille du texte
+                                                            : 18,
                                                   ),
                                                 ),
                                               ],
@@ -306,7 +338,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                                                     activeColor: Colors.amber,
                                                   ),
                                                   Text(
-                                                    type,
+                                                    _conditionLabel(l10n, type),
                                                     style: TextStyle(
                                                       fontSize:
                                                           isSmallScreen
@@ -333,7 +365,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel(
-                                'Année',
+                                l10n.year,
                                 isSmallScreen,
                                 isMediumScreen,
                                 isLargeScreen,
@@ -342,7 +374,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                               TextField(
                                 controller: _anneeController,
                                 decoration: InputDecoration(
-                                  hintText: 'Entrer l\'année',
+                                  hintText: l10n.enterYearShort,
                                   filled: true,
                                   fillColor: const Color(0xFFF2F2F2),
                                   border: OutlineInputBorder(
@@ -370,7 +402,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel(
-                                'Type de moteur',
+                                l10n.engineType,
                                 isSmallScreen,
                                 isMediumScreen,
                                 isLargeScreen,
@@ -378,25 +410,27 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                               const SizedBox(height: 8),
                               _buildDropdown(
                                 value: _selectedFuelType,
-                                hint: 'Type de moteur',
+                                hint: l10n.engineType,
                                 items: _fuelTypes,
+                                itemLabel: (v) => _fuelLabel(l10n, v),
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedFuelType = value;
-                                    if (value != 'Aucun')
+                                    if (value != _noEngine) {
                                       _customFuelType = null;
+                                    }
                                   });
                                 },
                               ),
                             ],
                           ),
                         ),
-                        if (_selectedFuelType == 'Aucun')
+                        if (_selectedFuelType == _noEngine)
                           Padding(
                             padding: const EdgeInsets.only(top: 8.0),
                             child: TextField(
-                              decoration: const InputDecoration(
-                                hintText: 'Entrez le type de moteur',
+                              decoration: InputDecoration(
+                                hintText: l10n.enterEngineType,
                                 filled: true,
                                 fillColor: Color(0xFFF2F2F2),
                                 border: OutlineInputBorder(
@@ -419,7 +453,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel(
-                                'Modèle',
+                                l10n.model,
                                 isSmallScreen,
                                 isMediumScreen,
                                 isLargeScreen,
@@ -427,21 +461,22 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                               const SizedBox(height: 8),
                               _buildDropdown(
                                 value: _selectedModel,
-                                hint: 'Modèle',
+                                hint: l10n.model,
                                 items: _models,
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedModel = value;
-                                    _customModel = value == 'Autre' ? '' : null;
+                                    _customModel =
+                                        value == _otherOption ? '' : null;
                                   });
                                 },
                               ),
-                              if (_selectedModel == 'Autre')
+                              if (_selectedModel == _otherOption)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 8.0),
                                   child: TextField(
-                                    decoration: const InputDecoration(
-                                      hintText: 'Entrez le modèle',
+                                    decoration: InputDecoration(
+                                      hintText: l10n.enterModel,
                                       filled: true,
                                       fillColor: Color(0xFFF2F2F2),
                                       border: OutlineInputBorder(
@@ -459,24 +494,24 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                                   ),
                                 ),
                               if (_selectedModel != null &&
-                                  _selectedModel != 'Autre')
+                                  _selectedModel != _otherOption)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4.0),
                                   child: Text(
-                                    'Modèle sélectionné : $_selectedModel',
+                                    l10n.selectedModelLabel(_selectedModel!),
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey,
                                     ),
                                   ),
                                 ),
-                              if (_selectedModel == 'Autre' &&
+                              if (_selectedModel == _otherOption &&
                                   _customModel != null &&
                                   _customModel!.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4.0),
                                   child: Text(
-                                    'Modèle personnalisé : $_customModel',
+                                    l10n.customModelLabel(_customModel!),
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey,
@@ -491,10 +526,11 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                     const SizedBox(height: 24),
 
                     _buildLabel(
-                      'Caracéristiques',
+                      l10n.characteristics.replaceAll(':', ''),
                       isSmallScreen,
                       isMediumScreen,
                       isLargeScreen,
+                      isRequired: false,
                     ),
                     const SizedBox(height: 24),
 
@@ -507,7 +543,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel(
-                                'Emplacement',
+                                l10n.placement,
                                 isSmallScreen,
                                 isMediumScreen,
                                 isLargeScreen,
@@ -516,7 +552,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                               TextField(
                                 controller: _localisationController,
                                 decoration: InputDecoration(
-                                  hintText: 'Localisation',
+                                  hintText: l10n.defaultLocation,
                                   filled: true,
                                   fillColor: const Color(0xFFF2F2F2),
                                   border: OutlineInputBorder(
@@ -538,7 +574,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel(
-                                'Prix',
+                                l10n.price,
                                 isSmallScreen,
                                 isMediumScreen,
                                 isLargeScreen,
@@ -547,7 +583,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                               TextField(
                                 controller: _prixController,
                                 decoration: InputDecoration(
-                                  hintText: 'Saisir le Prix',
+                                  hintText: l10n.enterPrice,
                                   filled: true,
                                   fillColor: const Color(0xFFF2F2F2),
                                   border: OutlineInputBorder(
@@ -569,7 +605,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
 
                     // Description
                     _buildLabel(
-                      'Description',
+                      l10n.description,
                       isSmallScreen,
                       isMediumScreen,
                       isLargeScreen,
@@ -579,7 +615,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                       controller: _descriptionController,
                       maxLines: 5,
                       decoration: InputDecoration(
-                        hintText: 'Entrer une description de votre pièce',
+                        hintText: l10n.enterPartDescription,
                         filled: true,
                         fillColor: const Color(0xFFF2F2F2),
                         border: OutlineInputBorder(
@@ -596,7 +632,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
 
                     // Nom de l'entreprise
                     _buildLabel(
-                      'Nom de l\'entreprise possédant le BL',
+                      l10n.companyBlOwner,
                       isSmallScreen,
                       isMediumScreen,
                       isLargeScreen,
@@ -605,7 +641,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                     TextField(
                       controller: _companyController,
                       decoration: InputDecoration(
-                        hintText: 'Entrer le nom de l\'entreprise',
+                        hintText: l10n.enterCompanyName,
                         filled: true,
                         fillColor: const Color(0xFFF2F2F2),
                         border: OutlineInputBorder(
@@ -621,7 +657,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                     const SizedBox(height: 24),
 
                     _buildLabel(
-                      'Images (optionnel, max 12)',
+                      l10n.imagesOptionalMax12,
                       isSmallScreen,
                       isMediumScreen,
                       isLargeScreen,
@@ -637,7 +673,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                               if (idx != -1) _pickImage(idx);
                             },
                             icon: const Icon(Icons.add_photo_alternate, size: 20),
-                            label: const Text('Ajouter des images'),
+                            label: Text(l10n.addImagesButton),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFF8BF13),
                               foregroundColor: Colors.black,
@@ -645,7 +681,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Prendre une photo',
+                          tooltip: l10n.takePhoto,
                           onPressed: _takePhotoFromCamera,
                           icon: const Icon(Icons.photo_camera),
                           color: const Color(0xFFF8BF13),
@@ -764,12 +800,13 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                     const SizedBox(height: 16),
                     // Upload vidéo avec aperçu
                     _buildVideoUploadSection(
+                      l10n: l10n,
                       isSmallScreen: isSmallScreen,
                       isMediumScreen: isMediumScreen,
                       isLargeScreen: isLargeScreen,
                     ),
               const SizedBox(height: 20),
-              _buildVerificationButton(context),
+              _buildVerificationButton(context, l10n),
             ],
           ),
         ),
@@ -803,6 +840,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
     required String hint,
     required List<String> items,
     required Function(String?) onChanged,
+    String Function(String)? itemLabel,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -818,10 +856,12 @@ class CreateSellPage2State extends State<CreateSellPage2> {
           ),
           isExpanded: true,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          items:
-              items.map((String item) {
-                return DropdownMenuItem<String>(value: item, child: Text(item));
-              }).toList(),
+          items: items.map((String item) {
+            return DropdownMenuItem<String>(
+              value: item,
+              child: Text(itemLabel != null ? itemLabel(item) : item),
+            );
+          }).toList(),
           onChanged: onChanged,
         ),
       ),
@@ -829,6 +869,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
   }
 
   Widget _buildVideoUploadSection({
+    required AppLocalizations l10n,
     required bool isSmallScreen,
     required bool isMediumScreen,
     required bool isLargeScreen,
@@ -837,7 +878,7 @@ class CreateSellPage2State extends State<CreateSellPage2> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildLabel(
-          'Vidéo (optionnelle)',
+          l10n.videoOptional,
           isSmallScreen,
           isMediumScreen,
           isLargeScreen,
@@ -868,19 +909,19 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                       width: double.infinity,
                       height: double.infinity,
                       color: Colors.black87,
-                      child: const Center(
+                      child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.play_circle_fill,
                               color: Colors.white,
                               size: 40,
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
-                              'Vidéo uploadée',
-                              style: TextStyle(
+                              l10n.videoUploadedLabel,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -902,9 +943,9 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                           size: 40,
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Ajouter une vidéo',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        Text(
+                          l10n.addVideo,
+                          style: const TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                       ],
                     ),
@@ -931,8 +972,8 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                             const SizedBox(height: 10),
                             Text(
                               _videoUploadProgress < 0.85
-                                  ? 'Envoi...'
-                                  : 'Traitement...',
+                                  ? l10n.sending
+                                  : l10n.processing,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -1002,7 +1043,10 @@ class CreateSellPage2State extends State<CreateSellPage2> {
     );
   }
 
-  Widget _buildVerificationButton(BuildContext context) {
+  Widget _buildVerificationButton(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
     return Container(
       width: double.infinity,
       child: ElevatedButton(
@@ -1015,31 +1059,34 @@ class CreateSellPage2State extends State<CreateSellPage2> {
           elevation: 0,
         ),
         child: _isAnyUploading
-            ? const Row(
+            ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Text(
-                    'Upload en cours...',
-                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                    l10n.uploadInProgress,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                    ),
                   ),
                 ],
               )
-            : const Text(
-          'Vérification',
-          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-        ),
+            : Text(
+                l10n.verificationAction,
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+              ),
       ),
     );
   }
 
   void _onValidate() {
-    // Vérification des champs obligatoires
+    final l10n = AppLocalizations.of(context)!;
     final title = _titleController.text.trim();
     final annee = _anneeController.text.trim();
     final localisation = _localisationController.text.trim();
@@ -1047,9 +1094,11 @@ class CreateSellPage2State extends State<CreateSellPage2> {
     final description = _descriptionController.text.trim();
     final company = _companyController.text.trim();
     final pieceType = _selectedPieceType;
-    final fuelType =
-        _selectedFuelType == 'Aucun' ? _customFuelType : _selectedFuelType;
-    final model = (_selectedModel == 'Autre') ? _customModel : _selectedModel;
+    final fuelType = _selectedFuelType == _noEngine
+        ? _customFuelType
+        : _selectedFuelType;
+    final model =
+        (_selectedModel == _otherOption) ? _customModel : _selectedModel;
     log('[DEBUG] title: "$title" (empty: ${title.isEmpty})');
     log('[DEBUG] pieceType: "$pieceType" (null: ${pieceType == null})');
     log('[DEBUG] annee: "$annee" (empty: ${annee.isEmpty})');
@@ -1077,24 +1126,17 @@ class CreateSellPage2State extends State<CreateSellPage2> {
         company.isEmpty) {
       log('[DEBUG] Validation échouée, un ou plusieurs champs sont invalides.');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Veuillez remplir tous les champs obligatoires.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.fillRequiredFields)),
       );
       return;
     }
-    
-    // Vérifier qu'au moins un média (image ou vidéo) est présent
+
     final imagesCount = _cloudinaryUrls.whereType<String>().where((url) => url.isNotEmpty).length;
     final hasImages = imagesCount > 0;
     final hasVideo = _cloudinaryVideoUrl != null && _cloudinaryVideoUrl!.isNotEmpty;
     if (!hasImages && !hasVideo) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez ajouter au moins une image ou une vidéo.'),
-        ),
+        SnackBar(content: Text(l10n.addAtLeastOneMedia)),
       );
       return;
     }

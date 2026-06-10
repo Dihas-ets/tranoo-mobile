@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'succes.dart'; // Assurez-vous que ce chemin est correct
+import 'package:tranoo/l10n/app_localizations.dart';
+import 'succes.dart';
 
 class FinalisationAchatScreen extends StatelessWidget {
-  final String? articleImage; // URL image (peut être vide)
+  final String? articleImage;
   final String articleTitle;
-  final String articlePrice; // nombre en string
-  final String? tarifChoisit; // montant transitaire en string
+  final String articlePrice;
+  final String? tarifChoisit;
   const FinalisationAchatScreen({
     super.key,
     this.articleImage,
@@ -16,18 +17,16 @@ class FinalisationAchatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Données dynamiques
+    final l10n = AppLocalizations.of(context)!;
     final String displayedImage =
         (articleImage != null && articleImage!.isNotEmpty)
             ? articleImage!
             : 'assets/images/car.png';
     final String carTitle = articleTitle;
-    final String carPrice = articlePrice; // attendu sans suffixe ' f'
+    final String carPrice = articlePrice;
     final String fraisTransits = tarifChoisit ?? '0';
-    // TODO: récup depuis BDD plus tard
     const String fraisSupplementaires = '0';
 
-    // Calcul du prix total
     final double base =
         double.tryParse(carPrice.replaceAll(',', '').replaceAll(' f', '')) ?? 0;
     final double transit =
@@ -51,9 +50,9 @@ class FinalisationAchatScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Finalisation de l\'achat',
-          style: TextStyle(
+        title: Text(
+          l10n.finalizePurchase,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 16,
             fontWeight: FontWeight.w500,
@@ -65,7 +64,6 @@ class FinalisationAchatScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image de la voiture
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -86,41 +84,26 @@ class FinalisationAchatScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Titre de la voiture
             Text(
               carTitle,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-
-            // Prix de la voiture
-            _buildPriceRow('Prix', carPrice.toString()),
+            _buildPriceRow(l10n.price, carPrice.toString()),
             const SizedBox(height: 8),
-
-            // Frais de transit
-            _buildPriceRow(
-              'Tarif transitaire choisi',
-              fraisTransits.toString(),
-            ),
+            _buildPriceRow(l10n.chosenForwarderRate, fraisTransits.toString()),
             const SizedBox(height: 8),
-
-            // Frais supplémentaires
-            _buildPriceRow('Frais supplémentaires', fraisSupplementaires),
+            _buildPriceRow(l10n.additionalFees, fraisSupplementaires),
             const SizedBox(height: 16),
-
-            // Prix total
             const Divider(),
             _buildPriceRow(
-              'Prix total',
+              l10n.totalPrice,
               '${prixFinal.toStringAsFixed(0)} f',
               isBold: true,
               color: Colors.amber,
             ),
             const Divider(),
             const SizedBox(height: 24),
-
-            // Bouton de paiement
             Center(
               child: ElevatedButton(
                 onPressed: () {
@@ -141,9 +124,9 @@ class FinalisationAchatScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
-                  'Payer maintenant',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                child: Text(
+                  l10n.payNow,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
             ),

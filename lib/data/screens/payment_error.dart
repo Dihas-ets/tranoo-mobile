@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'avant_home.dart';
 
 class PaymentErrorPage extends StatefulWidget {
-  /// Retour arrière / fermeture sans callback de succès FeexPay.
   final bool cancelled;
 
   const PaymentErrorPage({super.key, this.cancelled = false});
@@ -12,10 +12,11 @@ class PaymentErrorPage extends StatefulWidget {
 }
 
 class _PaymentErrorPageState extends State<PaymentErrorPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   @override
   void initState() {
     super.initState();
-    // Auto-redirection après 3 secondes
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         _goToHome();
@@ -32,6 +33,8 @@ class _PaymentErrorPageState extends State<PaymentErrorPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -58,18 +61,15 @@ class _PaymentErrorPageState extends State<PaymentErrorPage> {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Icône d'erreur
                     Text(
                       widget.cancelled ? '↩' : '❌',
                       style: const TextStyle(fontSize: 80),
                     ),
                     const SizedBox(height: 20),
-
-                    // Titre
                     Text(
                       widget.cancelled
-                          ? 'Paiement interrompu'
-                          : 'Paiement échoué',
+                          ? l10n.paymentInterrupted
+                          : l10n.paymentFailed,
                       style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -78,12 +78,10 @@ class _PaymentErrorPageState extends State<PaymentErrorPage> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
-
-                    // Messages
                     Text(
                       widget.cancelled
-                          ? 'Vous avez quitté l’écran de paiement ou la transaction n’a pas été finalisée.'
-                          : 'Une erreur s\'est produite lors de la transaction.',
+                          ? l10n.paymentInterruptedMessage
+                          : l10n.paymentErrorMessage,
                       style: const TextStyle(
                         fontSize: 18,
                         color: Colors.white,
@@ -93,8 +91,8 @@ class _PaymentErrorPageState extends State<PaymentErrorPage> {
                     const SizedBox(height: 10),
                     Text(
                       widget.cancelled
-                          ? 'Aucun prélèvement n’est enregistré. Vous pouvez réessayer quand vous voulez.'
-                          : 'Veuillez réessayer ou contacter le support.',
+                          ? l10n.paymentInterruptedSubtitle
+                          : l10n.paymentErrorRetrySupport,
                       style: const TextStyle(
                         fontSize: 18,
                         color: Colors.white,
@@ -102,8 +100,6 @@ class _PaymentErrorPageState extends State<PaymentErrorPage> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 30),
-                    
-                    // Bouton retour
                     ElevatedButton(
                       onPressed: _goToHome,
                       style: ElevatedButton.styleFrom(
@@ -118,9 +114,9 @@ class _PaymentErrorPageState extends State<PaymentErrorPage> {
                           side: const BorderSide(color: Colors.white, width: 2),
                         ),
                       ),
-                      child: const Text(
-                        'Retourner à l\'app',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.returnToApp,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
@@ -136,4 +132,3 @@ class _PaymentErrorPageState extends State<PaymentErrorPage> {
     );
   }
 }
-

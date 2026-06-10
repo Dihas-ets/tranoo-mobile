@@ -24,6 +24,7 @@ import '../../utils/page_refresh_registry.dart';
 import '../../main.dart' show rootNavigatorKey;
 import '../../widgets/alert_incoming_call_overlay.dart';
 import '../../widgets/alert_display_permission_dialog.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'create_sell.dart';
 import 'create_sell2.dart';
 
@@ -171,6 +172,7 @@ class _AvantHomeState extends State<AvantHome>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final user = Provider.of<myauth.AuthProvider>(context).user;
     final pages = _pagesForUser(user);
     final role = (user?['role'] ?? user?['typeUtilisateur'] ?? user?['type'])
@@ -371,8 +373,8 @@ class _AvantHomeState extends State<AvantHome>
                   const SizedBox(height: 8),
                   Text(
                     user != null
-                        ? (user['nom'] ?? "Utilisateur")
-                        : "Utilisateur non connecté",
+                        ? (user['nom'] ?? l10n.user)
+                        : l10n.userNotConnected,
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 16,
@@ -393,7 +395,7 @@ class _AvantHomeState extends State<AvantHome>
                 children: [
                   ListTile(
                     leading: const Icon(Icons.home),
-                    title: const Text('Accueil'),
+                    title: Text(l10n.home),
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(
@@ -407,7 +409,7 @@ class _AvantHomeState extends State<AvantHome>
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
                       child: Text(
-                        'Compte',
+                        l10n.account,
                         style: const TextStyle(
                           color: Colors.grey,
                           fontWeight: FontWeight.bold,
@@ -416,13 +418,12 @@ class _AvantHomeState extends State<AvantHome>
                     ),
                   ListTile(
                     leading: const Icon(Icons.person),
-                    title: const Text('Profil'),
+                    title: Text(l10n.profile),
                     onTap: () {
                       Navigator.pop(context);
                       if (user == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Veuillez vous connecter')),
+                          SnackBar(content: Text(l10n.pleaseSignIn)),
                         );
                         return;
                       }
@@ -436,7 +437,7 @@ class _AvantHomeState extends State<AvantHome>
                   if (user != null)
                     ListTile(
                       leading: const Icon(Icons.logout),
-                      title: const Text('Déconnexion'),
+                      title: Text(l10n.logout),
                       onTap: () async {
                         Navigator.pop(context);
                         await Provider.of<myauth.AuthProvider>(context,
@@ -447,7 +448,7 @@ class _AvantHomeState extends State<AvantHome>
                   if (user == null)
                     ListTile(
                       leading: const Icon(Icons.login),
-                      title: const Text('Connexion'),
+                      title: Text(l10n.login),
                       onTap: () {
                         Navigator.pop(context);
                         Navigator.push(
@@ -470,18 +471,20 @@ class _AvantHomeState extends State<AvantHome>
         unselectedItemColor: Colors.black,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+        items: [
+          BottomNavigationBarItem(icon: const Icon(Icons.home), label: l10n.home),
           BottomNavigationBarItem(
-              icon: Icon(Icons.directions_car), label: 'Voitures'),
-          BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Pièces'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+              icon: const Icon(Icons.directions_car), label: l10n.cars),
+          BottomNavigationBarItem(icon: const Icon(Icons.build), label: l10n.pieces),
+          BottomNavigationBarItem(icon: const Icon(Icons.person), label: l10n.profile),
         ],
       ),
     );
   }
 
   Future<void> _maybeShowSellerAlertPopup() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     try {
       final data = await _notificationService.getUserNotifications(
         page: 1,
@@ -499,7 +502,7 @@ class _AvantHomeState extends State<AvantHome>
 
       final notif = Map<String, dynamic>.from(unreadAlerts.first);
       final id = (notif['_id'] ?? '').toString();
-      final title = (notif['title'] ?? 'Nouvelle alerte').toString();
+      final title = (notif['title'] ?? l10n.newAlertDefault).toString();
       final dataMap = (notif['data'] is Map)
           ? Map<String, dynamic>.from(notif['data'])
           : {};
@@ -508,27 +511,27 @@ class _AvantHomeState extends State<AvantHome>
 
       final List<String> details = [
         if ((dataMap['marque'] ?? '').toString().isNotEmpty)
-          'Marque: ${dataMap['marque']}',
+          l10n.alertLabelBrand(dataMap['marque'].toString()),
         if ((dataMap['modele'] ?? '').toString().isNotEmpty)
-          'Modele: ${dataMap['modele']}',
+          l10n.alertLabelModel(dataMap['modele'].toString()),
         if ((dataMap['etat'] ?? '').toString().isNotEmpty && !isPieceAlert)
-          'Etat: ${dataMap['etat']}',
+          l10n.alertLabelCondition(dataMap['etat'].toString()),
         if ((dataMap['annee'] ?? '').toString().isNotEmpty && isPieceAlert)
-          'Annee: ${dataMap['annee']}',
+          l10n.alertLabelYear(dataMap['annee'].toString()),
         if ((dataMap['anneeMin'] ?? '').toString().isNotEmpty && !isPieceAlert)
-          'Annee min: ${dataMap['anneeMin']}',
+          l10n.alertLabelYearMin(dataMap['anneeMin'].toString()),
         if ((dataMap['anneeMax'] ?? '').toString().isNotEmpty && !isPieceAlert)
-          'Annee max: ${dataMap['anneeMax']}',
+          l10n.alertLabelYearMax(dataMap['anneeMax'].toString()),
         if ((dataMap['budgetMax'] ?? '').toString().isNotEmpty)
-          'Budget max: ${dataMap['budgetMax']} FCFA',
+          l10n.alertLabelBudgetMax(dataMap['budgetMax'].toString()),
         if ((dataMap['pieceName'] ?? '').toString().isNotEmpty)
-          'Piece: ${dataMap['pieceName']}',
+          l10n.alertLabelPart(dataMap['pieceName'].toString()),
         if ((dataMap['urgence'] ?? '').toString().isNotEmpty)
-          'Urgence: ${dataMap['urgence']}',
+          l10n.alertLabelUrgency(dataMap['urgence'].toString()),
         if ((dataMap['localisation'] ?? '').toString().isNotEmpty)
-          'Localisation: ${dataMap['localisation']}',
+          l10n.alertLabelLocation(dataMap['localisation'].toString()),
         if ((dataMap['description'] ?? '').toString().isNotEmpty)
-          'Details: ${dataMap['description']}',
+          l10n.alertLabelDetails(dataMap['description'].toString()),
       ];
 
       if (!mounted) return;
@@ -562,7 +565,7 @@ class _AvantHomeState extends State<AvantHome>
                         ),
                       ),
                       IconButton(
-                        tooltip: 'Fermer',
+                        tooltip: l10n.close,
                         onPressed: () async {
                           if (id.isNotEmpty) {
                             await _notificationService.markAsRead(id);
@@ -587,17 +590,17 @@ class _AvantHomeState extends State<AvantHome>
                       children: [
                         Text(
                           isPieceAlert
-                              ? "Un acheteur est a la recherche d'une piece."
-                              : "Un acheteur est a la recherche d'un vehicule.",
+                              ? l10n.buyerSearchingPart
+                              : l10n.buyerSearchingVehicle,
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Caracteristiques:',
-                          style: TextStyle(
+                        Text(
+                          l10n.characteristics,
+                          style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF92400E),
@@ -605,9 +608,9 @@ class _AvantHomeState extends State<AvantHome>
                         ),
                         const SizedBox(height: 4),
                         if (details.isEmpty)
-                          const Text(
-                            '- Aucune caracteristique fournie',
-                            style: TextStyle(fontSize: 13),
+                          Text(
+                            l10n.noCharacteristicsProvided,
+                            style: const TextStyle(fontSize: 13),
                           )
                         else
                           ...details.map(
@@ -651,7 +654,7 @@ class _AvantHomeState extends State<AvantHome>
                         );
                       }
                     },
-                    child: const Text('Proposez une offre'),
+                    child: Text(l10n.proposeOffer),
                   ),
                 ],
               ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/services/push_otp_service.dart';
+import 'package:tranoo/utils/api_error_message.dart';
 import 'package:tranoo/utils/auth_config.dart';
 import 'package:tranoo/widgets/auth_message_popup.dart';
 import 'package:tranoo/widgets/password_strength_fields.dart';
@@ -19,6 +21,8 @@ class CreateNewPasswordPage extends StatefulWidget {
 }
 
 class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   final _formKey = GlobalKey<FormState>();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -32,15 +36,16 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
   }
 
   Future<void> _createNewPassword() async {
+    final l10n = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
 
     final pwd = _newPasswordController.text;
     if (!AuthConfig.isPasswordValid(pwd)) {
       AuthMessagePopup.showError(
         context,
-        title: 'Mot de passe trop court.',
-        subtitle: 'Minimum ${AuthConfig.passwordMinLength} caractères.',
-        buttonText: 'OK',
+        title: l10n.passwordTooShortTitle,
+        subtitle: l10n.passwordMinLength(AuthConfig.passwordMinLength),
+        buttonText: l10n.ok,
       );
       return;
     }
@@ -48,8 +53,8 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
     if (pwd != _confirmPasswordController.text) {
       AuthMessagePopup.showError(
         context,
-        title: 'Les mots de passe ne correspondent pas.',
-        buttonText: 'OK',
+        title: l10n.passwordsDoNotMatch,
+        buttonText: l10n.ok,
       );
       return;
     }
@@ -68,16 +73,15 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
       if (result['success']) {
         await AuthMessagePopup.showSuccess(
           context,
-          title: result['message']?.toString() ??
-              'Mot de passe modifié avec succès.',
+          title: result['message']?.toString() ?? l10n.passwordChangedSuccess,
         );
         if (!mounted) return;
         Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
         AuthMessagePopup.showError(
           context,
-          title: result['message']?.toString() ?? 'Une erreur est survenue.',
-          buttonText: 'Réessayer',
+          title: ApiErrorMessage.fromMap(l10n, result),
+          buttonText: l10n.retry,
         );
       }
     } catch (e) {
@@ -89,11 +93,9 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
           err.contains('connection');
       AuthMessagePopup.showError(
         context,
-        title: isNetwork
-            ? 'Impossible de se connecter au serveur.'
-            : 'Une erreur est survenue.',
-        subtitle: isNetwork ? 'Vérifiez votre connexion internet.' : null,
-        buttonText: 'Réessayer',
+        title: isNetwork ? l10n.cannotReachServer : l10n.errorOccurredTitle,
+        subtitle: isNetwork ? l10n.checkInternet : null,
+        buttonText: l10n.retry,
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -102,11 +104,12 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sécurité'),
+        title: Text(l10n.security),
         centerTitle: true,
         backgroundColor: const Color(0xFFF9FAFB),
         foregroundColor: Colors.black,
@@ -144,9 +147,9 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
                 ],
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Sécurité',
-                style: TextStyle(fontWeight: FontWeight.w700),
+              Text(
+                l10n.security,
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               SizedBox(height: screenHeight * 0.02),
               PasswordStrengthFields(
@@ -175,9 +178,9 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
                             color: Colors.black,
                           ),
                         )
-                      : const Text(
-                          'Enregistrer',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                      : Text(
+                          l10n.save,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                 ),
               ),

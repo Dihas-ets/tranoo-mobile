@@ -9,6 +9,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
 import 'package:tranoo/utils/feexpay_callback_state.dart';
 import 'package:tranoo/utils/feexpay_result_utils.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 final fpToken = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
 final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
@@ -22,6 +23,8 @@ class SubscriptionPaymentScreen extends StatefulWidget {
 }
 
 class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool isLoading = false;
   String? errorMessage;
   final String transKey = randomAlphaNumeric(15);
@@ -54,7 +57,6 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
       }
     } catch (e) {
       developer.log('[SUBSCRIPTION_PAYMENT] pricing error=$e');
-      // Garder le prix par défaut en cas d'erreur
       if (mounted) {
         setState(() {
           _prixMensuel = 5000.0;
@@ -79,6 +81,7 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -88,9 +91,9 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Abonnement Premium',
-          style: TextStyle(
+        title: Text(
+          l10n.premiumSubscription,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 16,
             fontWeight: FontWeight.w500,
@@ -107,7 +110,6 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // En-tête avec icône premium
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -127,18 +129,18 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                             color: Colors.white,
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Abonnement Premium',
-                            style: TextStyle(
+                          Text(
+                            l10n.premiumSubscription,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Boostez votre visibilité auprès des clients',
-                            style: TextStyle(
+                          Text(
+                            l10n.boostVisibilitySubtitle,
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 14,
                             ),
@@ -148,41 +150,35 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // Avantages de l'abonnement
-                    const Text(
-                      'Avantages Premium',
-                      style: TextStyle(
+                    Text(
+                      l10n.premiumBenefits,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 16),
-
                     _buildAdvantageItem(
                       Icons.star,
-                      'Mise en avant prioritaire',
-                      'Apparaissez en premier dans les recherches',
+                      l10n.prioritySpotlight,
+                      l10n.prioritySpotlightDesc,
                     ),
                     _buildAdvantageItem(
                       Icons.verified,
-                      'Badge Premium',
-                      'Badge doré visible sur votre profil',
+                      l10n.premiumBadge,
+                      l10n.premiumBadgeDesc,
                     ),
                     _buildAdvantageItem(
                       Icons.trending_up,
-                      'Visibilité boostée',
-                      'Plus de clients vous contactent',
+                      l10n.boostedVisibility,
+                      l10n.boostedVisibilityDesc,
                     ),
                     _buildAdvantageItem(
                       Icons.support_agent,
-                      'Support prioritaire',
-                      'Assistance dédiée 24h/7j',
+                      l10n.prioritySupport,
+                      l10n.prioritySupportDesc,
                     ),
-
                     const SizedBox(height: 24),
-
-                    // Prix
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -194,9 +190,9 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                       ),
                       child: Column(
                         children: [
-                          const Text(
-                            'Abonnement Mensuel',
-                            style: TextStyle(
+                          Text(
+                            l10n.monthlySubscription,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -210,9 +206,9 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                               color: Color(0xFFFFCC00),
                             ),
                           ),
-                          const Text(
-                            'par mois',
-                            style: TextStyle(
+                          Text(
+                            l10n.perMonth,
+                            style: const TextStyle(
                               fontSize: 14,
                               color: Colors.grey,
                             ),
@@ -220,13 +216,10 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
-                    // Note
-                    const Text(
-                      'Votre abonnement sera automatiquement renouvelé chaque mois. Vous pouvez l\'annuler à tout moment.',
-                      style: TextStyle(
+                    Text(
+                      l10n.subscriptionAutoRenewNote,
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
                       ),
@@ -236,8 +229,6 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                 ),
               ),
             ),
-
-            // Bouton de paiement
             Container(
               width: double.infinity,
               margin: const EdgeInsets.only(top: 16),
@@ -258,15 +249,14 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
                         strokeWidth: 2,
                       )
                     : Text(
-                        'Souscrire maintenant - ${_prixMensuel.toInt()} FCFA',
-                        style: TextStyle(
+                        l10n.subscribeNowPrice('${_prixMensuel.toInt()}'),
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
                       ),
               ),
             ),
-
             if (errorMessage != null)
               Container(
                 margin: const EdgeInsets.only(top: 8),
@@ -332,6 +322,7 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
   }
 
   Future<void> _processSubscription() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       isLoading = true;
       errorMessage = null;
@@ -341,15 +332,14 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
       await _trackDemoEvent('subscription_initiated', page: 'subscription_payment.dart');
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        throw Exception('Utilisateur non connecté');
+        throw Exception(l10n.userNotLoggedIn);
       }
 
       if (fpToken.isEmpty || idUser.isEmpty) {
-        throw Exception('Configuration FeexPay manquante');
+        throw Exception(l10n.feexpayConfigMissing);
       }
 
       FeexPayCallbackState.clearPendingAtNewCheckout();
-      // Navigation vers FeexPay avec le package officiel
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -409,8 +399,8 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
         if (mounted) {
           Navigator.pop(context, true);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Abonnement activé avec succès !'),
+            SnackBar(
+              content: Text(l10n.subscriptionActivatedSuccess),
               backgroundColor: Colors.green,
             ),
           );
@@ -418,7 +408,7 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
       }
     } catch (e) {
       setState(() {
-        errorMessage = 'Erreur: $e';
+        errorMessage = l10n.errorGeneric(e.toString());
       });
     } finally {
       setState(() {
@@ -517,9 +507,7 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
         'client': 'mobile',
       });
       print('[DEMO_EVENT] resp status=${resp.statusCode} data=${resp.data}');
-    } catch (_) {
-      // best-effort tracking
-    }
+    } catch (_) {}
   }
 
   Future<void> _activateSubscription() async {

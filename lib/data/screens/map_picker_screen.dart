@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class MapPickerScreen extends StatefulWidget {
   final double? initialLatitude;
@@ -18,6 +19,8 @@ class MapPickerScreen extends StatefulWidget {
 }
 
 class _MapPickerScreenState extends State<MapPickerScreen> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   late MapController _mapController;
   LatLng? _selectedPosition;
   bool _isLoading = false;
@@ -26,41 +29,37 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   void initState() {
     super.initState();
     _mapController = MapController();
-    
-    // Si des coordonnées initiales sont fournies
+
     if (widget.initialLatitude != null && widget.initialLongitude != null) {
-      _selectedPosition = LatLng(widget.initialLatitude!, widget.initialLongitude!);
+      _selectedPosition =
+          LatLng(widget.initialLatitude!, widget.initialLongitude!);
     } else {
-      // Position par défaut : Cotonou, Bénin
       _selectedPosition = const LatLng(6.3654, 2.4183);
     }
   }
 
   Future<void> _getCurrentLocation() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
-    
+
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Les services de localisation sont désactivés'),
-          ),
+          SnackBar(content: Text(l10n.locationServicesDisabled)),
         );
         setState(() => _isLoading = false);
         return;
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
+      var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Permission de localisation refusée'),
-            ),
+            SnackBar(content: Text(l10n.locationPermissionDenied)),
           );
           setState(() => _isLoading = false);
           return;
@@ -70,15 +69,13 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       if (permission == LocationPermission.deniedForever) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Permission de localisation refusée définitivement'),
-          ),
+          SnackBar(content: Text(l10n.locationPermissionDeniedForever)),
         );
         setState(() => _isLoading = false);
         return;
       }
 
-      Position position = await Geolocator.getCurrentPosition(
+      final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
@@ -91,7 +88,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e')),
+        SnackBar(content: Text(l10n.errorGeneric(e.toString()))),
       );
       setState(() => _isLoading = false);
     }
@@ -99,9 +96,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Choisir la localisation'),
+        title: Text(l10n.chooseLocation),
         backgroundColor: const Color(0xFFFFCC00),
         foregroundColor: Colors.black,
         actions: [
@@ -114,9 +112,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                       'longitude': _selectedPosition!.longitude,
                     });
                   },
-            child: const Text(
-              'Valider',
-              style: TextStyle(
+            child: Text(
+              l10n.validateLocation,
+              style: const TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -160,7 +158,6 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                 ),
             ],
           ),
-          // Bouton pour obtenir la position actuelle
           Positioned(
             right: 16,
             bottom: 100,
@@ -176,7 +173,6 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   : const Icon(Icons.my_location),
             ),
           ),
-          // Indication en bas
           if (_selectedPosition != null)
             Positioned(
               left: 0,
@@ -202,16 +198,19 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Position sélectionnée',
-                        style: TextStyle(
+                      Text(
+                        l10n.selectedPositionLabel,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Lat: ${_selectedPosition!.latitude.toStringAsFixed(6)}\nLon: ${_selectedPosition!.longitude.toStringAsFixed(6)}',
+                        l10n.coordinatesLabel(
+                          _selectedPosition!.latitude.toStringAsFixed(6),
+                          _selectedPosition!.longitude.toStringAsFixed(6),
+                        ),
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,

@@ -4,6 +4,7 @@
   "validate": "Valider",
   "french": "Français",
   "english": "Anglais",
+  "arabic": "Arabe",
   "services": "Services",
   "service_sales_cars": "Vente (Voitures)",
   "service_delivery_parts": "Livraison (Pièces)",
@@ -21,8 +22,2276 @@
   "refresh": "Rafraîchir",
   "call": "Appeler",
   "message": "Message",
-  
   "tricycle_auth_required": "Authentification requise",
   "tricycle_connect_to_see": "Connectez-vous pour voir",
-  "tricycle_connect_description": "Veuillez connecter votre compte pour voir ce contenu"
+  "tricycle_connect_description": "Veuillez connecter votre compte pour voir ce contenu",
+  "cancel": "Annuler",
+  "delete": "Supprimer",
+  "ok": "OK",
+  "confirm": "Confirmer",
+  "back": "Retour",
+  "close": "Fermer",
+  "apply": "Appliquer",
+  "reset": "Réinitialiser",
+  "yes": "Oui",
+  "no": "Non",
+  "loading": "Chargement...",
+  "understood": "Compris",
+  "later": "Plus tard",
+  "agree": "D'accord",
+  "submit": "Soumettre",
+  "share": "Partager",
+  "download": "Télécharger",
+  "home": "Accueil",
+  "profile": "Profil",
+  "login": "Connexion",
+  "logout": "Déconnexion",
+  "account": "Compte",
+  "myAccount": "Mon compte",
+  "settings": "Paramètres",
+  "notifications": "Notifications",
+  "currency": "Devise",
+  "chooseCurrency": "Choisir une devise",
+  "currencyXof": "XOF",
+  "currencyEuro": "Euro",
+  "currencyDollars": "Dollars",
+  "password": "Mot de passe",
+  "email": "Email",
+  "phone": "Téléphone",
+  "fullName": "Nom complet",
+  "firstName": "Prénom(s)",
+  "lastName": "Nom",
+  "security": "Sécurité",
+  "description": "Description",
+  "price": "Prix",
+  "brand": "Marque",
+  "model": "Modèle",
+  "year": "Année",
+  "location": "Localisation",
+  "pieces": "Pièces",
+  "vehicles": "Véhicules",
+  "cars": "Voitures",
+  "noResults": "Aucun resultat",
+  "fillAllFields": "Veuillez remplir tous les champs.",
+  "networkOrServerError": "Erreur réseau ou serveur.",
+  "invalidSessionReconnect": "Session invalide. Reconnectez-vous.",
+  "profileUpdated": "Profil mis à jour",
+  "noUserData": "Aucune donnée utilisateur",
+  "pleaseSignIn": "Veuillez vous connecter",
+  "addImages": "Ajouter des images",
+  "filterByBudget": "Filtrer par budget",
+  "minLabel": "Min.",
+  "maxLabel": "Max.",
+  "confirmDeletion": "Confirmer la suppression",
+  "deletionError": "Erreur lors de la suppression.",
+  "sendAlert": "Envoyer l'alerte",
+  "alertSent": "Alerte envoyée",
+  "passwordsDoNotMatch": "Les mots de passe ne correspondent pas.",
+  "errorGeneric": "Erreur: {error}",
+  "@errorGeneric": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorOpening": "Erreur lors de l'ouverture: {error}",
+  "@errorOpening": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorDeletion": "Erreur suppression: {error}",
+  "@errorDeletion": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorPayment": "Erreur de paiement: {error}",
+  "@errorPayment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorNetwork": "Erreur réseau : {error}",
+  "@errorNetwork": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "vehiclesAvailableCount": "{count} véhicule(s) disponible(s)",
+  "@vehiclesAvailableCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "partsAvailableCount": "{count} pièce(s) disponible(s)",
+  "@partsAvailableCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "signInTitle": "Se connecter",
+  "welcomeTranoo": "Bienvenue sur Tranoo",
+  "welcomeTranooPro": "Bienvenue sur Tranoo Pro",
+  "phoneTab": "Numéro",
+  "legacyEmailTab": "Email (ancien compte)",
+  "emailAddress": "Adresse email",
+  "emailExample": "exemple@mail.com",
+  "phoneNumber": "Numéro de téléphone",
+  "forgotPassword": "Mot de passe oublié ?",
+  "noAccount": "Vous n'avez pas de compte ? ",
+  "signUp": "S'inscrire",
+  "invalidEmailTitle": "Email invalide",
+  "legacyEmailSubtitle": "Sélectionnez « Email » et saisissez votre ancienne adresse.",
+  "invalidPhoneTitle": "Numéro invalide",
+  "invalidPhoneSubtitle": "Entrez {hint} pour {country}.",
+  "@invalidPhoneSubtitle": {
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      },
+      "country": {
+        "type": "String"
+      }
+    }
+  },
+  "loginSuccessTitle": "Connexion réussie. Bienvenue !",
+  "cannotLoginTitle": "Impossible de se connecter avec ces informations.",
+  "noBuyerAccount": "Aucun compte acheteur n'est associé à ce numéro.",
+  "checkCountryCode": "Créez un compte ou vérifiez l'indicatif pays.",
+  "wrongPassword": "Mot de passe incorrect.",
+  "verifyAndRetry": "Vérifiez vos informations et réessayez.",
+  "wrongCredentials": "Numéro, email ou mot de passe incorrect.",
+  "accountBlocked": "Votre compte est temporairement bloqué.",
+  "contactSupport": "Contactez l'assistance.",
+  "tooManyAttempts": "Trop de tentatives de connexion.",
+  "retryInMinutes": "Réessayez dans quelques minutes.",
+  "cannotReachServer": "Impossible de se connecter au serveur.",
+  "checkInternet": "Vérifiez votre connexion internet.",
+  "serviceTemporaryIssue": "Notre service rencontre un problème temporaire.",
+  "tryAgainLater": "Veuillez réessayer plus tard.",
+  "sessionInitFailed": "La session n'a pas pu être initialisée. Réessayez.",
+  "searchCountryOrCode": "Rechercher un pays ou indicatif",
+  "buyerBlockedTitle": "Cette application est réservée aux acheteurs",
+  "buyerBlockedSubtitle": "Utilisez Tranoo Pro pour les comptes vendeur, chauffeur ou livreur.",
+  "noSellerAccount": "Aucun compte vendeur n'est associé à ce numéro.",
+  "useTranooForBuyer": "Utilisez l'application Tranoo pour les comptes acheteur.",
+  "findDreamCar": "Trouvez votre voiture de rêve!",
+  "referralCodeOptional": "Code de parrainage (optionnel)",
+  "referralPlaceholder": "Ex: TRN-ABCD1234",
+  "searchCountryCode": "Rechercher un indicatif (pays ou +code)",
+  "whatsappNumber": "Numéro WhatsApp",
+  "whatsappHint": "WhatsApp · {hint}",
+  "@whatsappHint": {
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmPassword": "Confirmer le mot de passe",
+  "retypePassword": "Retapez le mot de passe",
+  "passwordMin8": "Min. 8 caractères",
+  "missingFieldsTitle": "Certains champs sont manquants.",
+  "completeRequiredInfo": "Veuillez compléter les informations requises.",
+  "passwordMin8Title": "Le mot de passe doit contenir au moins 8 caractères.",
+  "accountCreatedTitle": "Votre compte a été créé avec succès.",
+  "welcomeTranooExclaim": "Bienvenue sur Tranoo !",
+  "passwordWeak": "Faible",
+  "passwordMedium": "Moyen",
+  "passwordStrong": "Fort",
+  "passwordVeryStrong": "Très fort",
+  "personalInfo": "Informations personnelles",
+  "nextStep": "Suivant",
+  "createAccount": "Créer le compte",
+  "alreadyHaveAccount": "Vous avez déjà un compte ? ",
+  "forgotPasswordTitle": "Mot de passe oublié",
+  "searchCountry": "Rechercher un pays",
+  "incompleteServerResponse": "Réponse serveur incomplète.",
+  "retryShortly": "Réessayez dans quelques instants.",
+  "codeSent": "Code envoyé",
+  "sendCode": "Envoyer le code",
+  "verifyCodeTitle": "Vérifier le code",
+  "missingInfoTitle": "Informations manquantes.",
+  "restartFromForgotPassword": "Veuillez recommencer depuis la page mot de passe oublié.",
+  "errorOccurredTitle": "Une erreur est survenue.",
+  "checkConnectionAndRetry": "Vérifiez votre connexion et réessayez.",
+  "passwordTooShortTitle": "Mot de passe trop court.",
+  "passwordMinLength": "Minimum {count} caractères.",
+  "@passwordMinLength": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newPassword": "Nouveau mot de passe",
+  "resetPassword": "Réinitialiser le mot de passe",
+  "whatsappNumberWarning": "Utilisez un numéro joignable sur WhatsApp : il servira aux OTP et aux échanges entre notre équipe et les utilistaeurs.",
+  "phoneDigitsExact": "{count} chiffres",
+  "@phoneDigitsExact": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "phoneDigitsRange": "{min} à {max} chiffres",
+  "@phoneDigitsRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "passwordStrengthLabel": "Force du mot de passe: {label}",
+  "@passwordStrengthLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "stepInfo": "Informations",
+  "placeholderFirstName": "Jean",
+  "placeholderLastName": "Dupont",
+  "accountAlreadyExistsTitle": "Un compte existe déjà avec ce numéro.",
+  "accountAlreadyExistsSubtitle": "Connectez-vous ou utilisez un autre numéro.",
+  "referralCodeRegistered": "Code de parrainage enregistré (statut: {status})",
+  "@referralCodeRegistered": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "accountCreatedAgentReferral": "Compte crée avec succès, Parrainage agent validé",
+  "forgotPasswordInstructions": "Choisissez votre pays, puis entrez le numéro national\n(sans répéter l'indicatif +229).\nLe code part sur le WhatsApp enregistré sur le compte.",
+  "enterYourPhone": "Entrez votre numéro",
+  "invalidPhoneWithHint": "Numéro invalide ({hint})",
+  "@invalidPhoneWithHint": {
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
+  "forgotPasswordBeninHint": "Ex. pour +229 : saisissez 593XXXXXXX (8 chiffres), pas 01593XXXXXXX ni +229 devant.",
+  "forgotPasswordNationalHint": "Saisissez uniquement le numéro national ; l'indicatif {code} est déjà choisi.",
+  "@forgotPasswordNationalHint": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "accountNotFoundForNumber": "Aucun compte trouvé pour ce numéro.",
+  "useSameWhatsappAsSignup": "Utilisez le même numéro WhatsApp qu'à l'inscription (sans 0 après +229).",
+  "errorTokenMissing": "Token manquant ou invalide.",
+  "errorTokenInvalid": "Token invalide.",
+  "errorUserNotFound": "Utilisateur non trouvé. Veuillez vous reconnecter.",
+  "errorAccountBlocked": "Votre compte a été bloqué. Contactez l'administration.",
+  "errorSessionRequired": "Session web requise. Veuillez vous reconnecter.",
+  "errorSessionRevoked": "Votre session a été ouverte ailleurs. Reconnexion requise.",
+  "errorSessionInactive": "Session expirée après inactivité. Veuillez vous reconnecter.",
+  "errorInvalidPhone": "Numéro invalide. Vérifiez l'indicatif pays et le numéro saisi.",
+  "errorAppRequired": "Application requise (tranoo ou tranoo_pro).",
+  "errorAccountAmbiguous": "Plusieurs comptes partagent ce numéro. Contactez le support.",
+  "errorAccountNotFound": "Aucun compte trouvé pour ce numéro.",
+  "errorOtpSendFailed": "Impossible d'envoyer le code. Vérifiez le numéro ou réessayez.",
+  "errorMissingFields": "Champs requis manquants.",
+  "errorOtpInvalidOrExpired": "Code invalide ou expiré.",
+  "errorDeviceMismatch": "Ce téléphone ne correspond pas à la demande.",
+  "errorRequestInvalid": "Demande invalide.",
+  "errorOtpExpired": "Code expiré. Redemandez un code.",
+  "errorOtpLocked": "Trop de tentatives. Redemandez un code.",
+  "errorOtpIncorrect": "Code incorrect.",
+  "errorVerifyFirst": "Veuillez d'abord vérifier le code.",
+  "errorPasswordTooShort": "Mot de passe trop court.",
+  "errorPasswordUpdateFailed": "Impossible de mettre à jour le mot de passe. Contactez le support.",
+  "errorInternalError": "Erreur. Réessayez.",
+  "errorValidationError": "Données invalides.",
+  "errorConnectionFailed": "Erreur de connexion.",
+  "errorEnterPhoneNumber": "Veuillez entrer votre numéro.",
+  "codeSentWhatsappDefault": "Code envoyé sur WhatsApp au numéro de votre compte.",
+  "enterCodePlease": "Veuillez entrer le code",
+  "otpMustBe6Digits": "Le code doit contenir 6 chiffres",
+  "invalidCode": "Code invalide.",
+  "verifyCodeBanner": "Saisissez le code à 6 chiffres.\nValide {minutes} min. Vérifiez la notification Tranoo ou WhatsApp au numéro du compte.",
+  "@verifyCodeBanner": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "save": "Enregistrer",
+  "passwordChangedSuccess": "Mot de passe modifié avec succès.",
+  "connectSupport": "Connecter l'assistance",
+  "cannotOpenWhatsApp": "Impossible d'ouvrir WhatsApp.",
+  "installWhatsAppRetry": "Installez WhatsApp puis réessayez.",
+  "preferences": "Préférences",
+  "geolocation": "Géolocalisation",
+  "enableNotifications": "Activer les notifications",
+  "pushNotificationsSubtitle": "Recevoir des notifications push",
+  "locationTracking": "Suivi de localisation",
+  "shareRealtimeLocation": "Partager votre position en temps réel",
+  "cfaFranc": "Franc CFA",
+  "usDollar": "Dollar US",
+  "createAccountToContinue": "Créez un compte pour continuer.",
+  "actionRequired": "Action requise",
+  "uploadProfilePhotoRequired": "Veuillez uploader votre photo de profil pour continuer.",
+  "proBuyerBlockedTitle": "Compte acheteur non autorisé sur Tranoo Pro",
+  "proBuyerBlockedSubtitle": "Les acheteurs utilisent l'application Tranoo.",
+  "thisCountry": "ce pays",
+  "passwordDotsHint": "••••••••",
+  "continueButton": "Continuer",
+  "locationRequired": "Localisation requise",
+  "authorizationRequired": "Autorisation nécessaire",
+  "whatWeUse": "Ce que nous utilisons :",
+  "locationBackgroundWarning": "La localisation est utilisée même lorsque l'application est en arrière-plan pour assurer un suivi continu.",
+  "backgroundLocationTitle": "Localisation en arrière-plan",
+  "backgroundLocationMessage": "Pour assurer un suivi continu de vos missions, nous avons besoin d'accéder à votre localisation même lorsque l'application est en arrière-plan.\n\nVous pouvez activer cette permission dans les paramètres de votre appareil.",
+  "deviceSettings": "Paramètres",
+  "permissionDenied": "Permission refusée",
+  "locationRequiredForRole": "La localisation est nécessaire pour utiliser les fonctionnalités de {role}. Certaines fonctionnalités pourraient être limitées.",
+  "@locationRequiredForRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "permissionRequestError": "Une erreur est survenue lors de la demande de permission: {error}",
+  "@permissionRequestError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeTranooProExclaim": "Bienvenue sur Tranoo Pro !",
+  "locationAuthorization": "Autorisation de localisation",
+  "locationUsageIntro": "Pour fonctionner correctement, Tranoo Pro utilise votre localisation pour :",
+  "locationBackgroundServicesWarning": "La localisation peut être utilisée même lorsque l'application est en arrière-plan pour assurer un suivi continu des services.",
+  "changeDecisionLaterInSettings": "Vous pourrez modifier cette décision plus tard dans les paramètres",
+  "authorizeLocationInSettings": "Autorisez la localisation dans les paramètres.",
+  "cannotGetPosition": "Impossible d'obtenir la position.",
+  "yourCurrentPosition": "Votre position actuelle",
+  "positionUsageForListings": "Utilisée pour vos annonces et la localisation fournisseur. Vous pourrez la mettre à jour dans votre profil.",
+  "saveCurrentPosition": "Enregistrer ma position actuelle",
+  "refreshPosition": "Actualiser la position",
+  "positionSavedGps": "Position enregistrée (coordonnées GPS)",
+  "profilePositionUpdated": "Position du profil mise à jour",
+  "savePositionToContinue": "Enregistrez votre position actuelle pour continuer.",
+  "saveYourCurrentPosition": "Enregistrez votre position actuelle.",
+  "sellerUpdateTitle": "Mise a jour vendeur",
+  "sellerTypeChoiceIntro": "Tranoo Pro vous permet maintenant de choisir votre type de vendeur: vehicules, pieces detachees ou mixte.",
+  "sellerTypeChoiceHint": "Faites votre choix dans la page dediee pour adapter vos menus et vos publications.",
+  "makeChoice": "Faire un choix",
+  "professionalAccess": "Accès Professionnel",
+  "useAlternativeAppForProfessionalRole": "Utilisez plutôt {app} pour votre rôle professionnel",
+  "@useAlternativeAppForProfessionalRole": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionExpiresIn": "Votre abonnement expire dans {days} jour(s).",
+  "@subscriptionExpiresIn": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "freeTrialEndsIn": "Votre periode gratuite se termine dans {days} jour(s).",
+  "@freeTrialEndsIn": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "currentPlanLabel": "Plan actuel: {plan}",
+  "@currentPlanLabel": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "unknown": "Inconnu",
+  "manageSubscription": "Gerer mon abonnement",
+  "historyLast10": "Historique (10 derniers)",
+  "noSubscriptionPayments": "Aucun paiement d'abonnement pour le moment.",
+  "serverTimeout": "Le serveur met trop de temps a repondre. Reessaie dans un instant.",
+  "cannotReachServerDetailed": "Impossible de joindre le serveur. Verifie ta connexion et l'URL du backend.",
+  "accountDeletionFailed": "La suppression du compte a echoue. Reessaie plus tard.",
+  "unexpectedDeletionError": "Une erreur inattendue est survenue pendant la suppression.",
+  "myPurchases": "Mes achats",
+  "myPurchasesSubtitle": "Voir l'historique de vos commandes",
+  "myReviews": "Mes avis",
+  "myReviewsSubtitle": "Consulter ou modifier vos commentaires",
+  "myInvoices": "Mes factures",
+  "myInvoicesSubtitle": "Télécharger vos justificatifs d'achats",
+  "accountCreatedSuccess": "Compte créé avec succès.",
+  "fieldRequired": "Ce champ est obligatoire.",
+  "address": "Adresse",
+  "deliveryAddress": "Adresse de livraison",
+  "addDeliveryNote": "Ajouter une note de livraison",
+  "chooseDate": "Choisir la date d'expédition",
+  "packageLabel": "Colis",
+  "packagesToDeliver": "Colis à livrer",
+  "orderLabel": "Commande",
+  "qrContent": "Contenu QR",
+  "carDescription": "Description de la voiture",
+  "becomeCertifiedDriver": "Devenir chauffeur certifié",
+  "adDuration": "Durée de la publicité",
+  "inDelivery": "En livraison",
+  "inTransit": "En transit",
+  "enterCompanyName": "Entrer le nom de l'entreprise",
+  "enterVehicleName": "Entrer le nom du véhicule",
+  "enterCarDescriptionOptional": "Entrer une description de votre voiture (optionnel)",
+  "enterClientDestination": "Entrez la destination du client",
+  "enterBrand": "Entrez la marque",
+  "enterModel": "Entrez le modèle",
+  "enterCustomModel": "Entrez le modèle personnalisé",
+  "enterDestinationDetails": "Entrez vos détails concernant la destination ici...",
+  "engineDisplacementExample": "Ex: 1600 ou 1,6",
+  "requirements": "Exigences",
+  "supplier": "Fournisseur",
+  "supplierToBuyer": "Fournisseur -> Acheteur",
+  "deliveryEarnings": "Gain livraison",
+  "vehicleInfoRequired": "Immatriculation, type, marque et modèle sont requis.",
+  "vehicleInfoMissing": "Informations véhicule manquantes.",
+  "mileageHint": "Kilométrage (km), ex: 12500 ou 12,5",
+  "externalLinkOptional": "Lien externe (optionnel)",
+  "partOrCarName": "Nom de la pièce/voiture",
+  "nameOnCard": "Nom sur la carte",
+  "seatCount": "Nombre de places",
+  "notProvided": "Non renseigné",
+  "notificationDefault": "Notification",
+  "orderNumber": "Numéro de commande",
+  "cashPayment": "Paiement en espèces",
+  "positionRequired": "Position requise",
+  "priceFcfa": "Prix (FCFA)",
+  "priceFcfaExample": "Prix en FCFA (ex: 1500000 ou 1.500.000,5)",
+  "offerDeliveryServices": "Proposer des services de livraison",
+  "specifyModel": "Précisez le modèle",
+  "searchCarHint": "Rechercher une voiture (marque, modèle, titre)...",
+  "summary": "Résumé",
+  "roleLabel": "Rôle",
+  "titleLabel": "Titre",
+  "typeLabel": "Type",
+  "engineType": "Type de moteur",
+  "adType": "Type de publicité",
+  "engineTypeShort": "Type moteur",
+  "toBuyer": "Vers acheteur",
+  "toSupplier": "Vers fournisseur",
+  "pleaseEnterCompany": "Veuillez renseigner votre entreprise.",
+  "deliverTo": "À livrer à",
+  "conditionLabel": "État",
+  "buyer": "Acheteur",
+  "positionGpsSaved": "Position GPS enregistrée",
+  "enterLink": "Entrer l'URL",
+  "passwordSuperStrong": "Super fort",
+  "onboardingTagline1": "Tranoo \nTrouvez vos pièces et\nvéhicules rapidement",
+  "onboardingTagline2": "Découvrez votre\nvéhicule idéal en\nquelques clics",
+  "accountDeletion": "Suppression de compte",
+  "accountDeletionIrreversible": "Cette action est irreversible.",
+  "accountDeletionDataWarning": "Votre compte, votre acces a l'application et vos donnees liees seront supprimes.",
+  "accountDeletionConfirmWarning": "Assurez-vous de ne plus avoir besoin de ce compte avant de confirmer.",
+  "editAccountSubtitle": "Apporter des modifications à votre compte",
+  "referral": "Parrainage",
+  "referralSubtitle": "Gagnez en parrainant vos amis",
+  "sellMyCar": "Vendre ma voiture",
+  "sellMyPart": "Vendre ma pièce",
+  "becomeSellerSubtitle": "Devenir titulaire et vendez avec nous",
+  "sellerAccessOnly": "Accès réservé aux vendeurs.",
+  "transitaireAccessOnly": "Accès réservé aux transitaires.",
+  "transitHistory": "Historique des transits",
+  "user": "Utilisateur",
+  "userNotConnected": "Utilisateur non connecté",
+  "newAlertDefault": "Nouvelle alerte",
+  "buyerSearchingPart": "Un acheteur est a la recherche d'une piece.",
+  "buyerSearchingVehicle": "Un acheteur est a la recherche d'un vehicule.",
+  "characteristics": "Caracteristiques:",
+  "noCharacteristicsProvided": "- Aucune caracteristique fournie",
+  "proposeOffer": "Proposez une offre",
+  "myCart": "Mon Panier",
+  "cartEmpty": "Votre panier est vide",
+  "cartEmptyHint": "Ajoutez des articles pour commencer vos achats",
+  "checkout": "Passer la commande",
+  "carsOnline": "Voitures en ligne",
+  "carDeletedSuccess": "Voiture supprimée avec succès !",
+  "newCondition": "Neuf",
+  "usedCondition": "Occasion",
+  "budgetFcfa": "Budget (FCFA)",
+  "spareParts": "Pièces détachées",
+  "confirmDeletePart": "Voulez-vous vraiment supprimer cette pièce ?",
+  "partDeletedSuccess": "Pièce supprimée avec succès !",
+  "searchPartHint": "Rechercher une pièce...",
+  "searchVehiclesPartsHint": "Rechercher véhicules, pièces...",
+  "deliveries": "Livraisons",
+  "tricycles": "Tricycles",
+  "fillMiniForm": "Remplir mini form",
+  "discussions": "Discussions",
+  "noDiscussions": "Aucune discussion",
+  "startDiscussionWithSeller": "Commencez une discussion avec un vendeur",
+  "typeMessageHint": "Tapez votre message...",
+  "messageSendError": "Erreur lors de l'envoi du message",
+  "noNotifications": "Aucune notification",
+  "markAllRead": "Tout marquer lu",
+  "notificationDetails": "Détails notification",
+  "myOrders": "Mes commandes",
+  "noOrders": "Aucune commande",
+  "orderDetails": "Détails de commande",
+  "orderTracking": "Suivi de commande",
+  "filterAll": "Tous",
+  "filterInProgress": "En cours",
+  "filterCompleted": "Terminée",
+  "myWallet": "Mon portefeuille",
+  "withdrawal": "Retrait",
+  "transactions": "Transactions",
+  "paymentMethod": "Moyen de paiement",
+  "paymentSuccessful": "Paiement Réussi !",
+  "paymentFailed": "Paiement échoué",
+  "pay": "Payer",
+  "payNow": "Payer maintenant",
+  "returnToApp": "Retourner à l'app",
+  "wooHoo": "Woo hoo !!",
+  "goToHome": "Accéder à l'accueil",
+  "congratulations": "Félicitations !",
+  "publishedOnline": "Publication en ligne !",
+  "returnHome": "Retour à l'accueil",
+  "referralTitle": "Parrainage",
+  "referralLinkCopied": "Lien de parrainage copié !",
+  "copyLink": "Copier le lien",
+  "yourStats": "Vos Statistiques",
+  "pending": "En attente",
+  "completed": "Complété",
+  "chooseLocation": "Choisir la localisation",
+  "navigate": "Naviguer",
+  "termsOfUse": "Conditions d'utilisation",
+  "livreurHome": "Accueil livreur",
+  "chauffeurHome": "Accueil chauffeur",
+  "myDeliveries": "Mes livraisons",
+  "sellerSubscription": "Abonnement vendeur",
+  "premiumSubscription": "Abonnement Premium",
+  "subscribeNow": "Souscrire maintenant",
+  "sellerWallet": "Portefeuille vendeur",
+  "more": "Plus",
+  "signInForProfile": "Connectez-vous pour accéder à votre profil",
+  "profileLoadError": "Impossible de charger le profil. Vérifiez votre connexion ou vos droits.",
+  "profileSaveError": "Erreur lors de la sauvegarde du profil",
+  "company": "Entreprise",
+  "country": "Pays",
+  "gender": "Genre",
+  "genderMale": "Mâle",
+  "genderFemale": "Femelle",
+  "genderOther": "Autre",
+  "saving": "Enregistrement...",
+  "updateProfile": "Mettre à jour le profil",
+  "profileUpdateError": "Erreur lors de la mise à jour",
+  "restrictedAccess": "Accès Restreint",
+  "roleNotAllowedOnApp": "Votre rôle ({role}) n'est pas autorisé sur {app}",
+  "@roleNotAllowedOnApp": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      },
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "useAlternativeAppForRole": "Utilisez plutôt {app} pour votre rôle",
+  "@useAlternativeAppForRole": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "googlePlay": "Google Play",
+  "appStore": "App Store",
+  "alertNotificationsTitle": "Notifications d'alertes",
+  "alertNotificationsDescription": "Autorisez les notifications pour être alerté quand un vendeur répond à votre alerte, même lorsque l'application est en arrière-plan.",
+  "allowNotifications": "Autoriser les notifications",
+  "referralLinkTitle": "Votre Lien de Parrainage",
+  "referralShareTitle": "Partager votre lien de parrainage",
+  "others": "Autres",
+  "total": "Total",
+  "yourReferrals": "Vos Parrainages",
+  "noReferralsYet": "Aucun parrainage pour le moment",
+  "shareReferralHint": "Partagez votre code avec vos amis pour commencer !",
+  "referralShareMessage": "🚗 Rejoins-moi sur Tranoo !\n\nTélécharge l'app via mon lien de parrainage : {link}\n\nEnsemble, trouvons les meilleures voitures et pièces détachées ! 🚙✨",
+  "@referralShareMessage": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "unexpectedError": "Erreur inattendue : {error}",
+  "@unexpectedError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "serverError": "Erreur serveur : {status} - {message}",
+  "@serverError": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelBrand": "Marque : {value}",
+  "@alertLabelBrand": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelModel": "Modèle : {value}",
+  "@alertLabelModel": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelCondition": "État : {value}",
+  "@alertLabelCondition": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelYear": "Année : {value}",
+  "@alertLabelYear": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelYearMin": "Année min : {value}",
+  "@alertLabelYearMin": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelYearMax": "Année max : {value}",
+  "@alertLabelYearMax": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelBudgetMax": "Budget max : {value} FCFA",
+  "@alertLabelBudgetMax": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelPart": "Pièce : {value}",
+  "@alertLabelPart": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelUrgency": "Urgence : {value}",
+  "@alertLabelUrgency": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelLocation": "Localisation : {value}",
+  "@alertLabelLocation": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "alertLabelDetails": "Détails : {value}",
+  "@alertLabelDetails": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmDeleteCar": "Voulez-vous vraiment supprimer cette voiture ?",
+  "vehicleBrandLabel": "Marque du vehicule",
+  "partNameLabel": "Nom de la piece",
+  "urgencyLow": "Faible",
+  "urgencyNormal": "Normale",
+  "urgencyHigh": "Urgente",
+  "alertSendError": "Erreur envoi alerte: {error}",
+  "@alertSendError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "searchTypeTitle": "Type de recherche",
+  "whatDoYouWantToSearch": "Que voulez-vous rechercher ?",
+  "noArticleLinkedToAd": "Aucun article lié à cette pub.",
+  "sellerPhoneUnavailable": "Numéro du vendeur indisponible",
+  "imageNotAvailable": "Image non disponible",
+  "requestValidatedWhatsApp": "Demande validée — ouverture WhatsApp",
+  "requestRejected": "Demande rejetée",
+  "errorActionStatus": "Erreur action: {status}",
+  "@errorActionStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsLoadError": "Erreur lors du chargement des notifications",
+  "notificationDeleted": "Notification supprimée",
+  "markedAsUnread": "Marquée comme non lue",
+  "markAsUnread": "Marquer comme non lue",
+  "confirmDeleteNotification": "Supprimer cette notification ?",
+  "orderSummary": "Résumé",
+  "selectAddress": "Sélectionner une adresse",
+  "direction": "Direction",
+  "track": "Traquer",
+  "orderPayment": "Paiement commande",
+  "preparingPayment": "Préparation du paiement...",
+  "noActiveOrderToTrack": "Aucune commande active à tracker",
+  "ordersLoadError": "Erreur lors du chargement des commandes",
+  "orderRegisteredDeliverySoon": "Votre commande est enregistrée. Un livreur prendra bientôt en charge la livraison.",
+  "driverAssignedTrackRealtime": "Livreur assigné. Suivez sa position en temps réel.",
+  "returnPackage": "Retourner le colis",
+  "pickupMyOrder": "Récupérer ma commande",
+  "deliveryNotFound": "Livraison introuvable.",
+  "orderPickedUpSuccess": "Commande récupérée avec succès.",
+  "pickupError": "Erreur récupération: {error}",
+  "@pickupError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "returnReasonHint": "Ex: pièce non conforme, défaut, erreur de modèle…",
+  "send": "Envoyer",
+  "reasonRequired": "Motif requis.",
+  "returnReportedPaymentRequired": "Retour signalé. Paiement des frais de livraison requis.",
+  "returnError": "Erreur retour: {error}",
+  "@returnError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentInterrupted": "Paiement interrompu",
+  "paymentInterruptedMessage": "Vous avez quitté l'écran de paiement ou la transaction n'a pas été finalisée.",
+  "paymentInterruptedSubtitle": "Aucun prélèvement n'est enregistré. Vous pouvez réessayer quand vous voulez.",
+  "paymentErrorMessage": "Une erreur s'est produite lors de la transaction.",
+  "paymentErrorRetrySupport": "Veuillez réessayer ou contacter le support.",
+  "transactionSuccessMessage": "Votre transaction a été effectuée avec succès.",
+  "closePageReturnToApp": "Vous pouvez maintenant fermer cette page et retourner à l'application.",
+  "selectToChoose": "À sélectionner",
+  "bankPayment": "Paiement bancaire",
+  "mobileMoney": "Mobile Money",
+  "paymentSuccessUpdatingStatus": "Paiement réussi ! Mise à jour du statut...",
+  "adPaidSuccess": "Publicité payée avec succès !",
+  "subscriptionActivatedSuccess": "Abonnement activé avec succès !",
+  "redirecting": "Redirection en cours...",
+  "verifyPayment": "Vérification du paiement",
+  "finalizePayment": "Finaliser le paiement",
+  "purchaseSuccessMessage": "Cher client vous avez réussi à faire votre achat avec succès. ",
+  "purchaseSuccessDelivery": "Votre produit vous sera livré au plus dans 5 jrs. Merci pour votre confiance !",
+  "articleCreatedPendingValidation": "Bravo! Vous avez réussi à créer votre article. C'est en cours de validation.",
+  "almostThere": "Vous y êtes presque",
+  "spotlightCostPrefix": "Votre mise en lumière coûtera environ ",
+  "spotlightCostSuffix": " pour ce véhicule. Continuez et finalisez votre paiement pour voir votre véhicule en tête de liste de nos produits.",
+  "saleSuccessTitle": "Vente réussie !",
+  "publishedSuccessMessage": "Votre annonce est maintenant en ligne !",
+  "yourBalanceIs": "Votre solde est de :",
+  "entry": "Entrée",
+  "makeWithdrawal": "Effectuer un retrait",
+  "transferAccount": "Compte de virement",
+  "cardNumber": "Numéro de carte",
+  "month": "Mois",
+  "securityCode": "Code de sécurité de la carte",
+  "codeHint": "Code",
+  "requestWithdrawal": "Demander un Retrait",
+  "myWithdrawals": "Mes retraits",
+  "withdrawalRequest": "Demande de Retrait",
+  "noMessage": "Aucun message",
+  "articleDefault": "Article",
+  "justNow": "À l'instant",
+  "recent": "Récent",
+  "errorSendingImage": "Erreur lors de l'envoi de l'image",
+  "errorSendingDocument": "Erreur lors de l'envoi du document",
+  "pdfLabel": "PDF",
+  "openingDocument": "Ouverture du document...",
+  "myTransits": "Mes Transits",
+  "noArticlesInCategory": "Aucun article dans cette catégorie",
+  "discussionCreationError": "Erreur lors de la création de la discussion",
+  "articleWithoutId": "Article sans ID",
+  "contactTransitaire": "Contacter le transitaire",
+  "finalizePurchase": "Finalisation de l'achat",
+  "chosenForwarderRate": "Tarif transitaire choisi",
+  "additionalFees": "Frais supplémentaires",
+  "totalPrice": "Prix total",
+  "downloadInvoice": "Télécharger la facture",
+  "chooseFormat": "Choisissez le format :",
+  "imageFormat": "Image",
+  "documentFormat": "Document",
+  "imageGallery": "Image (Galerie)",
+  "chooseDownloadFormat": "Choisissez le format de téléchargement:",
+  "preparingShare": "Préparation du partage...",
+  "invoiceReadyToShare": "Facture prête à partager !",
+  "shareError": "Erreur lors du partage: {error}",
+  "@shareError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "maxImagesReached": "Maximum de 12 images atteint",
+  "videoUploadedSuccess": "Vidéo uploadée avec succès !",
+  "waitUploadFinish": "Veuillez attendre la fin de l'upload.",
+  "addAtLeastOneMedia": "Veuillez ajouter au moins une image ou une vidéo.",
+  "fillRequiredFields": "Veuillez remplir tous les champs obligatoires.",
+  "enterTitle": "Entrer le titre",
+  "enterYear": "Entrer l'année (ex: 2020)",
+  "enterCylinder": "Entrer le cylindre (ex: 1600)",
+  "enterDistance": "Entrer la distance (km)",
+  "enterSeats": "Entrer le nombre de sièges",
+  "enterPrice": "Saisir le Prix",
+  "enterCarDescription": "Entrer une description de votre voiture",
+  "uploadInProgress": "Upload en cours...",
+  "publishListing": "Publier l'annonce",
+  "uploadImageFailed": "Échec de l'upload de l'image.",
+  "noImageSelected": "Aucune image sélectionnée.",
+  "newOffer": "Nouvelle offre",
+  "selectAtLeastOneImage": "Veuillez sélectionner au moins une image.",
+  "fillCarFields": "Veuillez remplir tous les champs de la voiture.",
+  "requestCreationError": "Erreur lors de la création de la demande.",
+  "statusUpdateError": "Erreur lors de la mise à jour du statut.",
+  "clickableLinkOptional": "Lien cliquable (optionnel)",
+  "itemName": "Nom de la pièce/voiture",
+  "companyName": "Nom de l'entreprise",
+  "locationServicesDisabled": "Les services de localisation sont désactivés",
+  "locationPermissionDenied": "Permission de localisation refusée",
+  "locationPermissionDeniedForever": "Permission de localisation refusée définitivement",
+  "confirmThisLocation": "Confirmer cette position",
+  "useMyLocation": "Utiliser ma position",
+  "drivingLicense": "Permis de conduire",
+  "yourMessage": "Votre message",
+  "submitApplication": "Soumettre la candidature",
+  "applicationSubmitted": "Candidature soumise avec succès !",
+  "applicationSubmitError": "Erreur lors de la soumission.",
+  "vendreTitle": "Vendre",
+  "quantity": "Quantité",
+  "addToCart": "Ajouter au panier",
+  "buyNow": "Acheter maintenant",
+  "contactSeller": "Contacter le vendeur",
+  "views": "Vues",
+  "status": "Statut",
+  "date": "Date",
+  "amount": "Montant",
+  "details": "Détails",
+  "search": "Rechercher",
+  "filter": "Filtrer",
+  "seeAll": "Voir tout",
+  "noData": "Aucune donnée",
+  "errorLoading": "Erreur de chargement",
+  "continueAction": "Continuer",
+  "edit": "Modifier",
+  "remove": "Retirer",
+  "subtotal": "Sous-total",
+  "shipping": "Livraison",
+  "orderStatus": "Statut de commande",
+  "orderDate": "Date de commande",
+  "delivered": "Livrée",
+  "cancelled": "Annulée",
+  "processing": "Traitement...",
+  "errorUserNotConnected": "Erreur: Utilisateur non connecté",
+  "adPaymentSuccessMessage": "Votre paiement a été effectué avec succès ! ",
+  "adPaymentSuccessHighlight": "Votre article sera mis en avant dès validation par notre équipe. Vous recevrez une notification de confirmation.",
+  "preparing": "Préparation...",
+  "listingPublishedVisiblePrefix": "Votre article est publié et visible ",
+  "immediately": "immédiatement",
+  "listingPublishedVisibleSuffix": " sur l'application.\n\nVous pouvez déjà le retrouver dans les listes.",
+  "listingAlreadyOnline": "Votre annonce est déjà en ligne.",
+  "noVehicleSearchResultHint": "Aucune voiture ne correspond a votre recherche.\nCreez une mini alerte pour etre contacte rapidement.",
+  "noPartSearchResultHint": "Aucune piece ne correspond a votre recherche.\nCreez une mini alerte pour etre contacte rapidement.",
+  "priceFcfaLabel": "Prix (FCFA)",
+  "vehicleAlert": "Alerte vehicule",
+  "partAlert": "Alerte piece",
+  "takePhoto": "Prendre une photo",
+  "vehicleCondition": "Etat du vehicule",
+  "brandRequired": "Marque requise",
+  "modelRequired": "Modele requis",
+  "yearRequired": "Annee requise",
+  "budgetRequired": "Budget requis",
+  "alertRegisteredFeedback": "Votre demande a bien ete enregistree. Vous recevrez les retours des vendeurs tres bientot.",
+  "whatsappOpenDetailed": "Impossible d'ouvrir WhatsApp. Vérifiez que l'application ou un navigateur est installé sur votre téléphone.",
+  "noVideoAvailable": "Aucune vidéo disponible",
+  "cannotMakeCall": "Impossible de passer un appel",
+  "cylinder": "Cylindre",
+  "fuel": "Carburant",
+  "airConditioner": "Climatiseur",
+  "distanceKm": "Distance",
+  "seats": "Sièges",
+  "doors": "Portes",
+  "gearbox": "Boîte à vitesse",
+  "customsClearance": "Dédouanement",
+  "inConsumption": "En Consommation",
+  "chooseCountry": "Choisissez un pays",
+  "additionalDetails": "Détails supplémentaires",
+  "signInForVerification": "Connectez-vous pour demander une vérification",
+  "signInForDelivery": "Connectez-vous pour commander avec livraison",
+  "signInToBuyThisCar": "Connectez-vous pour acheter cette voiture",
+  "chooseDeliveryMode": "Veuillez choisir un mode de livraison (En Consommation ou En Transit).",
+  "selectLocationPlease": "Veuillez sélectionner un lieu.",
+  "verificationInProgress": "Contrôle en cours",
+  "verificationChecksPrefix": "Les vérifications seront effectuées et vous seront envoyées sous ",
+  "tenBusinessDays": "10 jours",
+  "verificationChecksMiddle": ". Pour démarrer, veuillez payer les ",
+  "verificationFeesLabel": "frais de vérification",
+  "payVerificationFees": "Payer les frais de vérification",
+  "requestVerification": "Demander une vérification",
+  "buyThisCar": "Acheter cette voiture",
+  "sampleCarDescription": "La Tesla Model 3 est une berline électrique de taille moyenne, reconnue pour ses performances impressionnantes, son accélération et son autonomie.",
+  "chooseCondition": "Choisissez la condition",
+  "chooseBrand": "Choisissez la marque",
+  "chooseModel": "Choisissez le modèle",
+  "chooseDoorCount": "Choisissez le nombre de portes",
+  "chooseGearbox": "Choisissez la vitesse",
+  "chooseFuel": "Choisissez le carburant",
+  "chooseAirConditioner": "Choisissez le climatiseur",
+  "brandsLabel": "Marques",
+  "doorSingular": "Porte",
+  "seatSingular": "Siège",
+  "selectedColorLabel": "Couleur sélectionnée: {color}",
+  "@selectedColorLabel": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "companyBlOwner": "Nom de l'entreprise possédant le BL",
+  "imagesOptionalMax12": "Images (optionnel, max 12)",
+  "videoOptionalMax500": "Vidéo (optionnelle, max 500 Mo)",
+  "addImagesButton": "Ajouter des images",
+  "videoReady": "Vidéo prête",
+  "mediaSlot": "Emplacement {index}",
+  "@mediaSlot": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "tapToAddVideo": "Appuyer pour ajouter",
+  "sending": "Envoi...",
+  "videoTooHeavy": "La vidéo est trop lourde ({size} Mo). Limite: 500 Mo.",
+  "@videoTooHeavy": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "videoUploadError": "Erreur lors de l'upload de la vidéo. Veuillez réessayer.",
+  "maxMediaCount": "Vous pouvez sélectionner au maximum {count} médias.",
+  "@maxMediaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "manualTransmission": "Manuelle",
+  "automaticTransmission": "Automatique",
+  "petrol": "Essence",
+  "diesel": "Diesel",
+  "electric": "Électrique",
+  "hybrid": "Hybride",
+  "otherOption": "Autre",
+  "pieceName": "Nom de la pièce",
+  "enterYearShort": "Entrer l'année",
+  "placement": "Emplacement",
+  "enterPartDescription": "Entrer une description de votre pièce",
+  "verificationAction": "Vérification",
+  "uploadFailed": "Upload échoué: {error}",
+  "@uploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "videoUploadFailed": "Upload vidéo échoué: {error}",
+  "@videoUploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "selectedModelLabel": "Modèle sélectionné : {model}",
+  "@selectedModelLabel": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "customModelLabel": "Modèle personnalisé : {model}",
+  "@customModelLabel": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "enterEngineType": "Entrez le type de moteur",
+  "noEngine": "Aucun",
+  "gazoil": "Gazoil",
+  "addVideo": "Ajouter une vidéo",
+  "videoUploadedLabel": "Vidéo uploadée",
+  "beforeContactSeller": "Avant de contacter le vendeur",
+  "contactSellerTips": "• Confirmez le prix et les frais éventuels\n• Vérifiez la localisation et la disponibilité\n• Échangez clairement sur l'état du bien\n• Privilégiez un lieu sûr pour la transaction",
+  "orderWithDelivery": "Commander avec livraison",
+  "buyViaApp": "Acheter via l'application",
+  "secureOrderViaCart": "Commande sécurisée via le panier Tranoo (livraison disponible).",
+  "partTypeLabel": "Type de pièce",
+  "ratingOutOf5": "0 / 5",
+  "mastervacSampleDescription": "Composant essentiel du système de freinage, le mastervac amplifie la force exercée sur la pédale de frein pour faciliter le freinage.",
+  "rare": "Rare",
+  "sellYourPart": "Vendez votre pièce",
+  "newBadge": "New",
+  "createAd": "Créer une publicité",
+  "adRequest": "Demande de pub",
+  "standaloneAd": "Publicité indépendante",
+  "existingArticleAd": "Publicité d'article existant",
+  "standaloneAdDesc": "Publicité À la une indépendante. Téléchargez un flyer (1080 x 1350 px recommandé) et ajoutez un lien optionnel vers votre site ou votre catalogue.",
+  "nonExistingPubDesc": "Publication non existante. Vous créez une publication non existante. Les utilisateurs pourront cliquer pour voir les détails de votre offre.",
+  "existingArticlePubDesc": "Vous créez une publicité pour un article existant. Les utilisateurs pourront cliquer pour voir l'article complet.",
+  "loadingArticleInfo": "Chargement des informations de l'article...",
+  "articleLoadedSuccess": "Article chargé avec succès ! Vous pouvez maintenant faire une publicité pour cet article.",
+  "linkExampleHint": "Ex: https://wa.me/2250700000000 ou https://mon-site.com",
+  "linkHelperText": "Permettre aux utilisateurs d'ouvrir votre site, catalogue ou formulaire de paiement.",
+  "selectAdType": "Veuillez sélectionner un type",
+  "selectDuration": "Veuillez sélectionner une durée",
+  "sponsoredType": "Sponsorisée",
+  "featuredType": "À la une",
+  "oneWeek": "1 semaine",
+  "twoWeeks": "2 semaines",
+  "oneMonth": "1 mois",
+  "twoMonths": "2 mois",
+  "threeMonths": "3 mois",
+  "pricePerDayLabel": "{price}/jour",
+  "@pricePerDayLabel": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "carInfoSection": "Informations concernant la voiture",
+  "enterName": "Veuillez entrer le nom",
+  "enterYearValidator": "Veuillez entrer l'année",
+  "enterLocationValidator": "Veuillez entrer la localisation",
+  "enterPriceValidator": "Veuillez entrer le prix",
+  "enterDescriptionValidator": "Veuillez entrer une description",
+  "enterCompanyValidator": "Veuillez entrer le nom de l'entreprise",
+  "selectEngineTypeValidator": "Veuillez sélectionner le type de moteur",
+  "selectModelValidator": "Veuillez sélectionner le modèle",
+  "selectTypeValidator": "Veuillez sélectionner le type",
+  "mainFlyerImage": "Image principale (flyer)",
+  "recommendedDimensions": "Dimensions recommandées : 1080 x 1350 px (PNG/JPG)",
+  "addMainImage": "Ajouter image principale",
+  "dimensions1080x1350": "1080 x 1350 px",
+  "additionalImagesOptional": "Images supplémentaires (optionnel)",
+  "standaloneFeaturedTitle": "Publicité À la une",
+  "standaloneFeaturedDesc": "Flyer dédié, pas besoin d'article existant. Ajoutez simplement votre visuel et (optionnellement) un lien externe.",
+  "addMainImageForFeatured": "Veuillez ajouter une image principale pour \"À la une\".",
+  "articleCreateError": "Erreur lors de la création de l'article.",
+  "articleCreateNetworkError": "Erreur réseau lors de la création de l'article: {error}",
+  "@articleCreateNetworkError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "articleLoadError": "Erreur lors du chargement de l'article",
+  "articleLoadNetworkError": "Erreur réseau lors du chargement de l'article",
+  "mediaUploadError": "Erreur lors de l'upload des médias: {error}",
+  "@mediaUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fillAllFieldsShort": "Veuillez remplir tous les champs.",
+  "articleNotExistCreateFirst": "Cet article n'existe pas, veuillez le créer et après validation par l'admin vous pourrez le mettre en avant.",
+  "articleNotExistFeaturedFirst": "Cet article n'existe pas. Pour les pubs \"À la une\", veuillez d'abord créer l'article et après validation par l'admin vous pourrez le mettre en avant.",
+  "articleCreateRetryError": "Erreur lors de la création de l'article. Veuillez réessayer.",
+  "paymentSuccessPendingValidation": "Paiement réussi, en attente de validation admin. Vous recevrez une notification dès validation.",
+  "pubForTitle": "Publicité pour {title}",
+  "@pubForTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "noDescriptionAd": "Publicité sans description",
+  "defaultCarName": "Nom de la voiture",
+  "defaultLocation": "Localisation",
+  "defaultPrice": "Prix",
+  "defaultCarDescription": "Description de la voiture",
+  "defaultCompanyName": "Nom de l'entreprise",
+  "defaultBrand": "Marque",
+  "standaloneFeaturedDescriptionDefault": "Publicité À la une (flyer vitrine Tranoo)",
+  "perMonth": "par mois",
+  "boostVisibilitySubtitle": "Boostez votre visibilité auprès des clients",
+  "premiumBenefits": "Avantages Premium",
+  "prioritySpotlight": "Mise en avant prioritaire",
+  "prioritySpotlightDesc": "Apparaissez en premier dans les recherches",
+  "premiumBadge": "Badge Premium",
+  "premiumBadgeDesc": "Badge doré visible sur votre profil",
+  "boostedVisibility": "Visibilité boostée",
+  "boostedVisibilityDesc": "Plus de clients vous contactent",
+  "prioritySupport": "Support prioritaire",
+  "prioritySupportDesc": "Assistance dédiée 24h/7j",
+  "monthlySubscription": "Abonnement Mensuel",
+  "subscriptionAutoRenewNote": "Votre abonnement sera automatiquement renouvelé chaque mois. Vous pouvez l'annuler à tout moment.",
+  "subscribeNowPrice": "Souscrire maintenant - {price} FCFA",
+  "@subscribeNowPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "userNotLoggedIn": "Utilisateur non connecté",
+  "feexpayConfigMissing": "Configuration FeexPay manquante",
+  "feexpayConfigMissingDetailed": "Configuration FeexPay manquante (FP_TOKEN_FEEXPAY / ID_USER_FEEXPAY)",
+  "verificationFeesTitle": "Frais de vérification",
+  "documentVerification": "Vérification de documents",
+  "verifyDocumentsAuthenticity": "Vérifiez l'authenticité de vos documents",
+  "includedServices": "Services inclus",
+  "fullVerification": "Vérification complète",
+  "fullVerificationDesc": "Contrôle de tous vos documents officiels",
+  "fastProcessing": "Traitement rapide",
+  "fastProcessingDesc": "Résultats sous 10 jours ouvrables",
+  "oneTimePayment": "paiement unique",
+  "verificationPaymentNote": "Après paiement, vous recevrez un récapitulatif et les vérifications seront effectuées sous 10 jours ouvrables.",
+  "proceedToPayment": "Procéder au paiement - {price} FCFA",
+  "@proceedToPayment": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentReceivedIncompleteRecord": "Paiement reçu mais enregistrement serveur incomplet. Réessayez ou contactez le support.",
+  "paymentReceivedVerificationProcessing": "Paiement reçu. Votre demande de vérification est en cours de traitement.",
+  "paymentCancelledNotConfirmed": "Paiement annulé ou non confirmé. Réessayez si besoin.",
+  "cannotLoadData": "Impossible de charger les données",
+  "recommendedForwarders": "Transitaires recommandés",
+  "forwarderSubscription": "Abonnement Transitaire",
+  "activateMonthlySubscription": "Activez un abonnement mensuel pour être mis en avant auprès des acheteurs.",
+  "pricePerMonth": "{price} FCFA / mois",
+  "@pricePerMonth": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "activatedOn": "Activé le: {date}",
+  "@activatedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "expiresOn": "Expire le: {date}",
+  "@expiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "manage": "Gérer",
+  "visibility": "Visibilité",
+  "boosted": "Boostée",
+  "spotlight": "Mises en avant",
+  "subscriptionStatus": "Statut d'abonnement",
+  "active": "Actif",
+  "inactive": "Inactif",
+  "noActiveSubscription": "Aucun abonnement actif",
+  "performances": "Performances",
+  "ordersDeliveredPerMonth": "Commandes livrées / mois",
+  "clientDistribution": "Répartition des clients",
+  "chartBuyers": "Acheteurs",
+  "chartDrivers": "Chauffeurs",
+  "chartOthers": "Autres",
+  "discuss": "Discuter",
+  "priceWithValue": "Prix: {price}",
+  "@priceWithValue": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "priceNotSpecified": "Non spécifié",
+  "sellerInfoError": "Erreur: Impossible de récupérer les informations du vendeur",
+  "transitHistoryTitle": "Historiques des transits",
+  "clientLabel": "Client : {name}",
+  "@clientLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "departurePortLabel": "Port de départ : {port}",
+  "@departurePortLabel": {
+    "placeholders": {
+      "port": {
+        "type": "String"
+      }
+    }
+  },
+  "arrivalPortLabel": "Port d'arrivée : {port}",
+  "@arrivalPortLabel": {
+    "placeholders": {
+      "port": {
+        "type": "String"
+      }
+    }
+  },
+  "transitDateLabel": "Date de transit : {date}",
+  "@transitDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "statusWithValue": "Statut : {status}",
+  "@statusWithValue": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveredSuccessfully": "Livré avec succès",
+  "atCustoms": "En douane",
+  "billOfLading": "Connaissement",
+  "proformaInvoice": "Facture Proforma",
+  "transitCertificate": "Certificat de transit",
+  "partialCustomsCertificate": "Attestation de dédouanement partiel",
+  "inspectionCertificate": "Certificat d'inspection",
+  "transitFormTitle": "Formulaires de transit",
+  "carNameLabel": "Nom de la voiture",
+  "clientField": "Client",
+  "departurePort": "Port de départ",
+  "arrivalPort": "Port d'arrivée",
+  "transitDate": "Date de transit",
+  "uploadDocuments": "Télécharger les documents",
+  "registrationForm": "Formulaire d'inscription",
+  "familyName": "Nom de famille",
+  "enterYourName": "Entrer votre nom",
+  "enterYourFirstName": "Entrer votre prénom",
+  "typeYourPhone": "Tapez votre numéro de Téléphone",
+  "enterYourEmail": "Entrer votre mail",
+  "licenseNumber": "Numéro de permit",
+  "enterLicenseNumber": "Entrer votre numéro de permit",
+  "messages": "Messages",
+  "writeYourMessage": "Écrivez votre message",
+  "uploadImagesLabel": "Télécharger des images",
+  "myLicensePdf": "Mon permis pdf",
+  "fillFieldsAndUploadLicense": "Veuillez remplir tous les champs obligatoires et uploader votre permis.",
+  "requestSentSuccess": "Demande envoyée avec succès !",
+  "sendErrorWithBody": "Erreur lors de l'envoi : {body}",
+  "@sendErrorWithBody": {
+    "placeholders": {
+      "body": {
+        "type": "String"
+      }
+    }
+  },
+  "timeAgoDays": "Il y a {count} jour(s)",
+  "@timeAgoDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeAgoHours": "Il y a {count}h",
+  "@timeAgoHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeAgoMinutes": "Il y a {count} min",
+  "@timeAgoMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkingPermissions": "Vérification des autorisations...",
+  "redirectingIfNeeded": "Redirection en cours si nécessaire",
+  "unauthorizedAccess": "Accès non autorisé",
+  "tricycle_home_title": "Tricycles",
+  "tricycle_request_accepted": "Demande acceptée",
+  "tricycle_request_sent": "Demande envoyée",
+  "tricycle_order_command": "Commander · Tricycle",
+  "feexpayPaymentTitle": "Paiement FeexPay",
+  "feexpayInitSuccess": "Service FeexPay initialisé avec succès",
+  "feexpayInitError": "Erreur lors de l'initialisation: {error}",
+  "@feexpayInitError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentInitSuccess": "Paiement initialisé avec succès!",
+  "cannotOpenPaymentPage": "Impossible d'ouvrir la page de paiement",
+  "transactionDetailsTitle": "Détails de la transaction",
+  "labelTransactionId": "ID Transaction",
+  "valueAmountFcfa": "{amount} FCFA",
+  "@valueAmountFcfa": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "enterAmount": "Veuillez saisir le montant",
+  "enterValidAmount": "Veuillez saisir un montant valide",
+  "amountMustBePositive": "Le montant doit être supérieur à 0",
+  "enterDescriptionRequired": "Veuillez saisir une description",
+  "enterOrderId": "Veuillez saisir un ID de commande",
+  "commandIdLabel": "ID de commande",
+  "paymentTypeLabel": "Type de paiement",
+  "mobileMoneyProviders": "Mobile Money (MTN, Moov, Orange)",
+  "bankCardPayment": "Carte bancaire (VISA, Mastercard)",
+  "feexpayWallet": "Portefeuille FeexPay",
+  "initializeFeexpay": "Initialiser FeexPay",
+  "aboutFeexpay": "À propos de FeexPay",
+  "feexpayAboutDescription": "FeexPay est un agrégateur de paiement sécurisé qui accepte :",
+  "feexpayAcceptedMethods": "• MTN Mobile Money, Moov Money, Orange Money\n• Cartes VISA et Mastercard\n• Portefeuilles numériques",
+  "feexpayTransactionsTitle": "Transactions FeexPay",
+  "transactionsLoadError": "Erreur lors du chargement: {error}",
+  "@transactionsLoadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "processRefundTitle": "Effectuer un reversement",
+  "transactionWithId": "Transaction: {id}",
+  "@transactionWithId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "refundAmountFcfa": "Montant à rembourser (FCFA)",
+  "refundReason": "Raison du remboursement",
+  "refundAction": "Rembourser",
+  "invalidAmount": "Montant invalide",
+  "refundSuccess": "Remboursement effectué avec succès",
+  "transactionHistory": "Historique des transactions",
+  "transactionCount": "{count} transaction(s)",
+  "@transactionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountBalanceLabel": "Solde du compte",
+  "currencyWithValue": "Devise: {currency}",
+  "@currencyWithValue": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "noTransactionsFound": "Aucune transaction trouvée",
+  "transactionsEmptyHint": "Les transactions apparaîtront ici après vos premiers paiements",
+  "transactionNoDescription": "Transaction sans description",
+  "idWithValue": "ID: {id}",
+  "@idWithValue": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "dateWithValue": "Date: {date}",
+  "@dateWithValue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "methodWithValue": "Méthode: {method}",
+  "@methodWithValue": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "unknownDate": "Date inconnue",
+  "customerEmailLabel": "Email client",
+  "accountBlockedTitle": "Compte Bloqué",
+  "accountBlockedDialogMessage": "Vous ne pouvez pas accéder à l'application car l'administrateur vous a temporairement bloqué.",
+  "contactSupportTeam": "Contactez l'équipe support pour plus d'informations.",
+  "driverArrivedTitle": "Votre livreur est arrivé",
+  "chooseAnAction": "Choisissez une action.",
+  "orderTotalLabel": "Total commande",
+  "deliveryFeesLabel": "Frais livraison",
+  "payMyOrder": "Payer ma commande",
+  "returnReasonRequiredTitle": "Motif de retour (obligatoire)",
+  "partsOrderPaymentLabel": "Paiement commande pièces",
+  "deliveryFeePaymentLabel": "Paiement frais de livraison",
+  "fileDownloadFailed": "Impossible de télécharger le fichier",
+  "tranooDocumentShare": "Document Tranoo",
+  "refWithId": "Réf. {id}",
+  "@refWithId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "attachedImages": "Images jointes",
+  "attachedDocuments": "Documents joints",
+  "stampAndSignature": "Cachet et signature",
+  "reject": "Rejeter",
+  "downloadReportPdf": "Télécharger le rapport PDF",
+  "imageWithIndex": "Image {index}",
+  "@imageWithIndex": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "documentWithIndex": "Document {index}",
+  "@documentWithIndex": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "buyerAlert": "Alerte acheteur",
+  "swipeUpOrTap": "Glissez vers le haut ou appuyez",
+  "decline": "Refuser",
+  "answer": "Répondre",
+  "newAlertTitle": "Nouvelle alerte",
+  "sellerRespondedToAlert": "Un vendeur a répondu à votre alerte",
+  "videoAvailable": "Vidéo disponible",
+  "withdrawalProcessingMessage": "Votre demande est en cours de traitement et vous recevez une confirmation une fois le retrait effectué. Si vous avez des questions ou si vous souhaitez apporter des modifications à votre demande, n'hésitez pas à nous contacter. Merci pour votre confiance.",
+  "departurePortField": "Port de départ",
+  "arrivalPortField": "Port d'arrivée",
+  "transitDateField": "Date de transit",
+  "carNameExample": "Toyota Corolla 2018",
+  "clientExample": "Marcel T",
+  "departurePortExample": "Anvers, Belgique",
+  "arrivalPortExample": "Cotonou, Bénin",
+  "transitDateExample": "10 avril 2025",
+  "timeAgoMinutesLong": "Il y a {count} minutes",
+  "@timeAgoMinutesLong": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsSelectedCount": "{count} sélectionnée(s)",
+  "@notificationsSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmDeleteNotificationsCount": "Supprimer {count} notification(s) ?",
+  "@confirmDeleteNotificationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newRequest": "Nouvelle demande",
+  "budgetAmountFcfa": "Budget {amount} FCFA",
+  "@budgetAmountFcfa": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "alertProposalForYourAlert": "Proposition pour votre alerte",
+  "whatsappInterestWithRef": "Bonjour Tranoo, je confirme mon intérêt pour l'achat : {title} (réf. {articleId}).",
+  "@whatsappInterestWithRef": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "articleId": {
+        "type": "String"
+      }
+    }
+  },
+  "whatsappInterestNoRef": "Bonjour Tranoo, je confirme mon intérêt pour l'achat : {title}.",
+  "@whatsappInterestNoRef": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultVehicleTitle": "véhicule",
+  "cannotLoadOrders": "Impossible de charger vos commandes",
+  "noOrdersYetHint": "Vous n'avez pas encore passé de commande",
+  "filterRejected": "Rejetée",
+  "filterTracking": "Tracking",
+  "finishedOrdersHiddenHint": "Vos commandes terminées ou annulées n'apparaissent pas ici",
+  "orderCmdNumber": "CMD #{id}",
+  "@orderCmdNumber": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "orderStatusPending": "En attente",
+  "orderStatusConfirmed": "Confirmée",
+  "orderStatusPreparing": "En préparation",
+  "orderStatusReady": "Prête",
+  "orderStatusDelivering": "En livraison",
+  "orderStatusDelivered": "Livrée",
+  "orderStatusCancelled": "Annulée",
+  "orderStatusDriverAssigned": "Livreur assigné",
+  "tranooDelivery": "Tranoo Delivery",
+  "driverLabel": "Livreur",
+  "addressNotSpecified": "Adresse non spécifiée",
+  "quantityLabel": "Qté: x{qty}",
+  "@quantityLabel": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
+  },
+  "deliveryDetails": "Détails de la livraison",
+  "driverAssignmentPending": "Affectation en cours",
+  "defaultLocationCotonou": "Cotonou, Bénin",
+  "apiErrorWithDetails": "Erreur API ({status}) : {details}",
+  "@apiErrorWithDetails": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "monthJan": "JAN",
+  "monthFeb": "FEV",
+  "monthMar": "MAR",
+  "monthApr": "AVR",
+  "monthMay": "MAI",
+  "monthJun": "JUI",
+  "monthJul": "JUL",
+  "monthAug": "AOU",
+  "monthSep": "SEP",
+  "monthOct": "OCT",
+  "monthNov": "NOV",
+  "monthDec": "DEC",
+  "fetchingLocation": "Récupération...",
+  "fetchMyLocation": "Récupérer ma position",
+  "chooseOnMap": "Choisir sur la carte",
+  "currentPositionLabel": "Position actuelle",
+  "selectedPositionLabel": "Position sélectionnée",
+  "coordinatesLabel": "Lat: {lat}\nLon: {lng}",
+  "@coordinatesLabel": {
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "availability": "Disponibilité",
+  "deliveryFeeLabel": "Frais de livraison",
+  "processingOrder": "Traitement en cours...",
+  "supplierCoordsUnavailable": "Coordonnées fournisseur indisponibles pour calculer la livraison.",
+  "invalidCoordinates": "Coordonnées invalides",
+  "selectionCancelled": "Sélection annulée",
+  "mapSelectionError": "Erreur lors de la sélection de la carte: {error}",
+  "@mapSelectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationRetrievedSuccess": "Position actuelle récupérée avec succès !",
+  "deliveryAddressSelectedOnMap": "Adresse de livraison sélectionnée sur la carte !",
+  "enableLocationInSettingsMsg": "Activez la localisation dans les paramètres",
+  "locationError": "Erreur de localisation: {error}",
+  "@locationError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidDeliveryAddress": "Adresse de livraison invalide",
+  "selectDeliveryAddressPlease": "Veuillez sélectionner une adresse de livraison",
+  "confirmYourOrder": "Confirmer votre commande",
+  "totalToPay": "Total à payer: {amount} F",
+  "@totalToPay": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "transactionFailedNotSaved": "Transaction échouée/annulée. Commande non enregistrée.",
+  "orderConfirmedTitle": "Commande confirmée !",
+  "orderSavedSuccess": "Votre commande a été enregistrée avec succès.",
+  "deliveryExpected": "Livraison prévue",
+  "deliveryBetween3And7Days": "Entre 3 et 7 jours ouvrables",
+  "youWillReceiveNotification": "Vous recevrez une notification",
+  "availAvailable": "Disponible",
+  "avail15to30min": "Dans 15-30 min",
+  "avail1to2h": "Dans 1h-2h",
+  "availBefore12": "Avant 12h",
+  "availBefore18": "Avant 18h",
+  "availBefore20": "Avant 20h",
+  "availFlexible": "Flexible",
+  "supplierDefault": "Fournisseur",
+  "supplierAddressDefault": "Adresse fournisseur",
+  "orderSaveError": "Erreur lors de la sauvegarde de la commande: {error}",
+  "@orderSaveError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "positionCoords": "Position: {lat}, {lng}",
+  "@positionCoords": {
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "orderPaymentTranooDescription": "Paiement commande Tranoo",
+  "mobileMoneyPayment": "Paiement Mobile Money",
+  "adDetailsTitle": "Détails de votre publicité",
+  "amountToPay": "Montant à payer",
+  "viaMobileMoney": "via Mobile Money",
+  "supportedOperators": "Opérateurs supportés",
+  "afterPaymentAdValidationNote": "Après paiement, votre publicité sera soumise à validation admin avant publication.",
+  "payAmountFcfa": "Payer {amount} FCFA",
+  "@payAmountFcfa": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "adForYourListing": "Publicité pour votre article",
+  "adPaymentMobileDescription": "Paiement publicité (mobile money) {pubId}",
+  "@adPaymentMobileDescription": {
+    "placeholders": {
+      "pubId": {
+        "type": "String"
+      }
+    }
+  },
+  "durationLabel": "Durée",
+  "invoicesLoadError": "Impossible de charger les factures",
+  "signInForInvoices": "Connectez-vous pour accéder à vos factures",
+  "noInvoicesYet": "Vous n'avez aucune facture pour le moment.",
+  "unreadLabel": "Non lue",
+  "filterByDate": "Filtrer par date",
+  "filterAllDates": "Toutes",
+  "filterToday": "Aujourd'hui",
+  "filterThisWeek": "Cette semaine",
+  "filterThisMonth": "Ce mois",
+  "filterCustom": "Personnalisée",
+  "selectedDateLabel": "Date sélectionnée: {date}",
+  "@selectedDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "invoicePreview": "Aperçu facture",
+  "transactionSuccessTitle": "Transaction Success",
+  "transactionNumber": "Transaction number {ref}",
+  "@transactionNumber": {
+    "placeholders": {
+      "ref": {
+        "type": "String"
+      }
+    }
+  },
+  "dateTimeLabel": "Date & time",
+  "productLabel": "Produit",
+  "sellerLabel": "Vendeur",
+  "shopLabel": "Boutique",
+  "fundsSourceLabel": "Source de fonds",
+  "destinationLabel": "Destination",
+  "referenceLabel": "Référence",
+  "productDetails": "Détails des produits:",
+  "productPriceLabel": "Prix du produit",
+  "deliveryPriceLabel": "Prix de livraison",
+  "vatLabel": "TVA",
+  "totalTransaction": "Total transaction",
+  "tranooSupport": "Support Tranoo",
+  "thankYouForTrust": "Merci pour votre confiance ",
+  "officialInvoiceDisclaimer": "Cette facture est un document officiel. En cas de litige, veuillez contacter notre support.",
+  "saveInvoiceImage": "Enregistrer la facture (image)",
+  "saveInvoiceDocument": "Enregistrer la facture (document)",
+  "imageSavedSuccess": "Image sauvegardée avec succès",
+  "imageSaveFailed": "Échec de sauvegarde de l'image",
+  "documentSavedSuccess": "Document PDF sauvegardé avec succès",
+  "documentSaveFailed": "Échec de sauvegarde du document PDF",
+  "captureUnavailable": "Capture indisponible",
+  "imageGenerationFailed": "Impossible de générer l'image",
+  "paidStatus": "Payée",
+  "pendingPaymentStatus": "En attente",
+  "sellerDefault": "Vendeur",
+  "shopDefault": "Boutique",
+  "invoiceTitle": "FACTURE {number}",
+  "@invoiceTitle": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "purchasesLoadError": "Erreur lors du chargement des achats",
+  "purchaseStatusLabel": "Statut : {status}",
+  "@purchaseStatusLabel": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryDateLabel": "Date de livraison : {date}",
+  "@deliveryDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryLocationLabel": "Lieu de livraison : {location}",
+  "@deliveryLocationLabel": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "fuelTypeLabel": "Type de carburant : {type}",
+  "@fuelTypeLabel": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "colorLabel": "Couleur : {color}",
+  "@colorLabel": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      }
+    }
+  },
+  "publishedOn": "Publié le {date}",
+  "@publishedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "ratingOutOf": "{rating}/5",
+  "@ratingOutOf": {
+    "placeholders": {
+      "rating": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesAgo2": "Il y a 2 min",
+  "inProgressStatus": "En cours",
+  "yearDropdown": "Année",
+  "cardPlaceholderName": "Rencontrez Patel",
+  "cardNumberPlaceholder": "0000 0000 0000 0000",
+  "paymentFormFor": "Formulaire de Paiement pour {name}",
+  "@paymentFormFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "partNameLabelShort": "Nom de la pièce: {name}",
+  "@partNameLabelShort": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "untitled": "Sans titre",
+  "unknownCompany": "Entreprise inconnue",
+  "piecesLoadError": "Erreur lors du chargement des pièces",
+  "carsLoadError": "Erreur lors du chargement des voitures",
+  "adsLoadError": "Erreur lors du chargement des publicités",
+  "dataFormatError": "Erreur de format de données",
+  "filterModelsTab": "Modèles",
+  "filterLocationTab": "Localisation",
+  "filterBudgetTab": "Budget",
+  "noCarsAvailable": "Aucune voiture disponible pour le moment.",
+  "noPartsAvailableOnline": "Aucune pièce en ligne actuellement",
+  "noCarsOnlineSeller": "Vous n'avez aucune voiture en ligne",
+  "noPartsOnlineSeller": "Vous n'avez aucune pièce en ligne actuellement",
+  "doorsCountLabel": "{count} portes",
+  "@doorsCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "sponsoredLabel": "Sponsorisé",
+  "chooseTypeTitle": "Choisissez le type",
+  "youTyped": "Vous avez tapé: \"{text}\"",
+  "@youTyped": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "whatArticleTypeSearch": "Quel type d'article recherchez-vous ?",
+  "vehicleSingular": "Véhicule",
+  "partSingular": "Pièce",
+  "unknownArticleType": "Type d'article inconnu.",
+  "urgencyLevel": "Niveau d'urgence",
+  "partNameRequired": "Nom de la piece requis",
+  "showVehiclesCount": "Afficher {count} véhicule(s)",
+  "@showVehiclesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "buyerSearchingPartShort": "Un acheteur recherche une piece",
+  "buyerSearchingVehicleShort": "Un acheteur recherche un vehicule",
+  "validateLocation": "Valider",
+  "colorField": "Couleur",
+  "pubRequestCreateError": "Erreur lors de la création de la demande.",
+  "videoOptional": "Vidéo (optionnelle)",
+  "viewListing": "Voir l'annonce",
+  "enlarge": "Agrandir",
+  "networkError": "Erreur réseau",
+  "cannotGenerateImage": "Impossible de générer l'image",
+  "errorLoadingArticle": "Erreur lors du chargement de l'article.",
+  "conditionNew": "Nouveau",
+  "budgetLabel": "Budget",
+  "addressLabel": "Adresse",
+  "tvaLabel": "TVA",
+  "deliveryLabelShort": "Livraison",
+  "totalLabelShort": "Total",
+  "articleLabel": "Article",
+  "urgencyLabel": "Urgence",
+  "invoicesLoadErrorDetail": "Impossible de charger les factures ({status}) : {message}",
+  "@invoicesLoadErrorDetail": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyProPermissions": "Vérification des autorisations professionnelles...",
+  "advertisingLabel": "Publicité",
+  "sellerTypeLabel": "Type de vendeur",
+  "deliveryToLabel": "Livraison à",
+  "cashLabel": "Espèces",
+  "onlineLabel": "En ligne",
+  "placeOrderButton": "Commander • {total} F",
+  "@placeOrderButton": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "cashOnDeliveryTitle": "Paiement à la livraison",
+  "cashOnDeliveryChosen": "Vous avez choisi le paiement à la livraison.",
+  "cashOnDeliveryBilled": "Vous serez facturé lors de la réception de votre commande.",
+  "previewLabel": "Aperçu",
+  "changesSaved": "Modifications enregistrées.",
+  "saveErrorStatus": "Erreur sauvegarde: {status}",
+  "@saveErrorStatus": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "saveErrorGeneric": "Erreur sauvegarde: {error}",
+  "@saveErrorGeneric": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "itemAddedToCart": "Article ajouté au panier",
+  "modifyPart": "Modifier la pièce",
+  "someImagesNotAdded": "Certaines images n'ont pas pu être ajoutées:",
+  "imagesAddedSuccess": "{count} image(s) ajoutée(s) avec succès",
+  "@imagesAddedSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unsupportedFormat": "Format non supporté. Formats acceptés: {formats}",
+  "@unsupportedFormat": {
+    "placeholders": {
+      "formats": {
+        "type": "String"
+      }
+    }
+  },
+  "loadingProfile": "Chargement du profil...",
+  "phoneWithNumber": "Tél. {number}",
+  "@phoneWithNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "phoneNotProvided": "Téléphone non renseigné — complétez votre profil",
+  "locationMissingProfile": "Localisation manquante — mettez à jour votre position dans le profil.",
+  "profileContactLocationHint": "Téléphone et localisation repris de votre inscription. Mettez à jour votre profil si besoin.",
+  "vehicleLocationLabel": "Localisation du véhicule",
+  "profileLocationReuse": "Reprise de votre position enregistrée à l'inscription (profil).",
+  "noProfileLocation": "Aucune position sur le profil — mettez à jour votre position dans Profil.",
+  "descriptionNotProvided": "Description non renseignée",
+  "mileageLabel": "Kilométrage",
+  "maxImages12": "Maximum d'images atteint (12 images)",
+  "maxImages10": "Maximum d'images atteint (10 images)",
+  "cameraError": "Erreur caméra: {error}",
+  "@cameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "selectionError": "Erreur lors de la sélection: {error}",
+  "@selectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "imageAdded": "Image ajoutée: {name}",
+  "@imageAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "imageUploaded": "Image uploadée: {name}",
+  "@imageUploaded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadError": "Erreur upload: {error}",
+  "@uploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorDetail": "Erreur détaillée: {error}",
+  "@errorDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationDetailTitle": "Détail de la vérification",
+  "recipientLabel": "Destinataire",
+  "cannotOpenDocument": "Impossible d'ouvrir le document",
+  "featureNoLongerAvailable": "Cette fonctionnalité n'est plus disponible",
+  "articleNotFound": "Article introuvable",
+  "sessionExpiredReconnect": "Session expirée. Reconnectez-vous.",
+  "cannotLoadProposal": "Impossible de charger la proposition.",
+  "searchDetails": "Détails de la recherche",
+  "proposeOfferButton": "Proposer une offre",
+  "specialPromotion": "Promotion spéciale",
+  "viewProposal": "Voir la proposition",
+  "partSearched": "Pièce recherchée",
+  "articleNotFoundVerification": "Article introuvable pour la vérification",
+  "noUserForNotifications": "Aucun utilisateur connecté. Impossible de charger les notifications.",
+  "verifySubscriptionPlan": "Impossible de verifier le plan d'abonnement.",
+  "viewSubscription": "Voir abonnement",
+  "addPartTitle": "Ajouter une pièce",
+  "myCarsTitle": "Mes voitures",
+  "noCarsPublished": "Vous n'avez aucune voiture publiée",
+  "myPartsTitle": "Mes pièces",
+  "recommendedLabel": "Recommandé",
+  "priceNotCommunicated": "Prix non communiqué",
+  "noSponsoredCars": "Aucune voiture sponsorisée.",
+  "linkedArticleNotFound": "Article lié introuvable pour cette publicité.",
+  "cannotLoadAdDetails": "Impossible de charger les détails de cette publicité.",
+  "verifiedLabel": "Vérifiée",
+  "vehiclesPending": "Véhicules en attente",
+  "noVehiclesPending": "Aucun véhicule en attente de validation.",
+  "statsForSellersOnly": "Les statistiques détaillées sont réservées aux vendeurs.",
+  "saleCreditsRegistered": "{count} crédit(s) « vente » enregistré(s)",
+  "@saleCreditsRegistered": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "vehiclesOnlineStat": "Véhicules en ligne",
+  "partsOnlineStat": "Pièces en ligne",
+  "vehiclesSoldStat": "Véhicules vendus",
+  "partsSoldStat": "Pièces vendues",
+  "articlesMarkedSold": "Articles marqués vendus",
+  "viewsRecorded": "Vues enregistrées",
+  "topVehiclesViews": "Top véhicules (vues)",
+  "globalViewsHint": "Les vues globales apparaîtront ici dès consultation de vos véhicules.",
+  "activities": "Activités",
+  "inTransitStatus": "En Transit",
+  "placeLabel": "Lieu",
+  "packageDelivered": "Colis livré",
+  "arrivalNotified": "Arrivée notifiée à l'acheteur",
+  "arrivalError": "Erreur arrivée: {error}",
+  "@arrivalError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "validateOnSiteFirst": "Validez \"Sur place\" chez le fournisseur avant l'étape acheteur.",
+  "doorToDoor": "Porte à porte",
+  "geolocateSupplier": "Géolocaliser fournisseur",
+  "geolocateBuyer": "Géolocaliser Acheteur",
+  "contactButton": "Contacter",
+  "cashOnDeliveryShort": "Espèces à la livraison",
+  "onSite": "Sur place",
+  "finishedLabel": "Terminé",
+  "rejectedTabLabel": "Rejeté",
+  "addMultipleImages": "Ajouter plusieurs images",
+  "imageTooLarge": "Image trop volumineuse: {size}MB (max: 5MB)",
+  "@imageTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "formatNotSupportedExt": "Format non supporté: {ext}. Formats: {formats}",
+  "@formatNotSupportedExt": {
+    "placeholders": {
+      "ext": {
+        "type": "String"
+      },
+      "formats": {
+        "type": "String"
+      }
+    }
+  },
+  "articleNetworkCreateError": "Erreur réseau lors de la création de l'article: {error}",
+  "@articleNetworkCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "searchingAddress": "Recherche de l'adresse...",
+  "saveProfileError": "Erreur lors de la mise à jour.",
+  "backToSettings": "Retour aux paramètres",
+  "sellerTypeUpdatedSuccess": "Type de vendeur mis à jour avec succès !",
+  "updateError": "Erreur lors de la mise à jour: {error}",
+  "@updateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionPaymentSuccess": "Paiement réussi : abonnement activé avec succès.",
+  "subscriptionPaymentFailed": "Échec du paiement ou de l'activation.",
+  "deliveryAcceptedSuccess": "Livraison acceptée avec succès !",
+  "tricycleLoginRequiredTitle": "Vous devez vous connecter pour continuer.",
+  "tricycleLoginRequiredSubtitle": "Connectez-vous pour pouvoir commander un tricycle.",
+  "tricycleRequestSentToDriver": "Demande envoyée au chauffeur.",
+  "tricycleRequestCancelled": "Votre demande a été annulée.",
+  "tricycleCannotCancel": "La demande ne peut plus être annulée.",
+  "tricycleDriverAlreadyAccepted": "Le chauffeur a déjà accepté la demande.",
+  "tricycleCancelFailed": "Impossible d'annuler la demande.",
+  "tricycleCancelErrorCode": "Code: {code}. Veuillez réessayer.",
+  "@tricycleCancelErrorCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "tricycleCancelError": "Erreur lors de l'annulation.",
+  "tricycleRequestAcceptedChat": "Demande acceptée. Vous pouvez maintenant échanger.",
+  "tricycleRequestRejected": "Demande rejetée.",
+  "checkConnectionRetry": "Vérifiez votre connexion internet puis réessayez.",
+  "pageNotAvailableForRole": "Page non disponible pour ce rôle",
+  "errorDetailed": "Erreur détaillée: {error}",
+  "@errorDetailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "videoUploadErrorRetry": "Erreur lors de l'upload de la vidéo. Veuillez réessayer.",
+  "maxMediaSlots": "Vous pouvez sélectionner au maximum {count} médias.",
+  "@maxMediaSlots": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "driverRegistrationFormTitle": "Formulaire d'inscription",
+  "imagesNotAllAddedWarning": "Certaines images n'ont pas pu être ajoutées:",
+  "addedToCart": "Article ajouté au panier",
+  "payOnline": "En ligne",
+  "orderCommandTotal": "Commander • {total} F",
+  "@orderCommandTotal": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationSaveError": "Erreur lors de l'enregistrement: {error}",
+  "@registrationSaveError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

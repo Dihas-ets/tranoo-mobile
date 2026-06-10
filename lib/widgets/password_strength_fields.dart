@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/utils/auth_config.dart';
 
 /// Champs mot de passe + confirmation avec jauge (étape « Sécurité » de l'inscription).
@@ -17,6 +18,8 @@ class PasswordStrengthFields extends StatefulWidget {
 }
 
 class _PasswordStrengthFieldsState extends State<PasswordStrengthFields> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   double _passwordStrength = 0.0;
@@ -36,17 +39,27 @@ class _PasswordStrengthFieldsState extends State<PasswordStrengthFields> {
     super.dispose();
   }
 
+  String _localizedStrengthLabel(AppLocalizations l10n, double score) {
+    if (score == 0) return '';
+    if (score < 0.4) return l10n.passwordWeak;
+    if (score < 0.7) return l10n.passwordMedium;
+    if (score < 0.9) return l10n.passwordStrong;
+    return l10n.passwordVeryStrong;
+  }
+
   void _onPasswordChanged() {
+    final l10n = AppLocalizations.of(context)!;
     final r = AuthConfig.evaluatePasswordStrength(widget.passwordController.text);
     setState(() {
       _passwordStrength = r.score;
-      _passwordStrengthLabel = r.label;
+      _passwordStrengthLabel = _localizedStrengthLabel(l10n, r.score);
       _passwordStrengthColor = r.color;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final screenWidth = MediaQuery.of(context).size.width;
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
@@ -61,8 +74,8 @@ class _PasswordStrengthFieldsState extends State<PasswordStrengthFields> {
             onChanged: (_) => _onPasswordChanged(),
             obscureText: _obscurePassword,
             decoration: InputDecoration(
-              labelText: 'Mot de passe',
-              hintText: 'Min. ${AuthConfig.passwordMinLength} caractères',
+              labelText: l10n.password,
+              hintText: l10n.passwordMin8,
               labelStyle: TextStyle(
                 color: Colors.grey,
                 fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
@@ -115,7 +128,7 @@ class _PasswordStrengthFieldsState extends State<PasswordStrengthFields> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Force du mot de passe: $_passwordStrengthLabel',
+                l10n.passwordStrengthLabel(_passwordStrengthLabel),
                 style: TextStyle(
                   color: _passwordStrengthColor,
                   fontWeight: FontWeight.w600,
@@ -130,8 +143,8 @@ class _PasswordStrengthFieldsState extends State<PasswordStrengthFields> {
             controller: widget.confirmController,
             obscureText: _obscureConfirm,
             decoration: InputDecoration(
-              labelText: 'Confirmer le mot de passe',
-              hintText: 'Retapez le mot de passe',
+              labelText: l10n.confirmPassword,
+              hintText: l10n.retypePassword,
               labelStyle: TextStyle(
                 color: Colors.grey,
                 fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),

@@ -3,7 +3,9 @@ import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import '../../services/user_service.dart';
-import 'order_tracking_page_modern.dart'; // Import de la page de tracking
+import 'order_tracking_page_modern.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/order_status_l10n.dart';
 
 class MesCommandesPage extends StatefulWidget {
   const MesCommandesPage({super.key});
@@ -13,6 +15,8 @@ class MesCommandesPage extends StatefulWidget {
 }
 
 class _MesCommandesPageState extends State<MesCommandesPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   List<Map<String, dynamic>> _orders = [];
   bool _isLoading = true;
   String? _error;
@@ -40,8 +44,10 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _error = 'Utilisateur non connecté';
+          _error = l10n.errorUserNotConnected;
           _isLoading = false;
         });
         return;
@@ -73,15 +79,19 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
         });
       } else {
         print('Erreur API: ${response.statusCode} - ${response.data}');
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _error = 'Impossible de charger vos commandes';
+          _error = l10n.cannotLoadOrders;
           _isLoading = false;
         });
       }
     } catch (e) {
       print('Erreur lors du chargement des commandes: $e');
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _error = 'Erreur lors du chargement des commandes';
+        _error = l10n.ordersLoadError;
         _isLoading = false;
       });
     }
@@ -102,35 +112,15 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
     ].contains(status);
   }
 
-  String _getStatusText(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'En attente';
-      case 'confirmed':
-        return 'Confirmée';
-      case 'preparing':
-        return 'En préparation';
-      case 'ready':
-        return 'Prête';
-      case 'delivering':
-        return 'En livraison';
-      case 'delivered':
-        return 'Livrée';
-      case 'cancelled':
-        return 'Annulée';
-      default:
-        return status;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFFFF3CD), // Fond jaune clair Tranoo
       appBar: AppBar(
-        title: const Text(
-          'Mes commandes',
-          style: TextStyle(color: Color(0xFF000000)), // Titre en noir
+        title: Text(
+          l10n.myOrders,
+          style: const TextStyle(color: Color(0xFF000000)),
         ),
         backgroundColor: const Color(0xFFF8BF13), // Jaune Tranoo
         foregroundColor: const Color(0xFF000000),
@@ -157,12 +147,13 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
   }
 
   Widget _buildFilters() {
+    final l10n = AppLocalizations.of(context)!;
     final filters = [
-      {'id': 'tracking', 'label': 'Tracking', 'icon': Icons.location_on},
-      {'id': 'all', 'label': 'Tous', 'icon': Icons.list},
-      {'id': 'inprogress', 'label': 'En cours', 'icon': Icons.local_shipping},
-      {'id': 'delivered', 'label': 'Terminée', 'icon': Icons.check_circle},
-      {'id': 'rejected', 'label': 'Rejetée', 'icon': Icons.cancel},
+      {'id': 'tracking', 'label': l10n.filterTracking, 'icon': Icons.location_on},
+      {'id': 'all', 'label': l10n.filterAll, 'icon': Icons.list},
+      {'id': 'inprogress', 'label': l10n.filterInProgress, 'icon': Icons.local_shipping},
+      {'id': 'delivered', 'label': l10n.filterCompleted, 'icon': Icons.check_circle},
+      {'id': 'rejected', 'label': l10n.filterRejected, 'icon': Icons.cancel},
     ];
 
     return Container(
@@ -261,16 +252,17 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
     } else {
       // Afficher un message si aucune commande active
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Aucune commande active à tracker'),
-          backgroundColor: Color(0xFFF8BF13),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.noActiveOrderToTrack),
+          backgroundColor: const Color(0xFFF8BF13),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
   }
 
   Widget _buildErrorWidget() {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -289,7 +281,7 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _loadOrders,
-            child: const Text('Réessayer'),
+            child: Text(l10n.retry),
           ),
         ],
       ),
@@ -297,6 +289,7 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
   }
 
   Widget _buildEmptyWidget() {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -307,14 +300,14 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
             color: Colors.grey,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Aucune commande',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l10n.noOrders,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Vous n\'avez pas encore passé de commande',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+          Text(
+            l10n.noOrdersYetHint,
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
             textAlign: TextAlign.center,
           ),
         ],
@@ -338,7 +331,7 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
     
     if (activeOrders.isEmpty) {
       print('📭 [TRACKING] Aucune commande active trouvée');
-      // Aucune commande active
+      final l10n = AppLocalizations.of(context)!;
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -350,7 +343,7 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Aucune commande active à tracker',
+              l10n.noActiveOrderToTrack,
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -359,7 +352,7 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Vos commandes terminées ou annulées n\'apparaissent pas ici',
+              l10n.finishedOrdersHiddenHint,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[500],
@@ -433,6 +426,7 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
   }
 
   Widget _buildOrderCard(Map<String, dynamic> order) {
+    final l10n = AppLocalizations.of(context)!;
     final status = order['status'] as String;
     final total = (order['total'] is int ? (order['total'] as int).toDouble() : order['total'] as double);
     final createdAt = DateTime.parse(order['createdAt']);
@@ -505,14 +499,15 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        _statusChip(_getStatusText(status), Colors.white),
+                        _statusChip(localizedOrderStatus(l10n, status), Colors.white),
                       ],
                     ),
                     const SizedBox(height: 12),
                     
                     // Location
                     Text(
-                      order['deliveryAddress']?.split(',').first ?? 'Cotonou, Bénin',
+                      order['deliveryAddress']?.split(',').first ??
+                          l10n.defaultLocationCotonou,
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
@@ -642,10 +637,7 @@ class _MesCommandesPageState extends State<MesCommandesPage> {
   }
 
   String _getMonthAbbreviation(int month) {
-    const months = [
-      'JAN', 'FEV', 'MAR', 'AVR', 'MAI', 'JUI',
-      'JUL', 'AOU', 'SEP', 'OCT', 'NOV', 'DEC'
-    ];
+    final months = localizedMonthAbbreviations(AppLocalizations.of(context)!);
     return months[month - 1];
   }
 }

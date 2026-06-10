@@ -14,6 +14,8 @@ class ChatListPage extends StatefulWidget {
 }
 
 class _ChatListPageState extends State<ChatListPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   final ChatService _chatService = ChatService();
   List<Map<String, dynamic>> rooms = [];
   bool isLoading = true;
@@ -65,13 +67,13 @@ class _ChatListPageState extends State<ChatListPage> {
         return '${difference.inDays}j';
       } else if (difference.inHours > 0) {
         return '${difference.inHours}h';
-      } else if (difference.inMinutes > 0) {
+      } else       if (difference.inMinutes > 0) {
         return '${difference.inMinutes}min';
       } else {
-        return 'À l\'instant';
+        return AppLocalizations.of(context)?.justNow ?? "À l'instant";
       }
     } catch (e) {
-      return 'Récent';
+      return AppLocalizations.of(context)?.recent ?? 'Récent';
     }
   }
 
@@ -82,9 +84,10 @@ class _ChatListPageState extends State<ChatListPage> {
     if (messages != null && messages.isNotEmpty) {
       final lastMessage = messages.last;
       print('DEBUG: Dernier message: ${lastMessage['content']}');
-      return lastMessage['content'] ?? 'Aucun message';
+      return lastMessage['content'] ??
+          (AppLocalizations.of(context)?.noMessage ?? 'Aucun message');
     }
-    return 'Aucun message';
+    return AppLocalizations.of(context)?.noMessage ?? 'Aucun message';
   }
 
   // Obtenir l'heure du dernier message
@@ -105,7 +108,9 @@ class _ChatListPageState extends State<ChatListPage> {
   // Obtenir le nom de l'autre participant
   String _getOtherParticipantName(Map<String, dynamic> room) {
     final participants = room['participants'] as List<dynamic>?;
-    if (participants == null || participants.isEmpty) return 'Inconnu';
+    if (participants == null || participants.isEmpty) {
+      return AppLocalizations.of(context)?.unknown ?? 'Inconnu';
+    }
 
     for (final participant in participants) {
       if (participant['_id'] != currentUserId) {
@@ -113,7 +118,7 @@ class _ChatListPageState extends State<ChatListPage> {
             .trim();
       }
     }
-    return 'Inconnu';
+    return AppLocalizations.of(context)?.unknown ?? 'Inconnu';
   }
 
   // Obtenir la photo de l'autre participant
@@ -141,7 +146,8 @@ class _ChatListPageState extends State<ChatListPage> {
       return AppLocalizations.of(context)?.service_tricycle ?? 'Tricycle';
     }
     final article = room['article'] as Map<String, dynamic>?;
-    return article?['titre'] ?? 'Article';
+    return article?['titre'] ??
+        (AppLocalizations.of(context)?.articleDefault ?? 'Article');
   }
 
   // Obtenir la photo de l'article
@@ -174,10 +180,12 @@ class _ChatListPageState extends State<ChatListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false, // Retirer le bouton retour
-        title: const Text('Discussions'),
+        title: Text(l10n.discussions),
         backgroundColor: Colors.amber,
         foregroundColor: Colors.black,
         elevation: 1,
@@ -191,24 +199,24 @@ class _ChatListPageState extends State<ChatListPage> {
                 child: CircularProgressIndicator(color: Colors.amber),
               )
               : rooms.isEmpty
-              ? const Center(
+              ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.chat_bubble_outline,
                       size: 64,
                       color: Colors.grey,
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
-                      'Aucune discussion',
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                      l10n.noDiscussions,
+                      style: const TextStyle(fontSize: 18, color: Colors.grey),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Commencez une discussion avec un vendeur',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      l10n.startDiscussionWithSeller,
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                   ],
                 ),

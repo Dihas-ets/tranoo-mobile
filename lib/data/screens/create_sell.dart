@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http; // Ajouté pour l'upload web
 
 import 'cars_info.dart'; // Importer le fichier combiné cars_info
 import 'movie.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 
 class CreateSellPage extends StatefulWidget {
   const CreateSellPage({super.key});
@@ -21,8 +22,13 @@ class CreateSellPage extends StatefulWidget {
 }
 
 class _CreateSellPageState extends State<CreateSellPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   static const int _maxMediaSlots = 12;
   static const int _maxVideoSlots = 3;
+  static const String _conditionNew = 'Nouveau';
+  static const String _conditionUsed = 'Occasion';
+  static const String _otherBrand = 'Autre';
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -74,7 +80,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
   String? _selectedCouleur; // Couleur sélectionnée
   bool? _dedouanement; // Dédouanement (true = Oui, false = Non)
 
-  final List<String> _conditions = ['Nouveau', 'Occasion']; // Reste en String
+  final List<String> _conditions = [_conditionNew, _conditionUsed];
 
   // Mapping des marques vers leurs modèles
   final Map<String, List<String>> _marqueModels = {
@@ -173,7 +179,38 @@ class _CreateSellPageState extends State<CreateSellPage> {
     'Perle': const Color(0xFFEAE0C8),
   };
 
-  // Supprimer la déclaration, l'utilisation et l'affichage du champ 'lieu' (dropdown, TextField, variables _selectedLieu, _customLieu, _lieux, etc.)
+  String _conditionLabel(AppLocalizations l10n, String value) {
+    if (value == _conditionNew) return l10n.newCondition;
+    if (value == _conditionUsed) return l10n.usedCondition;
+    return value;
+  }
+
+  String _gearboxLabel(AppLocalizations l10n, String value) {
+    if (value == 'Manuelle') return l10n.manualTransmission;
+    if (value == 'Automatique') return l10n.automaticTransmission;
+    return value;
+  }
+
+  String _fuelLabel(AppLocalizations l10n, String value) {
+    switch (value) {
+      case 'Essence':
+        return l10n.petrol;
+      case 'Diesel':
+        return l10n.diesel;
+      case 'Électrique':
+        return l10n.electric;
+      case 'Hybride':
+        return l10n.hybrid;
+      default:
+        return value;
+    }
+  }
+
+  String _yesNoLabel(AppLocalizations l10n, String value) {
+    if (value == 'Oui') return l10n.yes;
+    if (value == 'Non') return l10n.no;
+    return value;
+  }
 
   Future<void> _takePhotoFromCamera() async {
     final picker = ImagePicker();
@@ -184,8 +221,9 @@ class _CreateSellPageState extends State<CreateSellPage> {
     );
     if (gridIndex == -1) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Maximum de 12 images atteint')),
+          SnackBar(content: Text(l10n.maxImagesReached)),
         );
       }
       return;
@@ -304,10 +342,11 @@ class _CreateSellPageState extends State<CreateSellPage> {
         print(
           '[CreateSell] Vidéo trop lourde: ${videoSizeMB.toStringAsFixed(2)} Mo > 500 Mo',
         );
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'La vidéo est trop lourde (${videoSizeMB.toStringAsFixed(2)} Mo). Limite: 500 Mo.',
+              l10n.videoTooHeavy(videoSizeMB.toStringAsFixed(2)),
             ),
             backgroundColor: Colors.red,
           ),
@@ -358,19 +397,19 @@ class _CreateSellPageState extends State<CreateSellPage> {
             _cloudinaryVideoUrls[index] = url;
           });
           print('[CreateSell] Vidéo uploadée avec succès! URL: $url');
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Vidéo uploadée avec succès !'),
+            SnackBar(
+              content: Text(l10n.videoUploadedSuccess),
               backgroundColor: Colors.green,
             ),
           );
         } else {
           print('[CreateSell] ERREUR: URL null retournée par Cloudinary');
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Erreur lors de l\'upload de la vidéo. Veuillez réessayer.',
-              ),
+            SnackBar(
+              content: Text(l10n.videoUploadError),
               backgroundColor: Colors.red,
             ),
           );
@@ -378,9 +417,10 @@ class _CreateSellPageState extends State<CreateSellPage> {
       } catch (e, stackTrace) {
         print('[CreateSell] EXCEPTION lors de l\'upload: $e');
         print('[CreateSell] Stack trace: $stackTrace');
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur détaillée: $e'),
+            content: Text(l10n.errorGeneric(e.toString())),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),
@@ -414,7 +454,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
   // Après le Dropdown de la condition, ne pas afficher de checkboxes
 
   void _onValidate() {
-    // Debug logs
+    final l10n = AppLocalizations.of(context)!;
     print('[CreateSell] _cloudinaryVideoUrls: $_cloudinaryVideoUrls');
     print('[CreateSell] _uploadedVideos: $_uploadedVideos');
 
@@ -423,11 +463,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
     final totalMedia = imagesCount + videosCount;
     if (totalMedia > _maxMediaSlots) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Vous pouvez sélectionner au maximum $_maxMediaSlots médias.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.maxMediaCount(_maxMediaSlots))),
       );
       return;
     }
@@ -437,16 +473,14 @@ class _CreateSellPageState extends State<CreateSellPage> {
     final hasVideo = videosCount > 0;
     if (!hasImages && !hasVideo) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez ajouter au moins une image ou une vidéo.'),
-        ),
+        SnackBar(content: Text(l10n.addAtLeastOneMedia)),
       );
       return;
     }
 
     if (_isAnyUploading) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez attendre la fin de l\'upload.')),
+        SnackBar(content: Text(l10n.waitUploadFinish)),
       );
       return;
     }
@@ -475,15 +509,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
         _descriptionController.text.isEmpty ||
         _companyController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez remplir tous les champs obligatoires.'),
-        ),
+        SnackBar(content: Text(l10n.fillRequiredFields)),
       );
       return;
     }
-    // Détermine la marque et le modèle à utiliser
     String? marque =
-        _selectedMarques == 'Autre' ? _customMarque : _selectedMarques;
+        _selectedMarques == _otherBrand ? _customMarque : _selectedMarques;
     String? modele;
     if (_selectedMarques == 'Autre') {
       // Si marque "Autre", utiliser directement le modèle personnalisé
@@ -528,6 +559,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -540,12 +572,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Titre
-                    _buildLabel('Titre'),
+                    _buildLabel(l10n.titleLabel),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _titleController,
                       decoration: InputDecoration(
-                        hintText: 'Entrer le titre',
+                        hintText: l10n.enterTitle,
                         filled: true,
                         fillColor: const Color(0xFFF2F2F2),
                         border: OutlineInputBorder(
@@ -567,12 +599,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel('Condition'),
+                              _buildLabel(l10n.conditionLabel),
                               const SizedBox(height: 8),
                               _buildDropdown<String>(
                                 value: _selectedCondition,
-                                hint: 'Choisissez la condition',
+                                hint: l10n.chooseCondition,
                                 items: _conditions,
+                                itemLabel: (v) => _conditionLabel(l10n, v),
                                 onChanged: _onConditionChanged,
                               ),
                             ],
@@ -583,7 +616,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel('Année'),
+                              _buildLabel(l10n.year),
                               const SizedBox(height: 8),
                               TextField(
                                 controller: _yearController,
@@ -593,7 +626,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                   LengthLimitingTextInputFormatter(4),
                                 ],
                                 decoration: InputDecoration(
-                                  hintText: 'Entrer l\'année (ex: 2020)',
+                                  hintText: l10n.enterYear,
                                   filled: true,
                                   fillColor: const Color(0xFFF2F2F2),
                                   border: OutlineInputBorder(
@@ -620,16 +653,18 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel('Marques'),
+                              _buildLabel(l10n.brandsLabel),
                               const SizedBox(height: 8),
                               _buildDropdown<String>(
                                 value: _selectedMarques,
-                                hint: 'Choisissez la marque',
+                                hint: l10n.chooseBrand,
                                 items: _marques,
+                                itemLabel: (v) =>
+                                    v == _otherBrand ? l10n.otherOption : v,
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedMarques = value;
-                                    if (value != 'Autre') {
+                                    if (value != _otherBrand) {
                                       _customMarque = null;
                                     }
                                     // Réinitialiser le modèle quand la marque change
@@ -638,12 +673,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                   });
                                 },
                               ),
-                              if (_selectedMarques == 'Autre')
+                              if (_selectedMarques == _otherBrand)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 8.0),
                                   child: TextField(
-                                    decoration: const InputDecoration(
-                                      hintText: 'Entrez la marque',
+                                    decoration: InputDecoration(
+                                      hintText: l10n.enterBrand,
                                       filled: true,
                                       fillColor: Color(0xFFF2F2F2),
                                       border: OutlineInputBorder(
@@ -668,13 +703,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel('Modèle'),
+                              _buildLabel(l10n.model),
                               const SizedBox(height: 8),
-                              // Si marque "Autre", afficher directement le champ texte
-                              if (_selectedMarques == 'Autre')
+                              if (_selectedMarques == _otherBrand)
                                 TextField(
-                                  decoration: const InputDecoration(
-                                    hintText: 'Entrez le modèle',
+                                  decoration: InputDecoration(
+                                    hintText: l10n.enterModel,
                                     filled: true,
                                     fillColor: Color(0xFFF2F2F2),
                                     border: OutlineInputBorder(
@@ -697,24 +731,26 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                   children: [
                                     _buildDropdown<String>(
                                       value: _selectedModel,
-                                      hint: 'Choisissez le modèle',
+                                      hint: l10n.chooseModel,
                                       items: _availableModels,
+                                      itemLabel: (v) =>
+                                          v == _otherBrand ? l10n.otherOption : v,
                                       onChanged: (value) {
                                         setState(() {
                                           _selectedModel = value;
-                                          if (value != 'Autre')
+                                          if (value != _otherBrand) {
                                             _customModel = null;
+                                          }
                                         });
                                       },
                                     ),
-                                    if (_selectedModel == 'Autre')
+                                    if (_selectedModel == _otherBrand)
                                       Padding(
                                         padding:
                                             const EdgeInsets.only(top: 8.0),
                                         child: TextField(
-                                          decoration: const InputDecoration(
-                                            hintText:
-                                                'Entrez le modèle personnalisé',
+                                          decoration: InputDecoration(
+                                            hintText: l10n.enterCustomModel,
                                             filled: true,
                                             fillColor: Color(0xFFF2F2F2),
                                             border: OutlineInputBorder(
@@ -744,7 +780,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('Cylindre'),
+                        _buildLabel(l10n.cylinder),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _cylindreController,
@@ -754,7 +790,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                             LengthLimitingTextInputFormatter(4),
                           ],
                           decoration: InputDecoration(
-                            hintText: 'Entrer le cylindre (ex: 1600)',
+                            hintText: l10n.enterCylinder,
                             filled: true,
                             fillColor: const Color(0xFFF2F2F2),
                             border: OutlineInputBorder(
@@ -775,7 +811,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('Couleur'),
+                        _buildLabel(l10n.colorField),
                         const SizedBox(height: 8),
                         Container(
                           height: 120,
@@ -849,7 +885,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
-                              'Couleur sélectionnée: $_selectedCouleur',
+                              l10n.selectedColorLabel(_selectedCouleur!),
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
@@ -865,7 +901,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('Dédouanement'),
+                        _buildLabel(l10n.customsClearance),
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -877,7 +913,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                             children: [
                               Expanded(
                                 child: RadioListTile<bool>(
-                                  title: const Text('Oui'),
+                                  title: Text(l10n.yes),
                                   value: true,
                                   groupValue: _dedouanement,
                                   onChanged: (value) {
@@ -891,7 +927,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                               ),
                               Expanded(
                                 child: RadioListTile<bool>(
-                                  title: const Text('Non'),
+                                  title: Text(l10n.no),
                                   value: false,
                                   groupValue: _dedouanement,
                                   onChanged: (value) {
@@ -910,18 +946,17 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Porte et Boîte à vitesse
                     Row(
                       children: [
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel('Porte'),
+                              _buildLabel(l10n.doorSingular),
                               const SizedBox(height: 8),
                               _buildDropdown<int>(
                                 value: _selectedPorte,
-                                hint: 'Choisissez le nombre de portes',
+                                hint: l10n.chooseDoorCount,
                                 items: _portesList,
                                 onChanged: (value) {
                                   setState(() {
@@ -937,12 +972,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel('Boîte à vitesse'),
+                              _buildLabel(l10n.gearbox),
                               const SizedBox(height: 8),
                               _buildDropdown<String>(
                                 value: _selectedBoiteVitesse,
-                                hint: 'Choisissez la vitesse',
+                                hint: l10n.chooseGearbox,
                                 items: _boiteVitesses,
+                                itemLabel: (v) => _gearboxLabel(l10n, v),
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedBoiteVitesse = value;
@@ -963,12 +999,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel('Carburant'),
+                              _buildLabel(l10n.fuel),
                               const SizedBox(height: 8),
                               _buildDropdown<String>(
                                 value: _selectedCarburantDropdown,
-                                hint: 'Choisissez le carburant',
+                                hint: l10n.chooseFuel,
                                 items: _carburantsList,
+                                itemLabel: (v) => _fuelLabel(l10n, v),
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedCarburantDropdown = value;
@@ -983,12 +1020,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel('Climatiseur'),
+                              _buildLabel(l10n.airConditioner),
                               const SizedBox(height: 8),
                               _buildDropdown<String>(
                                 value: _selectedClimatiseurDropdown,
-                                hint: 'Choisissez le climatiseur',
+                                hint: l10n.chooseAirConditioner,
                                 items: _climatiseursList,
+                                itemLabel: (v) => _yesNoLabel(l10n, v),
                                 onChanged: (value) {
                                   setState(() {
                                     _selectedClimatiseurDropdown = value;
@@ -1009,7 +1047,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel('Distance'),
+                              _buildLabel(l10n.distanceKm),
                               const SizedBox(height: 8),
                               TextField(
                                 controller: _distanceController,
@@ -1019,7 +1057,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                   LengthLimitingTextInputFormatter(7),
                                 ],
                                 decoration: InputDecoration(
-                                  hintText: 'Entrer la distance (km)',
+                                  hintText: l10n.enterDistance,
                                   filled: true,
                                   fillColor: const Color(0xFFF2F2F2),
                                   border: OutlineInputBorder(
@@ -1040,7 +1078,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel('Siège'),
+                              _buildLabel(l10n.seatSingular),
                               const SizedBox(height: 8),
                               TextField(
                                 controller: _siegesController,
@@ -1050,7 +1088,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                   LengthLimitingTextInputFormatter(2),
                                 ],
                                 decoration: InputDecoration(
-                                  hintText: 'Entrer le nombre de sièges',
+                                  hintText: l10n.enterSeats,
                                   filled: true,
                                   fillColor: const Color(0xFFF2F2F2),
                                   border: OutlineInputBorder(
@@ -1074,13 +1112,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('Prix'),
+                        _buildLabel(l10n.price),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _priceController,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            hintText: 'Saisir le Prix',
+                            hintText: l10n.enterPrice,
                             filled: true,
                             fillColor: const Color(0xFFF2F2F2),
                             border: OutlineInputBorder(
@@ -1098,13 +1136,13 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     const SizedBox(height: 24),
 
                     // Description
-                    _buildLabel('Description'),
+                    _buildLabel(l10n.description),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _descriptionController,
                       maxLines: 5,
                       decoration: InputDecoration(
-                        hintText: 'Entrer une description de votre voiture',
+                        hintText: l10n.enterCarDescription,
                         filled: true,
                         fillColor: const Color(0xFFF2F2F2),
                         border: OutlineInputBorder(
@@ -1120,12 +1158,12 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     const SizedBox(height: 24),
 
                     // Nom de l'entreprise possédant le BL
-                    _buildLabel('Nom de l\'entreprise possédant le BL'),
+                    _buildLabel(l10n.companyBlOwner),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _companyController,
                       decoration: InputDecoration(
-                        hintText: 'Entrer le nom de l\'entreprise',
+                        hintText: l10n.enterCompanyName,
                         filled: true,
                         fillColor: const Color(0xFFF2F2F2),
                         border: OutlineInputBorder(
@@ -1141,8 +1179,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     const SizedBox(height: 24),
 
                     // Télécharger des images optionnelles
-                    _buildLabel('Images (optionnel, max 12)',
-                        isRequired: false),
+                    _buildLabel(l10n.imagesOptionalMax12, isRequired: false),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -1150,7 +1187,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           child: ElevatedButton.icon(
                             onPressed: () => _pickImage(0),
                             icon: const Icon(Icons.add_photo_alternate, size: 20),
-                            label: const Text('Ajouter des images'),
+                            label: Text(l10n.addImagesButton),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFF8BF13),
                               foregroundColor: Colors.black,
@@ -1158,7 +1195,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Prendre une photo',
+                          tooltip: l10n.takePhoto,
                           onPressed: _takePhotoFromCamera,
                           icon: const Icon(Icons.photo_camera),
                           color: const Color(0xFFF8BF13),
@@ -1274,8 +1311,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     ),
                     const SizedBox(height: 24),
                     // Upload vidéo (optionnelle)
-                    _buildLabel('Vidéo (optionnelle, max 500 Mo)',
-                        isRequired: false),
+                    _buildLabel(l10n.videoOptionalMax500, isRequired: false),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 150,
@@ -1321,19 +1357,19 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                       if (hasVideo)
                                         Container(
                                   color: Colors.black87,
-                                          child: const Column(
+                                          child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        Icon(
+                                        const Icon(
                                           Icons.play_circle_fill,
                                           color: Colors.white,
                                           size: 40,
                                         ),
-                                        SizedBox(height: 8),
+                                        const SizedBox(height: 8),
                                         Text(
-                                                'Vidéo prête',
-                                          style: TextStyle(
+                                          l10n.videoReady,
+                                          style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,
@@ -1354,18 +1390,18 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                   ),
                                             const SizedBox(height: 6),
                                             Text(
-                                              'Emplacement ${index + 1}',
+                                              l10n.mediaSlot(index + 1),
                                               style: const TextStyle(
                                                 color: Colors.grey,
                                                 fontSize: 12,
                                               ),
                                             ),
                                             const SizedBox(height: 4),
-                                  const Text(
-                                              'Appuyer pour ajouter',
-                                    style: TextStyle(
+                                  Text(
+                                    l10n.tapToAddVideo,
+                                    style: const TextStyle(
                                       color: Colors.grey,
-                                                fontSize: 11,
+                                      fontSize: 11,
                                     ),
                                   ),
                                 ],
@@ -1394,9 +1430,9 @@ class _CreateSellPageState extends State<CreateSellPage> {
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                                    progress < 0.85
-                                              ? 'Envoi...'
-                                              : 'Traitement...',
+                                          progress < 0.85
+                                              ? l10n.sending
+                                              : l10n.processing,
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 11,
@@ -1536,7 +1572,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
                 ),
               ),
             ),
-            _buildVerificationButton(context),
+            _buildVerificationButton(context, l10n),
           ],
         ),
       ),
@@ -1555,6 +1591,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
     required String hint,
     required List<T> items,
     required ValueChanged<T?> onChanged,
+    String Function(T)? itemLabel,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -1572,7 +1609,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
           items: items.map((T item) {
             return DropdownMenuItem<T>(
               value: item,
-              child: Text(item.toString()),
+              child: Text(itemLabel != null ? itemLabel(item) : item.toString()),
             );
           }).toList(),
           onChanged: onChanged,
@@ -1581,7 +1618,7 @@ class _CreateSellPageState extends State<CreateSellPage> {
     );
   }
 
-  Widget _buildVerificationButton(BuildContext context) {
+  Widget _buildVerificationButton(BuildContext context, AppLocalizations l10n) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 16),
@@ -1595,21 +1632,21 @@ class _CreateSellPageState extends State<CreateSellPage> {
           elevation: 0,
         ),
         child: _isAnyUploading
-            ? const Row(
+            ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                  SizedBox(width: 12),
-                  Text('Upload en cours...'),
+                  const SizedBox(width: 12),
+                  Text(l10n.uploadInProgress),
                 ],
               )
-            : const Text(
-                'Valider',
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+            : Text(
+                l10n.validate,
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
               ),
       ),
     );

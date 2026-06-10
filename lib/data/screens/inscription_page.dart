@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
@@ -19,6 +20,8 @@ class InscriptionPage extends StatefulWidget {
 }
 
 class _InscriptionPageState extends State<InscriptionPage> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   // Contrôleurs pour les champs du formulaire
   final TextEditingController _nomController = TextEditingController();
   final TextEditingController _prenomController = TextEditingController();
@@ -49,10 +52,12 @@ class _InscriptionPageState extends State<InscriptionPage> {
     return countries.first;
   }
 
-  String get _phoneDigitHint {
+  String _phoneDigitHint(AppLocalizations l10n) {
     final min = _phoneMin(_selectedCountryMap);
     final max = _phoneMax(_selectedCountryMap);
-    return min == max ? '$max chiffres' : '$min à $max chiffres';
+    return min == max
+        ? l10n.phoneDigitsExact(max)
+        : l10n.phoneDigitsRange(min, max);
   }
 
   bool _isValidNationalPhone(String raw) {
@@ -121,11 +126,20 @@ class _InscriptionPageState extends State<InscriptionPage> {
   String _passwordStrengthLabel = '';
   Color _passwordStrengthColor = Colors.transparent;
 
+  String _localizedStrengthLabel(AppLocalizations l10n, double score) {
+    if (score == 0) return '';
+    if (score < 0.4) return l10n.passwordWeak;
+    if (score < 0.7) return l10n.passwordMedium;
+    if (score < 0.9) return l10n.passwordStrong;
+    return l10n.passwordVeryStrong;
+  }
+
   void _updatePasswordStrength(String value) {
+    final l10n = AppLocalizations.of(context)!;
     double score = 0;
     if (value.isNotEmpty) {
-      if (value.length >= 6) score += 0.3; // minimum
-      if (value.length >= 8) score += 0.2; // recommandé
+      if (value.length >= 6) score += 0.3;
+      if (value.length >= 8) score += 0.2;
       if (RegExp(r'[A-Z]').hasMatch(value)) score += 0.15;
       if (RegExp(r'[a-z]').hasMatch(value)) score += 0.15;
       if (RegExp(r'\\d').hasMatch(value)) score += 0.1;
@@ -133,28 +147,22 @@ class _InscriptionPageState extends State<InscriptionPage> {
       if (score > 1) score = 1;
     }
 
-    String label;
     Color color;
     if (score == 0) {
-      label = '';
       color = Colors.transparent;
     } else if (score < 0.4) {
-      label = 'Faible';
       color = Colors.red;
     } else if (score < 0.7) {
-      label = 'Moyen';
       color = Colors.orange;
     } else if (score < 0.9) {
-      label = 'Fort';
       color = Colors.lightGreen;
     } else {
-      label = 'Super fort';
       color = Colors.green;
     }
 
     setState(() {
       _passwordStrength = score;
-      _passwordStrengthLabel = label;
+      _passwordStrengthLabel = _localizedStrengthLabel(l10n, score);
       _passwordStrengthColor = color;
     });
   }
@@ -168,7 +176,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
     selectedDigits = _phoneMax(countries.first);
   }
 
-  Widget _buildStepBar() {
+  Widget _buildStepBar(AppLocalizations l10n) {
     const active = Color(0xFFF8BF13);
     final inactive = Colors.grey.shade300;
     return Column(
@@ -192,9 +200,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
         ),
         const SizedBox(height: 10),
         Text(
-          _currentStep == 0
-              ? 'Informations'
-              : 'Sécurité',
+          _currentStep == 0 ? l10n.stepInfo : l10n.security,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ],
@@ -202,6 +208,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
   }
 
   Future<void> _openCountryPicker() async {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     List<Map<String, dynamic>> filtered = List.from(countries);
 
@@ -237,7 +244,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                       child: TextField(
                         controller: controller,
                         decoration: InputDecoration(
-                          hintText: 'Rechercher un indicatif (pays ou +code)',
+                          hintText: l10n.searchCountryCode,
                           prefixIcon: const Icon(Icons.search),
                           filled: true,
                           fillColor: Colors.grey.shade100,
@@ -300,7 +307,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Récupération des dimensions de l'écran
+    final l10n = AppLocalizations.of(context)!;
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
     final screenHeight = mediaQuery.size.height;
@@ -334,10 +341,10 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   fit: BoxFit.contain,
                 ),
               ),
-              _buildStepBar(),
+              _buildStepBar(l10n),
               SizedBox(height: screenHeight * 0.02),
               Text(
-                "Trouvez votre voiture de rêve!",
+                l10n.findDreamCar,
                 style: TextStyle(
                   fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
                 ),
@@ -348,9 +355,9 @@ class _InscriptionPageState extends State<InscriptionPage> {
               if (_currentStep == 0) ...[
                 buildTextFieldWithController(
                   controller: _nomController,
-                  label: "Nom",
+                  label: l10n.lastName,
                   icon: Icons.person,
-                  placeholder: "Jean",
+                  placeholder: l10n.placeholderFirstName,
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                   isPortrait: isPortrait,
@@ -358,9 +365,9 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 SizedBox(height: screenHeight * 0.02),
                 buildTextFieldWithController(
                   controller: _prenomController,
-                  label: "Prénom(s)",
+                  label: l10n.firstName,
                   icon: Icons.person_outline,
-                  placeholder: "Dupont",
+                  placeholder: l10n.placeholderLastName,
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                   isPortrait: isPortrait,
@@ -368,9 +375,9 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 SizedBox(height: screenHeight * 0.02),
                 buildTextFieldWithController(
                   controller: _referralController,
-                  label: "Code de parrainage (optionnel)",
+                  label: l10n.referralCodeOptional,
                   icon: Icons.card_giftcard,
-                  placeholder: "Ex: TRN-ABCD1234",
+                  placeholder: l10n.referralPlaceholder,
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                   isPortrait: isPortrait,
@@ -419,8 +426,8 @@ class _InscriptionPageState extends State<InscriptionPage> {
                         keyboardType: TextInputType.number,
                         maxLength: selectedDigits,
                         decoration: InputDecoration(
-                          labelText: 'Numéro WhatsApp',
-                          hintText: 'WhatsApp · $_phoneDigitHint',
+                          labelText: l10n.whatsappNumber,
+                          hintText: l10n.whatsappHint(_phoneDigitHint(l10n)),
                           prefixIcon: AuthConfig.whatsAppPhonePrefixIcon(),
                           counterText: '',
                           filled: true,
@@ -444,14 +451,14 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Icon(Icons.warning_amber_rounded,
+                    children: [
+                      const Icon(Icons.warning_amber_rounded,
                           color: Color(0xFF8A6D3B)),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Utilisez un numéro joignable sur WhatsApp : il servira aux OTP et aux échanges entre notre équipe et les utilistaeurs.',
-                          style: TextStyle(
+                          l10n.whatsappNumberWarning,
+                          style: const TextStyle(
                             color: Color(0xFF8A6D3B),
                             fontWeight: FontWeight.w600,
                           ),
@@ -470,8 +477,8 @@ class _InscriptionPageState extends State<InscriptionPage> {
                           _telephoneController.text.trim().isEmpty) {
                         AuthMessagePopup.showWarning(
                           context,
-                          title: 'Certains champs sont manquants.',
-                          subtitle: 'Veuillez compléter les informations requises.',
+                          title: l10n.missingFieldsTitle,
+                          subtitle: l10n.completeRequiredInfo,
                         );
                         return;
                       }
@@ -485,9 +492,9 @@ class _InscriptionPageState extends State<InscriptionPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Suivant',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    child: Text(
+                      l10n.nextStep,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -496,7 +503,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Vous avez déjà un compte ? ",
+                      l10n.alreadyHaveAccount,
                       style: TextStyle(
                         color: Colors.grey,
                         fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
@@ -512,7 +519,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                         );
                       },
                       child: Text(
-                        "Se connecter",
+                        l10n.signInTitle,
                         style: TextStyle(
                           color: const Color(0xFF0461B6),
                           fontWeight: FontWeight.bold,
@@ -536,8 +543,8 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   onChanged: _updatePasswordStrength,
                   obscureText: _obscurePasswordReg,
                   decoration: InputDecoration(
-                    labelText: 'Mot de passe',
-                    hintText: 'Min. 8 caractères',
+                    labelText: l10n.password,
+                    hintText: l10n.passwordMin8,
                     labelStyle: TextStyle(
                       color: Colors.grey,
                       fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
@@ -594,7 +601,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                     ),
                     SizedBox(height: 6),
                     Text(
-                      'Force du mot de passe: ' + _passwordStrengthLabel,
+                      l10n.passwordStrengthLabel(_passwordStrengthLabel),
                       style: TextStyle(
                         color: _passwordStrengthColor,
                         fontWeight: FontWeight.w600,
@@ -612,8 +619,8 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmReg,
                   decoration: InputDecoration(
-                    labelText: 'Confirmer le mot de passe',
-                    hintText: 'Retapez le mot de passe',
+                    labelText: l10n.confirmPassword,
+                    hintText: l10n.retypePassword,
                     labelStyle: TextStyle(
                       color: Colors.grey,
                       fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
@@ -661,7 +668,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   onPressed: _isLoading
                       ? null
                       : () async {
-                          // Vérification des champs obligatoires
+                          final regL10n = AppLocalizations.of(context)!;
                           if (_nomController.text.trim().isEmpty ||
                               _prenomController.text.trim().isEmpty ||
                               _telephoneController.text.trim().isEmpty ||
@@ -670,16 +677,15 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               selectedCountry == null) {
                             AuthMessagePopup.showWarning(
                               context,
-                              title: 'Certains champs sont manquants.',
-                              subtitle: 'Veuillez compléter les informations requises.',
+                              title: regL10n.missingFieldsTitle,
+                              subtitle: regL10n.completeRequiredInfo,
                             );
                             return;
                           }
-                          // Vérification mot de passe
                           if (_passwordController.text.length < 8) {
                             AuthMessagePopup.showError(
                               context,
-                              title: 'Le mot de passe doit contenir au moins 8 caractères.',
+                              title: regL10n.passwordMin8Title,
                             );
                             return;
                           }
@@ -687,17 +693,19 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               _confirmPasswordController.text) {
                             AuthMessagePopup.showError(
                               context,
-                              title: 'Les mots de passe ne correspondent pas.',
+                              title: regL10n.passwordsDoNotMatch,
                             );
                             return;
                           }
-                          // Validation du numéro de téléphone (nombre de chiffres dynamique)
                           final phone = _telephoneController.text.trim();
                           if (!_isValidNationalPhone(phone)) {
                             AuthMessagePopup.showError(
                               context,
-                              title: 'Numéro invalide',
-                              subtitle: 'Entrez $_phoneDigitHint.',
+                              title: regL10n.invalidPhoneTitle,
+                              subtitle: regL10n.invalidPhoneSubtitle(
+                                _phoneDigitHint(regL10n),
+                                selectedCountry ?? '',
+                              ),
                             );
                             return;
                           }
@@ -755,10 +763,9 @@ class _InscriptionPageState extends State<InscriptionPage> {
                                     referralInfo['rewardAmount']?.toString();
                                 final isAgent = referralInfo['isAgent'] == true;
                                 String message =
-                                    'Code de parrainage enregistré (statut: $status)';
+                                    regL10n.referralCodeRegistered(status ?? '');
                                 if (isAgent && amount != null) {
-                                  message =
-                                      ' Compte crée avec succès, Parrainage agent validé ';
+                                  message = regL10n.accountCreatedAgentReferral;
                                 }
                                 AuthMessagePopup.showSuccess(
                                   context,
@@ -792,8 +799,8 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             if (!mounted) return;
                             AuthMessagePopup.showSuccess(
                               context,
-                              title: 'Votre compte a été créé avec succès.',
-                              subtitle: 'Bienvenue sur Tranoo !',
+                              title: regL10n.accountCreatedTitle,
+                              subtitle: regL10n.welcomeTranooExclaim,
                             );
                             
                             // Mettre à jour le timestamp de dernière connexion
@@ -812,34 +819,33 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               (route) => false,
                             );
                           } catch (e) {
-                            String title = 'Une erreur est survenue.';
+                            String title = regL10n.errorOccurredTitle;
                             String? subtitle;
                             if (e.toString().contains(
                                   'email-already-in-use',
                                 )) {
-                              title = 'Un compte existe déjà avec ce numéro.';
-                              subtitle =
-                                  'Connectez-vous ou utilisez un autre numéro.';
+                              title = regL10n.accountAlreadyExistsTitle;
+                              subtitle = regL10n.accountAlreadyExistsSubtitle;
                             } else if (e.toString().contains(
                                   'weak-password',
                                 )) {
-                              title = 'Le mot de passe doit contenir au moins 8 caractères.';
+                              title = regL10n.passwordMin8Title;
                             } else if (e.toString().contains('network') ||
                                 e.toString().contains('SocketException') ||
                                 e.toString().contains('Failed host lookup')) {
-                              title = 'Impossible de se connecter au serveur.';
-                              subtitle = 'Vérifiez votre connexion internet.';
+                              title = regL10n.cannotReachServer;
+                              subtitle = regL10n.checkInternet;
                             } else if (e.toString().contains('server') ||
                                 e.toString().contains('500') ||
                                 e.toString().contains('503')) {
-                              title = 'Notre service rencontre un problème temporaire.';
-                              subtitle = 'Veuillez réessayer plus tard.';
+                              title = regL10n.serviceTemporaryIssue;
+                              subtitle = regL10n.tryAgainLater;
                             }
                             AuthMessagePopup.showError(
                               context,
                               title: title,
                               subtitle: subtitle,
-                              buttonText: 'Réessayer',
+                              buttonText: regL10n.retry,
                             );
                           } finally {
                             setState(() {
@@ -860,7 +866,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.black)
                       : Text(
-                          "S'inscrire",
+                          l10n.signUp,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize:
@@ -875,7 +881,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "Vous avez déjà un compte ? ",
+                    l10n.alreadyHaveAccount,
                     style: TextStyle(
                       color: Colors.grey,
                       fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
@@ -891,7 +897,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                       );
                     },
                     child: Text(
-                      "Se connecter",
+                      l10n.signInTitle,
                       style: TextStyle(
                         color: const Color(0xFF0461B6),
                         fontWeight: FontWeight.bold,
@@ -906,7 +912,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () => setState(() => _currentStep = 0),
-                  child: const Text('Retour'),
+                  child: Text(l10n.back),
                 ),
               ),
               ],

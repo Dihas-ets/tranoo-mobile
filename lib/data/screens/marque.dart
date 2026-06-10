@@ -487,7 +487,7 @@ class _MarqueState extends State<Marque>
           _logger.info('[DEBUG] Erreur de décodage JSON: $e');
           if (!mounted) return;
           setState(() {
-            errorPieces = 'Erreur de format de données';
+            errorPieces = AppLocalizations.of(context)!.dataFormatError;
             isLoadingPieces = false;
           });
         }
@@ -497,7 +497,7 @@ class _MarqueState extends State<Marque>
         );
         if (!mounted) return;
         setState(() {
-          errorPieces = 'Erreur lors du chargement des pièces';
+          errorPieces = AppLocalizations.of(context)!.piecesLoadError;
           isLoadingPieces = false;
         });
       }
@@ -505,7 +505,7 @@ class _MarqueState extends State<Marque>
       _logger.info('[DEBUG] Exception fetchArticlesPieces: $e');
       if (!mounted) return;
       setState(() {
-        errorPieces = 'Erreur réseau';
+        errorPieces = AppLocalizations.of(context)!.networkError;
         isLoadingPieces = false;
       });
     }
@@ -684,7 +684,7 @@ class _MarqueState extends State<Marque>
       } else {
         if (!mounted) return;
         setState(() {
-          errorVoitures = 'Erreur lors du chargement des voitures';
+          errorVoitures = AppLocalizations.of(context)!.carsLoadError;
           isLoadingVoitures = false;
         });
       }
@@ -692,7 +692,7 @@ class _MarqueState extends State<Marque>
       _logger.info('[DEBUG] Exception fetchVoituresRecommandees: $e');
       if (!mounted) return;
       setState(() {
-        errorVoitures = 'Erreur réseau';
+        errorVoitures = AppLocalizations.of(context)!.networkError;
         isLoadingVoitures = false;
       });
     }
@@ -751,14 +751,14 @@ class _MarqueState extends State<Marque>
       } else {
         if (!mounted) return;
         setState(() {
-          errorPubs = 'Erreur lors du chargement des publicités';
+          errorPubs = AppLocalizations.of(context)!.adsLoadError;
           isLoadingPubs = false;
         });
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        errorPubs = 'Erreur réseau';
+        errorPubs = AppLocalizations.of(context)!.networkError;
         isLoadingPubs = false;
       });
     }
@@ -814,14 +814,14 @@ class _MarqueState extends State<Marque>
       } else {
         if (!mounted) return;
         setState(() {
-          errorPubs = 'Erreur lors du chargement des publicités';
+          errorPubs = AppLocalizations.of(context)!.adsLoadError;
           isLoadingPubs = false;
         });
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        errorPubs = 'Erreur réseau';
+        errorPubs = AppLocalizations.of(context)!.networkError;
         isLoadingPubs = false;
       });
     }
@@ -944,7 +944,14 @@ class _MarqueState extends State<Marque>
   }
 
   // Section Recommandé :
+  String _conditionLabel(AppLocalizations l10n, String? condition) {
+    final c = (condition ?? '').toLowerCase();
+    if (c == 'nouveau' || c == 'neuf') return l10n.conditionNew;
+    return l10n.usedCondition;
+  }
+
   Widget buildVoituresRecommandeesGrid() {
+    final l10n = AppLocalizations.of(context)!;
     if (isLoadingVoitures && voituresRecommandees.isEmpty) {
       return SkeletonPresets.articleGrid(count: 2);
     }
@@ -1117,11 +1124,7 @@ class _MarqueState extends State<Marque>
                               borderRadius: BorderRadius.circular(50),
                             ),
                             child: Text(
-                              (voiture.condition?.toLowerCase() == 'nouveau' ||
-                                      voiture.condition?.toLowerCase() ==
-                                          'neuf')
-                                  ? 'Nouveau'
-                                  : 'Occasion',
+                              _conditionLabel(l10n, voiture.condition),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
@@ -1167,7 +1170,7 @@ class _MarqueState extends State<Marque>
                                           child: _buildCaracteristic(
                                             Icons.settings,
                                             voiture.boiteVitesse ??
-                                                'Automatique',
+                                                l10n.automaticTransmission,
                                           ),
                                         ),
                                         const SizedBox(width: 8),
@@ -1274,6 +1277,7 @@ class _MarqueState extends State<Marque>
   }
 
   Widget buildPiecesGrid() {
+    final l10n = AppLocalizations.of(context)!;
     if (isLoadingPieces && articlesPieces.isEmpty) {
       return SkeletonPresets.articleGrid(count: 2);
     }
@@ -1318,10 +1322,10 @@ class _MarqueState extends State<Marque>
           padding: const EdgeInsets.only(bottom: 12),
           child: TextField(
             controller: _searchPieceController,
-            decoration: const InputDecoration(
-              hintText: 'Rechercher une pièce...',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              hintText: l10n.searchPartHint,
+              prefixIcon: const Icon(Icons.search),
+              border: const OutlineInputBorder(),
             ),
             onChanged: (val) {
               _searchPieceText = val;
@@ -1417,7 +1421,9 @@ class _MarqueState extends State<Marque>
                                     borderRadius: BorderRadius.circular(50),
                                   ),
                                   child: Text(
-                                    isNew ? 'Nouveau' : 'Occasion',
+                                    isNew
+                                        ? l10n.conditionNew
+                                        : l10n.usedCondition,
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 10,
@@ -1457,6 +1463,7 @@ class _MarqueState extends State<Marque>
   }
 
   Widget buildVoituresRecommandeesSection() {
+    final l10n = AppLocalizations.of(context)!;
     const bool isVendeur = false;
     final voituresEnLigne = voituresRecommandees
         .where(
@@ -1639,13 +1646,8 @@ class _MarqueState extends State<Marque>
                                               BorderRadius.circular(50),
                                         ),
                                         child: Text(
-                                          (voiture.condition?.toLowerCase() ==
-                                                      'nouveau' ||
-                                                  voiture.condition
-                                                          ?.toLowerCase() ==
-                                                      'neuf')
-                                              ? 'Nouveau'
-                                              : 'Occasion',
+                                          _conditionLabel(
+                                              l10n, voiture.condition),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 10,
@@ -1694,7 +1696,7 @@ class _MarqueState extends State<Marque>
                                                   child: _buildCaracteristic(
                                                     Icons.settings,
                                                     voiture.boiteVitesse ??
-                                                        'Automatique',
+                                                        l10n.automaticTransmission,
                                                   ),
                                                 ),
                                                 const SizedBox(
@@ -1769,6 +1771,7 @@ class _MarqueState extends State<Marque>
   }
 
   Widget buildPiecesSection() {
+    final l10n = AppLocalizations.of(context)!;
     const bool isVendeur = false;
     final piecesEnLigne = articlesPieces
         .where(
@@ -1923,11 +1926,8 @@ class _MarqueState extends State<Marque>
                                               BorderRadius.circular(30),
                                         ),
                                         child: Text(
-                                          (piece.pieceType ?? '')
-                                                      .toLowerCase() ==
-                                                  'nouveau'
-                                              ? 'Nouveau'
-                                              : 'Occasion',
+                                          _conditionLabel(
+                                              l10n, piece.pieceType),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 9,
@@ -1978,6 +1978,7 @@ class _MarqueState extends State<Marque>
 
   // SECTION SPONSORISÉE
   Widget buildPubsSponsoriseesSection() {
+    final l10n = AppLocalizations.of(context)!;
     final pubsValides = pubsSponsorisees.where(_isPubValid).toList();
 
     return Column(
@@ -1991,8 +1992,8 @@ class _MarqueState extends State<Marque>
               Icon(Icons.star, color: Colors.blue, size: 20),
               const SizedBox(width: 8),
               Text(
-                "Sponsorisé",
-                style: TextStyle(
+                l10n.sponsoredLabel,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.blue,
@@ -2043,8 +2044,8 @@ class _MarqueState extends State<Marque>
                       if (articleId == null || articleId.isEmpty) {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Aucun article lié à cette pub.'),
+                          SnackBar(
+                            content: Text(l10n.linkedArticleNotFound),
                           ),
                         );
                         return;
@@ -2119,25 +2120,25 @@ class _MarqueState extends State<Marque>
                             } else {
                               // Type inconnu
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Type d\'article inconnu.'),
+                                SnackBar(
+                                  content: Text(l10n.unknownArticleType),
                                 ),
                               );
                             }
                       } else {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Erreur lors du chargement de l\'article.',
-                            ),
+                          SnackBar(
+                            content: Text(l10n.errorLoadingArticle),
                           ),
                         );
                       }
                     } catch (e) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Erreur réseau : $e')),
+                        SnackBar(
+                            content: Text(
+                                '${AppLocalizations.of(context)!.networkError}: $e')),
                       );
                     }
                   },
@@ -2253,7 +2254,7 @@ class _MarqueState extends State<Marque>
                                     borderRadius: BorderRadius.circular(50),
                                   ),
                                   child: const Text(
-                                    'Sponsorisé',
+                                    l10n.sponsoredLabel,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 10,
@@ -2374,6 +2375,7 @@ class _MarqueState extends State<Marque>
   }
 
   void _showFilterDialog() {
+    final l10n = AppLocalizations.of(context)!;
     _logger.info('[DEBUG] 🔧 Ouverture du dialogue de filtre');
     _logger.info('[DEBUG] 🔧 Context disponible: ${context != null}');
     _logger.info('[DEBUG] 🔧 Monted: $mounted');
@@ -2385,17 +2387,17 @@ class _MarqueState extends State<Marque>
           _logger.info('[DEBUG] 🔧 Builder context créé: ${ctx != null}');
           return AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.tune, color: Color(0xFFB45309)),
-            SizedBox(width: 8),
-            Text('Type de recherche'),
+            const Icon(Icons.tune, color: Color(0xFFB45309)),
+            const SizedBox(width: 8),
+            Text(l10n.searchTypeTitle),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Que voulez-vous rechercher ?'),
+            Text(l10n.whatDoYouWantToSearch),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -2422,7 +2424,7 @@ class _MarqueState extends State<Marque>
                   }
                 },
                 icon: const Icon(Icons.directions_car),
-                label: const Text('Véhicules'),
+                label: Text(l10n.vehicles),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFB45309),
                   foregroundColor: Colors.white,
@@ -2455,7 +2457,7 @@ class _MarqueState extends State<Marque>
                   }
                 },
                 icon: const Icon(Icons.build),
-                label: const Text('Pièces'),
+                label: Text(l10n.pieces),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey[700],
                   foregroundColor: Colors.white,
@@ -2467,7 +2469,7 @@ class _MarqueState extends State<Marque>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
         ],
       );
@@ -2481,7 +2483,7 @@ class _MarqueState extends State<Marque>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
+            content: Text(l10n.errorGeneric('$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -2490,24 +2492,25 @@ class _MarqueState extends State<Marque>
   }
 
   void _showFilterHint() {
+    final l10n = AppLocalizations.of(context)!;
     _logger.info('[DEBUG] 💡 Affichage du hint pour le filtre');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.lightbulb, color: Color(0xFFB45309)),
-            SizedBox(width: 8),
-            Text('Choisissez le type'),
+            const Icon(Icons.lightbulb, color: Color(0xFFB45309)),
+            const SizedBox(width: 8),
+            Text(l10n.chooseTypeTitle),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Vous avez tapé: "${_searchGlobalController.text}"'),
+            Text(l10n.youTyped(_searchGlobalController.text)),
             const SizedBox(height: 12),
-            const Text('Quel type d\'article recherchez-vous ?'),
+            Text(l10n.whatArticleTypeSearch),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -2528,7 +2531,7 @@ class _MarqueState extends State<Marque>
                       );
                     },
                     icon: const Icon(Icons.directions_car),
-                    label: const Text('Véhicule'),
+                    label: Text(l10n.vehicleSingular),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFB45309),
                       foregroundColor: Colors.white,
@@ -2553,7 +2556,7 @@ class _MarqueState extends State<Marque>
                       );
                     },
                     icon: const Icon(Icons.build),
-                    label: const Text('Pièce'),
+                    label: Text(l10n.partSingular),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey[700],
                       foregroundColor: Colors.white,
@@ -2567,7 +2570,7 @@ class _MarqueState extends State<Marque>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
         ],
       ),
@@ -2576,6 +2579,7 @@ class _MarqueState extends State<Marque>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
     final screenHeight = mediaQuery.size.height;
@@ -2592,7 +2596,7 @@ class _MarqueState extends State<Marque>
             child: TextField(
               controller: _searchGlobalController,
               decoration: InputDecoration(
-                hintText: 'Rechercher véhicules, pièces...',
+                hintText: l10n.searchVehiclesPartsHint,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: AnimatedBuilder(
                   animation: _searchGlobalController,
@@ -2704,7 +2708,7 @@ class _MarqueState extends State<Marque>
               children: [
                 Expanded(
                   child: _buildServiceIcon(
-                    label: 'Véhicules',
+                    label: l10n.vehicles,
                     icon: Icons.directions_car,
                     iconSize: iconSize,
                     //imagePath: 'assets/images/icon_vente.png',
@@ -2720,7 +2724,7 @@ class _MarqueState extends State<Marque>
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildServiceIcon(
-                    label: 'Pièces',
+                    label: l10n.pieces,
                     icon: Icons.build_circle,
                     iconSize: iconSize,
                     //imagePath: null,
@@ -2736,7 +2740,7 @@ class _MarqueState extends State<Marque>
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildServiceIcon(
-                    label: 'Livraisons',
+                    label: l10n.deliveries,
                     icon: Icons.local_shipping,
                     iconSize: iconSize,
                     //imagePath: 'assets/images/icon_livraison.png',
@@ -2753,7 +2757,7 @@ class _MarqueState extends State<Marque>
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildServiceIcon(
-                    label: 'Tricycles',
+                    label: l10n.tricycles,
                     icon: Icons.pedal_bike,
                     iconSize: iconSize,
                     //imagePath: 'assets/images/icon_tricycle.png',
@@ -3399,6 +3403,7 @@ class _MarqueState extends State<Marque>
 
   // Section Budget (visible pour rôles non-vendeurs)
   Widget _buildBudgetSection() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SizedBox(
@@ -3413,7 +3418,7 @@ class _MarqueState extends State<Marque>
             ),
           ),
           onPressed: _openBudgetSheet,
-          child: const Text('Filtrer par budget'),
+          child: Text(l10n.filterByBudget),
         ),
       ),
     );
@@ -3452,6 +3457,7 @@ class _MarqueState extends State<Marque>
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
         return StatefulBuilder(
           builder: (context, setModalState) {
             final disponibles = compterDansIntervalle(currentMin, currentMax);
@@ -3477,9 +3483,9 @@ class _MarqueState extends State<Marque>
                       ),
                     ),
                   ),
-                  const Text(
-                    'Prix (FCFA)',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.priceFcfa,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -3489,7 +3495,7 @@ class _MarqueState extends State<Marque>
                           controller: minCtl,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: 'Min.',
+                            labelText: l10n.minLabel,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -3508,7 +3514,7 @@ class _MarqueState extends State<Marque>
                           controller: maxCtl,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: 'Max.',
+                            labelText: l10n.maxLabel,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -3550,7 +3556,7 @@ class _MarqueState extends State<Marque>
                               maxCtl.text = currentMax.toStringAsFixed(0);
                             });
                           },
-                          child: const Text('Réinitialiser'),
+                          child: Text(l10n.reset),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -3568,7 +3574,7 @@ class _MarqueState extends State<Marque>
                                 0xFFF8BF13), // Jaune unifié plus doux
                             foregroundColor: const Color(0xFF000000),
                           ),
-                          child: Text('Afficher $disponibles véhicule(s)'),
+                          child: Text(l10n.showVehiclesCount(disponibles)),
                         ),
                       ),
                     ],
