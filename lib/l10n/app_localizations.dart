@@ -592,6 +592,18 @@ abstract class AppLocalizations {
   /// **'Max.'**
   String get maxLabel;
 
+  /// No description provided for @budgetMinHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum'**
+  String get budgetMinHint;
+
+  /// No description provided for @budgetMaxHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum'**
+  String get budgetMaxHint;
+
   /// No description provided for @confirmDeletion.
   ///
   /// In en, this message translates to:
@@ -5055,6 +5067,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recommended forwarders'**
   String get recommendedForwarders;
+
+  /// No description provided for @seeMoreForwarders.
+  ///
+  /// In en, this message translates to:
+  /// **'See more forwarders'**
+  String get seeMoreForwarders;
+
+  /// No description provided for @forwarderPremiumBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium subscriber'**
+  String get forwarderPremiumBadge;
+
+  /// No description provided for @forwarderVerifiedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified'**
+  String get forwarderVerifiedBadge;
+
+  /// No description provided for @forwarderStandardBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarder'**
+  String get forwarderStandardBadge;
+
+  /// No description provided for @internationalTransit.
+  ///
+  /// In en, this message translates to:
+  /// **'International transit'**
+  String get internationalTransit;
+
+  /// No description provided for @noForwardersAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No forwarders available'**
+  String get noForwardersAvailable;
+
+  /// No description provided for @forwarderSubscribedShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribed'**
+  String get forwarderSubscribedShort;
+
+  /// No description provided for @forwarderStandardShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get forwarderStandardShort;
+
+  /// No description provided for @forwardersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarders'**
+  String get forwardersTitle;
 
   /// No description provided for @forwarderSubscription.
   ///

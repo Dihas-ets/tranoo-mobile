@@ -260,6 +260,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get maxLabel => 'Max.';
 
   @override
+  String get budgetMinHint => 'Minimum';
+
+  @override
+  String get budgetMaxHint => 'Maximum';
+
+  @override
   String get confirmDeletion => 'Confirm deletion';
 
   @override
@@ -2701,6 +2707,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recommendedForwarders => 'Recommended forwarders';
+
+  @override
+  String get seeMoreForwarders => 'See more forwarders';
+
+  @override
+  String get forwarderPremiumBadge => 'Premium subscriber';
+
+  @override
+  String get forwarderVerifiedBadge => 'Verified';
+
+  @override
+  String get forwarderStandardBadge => 'Forwarder';
+
+  @override
+  String get internationalTransit => 'International transit';
+
+  @override
+  String get noForwardersAvailable => 'No forwarders available';
+
+  @override
+  String get forwarderSubscribedShort => 'Subscribed';
+
+  @override
+  String get forwarderStandardShort => 'Standard';
+
+  @override
+  String get forwardersTitle => 'Forwarders';
 
   @override
   String get forwarderSubscription => 'Forwarder subscription';

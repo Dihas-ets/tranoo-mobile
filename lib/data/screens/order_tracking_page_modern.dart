@@ -732,7 +732,7 @@ class _OrderTrackingPageModernState extends State<OrderTrackingPageModern> {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    _formatStatus(deliveryStatus),
+                    localizedOrderStatus(l10n, deliveryStatus),
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,

@@ -17,7 +17,10 @@ import 'package:tranoo/utils/auth_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/utils/auth_dialog.dart';
 import 'package:tranoo/utils/article_view_helper.dart';
+import 'package:tranoo/utils/text_display.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/widgets/spec_info_card.dart';
+import 'package:tranoo/widgets/transitaire_carousel_section.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -135,7 +138,6 @@ class _CarsinfoState extends State<CarsInfo> {
   late ConfettiController _confettiController;
   static const String _whatsAppPhone = '22941839801'; // sans +
   int _verificationPrice = 20000;
-
   String _formatFcfa(int value) {
     final priceStr = value.toString();
     final reversed = priceStr.split('').reversed.join('');
@@ -163,6 +165,15 @@ class _CarsinfoState extends State<CarsInfo> {
   String _specValue(AppLocalizations l10n, String? value) {
     if (value != null && value.isNotEmpty) return value;
     return l10n.notProvided;
+  }
+
+  String _locationSpecValue(AppLocalizations l10n) {
+    final raw = concatLocationParts(
+      location: widget.lieu,
+      company: widget.entreprise,
+    );
+    if (raw.isEmpty) return l10n.notProvided;
+    return truncateWithEllipsis(raw);
   }
 
   String _yesNoValue(AppLocalizations l10n, bool? value) {
@@ -754,7 +765,7 @@ class _CarsinfoState extends State<CarsInfo> {
     );
   }
 
-  Widget _buildSpecifications(AppLocalizations l10n) {
+  Widget _buildSpecGrid(List<Widget> cards) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -762,53 +773,79 @@ class _CarsinfoState extends State<CarsInfo> {
       childAspectRatio: 1.5,
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
+      children: cards,
+    );
+  }
+
+  Widget _buildSpecifications(AppLocalizations l10n) {
+    final topCards = <Widget>[
+      _buildSpecCard(
+        l10n.cylinder,
+        _specValue(l10n, widget.cylindre),
+        Icons.settings,
+      ),
+      _buildSpecCard(
+        l10n.fuel,
+        _specValue(l10n, widget.carburant),
+        Icons.local_gas_station,
+      ),
+      _buildSpecCard(
+        l10n.airConditioner,
+        _specValue(l10n, widget.climatiseur),
+        Icons.ac_unit,
+      ),
+      _buildSpecCard(
+        l10n.distanceKm,
+        _specValue(l10n, widget.distance),
+        Icons.speed,
+      ),
+      _buildSpecCard(
+        l10n.location,
+        _locationSpecValue(l10n),
+        Icons.location_on,
+      ),
+      _buildSpecCard(
+        l10n.seats,
+        _specValue(l10n, widget.sieges),
+        Icons.event_seat,
+      ),
+    ];
+    final bottomCards = <Widget>[
+      _buildSpecCard(
+        l10n.doors,
+        _specValue(l10n, widget.portes),
+        Icons.door_front_door,
+      ),
+      _buildSpecCard(
+        l10n.gearbox,
+        _specValue(l10n, widget.boiteVitesse),
+        Icons.settings,
+      ),
+      _buildSpecCardWithColor(
+        l10n.colorField,
+        _specValue(l10n, widget.couleur),
+        Icons.palette,
+        widget.couleur,
+      ),
+      _buildSpecCard(
+        l10n.customsClearance,
+        _yesNoValue(l10n, widget.dedouanement),
+        Icons.check_circle,
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSpecCard(
-          l10n.cylinder,
-          _specValue(l10n, widget.cylindre),
-          Icons.settings,
+        _buildSpecGrid(topCards),
+        const SizedBox(height: 16),
+        const TransitaireCarouselSection(
+          showTitle: true,
+          showSeeMoreButton: true,
+          height: 116,
         ),
-        _buildSpecCard(
-          l10n.fuel,
-          _specValue(l10n, widget.carburant),
-          Icons.local_gas_station,
-        ),
-        _buildSpecCard(
-          l10n.airConditioner,
-          _specValue(l10n, widget.climatiseur),
-          Icons.ac_unit,
-        ),
-        _buildSpecCard(
-          l10n.distanceKm,
-          _specValue(l10n, widget.distance),
-          Icons.speed,
-        ),
-        _buildSpecCard(
-          l10n.seats,
-          _specValue(l10n, widget.sieges),
-          Icons.event_seat,
-        ),
-        _buildSpecCard(
-          l10n.doors,
-          _specValue(l10n, widget.portes),
-          Icons.door_front_door,
-        ),
-        _buildSpecCard(
-          l10n.gearbox,
-          _specValue(l10n, widget.boiteVitesse),
-          Icons.settings,
-        ),
-        _buildSpecCardWithColor(
-          l10n.colorField,
-          _specValue(l10n, widget.couleur),
-          Icons.palette,
-          widget.couleur,
-        ),
-        _buildSpecCard(
-          l10n.customsClearance,
-          _yesNoValue(l10n, widget.dedouanement),
-          Icons.check_circle,
-        ),
+        const SizedBox(height: 16),
+        _buildSpecGrid(bottomCards),
       ],
     );
   }
@@ -871,90 +908,37 @@ class _CarsinfoState extends State<CarsInfo> {
 
   // Carte d'information générique pour les spécifications
   Widget _buildSpecCard(String title, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F1FF),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: Colors.black87),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 12, color: Colors.black54),
-          ),
-        ],
-      ),
-    );
+    return SpecInfoCard(title: title, value: value, icon: icon);
   }
 
-  // Carte spéciale pour la couleur avec carré de couleur
   Widget _buildSpecCardWithColor(
     String title,
     String value,
     IconData icon,
     String? couleur,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F1FF),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: Colors.black87),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+    Widget? swatch;
+    if (couleur != null && _couleurs.containsKey(couleur)) {
+      swatch = Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(
+          color: _couleurs[couleur],
+          border: Border.all(
+            color: _couleurs[couleur] == Colors.white
+                ? Colors.grey
+                : Colors.transparent,
+            width: 1,
           ),
-          const SizedBox(height: 2),
-          Row(
-            children: [
-              if (couleur != null && _couleurs.containsKey(couleur))
-                Container(
-                  width: 16,
-                  height: 16,
-                  margin: const EdgeInsets.only(right: 6),
-                  decoration: BoxDecoration(
-                    color: _couleurs[couleur],
-                    border: Border.all(
-                      color: _couleurs[couleur] == Colors.white
-                          ? Colors.grey
-                          : Colors.transparent,
-                      width: 1,
-                    ),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              Expanded(
-                child: Text(
-                  value,
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+          borderRadius: BorderRadius.circular(3),
+        ),
+      );
+    }
+    return SpecInfoCard(
+      title: title,
+      value: value,
+      icon: icon,
+      valueTrailing: swatch,
     );
   }
 

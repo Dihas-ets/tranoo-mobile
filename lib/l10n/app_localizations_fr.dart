@@ -261,6 +261,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get maxLabel => 'Max.';
 
   @override
+  String get budgetMinHint => 'Minimum';
+
+  @override
+  String get budgetMaxHint => 'Maximum';
+
+  @override
   String get confirmDeletion => 'Confirmer la suppression';
 
   @override
@@ -2740,6 +2746,33 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get recommendedForwarders => 'Transitaires recommandés';
+
+  @override
+  String get seeMoreForwarders => 'Voir plus de transitaires';
+
+  @override
+  String get forwarderPremiumBadge => 'Abonné premium';
+
+  @override
+  String get forwarderVerifiedBadge => 'Vérifié';
+
+  @override
+  String get forwarderStandardBadge => 'Transitaire';
+
+  @override
+  String get internationalTransit => 'Transit international';
+
+  @override
+  String get noForwardersAvailable => 'Aucun transitaire disponible';
+
+  @override
+  String get forwarderSubscribedShort => 'Abonné';
+
+  @override
+  String get forwarderStandardShort => 'Standard';
+
+  @override
+  String get forwardersTitle => 'Transitaires';
 
   @override
   String get forwarderSubscription => 'Abonnement Transitaire';

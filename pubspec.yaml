@@ -70,7 +70,16 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.3
+  # flutter_native_splash: ^2.4.6  # désactivé — ancien splash Flutter le temps des feats
 
+# flutter_native_splash:
+#   color: "#F8BF13"
+#   image: assets/logo/splash_logo.png
+#   android: true
+#   ios: true
+#   android_12:
+#     color: "#F8BF13"
+#     image: assets/logo/splash_logo.png
 
 flutter_icons:
   android: true
@@ -91,6 +100,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/logo/
     - assets/lottie/
     - assets/sounds/
     - .env

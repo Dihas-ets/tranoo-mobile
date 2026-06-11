@@ -19,6 +19,8 @@ import 'package:tranoo/utils/article_view_helper.dart';
 import 'package:tranoo/utils/auth_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/text_display.dart';
+import 'package:tranoo/widgets/spec_info_card.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -49,6 +51,8 @@ class MastervacPage extends StatefulWidget {
   final String? fuelType;
   final String? model;
   final String? pieceType;
+  final String? categorie;
+  final String? marque;
   final List<String?> images;
   final String? video;
   final bool fromPub;
@@ -66,6 +70,8 @@ class MastervacPage extends StatefulWidget {
     this.fuelType,
     this.model,
     this.pieceType,
+    this.categorie,
+    this.marque,
     required this.images,
     this.video,
     this.fromPub = false,
@@ -87,6 +93,10 @@ class _MastervacPageState extends State<MastervacPage> {
   late ConfettiController _confettiController;
   bool _isOnline = false;
   String? _sellerPhone;
+  String? _loadedCategorie;
+  String? _loadedMarque;
+  String? _loadedLocation;
+  String? _loadedCompany;
 
   @override
   void initState() {
@@ -267,9 +277,15 @@ class _MastervacPageState extends State<MastervacPage> {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         final statut = (data['statut'] ?? '').toString().toLowerCase();
         if (!mounted) return;
+        final loc = (data['localisation'] ?? data['lieu'])?.toString().trim();
+        final company = data['entreprise']?.toString().trim();
         setState(() {
           _isOnline = (statut == 'en_ligne');
           _sellerPhone = _extractSellerPhone(data);
+          _loadedCategorie = data['categorie']?.toString();
+          _loadedMarque = data['marque']?.toString();
+          if (loc != null && loc.isNotEmpty) _loadedLocation = loc;
+          if (company != null && company.isNotEmpty) _loadedCompany = company;
         });
       }
     } catch (_) {}
@@ -290,7 +306,7 @@ class _MastervacPageState extends State<MastervacPage> {
       appBar: _buildAppBar(),
       floatingActionButton: FloatingActionButton(
         onPressed: _startDeliveryFlow,
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFF2E7D32),
         tooltip: l10n.orderWithDelivery,
         child: const Icon(Icons.local_shipping, color: Colors.white),
       ),
@@ -618,9 +634,68 @@ class _MastervacPageState extends State<MastervacPage> {
     );
   }
 
+  String get _effectiveCategorie =>
+      (_loadedCategorie ?? widget.categorie ?? '').toLowerCase();
+
+  String get _effectiveMarque =>
+      (_loadedMarque ?? widget.marque ?? '').trim();
+
+  String _specValue(String? value, String notProvided) =>
+      (value != null && value.trim().isNotEmpty) ? value.trim() : notProvided;
+
+  String _locationDisplayValue(String notProvided) {
+    final raw = concatLocationParts(
+      location: _loadedLocation ?? widget.location,
+      company: _loadedCompany ?? widget.company,
+    );
+    if (raw.isEmpty) return notProvided;
+    return truncateWithEllipsis(raw);
+  }
+
   Widget _buildSpecifications() {
     final l10n = AppLocalizations.of(context)!;
     final notProvided = l10n.notProvided;
+    final locationValue = _locationDisplayValue(notProvided);
+
+    final List<({String title, String value, IconData icon})> specs;
+    switch (_effectiveCategorie) {
+      case 'huile_moteur':
+        specs = [
+          (title: 'Marque', value: _specValue(_effectiveMarque, notProvided), icon: Icons.business),
+          (title: 'Viscosité', value: _specValue(widget.model, notProvided), icon: Icons.opacity),
+          (title: 'Type', value: _specValue(widget.fuelType, notProvided), icon: Icons.local_gas_station),
+          (title: 'Détails', value: _specValue(widget.description, notProvided), icon: Icons.description),
+          (title: l10n.location, value: locationValue, icon: Icons.location_on),
+        ];
+        break;
+      case 'pneu':
+        final dimsMatch =
+            RegExp(r'(\d+/\d+\s+R?\d+)').firstMatch(widget.title);
+        specs = [
+          (title: 'Marque', value: _specValue(_effectiveMarque, notProvided), icon: Icons.business),
+          (title: 'Référence', value: _specValue(widget.model, notProvided), icon: Icons.tag),
+          (
+            title: 'Dimensions',
+            value: dimsMatch?.group(1) ?? notProvided,
+            icon: Icons.straighten,
+          ),
+          (
+            title: 'Type véhicule',
+            value: _specValue(widget.fuelType, notProvided),
+            icon: Icons.directions_car,
+          ),
+          (title: l10n.location, value: locationValue, icon: Icons.location_on),
+        ];
+        break;
+      default:
+        specs = [
+          (title: l10n.model, value: _specValue(widget.model, notProvided), icon: Icons.settings),
+          (title: 'État', value: _specValue(widget.pieceType, notProvided), icon: Icons.verified),
+          (title: l10n.year, value: _specValue(widget.year, notProvided), icon: Icons.calendar_today),
+          (title: l10n.location, value: locationValue, icon: Icons.location_on),
+        ];
+    }
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -628,121 +703,15 @@ class _MastervacPageState extends State<MastervacPage> {
       childAspectRatio: 1.8,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      children: [
-        _buildSpecCard(
-          l10n.model,
-          (widget.model != null && widget.model!.isNotEmpty)
-              ? widget.model!
-              : notProvided,
-          Icons.settings,
-        ),
-        _buildSpecCard(
-          l10n.partTypeLabel,
-          (widget.pieceType != null && widget.pieceType!.isNotEmpty)
-              ? widget.pieceType!
-              : notProvided,
-          Icons.category,
-        ),
-        _buildSpecCard(
-          l10n.engineType,
-          (widget.fuelType != null && widget.fuelType!.isNotEmpty)
-              ? widget.fuelType!
-              : notProvided,
-          Icons.local_gas_station,
-        ),
-        _buildSpecCard(
-          l10n.year,
-          widget.year.isNotEmpty ? widget.year : notProvided,
-          Icons.calendar_today,
-        ),
-        _buildLocationSpecCard(),
-      ],
-    );
-  }
-
-  Widget _buildSpecCard(String title, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F1FF),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 20, color: Colors.black87),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+      children: specs
+          .map(
+            (s) => SpecInfoCard(
+              title: s.title,
+              value: s.value,
+              icon: s.icon,
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 13, color: Colors.black54),
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLocationSpecCard() {
-    final l10n = AppLocalizations.of(context)!;
-    final loc = widget.location.trim();
-    if (loc.isEmpty) {
-      return _buildSpecCard(
-          l10n.location, l10n.notProvided, Icons.location_on);
-    }
-    if (loc.length <= 56) {
-      return _buildSpecCard(l10n.location, loc, Icons.location_on);
-    }
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F1FF),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          leading: const Icon(Icons.location_on, size: 20, color: Colors.black87),
-          title: Text(
-            l10n.location,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          subtitle: Text(
-            loc,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, color: Colors.black54),
-          ),
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                loc,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Colors.black87,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+          )
+          .toList(),
     );
   }
 

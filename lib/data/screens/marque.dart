@@ -22,6 +22,9 @@ import 'package:tranoo/utils/catalog_display.dart';
 import 'package:tranoo/data/screens/movie.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/catalog_filter_options.dart';
+import 'package:tranoo/widgets/catalog_filter_sections.dart';
+import 'package:tranoo/widgets/transitaire_carousel_section.dart';
 import 'package:tranoo/data/screens/orders_page.dart';
 import 'package:tranoo/data/screens/mes_commandes.dart';
 import 'package:tranoo/data/screens/tricycle/tricycle_home.dart';
@@ -119,6 +122,8 @@ class ArticleVoiture {
   final List<String> images;
   final String? video;
   final String? entreprise;
+  final String? lieu;
+  final String? localisation;
   final String? statut;
   final int views;
 
@@ -141,6 +146,8 @@ class ArticleVoiture {
     required this.images,
     this.video,
     this.entreprise,
+    this.lieu,
+    this.localisation,
     this.statut,
     this.views = 0,
   });
@@ -166,6 +173,8 @@ class ArticleVoiture {
           (json['photos'] as List?)?.map((e) => e.toString()).toList() ?? [],
       video: json['video'],
       entreprise: json['entreprise'],
+      lieu: json['lieu']?.toString(),
+      localisation: json['localisation']?.toString(),
       statut: json['statut'],
       views: (json['views'] as num?)?.toInt() ?? 0,
     );
@@ -239,7 +248,12 @@ class _MarqueState extends State<Marque>
   Future<void> onPagePullRefresh() async {
     setState(() => _pullRefreshing = true);
     try {
-      await _reloadAll();
+      await Future.wait<void>([
+        fetchArticlesPieces(silent: true),
+        fetchVoituresRecommandees(silent: true),
+        fetchPubs(silent: true),
+        fetchPubsSponsorisees(silent: true),
+      ]);
     } finally {
       if (mounted) setState(() => _pullRefreshing = false);
     }
@@ -590,28 +604,52 @@ class _MarqueState extends State<Marque>
     return 0.78;
   }
 
+  List<Map<String, dynamic>> _catalogMapsForFilters() {
+    final maps = <Map<String, dynamic>>[];
+    for (final v in voituresRecommandees) {
+      maps.add({
+        'marque': v.marque,
+        'modele': v.modele,
+        'prix': v.prix,
+        'titre': v.titre,
+        'description': v.description,
+        'entreprise': v.entreprise,
+        'lieu': v.lieu,
+        'localisation': v.localisation,
+      });
+    }
+    for (final p in articlesPieces) {
+      maps.add({
+        'marque': p.model,
+        'modele': p.model,
+        'pieceType': p.pieceType,
+        'localisation': p.location,
+        'lieu': p.location,
+        'titre': p.title,
+        'entreprise': p.company,
+        'prix': p.price,
+      });
+    }
+    return maps;
+  }
+
   List<ArticleVoiture> _applyFilters(List<ArticleVoiture> source) {
     return source.where((v) {
       if (_selectedBrand != null && _selectedBrand!.isNotEmpty) {
-        if (!v.marque.toLowerCase().contains(_selectedBrand!.toLowerCase())) {
-          return false;
-        }
+        if (!catalogValueMatches(_selectedBrand, v.marque)) return false;
       }
       if (_selectedModel != null && _selectedModel!.isNotEmpty) {
-        if (!v.modele.toLowerCase().contains(_selectedModel!.toLowerCase())) {
-          return false;
-        }
+        if (!catalogValueMatches(_selectedModel, v.modele)) return false;
       }
       if (_selectedLocation != null && _selectedLocation!.isNotEmpty) {
-        final loc =
-            ((v.entreprise ?? '') + ' ' + (v.description)).toLowerCase();
-        if (!loc.contains(_selectedLocation!.toLowerCase()) &&
-            !(v.titre.toLowerCase().contains(
-                  _selectedLocation!.toLowerCase(),
-                ))) {
-          // fallback: try titre
-          return false;
-        }
+        final loc = [
+          v.lieu,
+          v.localisation,
+          v.entreprise,
+          v.description,
+          v.titre,
+        ].map((e) => e?.toString() ?? '').join(' ');
+        if (!catalogValueMatches(_selectedLocation, loc)) return false;
       }
       if (_budgetMin != null || _budgetMax != null) {
         final price =
@@ -1480,9 +1518,9 @@ class _MarqueState extends State<Marque>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                "Recommandé",
-                style: TextStyle(
+              Text(
+                l10n.recommendedLabel,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF040415),
@@ -1497,9 +1535,9 @@ class _MarqueState extends State<Marque>
                     ),
                   );
                 },
-                child: const Text(
-                  "Voir tout",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                child: Text(
+                  l10n.seeAll,
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               ),
             ],
@@ -1526,22 +1564,22 @@ class _MarqueState extends State<Marque>
                 )
               : Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 13.0),
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    primary: false,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: _computeCardAspectRatio(context),
-                    ),
-                    itemCount: _applyFilters(voituresEnLigne).length > 4
-                        ? 4
-                        : _applyFilters(voituresEnLigne).length,
-                    itemBuilder: (context, index) {
-                      final list = _applyFilters(voituresEnLigne);
-                      final voiture = list[index];
+                  child: _buildRecommendedGridWithTransitaires(
+                    _applyFilters(voituresEnLigne).take(4).toList(),
+                    l10n,
+                  ),
+                ),
+      ],
+    );
+  }
+
+  Widget _buildRecommendedGridWithTransitaires(
+    List<ArticleVoiture> list,
+    AppLocalizations l10n,
+  ) {
+    final aspect = _computeCardAspectRatio(context);
+
+    Widget tile(ArticleVoiture voiture) {
                       return GestureDetector(
                         onTap: () {
                           setState(() {
@@ -1763,9 +1801,41 @@ class _MarqueState extends State<Marque>
                           ),
                         ),
                       );
-                    },
-                  ),
-                ),
+    }
+
+    Widget rowPair(int a, int b) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: a < list.length
+                ? AspectRatio(aspectRatio: aspect, child: tile(list[a]))
+                : const SizedBox.shrink(),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: b < list.length
+                ? AspectRatio(aspectRatio: aspect, child: tile(list[b]))
+                : const SizedBox.shrink(),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        if (list.isNotEmpty) rowPair(0, 1),
+        if (list.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          const TransitaireCarouselSection(
+            showTitle: false,
+            showSeeMoreButton: true,
+          ),
+        ],
+        if (list.length > 2) ...[
+          const SizedBox(height: 12),
+          rowPair(2, 3),
+        ],
       ],
     );
   }
@@ -2253,9 +2323,9 @@ class _MarqueState extends State<Marque>
                                     color: const Color(0xFFF8BF13),
                                     borderRadius: BorderRadius.circular(50),
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     l10n.sponsoredLabel,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
@@ -2743,7 +2813,6 @@ class _MarqueState extends State<Marque>
                     label: l10n.deliveries,
                     icon: Icons.local_shipping,
                     iconSize: iconSize,
-                    //imagePath: 'assets/images/icon_livraison.png',
                     imagePath: 'assets/images/icon_livraison3.png',
                     onTap: () {
                       Navigator.push(
@@ -2786,7 +2855,9 @@ class _MarqueState extends State<Marque>
     required double iconSize,
     required VoidCallback onTap,
     String? imagePath,
+    Color? accentColor,
   }) {
+    final ringColor = accentColor ?? const Color(0xFFF8BF13);
     // Cercle jaune clair : le picto occupe ~82 % du diamètre (lisible, proche du bord du rond).
     final double circleDiameter = iconSize * 1.9;
     final double innerIconSize = circleDiameter * 0.82;
@@ -2815,29 +2886,42 @@ class _MarqueState extends State<Marque>
               height: circleDiameter,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFF8BF13).withOpacity(0.22),
+                color: ringColor.withOpacity(0.22),
                 border: Border.all(
-                  color: const Color(0xFFF8BF13).withOpacity(0.45),
+                  color: ringColor.withOpacity(0.55),
                   width: 1,
                 ),
               ),
               child: Center(
                 child: imagePath != null
-                    ? Image.asset(
-                        imagePath,
-                        width: innerIconSize,
-                        height: innerIconSize,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Icon(
-                          icon,
-                          size: innerIconSize,
-                          color: const Color(0xFF0A1F44),
-                        ),
-                      )
+                    ? (accentColor != null
+                        ? ColorFiltered(
+                            colorFilter: ColorFilter.mode(
+                              accentColor,
+                              BlendMode.srcIn,
+                            ),
+                            child: Image.asset(
+                              imagePath,
+                              width: innerIconSize,
+                              height: innerIconSize,
+                              fit: BoxFit.contain,
+                            ),
+                          )
+                        : Image.asset(
+                            imagePath,
+                            width: innerIconSize,
+                            height: innerIconSize,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Icon(
+                              icon,
+                              size: innerIconSize,
+                              color: const Color(0xFF0A1F44),
+                            ),
+                          ))
                     : Icon(
                         icon,
                         size: innerIconSize,
-                        color: const Color(0xFF0A1F44),
+                        color: accentColor ?? const Color(0xFF0A1F44),
                       ),
               ),
             ),
@@ -2949,642 +3033,59 @@ class _MarqueState extends State<Marque>
   }
 
   Widget _buildMarqueSection() {
-    // Liste élargie; on gère les images manquantes avec errorBuilder
-    final List<Map<String, String>> marques = [
-      {"name": "Toyota", "image": "assets/images/Toyota.png"},
-      {"name": "Nissan", "image": "assets/images/nissan.png"},
-      {"name": "Ford", "image": "assets/images/ford.png"},
-      {"name": "Hyundai", "image": "assets/images/hunydai.png"},
-      {"name": "Honda", "image": "assets/images/honda.png"},
-      {"name": "Kia", "image": "assets/images/kia.png"},
-      {"name": "BMW", "image": "assets/images/bmw.png"},
-      {"name": "Mercedes", "image": "assets/images/mercedes.png"},
-      {"name": "Audi", "image": "assets/images/Audi.png"},
-      {"name": "Volkswagen", "image": "assets/images/vw.png"},
-      {"name": "Lexus", "image": "assets/images/lexus.png"},
-      {"name": "Mazda", "image": "assets/images/mazda.webp"},
-      {"name": "Chevrolet", "image": "assets/images/chevrolet.png"},
-      {"name": "Jeep", "image": "assets/images/jeep.png"},
-      {"name": "Peugeot", "image": "assets/images/peugeot.png"},
-      {"name": "Renault", "image": "assets/images/renault.png"},
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SizedBox(
-        height: 100 + 16,
-        child: GridView.builder(
-          scrollDirection: Axis.horizontal,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 1,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            mainAxisExtent: 100,
-          ),
-          itemCount: marques.length,
-          itemBuilder: (context, index) {
-            final item = marques[index];
-            final selected = _selectedBrand == item["name"];
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedBrand = item["name"];
-                });
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: selected
-                      ? const Color(0xFFF8BF13)
-                      : const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: selected
-                        ? const Color(0xFFF8BF13)
-                        : const Color(0xFFE0E0E0),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: Image.asset(
-                        item["image"] ?? '',
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stack) {
-                          return CircleAvatar(
-                            radius: 18,
-                            backgroundColor: Colors.grey.shade300,
-                            child: Text(
-                              (item["name"] ?? '??').substring(0, 1),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item["name"] ?? '',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: selected ? Colors.white : Colors.black,
-                        fontWeight:
-                            selected ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+    if (isLoadingVoitures && voituresRecommandees.isEmpty) {
+      return const CatalogFilterHorizSkeleton();
+    }
+    final options = buildMarqueFilterOptions(_catalogMapsForFilters(), isPiece: true);
+    return CatalogMarqueFilterGrid(
+      options: options,
+      selected: _selectedBrand,
+      onSelected: (v) => setState(() => _selectedBrand = v),
     );
   }
 
   Widget _buildModeleSection() {
-    final List<String> modeles = [
-      'Land Cruiser',
-      'Patrol',
-      'Altima',
-      'RAV4',
-      'Hilux',
-      'Wrangler',
-      'Civic',
-      'Corolla',
-      'Camry',
-      'Accord',
-      'Tucson',
-      'Sportage',
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SizedBox(
-        height: 90 + 16,
-        child: GridView.builder(
-          scrollDirection: Axis.horizontal,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 1,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            mainAxisExtent: 120,
-          ),
-          itemCount: modeles.length,
-          itemBuilder: (context, index) {
-            final name = modeles[index];
-            final selected = _selectedModel == name;
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedModel = name;
-                });
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: selected
-                      ? const Color(0xFFF8BF13)
-                      : const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: selected
-                        ? const Color(0xFFF8BF13)
-                        : const Color(0xFFE0E0E0),
-                    width: 1,
-                  ),
-                ),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: selected ? Colors.white : Colors.black,
-                    fontWeight:
-                        selected ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+    if (isLoadingVoitures && voituresRecommandees.isEmpty) {
+      return const CatalogFilterHorizSkeleton(itemWidth: 88, height: 60);
+    }
+    final modeles = buildModeleFilterOptions(_catalogMapsForFilters());
+    return CatalogModeleFilterGrid(
+      modeles: modeles,
+      selected: _selectedModel,
+      onSelected: (v) => setState(() => _selectedModel = v),
     );
   }
 
-  Widget _buildStatistiquesSection() {
-    final currentVehicleIds = voituresRecommandees.map((v) => v.id).toSet();
-    final totalClicks =
-        _backendViews.values.fold<int>(0, (sum, value) => sum + value);
-
-    final statsCards = [
-      {
-        "label": "Véhicules en ligne",
-        "value": currentVehicleIds.length,
-        "icon": Icons.directions_car_filled,
-        "color": const Color(0xFFF8BF13),
-        "background": const Color(0xFFFFF3CD),
-        "description": "Annonce(s) visibles"
-      },
-      {
-        "label": "Vues enregistrées",
-        "value": totalClicks,
-        "icon": Icons.remove_red_eye,
-        "color": const Color(0xFF536DFE),
-        "background": const Color(0xFFE8EAFE),
-        "description": "Consultations sur vos annonces"
-      },
-    ];
-
-    final topVehicles = voituresRecommandees
-        .where((v) => (_backendViews[v.id] ?? 0) > 0)
-        .toList()
-      ..sort((a, b) {
-        final countA = _backendViews[a.id] ?? 0;
-        final countB = _backendViews[b.id] ?? 0;
-        return countB.compareTo(countA);
-      });
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Vos statistiques",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: statsCards.map((card) {
-                return Container(
-                  width: 190,
-                  margin: const EdgeInsets.only(right: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        (card["color"] as Color).withOpacity(0.15),
-                        Colors.white,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: (card["color"] as Color).withOpacity(0.3),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (card["color"] as Color).withOpacity(0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        card["icon"] as IconData,
-                        color: card["color"] as Color,
-                        size: 28,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        card["label"] as String,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: (card["color"] as Color).withOpacity(0.9),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        "${card["value"]}",
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        card["description"] as String,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (topVehicles.isNotEmpty)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Top véhicules cliqués",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...topVehicles.take(3).map((vehicle) {
-                  final clicks = _backendViews[vehicle.id] ?? 0;
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundImage: vehicle.images.isNotEmpty
-                              ? NetworkImage(vehicle.images.first)
-                              : null,
-                          backgroundColor: Colors.grey.shade200,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                vehicle.titre,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "${vehicle.marque} | ${vehicle.modele}",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEEF2FF),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            "$clicks clic(s)",
-                            style: const TextStyle(
-                              color: Color(0xFF536DFE),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-            )
-          else
-            const Text(
-              "Vos clics apparaîtront ici dès que vos véhicules seront consultés.",
-              style: TextStyle(fontSize: 12, color: Color(0xFF795548)),
-            ),
-        ],
-      ),
-    );
-  }
-
-  // Section Localisation (visible pour rôles non-vendeurs)
   Widget _buildLocalisationSection() {
-    final List<Map<String, dynamic>> zones = [
-      {"name": "Bénin", "image": "assets/images/benin.png"},
-      {"name": "Mali", "image": "assets/images/mali.png"},
-      {"name": "Niger", "image": "assets/images/niger.png"},
-      {"name": "Burkina-Faso", "image": "assets/images/burkina.png"},
-      {"name": "Côte d'Ivoire", "image": "assets/images/ci.webp"},
-      {"name": "Sénégal", "image": "assets/images/senegal.png"},
-      {"name": "Togo", "image": "assets/images/togo.webp"},
-      {"name": "Ghana", "image": "assets/images/ghana.png"},
-      {"name": "Nigéria", "image": "assets/images/nigeria.png"},
-      {"name": "Maroc", "image": "assets/images/maroc.png"},
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SizedBox(
-        height: 106,
-        child: GridView.builder(
-          scrollDirection: Axis.horizontal,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 1,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            mainAxisExtent: 120,
-          ),
-          itemCount: zones.length,
-          itemBuilder: (context, index) {
-            final item = zones[index];
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedLocation = item["name"];
-                });
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
-                ),
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 36,
-                      height: 24,
-                      child: Image.asset(item["image"], fit: BoxFit.contain),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item["name"],
-                      style: const TextStyle(fontSize: 12),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+    if (isLoadingVoitures && voituresRecommandees.isEmpty) {
+      return const CatalogFilterHorizSkeleton();
+    }
+    final options = buildLocationFilterOptions(_catalogMapsForFilters());
+    return CatalogLocationFilterGrid(
+      options: options,
+      selected: _selectedLocation,
+      onSelected: (v) => setState(() => _selectedLocation = v),
     );
   }
 
-  // Section Budget (visible pour rôles non-vendeurs)
   Widget _buildBudgetSection() {
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFF8BF13), // Jaune unifié plus doux
-            foregroundColor: const Color(0xFF000000),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          onPressed: _openBudgetSheet,
-          child: Text(l10n.filterByBudget),
-        ),
-      ),
-    );
-  }
-
-  void _openBudgetSheet() {
-    // Construire la liste des prix à partir des voitures en ligne
-    final List<double> prixList = voituresRecommandees
-        .where((v) => (v.statut ?? 'en_ligne') == 'en_ligne')
-        .map((v) => double.tryParse(v.prix.replaceAll(RegExp(r'[^0-9.]'), '')))
-        .whereType<double>()
-        .toList()
-      ..sort();
-
-    final double minPrice = prixList.isNotEmpty ? prixList.first : 0;
-    final double maxPrice = prixList.isNotEmpty ? prixList.last : 200000;
-    double currentMin = _budgetMin ?? minPrice;
-    double currentMax = _budgetMax ?? maxPrice;
-
-    final minCtl = TextEditingController(text: currentMin.toStringAsFixed(0));
-    final maxCtl = TextEditingController(text: currentMax.toStringAsFixed(0));
-
-    int compterDansIntervalle(double a, double b) {
-      return voituresRecommandees.where((v) {
-        final p = double.tryParse(v.prix.replaceAll(RegExp(r'[^0-9.]'), ''));
-        if (p == null) return false;
-        final enLigne = (v.statut ?? 'en_ligne') == 'en_ligne';
-        return enLigne && p >= a && p <= b;
-      }).length;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        final l10n = AppLocalizations.of(context)!;
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final disponibles = compterDansIntervalle(currentMin, currentMax);
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-                top: 8,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    l10n.priceFcfa,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: minCtl,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: l10n.minLabel,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          onChanged: (val) {
-                            final v = double.tryParse(val) ?? currentMin;
-                            setModalState(() {
-                              currentMin = v.clamp(minPrice, currentMax);
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: maxCtl,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: l10n.maxLabel,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          onChanged: (val) {
-                            final v = double.tryParse(val) ?? currentMax;
-                            setModalState(() {
-                              currentMax = v.clamp(currentMin, maxPrice);
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  RangeSlider(
-                    values: RangeValues(currentMin, currentMax),
-                    min: minPrice,
-                    max: maxPrice,
-                    onChanged: (values) {
-                      setModalState(() {
-                        currentMin = values.start;
-                        currentMax = values.end;
-                        minCtl.text = currentMin.toStringAsFixed(0);
-                        maxCtl.text = currentMax.toStringAsFixed(0);
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setModalState(() {
-                              currentMin = minPrice;
-                              currentMax = maxPrice;
-                              minCtl.text = currentMin.toStringAsFixed(0);
-                              maxCtl.text = currentMax.toStringAsFixed(0);
-                            });
-                          },
-                          child: Text(l10n.reset),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _budgetMin = currentMin;
-                              _budgetMax = currentMax;
-                            });
-                            Navigator.pop(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(
-                                0xFFF8BF13), // Jaune unifié plus doux
-                            foregroundColor: const Color(0xFF000000),
-                          ),
-                          child: Text(l10n.showVehiclesCount(disponibles)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+    final carMaps = voituresRecommandees
+        .map((v) => <String, dynamic>{'prix': v.prix, 'statut': v.statut})
+        .toList();
+    return CatalogBudgetFilterPanel(
+      articles: carMaps,
+      budgetMin: _budgetMin,
+      budgetMax: _budgetMax,
+      countLabel: (n) => l10n.vehiclesAvailableCount(n),
+      onReset: () => setState(() {
+        _budgetMin = null;
+        _budgetMax = null;
+      }),
+      onApply: (min, max) => setState(() {
+        _budgetMin = min;
+        _budgetMax = max;
+      }),
     );
   }
 }

@@ -261,6 +261,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get maxLabel => 'الحد الأقصى';
 
   @override
+  String get budgetMinHint => 'الحد الأدنى';
+
+  @override
+  String get budgetMaxHint => 'الحد الأقصى';
+
+  @override
   String get confirmDeletion => 'تأكيد الحذف';
 
   @override
@@ -2679,6 +2685,33 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get recommendedForwarders => 'وسطاء شحن موصى بهم';
+
+  @override
+  String get seeMoreForwarders => 'عرض المزيد من الوسطاء';
+
+  @override
+  String get forwarderPremiumBadge => 'مشترك مميز';
+
+  @override
+  String get forwarderVerifiedBadge => 'موثق';
+
+  @override
+  String get forwarderStandardBadge => 'وسيط شحن';
+
+  @override
+  String get internationalTransit => 'عبور دولي';
+
+  @override
+  String get noForwardersAvailable => 'لا يوجد وسطاء شحن';
+
+  @override
+  String get forwarderSubscribedShort => 'مشترك';
+
+  @override
+  String get forwarderStandardShort => 'عادي';
+
+  @override
+  String get forwardersTitle => 'وسطاء الشحن';
 
   @override
   String get forwarderSubscription => 'اشتراك الوسيط';

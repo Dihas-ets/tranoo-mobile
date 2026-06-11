@@ -20,6 +20,8 @@ import 'package:tranoo/widgets/page_pull_refresh.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:tranoo/utils/catalog_display.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/catalog_filter_options.dart';
+import 'package:tranoo/widgets/catalog_filter_sections.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -71,6 +73,7 @@ class _VoituresPageState extends State<VoituresPage>
   late int _budgetTabIndex;
   Timer? _autoRefreshTimer;
   bool _noResultDialogShown = false;
+  Timer? _noResultDialogTimer;
 
   @override
   void initState() {
@@ -115,6 +118,7 @@ class _VoituresPageState extends State<VoituresPage>
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
+    _noResultDialogTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -264,27 +268,23 @@ class _VoituresPageState extends State<VoituresPage>
   List<dynamic> _applyFilters(List<dynamic> source) {
     return source.where((v) {
       if (_selectedBrand != null && _selectedBrand!.isNotEmpty) {
-        final marque = (v['marque'] ?? '').toString().toLowerCase();
-        if (!marque.contains(_selectedBrand!.toLowerCase())) {
-          return false;
-        }
+        final marque = (v['marque'] ?? '').toString();
+        if (!catalogValueMatches(_selectedBrand, marque)) return false;
       }
       if (_selectedModel != null && _selectedModel!.isNotEmpty) {
-        final modele = (v['modele'] ?? '').toString().toLowerCase();
-        if (!modele.contains(_selectedModel!.toLowerCase())) {
-          return false;
-        }
+        final modele = (v['modele'] ?? '').toString();
+        if (!catalogValueMatches(_selectedModel, modele)) return false;
       }
       if (_selectedLocation != null && _selectedLocation!.isNotEmpty) {
-        final loc = ((v['entreprise'] ?? '') + ' ' + (v['description'] ?? ''))
-            .toLowerCase();
-        if (!loc.contains(_selectedLocation!.toLowerCase()) &&
-            !((v['titre'] ?? '')
-                .toString()
-                .toLowerCase()
-                .contains(_selectedLocation!.toLowerCase()))) {
-          return false;
-        }
+        final loc = [
+          v['localisation'],
+          v['lieu'],
+          v['pays'],
+          v['entreprise'],
+          v['description'],
+          v['titre'],
+        ].map((e) => e?.toString() ?? '').join(' ');
+        if (!catalogValueMatches(_selectedLocation, loc)) return false;
       }
       if (_budgetMin != null || _budgetMax != null) {
         final prixStr = (v['prix'] ?? '').toString();
@@ -347,416 +347,58 @@ class _VoituresPageState extends State<VoituresPage>
   }
 
   Widget _buildMarqueSection() {
-    final List<Map<String, String>> marques = [
-      {"name": "Toyota", "image": "assets/images/Toyota.png"},
-      {"name": "Nissan", "image": "assets/images/nissan.png"},
-      {"name": "Ford", "image": "assets/images/ford.png"},
-      {"name": "Hyundai", "image": "assets/images/hunydai.png"},
-      {"name": "Honda", "image": "assets/images/honda.png"},
-      {"name": "Kia", "image": "assets/images/kia.png"},
-      {"name": "BMW", "image": "assets/images/bmw.png"},
-      {"name": "Mercedes", "image": "assets/images/mercedes.png"},
-      {"name": "Audi", "image": "assets/images/Audi.png"},
-      {"name": "Volkswagen", "image": "assets/images/vw.png"},
-      {"name": "Lexus", "image": "assets/images/lexus.png"},
-      {"name": "Mazda", "image": "assets/images/mazda.webp"},
-      {"name": "Chevrolet", "image": "assets/images/chevrolet.png"},
-      {"name": "Jeep", "image": "assets/images/jeep.png"},
-      {"name": "Peugeot", "image": "assets/images/peugeot.png"},
-      {"name": "Renault", "image": "assets/images/renault.png"},
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SizedBox(
-        height: 70 + 16,
-        child: GridView.builder(
-          scrollDirection: Axis.horizontal,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 1,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            mainAxisExtent: 70,
-          ),
-          itemCount: marques.length,
-          itemBuilder: (context, index) {
-            final item = marques[index];
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedBrand = item["name"];
-                });
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: _selectedBrand == item["name"]
-                      ? const Color(0xFFF8BF13)
-                      : const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _selectedBrand == item["name"]
-                        ? const Color(0xFFF8BF13)
-                        : const Color(0xFFE0E0E0),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: Image.asset(
-                        item["image"] ?? '',
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stack) {
-                          return CircleAvatar(
-                            radius: 18,
-                            backgroundColor: Colors.grey.shade300,
-                            child: Text(
-                              (item["name"] ?? '??').substring(0, 1),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+    if (isLoading && voitures.isEmpty) {
+      return const CatalogFilterHorizSkeleton();
+    }
+    final options = buildMarqueFilterOptions(voitures, isPiece: false);
+    return CatalogMarqueFilterGrid(
+      options: options,
+      selected: _selectedBrand,
+      onSelected: (v) => setState(() => _selectedBrand = v),
     );
   }
 
   Widget _buildModeleSection() {
-    final List<String> modeles = [
-      'Land Cruiser',
-      'Patrol',
-      'Altima',
-      'RAV4',
-      'Hilux',
-      'Wrangler',
-      'Civic',
-      'Corolla',
-      'Camry',
-      'Accord',
-      'Tucson',
-      'Sportage',
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SizedBox(
-        height: 60 + 16,
-        child: GridView.builder(
-          scrollDirection: Axis.horizontal,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 1,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            mainAxisExtent: 80,
-          ),
-          itemCount: modeles.length,
-          itemBuilder: (context, index) {
-            final name = modeles[index];
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedModel = name;
-                });
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: _selectedModel == name
-                      ? const Color(0xFFF8BF13)
-                      : const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _selectedModel == name
-                        ? const Color(0xFFF8BF13)
-                        : const Color(0xFFE0E0E0),
-                    width: 1,
-                  ),
-                ),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _selectedModel == name ? Colors.white : Colors.black,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+    if (isLoading && voitures.isEmpty) {
+      return const CatalogFilterHorizSkeleton(itemWidth: 88, height: 60);
+    }
+    final modeles = buildModeleFilterOptions(voitures);
+    return CatalogModeleFilterGrid(
+      modeles: modeles,
+      selected: _selectedModel,
+      onSelected: (v) => setState(() => _selectedModel = v),
     );
   }
 
   Widget _buildLocalisationSection() {
-    final List<Map<String, dynamic>> zones = [
-      {"name": "Bénin", "image": "assets/images/benin.png"},
-      {"name": "Mali", "image": "assets/images/mali.png"},
-      {"name": "Niger", "image": "assets/images/niger.png"},
-      {"name": "Burkina-Faso", "image": "assets/images/burkina.png"},
-      {"name": "Côte d'Ivoire", "image": "assets/images/ci.webp"},
-      {"name": "Sénégal", "image": "assets/images/senegal.png"},
-      {"name": "Togo", "image": "assets/images/togo.webp"},
-      {"name": "Ghana", "image": "assets/images/ghana.png"},
-      {"name": "Nigéria", "image": "assets/images/nigeria.png"},
-      {"name": "Maroc", "image": "assets/images/maroc.png"},
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SizedBox(
-        height: 106,
-        child: GridView.builder(
-          scrollDirection: Axis.horizontal,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 1,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            mainAxisExtent: 120,
-          ),
-          itemCount: zones.length,
-          itemBuilder: (context, index) {
-            final item = zones[index];
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedLocation = item["name"];
-                });
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: _selectedLocation == item["name"]
-                      ? const Color(0xFFF8BF13)
-                      : const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _selectedLocation == item["name"]
-                        ? const Color(0xFFF8BF13)
-                        : const Color(0xFFE0E0E0),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: Image.asset(
-                        item["image"],
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stack) {
-                          return const Icon(Icons.image_not_supported);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      item["name"],
-                      style: const TextStyle(fontSize: 10),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+    if (isLoading && voitures.isEmpty) {
+      return const CatalogFilterHorizSkeleton();
+    }
+    final options = buildLocationFilterOptions(voitures);
+    return CatalogLocationFilterGrid(
+      options: options,
+      selected: _selectedLocation,
+      onSelected: (v) => setState(() => _selectedLocation = v),
     );
   }
 
   Widget _buildBudgetSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFF8BF13),
-            foregroundColor: const Color(0xFF000000),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          onPressed: _openBudgetSheet,
-          child: Text(AppLocalizations.of(context)!.filterByBudget),
-        ),
-      ),
-    );
-  }
-
-  void _openBudgetSheet() {
     final l10n = AppLocalizations.of(context)!;
-    final List<double> prixList = voitures
-        .map((v) => double.tryParse(
-            (v['prix'] ?? '').toString().replaceAll(RegExp(r'[^0-9.]'), '')))
-        .whereType<double>()
-        .toList()
-      ..sort();
-
-    final double minPrice = prixList.isNotEmpty ? prixList.first : 0;
-    final double maxPrice = prixList.isNotEmpty ? prixList.last : 200000;
-    double currentMin = _budgetMin ?? minPrice;
-    double currentMax = _budgetMax ?? maxPrice;
-
-    final minCtl = TextEditingController(text: currentMin.toStringAsFixed(0));
-    final maxCtl = TextEditingController(text: currentMax.toStringAsFixed(0));
-
-    int compterDansIntervalle(double a, double b) {
-      return voitures.where((v) {
-        final p = double.tryParse(
-            (v['prix'] ?? '').toString().replaceAll(RegExp(r'[^0-9.]'), ''));
-        if (p == null) return false;
-        return p >= a && p <= b;
-      }).length;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final disponibles = compterDansIntervalle(currentMin, currentMax);
-            return SafeArea(
-              top: false,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 16 + 12,
-                  top: 8,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      l10n.priceFcfaLabel,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: minCtl,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: l10n.minLabel,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            onChanged: (val) {
-                              final v = double.tryParse(val) ?? currentMin;
-                              setModalState(() {
-                                currentMin = v.clamp(minPrice, currentMax);
-                              });
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: maxCtl,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: l10n.maxLabel,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            onChanged: (val) {
-                              final v = double.tryParse(val) ?? currentMax;
-                              setModalState(() {
-                                currentMax = v.clamp(currentMin, maxPrice);
-                              });
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(l10n.vehiclesAvailableCount(disponibles)),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setState(() {
-                                _budgetMin = null;
-                                _budgetMax = null;
-                              });
-                              Navigator.pop(context);
-                            },
-                            child: Text(l10n.reset),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFE57373),
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _budgetMin = currentMin;
-                                _budgetMax = currentMax;
-                              });
-                              Navigator.pop(context);
-                            },
-                            child: Text(l10n.apply),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+    return CatalogBudgetFilterPanel(
+      articles: voitures,
+      budgetMin: _budgetMin,
+      budgetMax: _budgetMax,
+      countLabel: (n) => l10n.vehiclesAvailableCount(n),
+      onReset: () => setState(() {
+        _budgetMin = null;
+        _budgetMax = null;
+      }),
+      onApply: (min, max) => setState(() {
+        _budgetMin = min;
+        _budgetMax = max;
+      }),
     );
   }
-
   Future<List<String>> _uploadAlertPhotos(
     List<XFile> files, {
     required String folder,
@@ -1073,6 +715,22 @@ class _VoituresPageState extends State<VoituresPage>
     );
   }
 
+  void _scheduleNoResultDialog() {
+    if (!mounted || _noResultDialogShown || _noResultDialogTimer?.isActive == true) {
+      return;
+    }
+    _noResultDialogTimer?.cancel();
+    _noResultDialogTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted || _noResultDialogShown) return;
+      _showNoResultDialog();
+    });
+  }
+
+  void _cancelNoResultDialogTimer() {
+    _noResultDialogTimer?.cancel();
+    _noResultDialogTimer = null;
+  }
+
   void _showNoResultDialog() {
     if (!mounted || _noResultDialogShown) return;
     _noResultDialogShown = true;
@@ -1133,6 +791,11 @@ class _VoituresPageState extends State<VoituresPage>
     }).toList();
     if (filteredVoitures.isNotEmpty) {
       _noResultDialogShown = false;
+      _cancelNoResultDialogTimer();
+    } else if (hasActiveCriteria) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scheduleNoResultDialog();
+      });
     }
 
     return Scaffold(
@@ -1207,33 +870,52 @@ class _VoituresPageState extends State<VoituresPage>
                       _buildModeleSection(),
                     if (_tabController.index == _localisationTabIndex)
                       _buildLocalisationSection(),
-                    if (_tabController.index == _budgetTabIndex)
-                      _buildBudgetSection(),
                     // Liste des voitures
                     Expanded(
                       child: RefreshIndicator(
-                        onRefresh: _reloadAll,
+                        onRefresh: () => fetchVoitures(silent: true),
                         child: filteredVoitures.isEmpty
                             ? ListView(
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 children: [
-                                  Builder(
-                                    builder: (_) {
-                                      if (hasActiveCriteria && filteredVoitures.isEmpty) {
-                                        _showNoResultDialog();
-                                      }
-                                      return const SizedBox.shrink();
-                                    },
+                                  SizedBox(
+                                    height: MediaQuery.sizeOf(context).height * 0.12,
                                   ),
-                                  const SizedBox(
-                                    height: 250,
-                                  ),
-                                  const Center(
-                                    child: Text(
-                                      "Aucune voiture disponible pour le moment.",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.grey,
+                                  Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.directions_car_outlined,
+                                            size: 56,
+                                            color: Colors.grey.shade400,
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            hasActiveCriteria
+                                                ? l10n.noResults
+                                                : 'Aucune voiture disponible pour le moment.',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.grey.shade700,
+                                            ),
+                                          ),
+                                          if (hasActiveCriteria) ...[
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              l10n.noVehicleSearchResultHint,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -1595,6 +1277,8 @@ class _VoituresPageState extends State<VoituresPage>
                               ),
                       ),
                     ),
+                    if (_tabController.index == _budgetTabIndex)
+                      _buildBudgetSection(),
                   ],
                 ),
       ),

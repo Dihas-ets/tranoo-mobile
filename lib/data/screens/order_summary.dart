@@ -769,7 +769,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: DropdownButton<String>(
-                          value: _disponibiliteOptions.contains(_selectedDisponibilite) ? _selectedDisponibilite : _disponibiliteOptions.first,
+                          value: _disponibiliteOptions(l10n).contains(_selectedDisponibilite) ? _selectedDisponibilite : _disponibiliteOptions(l10n).first,
                           onChanged: (String? newValue) {
                             setState(() {
                               _selectedDisponibilite = newValue!;
@@ -856,10 +856,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                             elevation: 3,
                           ),
                           child: _isProcessing
-                              ? const Row(
+                              ? Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    SizedBox(
+                                    const SizedBox(
                                       width: 20,
                                       height: 20,
                                       child: CircularProgressIndicator(
@@ -867,10 +867,10 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                         color: Colors.black,
                                       ),
                                     ),
-                                    SizedBox(width: 12),
+                                    const SizedBox(width: 12),
                                     Text(
                                       l10n.processingOrder,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                       ),
