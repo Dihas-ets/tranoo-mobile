@@ -76,6 +76,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get call => 'اتصال';
 
   @override
+  String get callShort => 'اتصال';
+
+  @override
   String get message => 'رسالة';
 
   @override
@@ -259,12 +262,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get maxLabel => 'الحد الأقصى';
-
-  @override
-  String get budgetMinHint => 'الحد الأدنى';
-
-  @override
-  String get budgetMaxHint => 'الحد الأقصى';
 
   @override
   String get confirmDeletion => 'تأكيد الحذف';
@@ -2693,7 +2690,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get forwarderPremiumBadge => 'مشترك مميز';
 
   @override
-  String get forwarderVerifiedBadge => 'موثق';
+  String get forwarderVerifiedBadge => 'موثّق';
 
   @override
   String get forwarderStandardBadge => 'وسيط شحن';
@@ -2712,6 +2709,135 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get forwardersTitle => 'وسطاء الشحن';
+
+  @override
+  String get forwarderTabStarred => 'مميز';
+
+  @override
+  String get forwarderTabAll => 'الكل';
+
+  @override
+  String get viewProfile => 'عرض الملف';
+
+  @override
+  String galleryMediaCount(int count) {
+    return '$count وسائط';
+  }
+
+  @override
+  String subscribedSince(String date) {
+    return 'مشترك منذ $date';
+  }
+
+  @override
+  String get noStarredForwarders => 'لا يوجد وسطاء مميزون.';
+
+  @override
+  String get transitaireProfileTabGallery => 'المعرض';
+
+  @override
+  String get transitaireGalleryEmpty => 'لا توجد صور أو فيديوهات حالياً.';
+
+  @override
+  String get transitaireGalleryEmptyOwner => 'اضغط + لإضافة صور أو فيديوهات.';
+
+  @override
+  String get transitaireGalleryAddTitle => 'إضافة إلى المعرض';
+
+  @override
+  String get transitaireGalleryPhotosMulti => 'صور (واحدة أو أكثر)';
+
+  @override
+  String get transitaireGalleryVideo => 'فيديو';
+
+  @override
+  String get transitaireGalleryUploadingPhotos => 'جاري إرسال الصور…';
+
+  @override
+  String get transitaireGalleryUploadingVideo => 'جاري إرسال الفيديو…';
+
+  @override
+  String get transitaireGalleryUploadFailed => 'فشل الرفع. أعد المحاولة.';
+
+  @override
+  String get transitaireGallerySaveError => 'خطأ في حفظ المعرض.';
+
+  @override
+  String get transitaireGalleryUploadError => 'خطأ في الرفع.';
+
+  @override
+  String get transitaireGalleryDeleteTitle => 'حذف؟';
+
+  @override
+  String get transitaireGalleryDeleteConfirm => 'إزالة هذا العنصر من المعرض؟';
+
+  @override
+  String get transitaireGalleryDeleteFailed => 'تعذر الحذف.';
+
+  @override
+  String transitaireGalleryMaxItems(int count) {
+    return 'تم الوصول إلى حد $count عنصر.';
+  }
+
+  @override
+  String get videoPlaybackError => 'تعذر تشغيل الفيديو';
+
+  @override
+  String get contactPhoneUnavailable => 'رقم الاتصال غير متاح.';
+
+  @override
+  String get transitaireDefaultName => 'وسيط شحن';
+
+  @override
+  String get transitaireServicesSubtitle => 'خدمات العبور الدولي';
+
+  @override
+  String get transitaireDescriptionLabel => 'الوصف (اختياري)';
+
+  @override
+  String get transitaireDescriptionHint => 'صف خدمات العبور الخاصة بك…';
+
+  @override
+  String get transitaireBadgeLabel => 'وسيط شحن';
+
+  @override
+  String get westAfricaDefault => 'غرب أفريقيا';
+
+  @override
+  String get editProfile => 'تعديل الملف الشخصي';
+
+  @override
+  String get myProfile => 'ملفي الشخصي';
+
+  @override
+  String get actions => 'إجراءات';
+
+  @override
+  String get deleteAccount => 'حذف الحساب';
+
+  @override
+  String get filterTypeTab => 'النوع';
+
+  @override
+  String get filterBrandTab => 'العلامة';
+
+  @override
+  String get filterLocationTab => 'الموقع';
+
+  @override
+  String get pieceTypeSpareParts => 'قطع غيار';
+
+  @override
+  String get pieceTypeTires => 'إطارات';
+
+  @override
+  String get pieceTypeOils => 'زيوت ومواد تشحيم';
+
+  @override
+  String get pieceTypeBatteries => 'بطاريات';
+
+  @override
+  String get pieceTypeAccessories => 'إكسسوارات';
 
   @override
   String get forwarderSubscription => 'اشتراك الوسيط';
@@ -3745,9 +3871,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get filterModelsTab => 'الطرازات';
 
   @override
-  String get filterLocationTab => 'الموقع';
-
-  @override
   String get filterBudgetTab => 'الميزانية';
 
   @override
@@ -3839,6 +3962,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get budgetLabel => 'الميزانية';
+
+  @override
+  String get budgetMinHint => 'الحد الأدنى للميزانية';
+
+  @override
+  String get budgetMaxHint => 'الحد الأقصى للميزانية';
 
   @override
   String get addressLabel => 'العنوان';

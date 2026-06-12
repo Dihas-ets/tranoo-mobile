@@ -226,6 +226,12 @@ abstract class AppLocalizations {
   /// **'Call'**
   String get call;
 
+  /// No description provided for @callShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get callShort;
+
   /// No description provided for @message.
   ///
   /// In en, this message translates to:
@@ -591,18 +597,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Max.'**
   String get maxLabel;
-
-  /// No description provided for @budgetMinHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Minimum'**
-  String get budgetMinHint;
-
-  /// No description provided for @budgetMaxHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Maximum'**
-  String get budgetMaxHint;
 
   /// No description provided for @confirmDeletion.
   ///
@@ -5122,6 +5116,252 @@ abstract class AppLocalizations {
   /// **'Forwarders'**
   String get forwardersTitle;
 
+  /// No description provided for @forwarderTabStarred.
+  ///
+  /// In en, this message translates to:
+  /// **'Starred'**
+  String get forwarderTabStarred;
+
+  /// No description provided for @forwarderTabAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get forwarderTabAll;
+
+  /// No description provided for @viewProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'View profile'**
+  String get viewProfile;
+
+  /// No description provided for @galleryMediaCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} media'**
+  String galleryMediaCount(int count);
+
+  /// No description provided for @subscribedSince.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribed since {date}'**
+  String subscribedSince(String date);
+
+  /// No description provided for @noStarredForwarders.
+  ///
+  /// In en, this message translates to:
+  /// **'No starred forwarders.'**
+  String get noStarredForwarders;
+
+  /// No description provided for @transitaireProfileTabGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get transitaireProfileTabGallery;
+
+  /// No description provided for @transitaireGalleryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos or videos at the moment.'**
+  String get transitaireGalleryEmpty;
+
+  /// No description provided for @transitaireGalleryEmptyOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to add photos or videos.'**
+  String get transitaireGalleryEmptyOwner;
+
+  /// No description provided for @transitaireGalleryAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to gallery'**
+  String get transitaireGalleryAddTitle;
+
+  /// No description provided for @transitaireGalleryPhotosMulti.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos (one or more)'**
+  String get transitaireGalleryPhotosMulti;
+
+  /// No description provided for @transitaireGalleryVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get transitaireGalleryVideo;
+
+  /// No description provided for @transitaireGalleryUploadingPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending photos…'**
+  String get transitaireGalleryUploadingPhotos;
+
+  /// No description provided for @transitaireGalleryUploadingVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending video…'**
+  String get transitaireGalleryUploadingVideo;
+
+  /// No description provided for @transitaireGalleryUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed. Try again.'**
+  String get transitaireGalleryUploadFailed;
+
+  /// No description provided for @transitaireGallerySaveError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error saving gallery.'**
+  String get transitaireGallerySaveError;
+
+  /// No description provided for @transitaireGalleryUploadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload error.'**
+  String get transitaireGalleryUploadError;
+
+  /// No description provided for @transitaireGalleryDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete?'**
+  String get transitaireGalleryDeleteTitle;
+
+  /// No description provided for @transitaireGalleryDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this item from the gallery?'**
+  String get transitaireGalleryDeleteConfirm;
+
+  /// No description provided for @transitaireGalleryDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to delete.'**
+  String get transitaireGalleryDeleteFailed;
+
+  /// No description provided for @transitaireGalleryMaxItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Limit of {count} items reached.'**
+  String transitaireGalleryMaxItems(int count);
+
+  /// No description provided for @videoPlaybackError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to play video'**
+  String get videoPlaybackError;
+
+  /// No description provided for @contactPhoneUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact number unavailable.'**
+  String get contactPhoneUnavailable;
+
+  /// No description provided for @transitaireDefaultName.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarder'**
+  String get transitaireDefaultName;
+
+  /// No description provided for @transitaireServicesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'International transit services'**
+  String get transitaireServicesSubtitle;
+
+  /// No description provided for @transitaireDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get transitaireDescriptionLabel;
+
+  /// No description provided for @transitaireDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe your transit services…'**
+  String get transitaireDescriptionHint;
+
+  /// No description provided for @transitaireBadgeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarder'**
+  String get transitaireBadgeLabel;
+
+  /// No description provided for @westAfricaDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'West Africa'**
+  String get westAfricaDefault;
+
+  /// No description provided for @editProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit profile'**
+  String get editProfile;
+
+  /// No description provided for @myProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'My profile'**
+  String get myProfile;
+
+  /// No description provided for @actions.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions'**
+  String get actions;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get deleteAccount;
+
+  /// No description provided for @filterTypeTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get filterTypeTab;
+
+  /// No description provided for @filterBrandTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get filterBrandTab;
+
+  /// No description provided for @filterLocationTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get filterLocationTab;
+
+  /// No description provided for @pieceTypeSpareParts.
+  ///
+  /// In en, this message translates to:
+  /// **'Spare parts'**
+  String get pieceTypeSpareParts;
+
+  /// No description provided for @pieceTypeTires.
+  ///
+  /// In en, this message translates to:
+  /// **'Tires'**
+  String get pieceTypeTires;
+
+  /// No description provided for @pieceTypeOils.
+  ///
+  /// In en, this message translates to:
+  /// **'Oils and lubricants'**
+  String get pieceTypeOils;
+
+  /// No description provided for @pieceTypeBatteries.
+  ///
+  /// In en, this message translates to:
+  /// **'Batteries'**
+  String get pieceTypeBatteries;
+
+  /// No description provided for @pieceTypeAccessories.
+  ///
+  /// In en, this message translates to:
+  /// **'Accessories'**
+  String get pieceTypeAccessories;
+
   /// No description provided for @forwarderSubscription.
   ///
   /// In en, this message translates to:
@@ -6946,12 +7186,6 @@ abstract class AppLocalizations {
   /// **'Models'**
   String get filterModelsTab;
 
-  /// No description provided for @filterLocationTab.
-  ///
-  /// In en, this message translates to:
-  /// **'Location'**
-  String get filterLocationTab;
-
   /// No description provided for @filterBudgetTab.
   ///
   /// In en, this message translates to:
@@ -7125,6 +7359,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Budget'**
   String get budgetLabel;
+
+  /// No description provided for @budgetMinHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Min budget'**
+  String get budgetMinHint;
+
+  /// No description provided for @budgetMaxHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Max budget'**
+  String get budgetMaxHint;
 
   /// No description provided for @addressLabel.
   ///

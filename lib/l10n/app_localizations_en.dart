@@ -75,6 +75,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get call => 'Call';
 
   @override
+  String get callShort => 'Call';
+
+  @override
   String get message => 'Message';
 
   @override
@@ -258,12 +261,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get maxLabel => 'Max.';
-
-  @override
-  String get budgetMinHint => 'Minimum';
-
-  @override
-  String get budgetMaxHint => 'Maximum';
 
   @override
   String get confirmDeletion => 'Confirm deletion';
@@ -2736,6 +2733,136 @@ class AppLocalizationsEn extends AppLocalizations {
   String get forwardersTitle => 'Forwarders';
 
   @override
+  String get forwarderTabStarred => 'Starred';
+
+  @override
+  String get forwarderTabAll => 'All';
+
+  @override
+  String get viewProfile => 'View profile';
+
+  @override
+  String galleryMediaCount(int count) {
+    return '$count media';
+  }
+
+  @override
+  String subscribedSince(String date) {
+    return 'Subscribed since $date';
+  }
+
+  @override
+  String get noStarredForwarders => 'No starred forwarders.';
+
+  @override
+  String get transitaireProfileTabGallery => 'Gallery';
+
+  @override
+  String get transitaireGalleryEmpty => 'No photos or videos at the moment.';
+
+  @override
+  String get transitaireGalleryEmptyOwner => 'Tap + to add photos or videos.';
+
+  @override
+  String get transitaireGalleryAddTitle => 'Add to gallery';
+
+  @override
+  String get transitaireGalleryPhotosMulti => 'Photos (one or more)';
+
+  @override
+  String get transitaireGalleryVideo => 'Video';
+
+  @override
+  String get transitaireGalleryUploadingPhotos => 'Sending photos…';
+
+  @override
+  String get transitaireGalleryUploadingVideo => 'Sending video…';
+
+  @override
+  String get transitaireGalleryUploadFailed => 'Upload failed. Try again.';
+
+  @override
+  String get transitaireGallerySaveError => 'Error saving gallery.';
+
+  @override
+  String get transitaireGalleryUploadError => 'Upload error.';
+
+  @override
+  String get transitaireGalleryDeleteTitle => 'Delete?';
+
+  @override
+  String get transitaireGalleryDeleteConfirm =>
+      'Remove this item from the gallery?';
+
+  @override
+  String get transitaireGalleryDeleteFailed => 'Unable to delete.';
+
+  @override
+  String transitaireGalleryMaxItems(int count) {
+    return 'Limit of $count items reached.';
+  }
+
+  @override
+  String get videoPlaybackError => 'Unable to play video';
+
+  @override
+  String get contactPhoneUnavailable => 'Contact number unavailable.';
+
+  @override
+  String get transitaireDefaultName => 'Forwarder';
+
+  @override
+  String get transitaireServicesSubtitle => 'International transit services';
+
+  @override
+  String get transitaireDescriptionLabel => 'Description (optional)';
+
+  @override
+  String get transitaireDescriptionHint => 'Describe your transit services…';
+
+  @override
+  String get transitaireBadgeLabel => 'Forwarder';
+
+  @override
+  String get westAfricaDefault => 'West Africa';
+
+  @override
+  String get editProfile => 'Edit profile';
+
+  @override
+  String get myProfile => 'My profile';
+
+  @override
+  String get actions => 'Actions';
+
+  @override
+  String get deleteAccount => 'Delete account';
+
+  @override
+  String get filterTypeTab => 'Type';
+
+  @override
+  String get filterBrandTab => 'Brand';
+
+  @override
+  String get filterLocationTab => 'Location';
+
+  @override
+  String get pieceTypeSpareParts => 'Spare parts';
+
+  @override
+  String get pieceTypeTires => 'Tires';
+
+  @override
+  String get pieceTypeOils => 'Oils and lubricants';
+
+  @override
+  String get pieceTypeBatteries => 'Batteries';
+
+  @override
+  String get pieceTypeAccessories => 'Accessories';
+
+  @override
   String get forwarderSubscription => 'Forwarder subscription';
 
   @override
@@ -3772,9 +3899,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterModelsTab => 'Models';
 
   @override
-  String get filterLocationTab => 'Location';
-
-  @override
   String get filterBudgetTab => 'Budget';
 
   @override
@@ -3866,6 +3990,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get budgetLabel => 'Budget';
+
+  @override
+  String get budgetMinHint => 'Min budget';
+
+  @override
+  String get budgetMaxHint => 'Max budget';
 
   @override
   String get addressLabel => 'Address';

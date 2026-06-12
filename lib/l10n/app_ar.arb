@@ -21,6 +21,7 @@
   "open_settings": "فتح الإعدادات",
   "refresh": "تحديث",
   "call": "اتصال",
+  "callShort": "اتصال",
   "message": "رسالة",
   "tricycle_auth_required": "المصادقة مطلوبة",
   "tricycle_connect_to_see": "سجّل الدخول للعرض",
@@ -82,8 +83,6 @@
   "filterByBudget": "تصفية حسب الميزانية",
   "minLabel": "الحد الأدنى",
   "maxLabel": "الحد الأقصى",
-  "budgetMinHint": "الحد الأدنى",
-  "budgetMaxHint": "الحد الأقصى",
   "confirmDeletion": "تأكيد الحذف",
   "deletionError": "خطأ أثناء الحذف.",
   "sendAlert": "إرسال التنبيه",
@@ -1248,13 +1247,75 @@
   "recommendedForwarders": "وسطاء شحن موصى بهم",
   "seeMoreForwarders": "عرض المزيد من الوسطاء",
   "forwarderPremiumBadge": "مشترك مميز",
-  "forwarderVerifiedBadge": "موثق",
+  "forwarderVerifiedBadge": "موثّق",
   "forwarderStandardBadge": "وسيط شحن",
   "internationalTransit": "عبور دولي",
   "noForwardersAvailable": "لا يوجد وسطاء شحن",
   "forwarderSubscribedShort": "مشترك",
   "forwarderStandardShort": "عادي",
   "forwardersTitle": "وسطاء الشحن",
+  "forwarderTabStarred": "مميز",
+  "forwarderTabAll": "الكل",
+  "viewProfile": "عرض الملف",
+  "galleryMediaCount": "{count} وسائط",
+  "@galleryMediaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscribedSince": "مشترك منذ {date}",
+  "@subscribedSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "noStarredForwarders": "لا يوجد وسطاء مميزون.",
+  "transitaireProfileTabGallery": "المعرض",
+  "transitaireGalleryEmpty": "لا توجد صور أو فيديوهات حالياً.",
+  "transitaireGalleryEmptyOwner": "اضغط + لإضافة صور أو فيديوهات.",
+  "transitaireGalleryAddTitle": "إضافة إلى المعرض",
+  "transitaireGalleryPhotosMulti": "صور (واحدة أو أكثر)",
+  "transitaireGalleryVideo": "فيديو",
+  "transitaireGalleryUploadingPhotos": "جاري إرسال الصور…",
+  "transitaireGalleryUploadingVideo": "جاري إرسال الفيديو…",
+  "transitaireGalleryUploadFailed": "فشل الرفع. أعد المحاولة.",
+  "transitaireGallerySaveError": "خطأ في حفظ المعرض.",
+  "transitaireGalleryUploadError": "خطأ في الرفع.",
+  "transitaireGalleryDeleteTitle": "حذف؟",
+  "transitaireGalleryDeleteConfirm": "إزالة هذا العنصر من المعرض؟",
+  "transitaireGalleryDeleteFailed": "تعذر الحذف.",
+  "transitaireGalleryMaxItems": "تم الوصول إلى حد {count} عنصر.",
+  "@transitaireGalleryMaxItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoPlaybackError": "تعذر تشغيل الفيديو",
+  "contactPhoneUnavailable": "رقم الاتصال غير متاح.",
+  "transitaireDefaultName": "وسيط شحن",
+  "transitaireServicesSubtitle": "خدمات العبور الدولي",
+  "transitaireDescriptionLabel": "الوصف (اختياري)",
+  "transitaireDescriptionHint": "صف خدمات العبور الخاصة بك…",
+  "transitaireBadgeLabel": "وسيط شحن",
+  "westAfricaDefault": "غرب أفريقيا",
+  "editProfile": "تعديل الملف الشخصي",
+  "myProfile": "ملفي الشخصي",
+  "actions": "إجراءات",
+  "deleteAccount": "حذف الحساب",
+  "filterTypeTab": "النوع",
+  "filterBrandTab": "العلامة",
+  "filterLocationTab": "الموقع",
+  "pieceTypeSpareParts": "قطع غيار",
+  "pieceTypeTires": "إطارات",
+  "pieceTypeOils": "زيوت ومواد تشحيم",
+  "pieceTypeBatteries": "بطاريات",
+  "pieceTypeAccessories": "إكسسوارات",
   "forwarderSubscription": "اشتراك الوسيط",
   "activateMonthlySubscription": "فعّل اشتراكاً شهرياً ليظهر حسابك للمشترين.",
   "pricePerMonth": "{price} فرنك / شهر",
@@ -1949,7 +2010,6 @@
   "adsLoadError": "خطأ في تحميل الإعلانات",
   "dataFormatError": "خطأ في تنسيق البيانات",
   "filterModelsTab": "الطرازات",
-  "filterLocationTab": "الموقع",
   "filterBudgetTab": "الميزانية",
   "noCarsAvailable": "لا توجد سيارات متاحة حالياً.",
   "noPartsAvailableOnline": "لا توجد قطع متاحة على الإنترنت حالياً",
@@ -2000,6 +2060,8 @@
   "errorLoadingArticle": "خطأ في تحميل المنتج.",
   "conditionNew": "جديد",
   "budgetLabel": "الميزانية",
+  "budgetMinHint": "الحد الأدنى للميزانية",
+  "budgetMaxHint": "الحد الأقصى للميزانية",
   "addressLabel": "العنوان",
   "tvaLabel": "ضريبة القيمة المضافة",
   "deliveryLabelShort": "التوصيل",

@@ -21,6 +21,7 @@
   "open_settings": "Ouvrir les réglages",
   "refresh": "Rafraîchir",
   "call": "Appeler",
+  "callShort": "Appel",
   "message": "Message",
   "tricycle_auth_required": "Authentification requise",
   "tricycle_connect_to_see": "Connectez-vous pour voir",
@@ -82,8 +83,6 @@
   "filterByBudget": "Filtrer par budget",
   "minLabel": "Min.",
   "maxLabel": "Max.",
-  "budgetMinHint": "Minimum",
-  "budgetMaxHint": "Maximum",
   "confirmDeletion": "Confirmer la suppression",
   "deletionError": "Erreur lors de la suppression.",
   "sendAlert": "Envoyer l'alerte",
@@ -1255,6 +1254,68 @@
   "forwarderSubscribedShort": "Abonné",
   "forwarderStandardShort": "Standard",
   "forwardersTitle": "Transitaires",
+  "forwarderTabStarred": "Étoilé",
+  "forwarderTabAll": "Tout",
+  "viewProfile": "Voir profil",
+  "galleryMediaCount": "{count} médias",
+  "@galleryMediaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscribedSince": "Abonné depuis le {date}",
+  "@subscribedSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "noStarredForwarders": "Aucun transitaire étoilé.",
+  "transitaireProfileTabGallery": "Galerie",
+  "transitaireGalleryEmpty": "Aucune photo ou vidéo pour le moment.",
+  "transitaireGalleryEmptyOwner": "Appuyez sur + pour ajouter des photos ou vidéos.",
+  "transitaireGalleryAddTitle": "Ajouter à la galerie",
+  "transitaireGalleryPhotosMulti": "Photos (une ou plusieurs)",
+  "transitaireGalleryVideo": "Vidéo",
+  "transitaireGalleryUploadingPhotos": "Envoi des photos…",
+  "transitaireGalleryUploadingVideo": "Envoi de la vidéo…",
+  "transitaireGalleryUploadFailed": "Échec de l'upload. Réessayez.",
+  "transitaireGallerySaveError": "Erreur lors de la sauvegarde de la galerie.",
+  "transitaireGalleryUploadError": "Erreur lors de l'upload.",
+  "transitaireGalleryDeleteTitle": "Supprimer ?",
+  "transitaireGalleryDeleteConfirm": "Retirer cet élément de la galerie ?",
+  "transitaireGalleryDeleteFailed": "Suppression impossible.",
+  "transitaireGalleryMaxItems": "Limite de {count} éléments atteinte.",
+  "@transitaireGalleryMaxItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoPlaybackError": "Impossible de lire la vidéo",
+  "contactPhoneUnavailable": "Numéro de contact indisponible.",
+  "transitaireDefaultName": "Transitaire",
+  "transitaireServicesSubtitle": "Services de transit international",
+  "transitaireDescriptionLabel": "Description (optionnelle)",
+  "transitaireDescriptionHint": "Décrivez vos services de transit…",
+  "transitaireBadgeLabel": "Transitaire",
+  "westAfricaDefault": "Afrique de l'Ouest",
+  "editProfile": "Modifier le profil",
+  "myProfile": "Mon profil",
+  "actions": "Actions",
+  "deleteAccount": "Supprimer le compte",
+  "filterTypeTab": "Type",
+  "filterBrandTab": "Marque",
+  "filterLocationTab": "Localisation",
+  "pieceTypeSpareParts": "Pièces détachées",
+  "pieceTypeTires": "Pneus",
+  "pieceTypeOils": "Huiles et lubrifiants",
+  "pieceTypeBatteries": "Batteries",
+  "pieceTypeAccessories": "Accessoires",
   "forwarderSubscription": "Abonnement Transitaire",
   "activateMonthlySubscription": "Activez un abonnement mensuel pour être mis en avant auprès des acheteurs.",
   "pricePerMonth": "{price} FCFA / mois",
@@ -1949,7 +2010,6 @@
   "adsLoadError": "Erreur lors du chargement des publicités",
   "dataFormatError": "Erreur de format de données",
   "filterModelsTab": "Modèles",
-  "filterLocationTab": "Localisation",
   "filterBudgetTab": "Budget",
   "noCarsAvailable": "Aucune voiture disponible pour le moment.",
   "noPartsAvailableOnline": "Aucune pièce en ligne actuellement",
@@ -2000,6 +2060,8 @@
   "errorLoadingArticle": "Erreur lors du chargement de l'article.",
   "conditionNew": "Nouveau",
   "budgetLabel": "Budget",
+  "budgetMinHint": "Budget min",
+  "budgetMaxHint": "Budget max",
   "addressLabel": "Adresse",
   "tvaLabel": "TVA",
   "deliveryLabelShort": "Livraison",

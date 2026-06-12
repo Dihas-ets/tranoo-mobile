@@ -15,7 +15,7 @@ class TransitaireProfilePage extends StatelessWidget {
         title: Text(
           TransitaireProfileHelpers.displayName(transitaire),
           style: const TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w800,
             fontSize: 16,
             color: kTransitaireNavy,
           ),

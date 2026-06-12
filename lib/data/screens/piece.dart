@@ -57,15 +57,15 @@ class _PiecePageState extends State<PiecePage>
 
   // Filtres
   String? _selectedBrand;
-  String? _selectedModel;
+  String? _selectedType;
   String? _selectedLocation;
   double? _budgetMin;
   double? _budgetMax;
 
   // TabController pour les filtres (acheteur uniquement)
   late TabController _tabController;
+  late int _typeTabIndex;
   late int _marqueTabIndex;
-  late int _modeleTabIndex;
   late int _localisationTabIndex;
   late int _budgetTabIndex;
   Timer? _autoRefreshTimer;
@@ -90,8 +90,8 @@ class _PiecePageState extends State<PiecePage>
     });
 
     // Initialisation des indices des onglets (acheteur)
-    _marqueTabIndex = 0;
-    _modeleTabIndex = 1;
+    _typeTabIndex = 0;
+    _marqueTabIndex = 1;
     _localisationTabIndex = 2;
     _budgetTabIndex = 3;
     _tabController = TabController(length: 4, vsync: this);
@@ -159,7 +159,7 @@ class _PiecePageState extends State<PiecePage>
 
     // Réinitialiser les filtres
     _selectedBrand = null;
-    _selectedModel = null;
+    _selectedType = null;
     _selectedLocation = null;
     _budgetMin = null;
     _budgetMax = null;
@@ -285,9 +285,8 @@ class _PiecePageState extends State<PiecePage>
           return false;
         }
       }
-      if (_selectedModel != null && _selectedModel!.isNotEmpty) {
-        final modele = (p['modele'] ?? '').toString();
-        if (!catalogValueMatches(_selectedModel, modele)) return false;
+      if (_selectedType != null && _selectedType!.isNotEmpty) {
+        if (!pieceMatchesTypeFilter(p, _selectedType)) return false;
       }
       if (_selectedLocation != null && _selectedLocation!.isNotEmpty) {
         final loc = [
@@ -356,15 +355,13 @@ class _PiecePageState extends State<PiecePage>
     );
   }
 
-  Widget _buildModeleSection() {
+  Widget _buildTypeSection() {
     if (isLoading && pieces.isEmpty) {
-      return const CatalogFilterHorizSkeleton(itemWidth: 88, height: 60);
+      return const CatalogFilterHorizSkeleton(itemWidth: 88, height: 76);
     }
-    final modeles = buildModeleFilterOptions(pieces);
-    return CatalogModeleFilterGrid(
-      modeles: modeles,
-      selected: _selectedModel,
-      onSelected: (v) => setState(() => _selectedModel = v),
+    return CatalogPieceTypeFilterGrid(
+      selected: _selectedType,
+      onSelected: (v) => setState(() => _selectedType = v),
     );
   }
 
@@ -794,7 +791,7 @@ class _PiecePageState extends State<PiecePage>
     final l10n = AppLocalizations.of(context)!;
     final hasActiveCriteria = _searchText.trim().isNotEmpty ||
         _selectedBrand != null ||
-        _selectedModel != null ||
+        _selectedType != null ||
         _selectedLocation != null ||
         _budgetMin != null ||
         _budgetMax != null;
@@ -863,23 +860,27 @@ class _PiecePageState extends State<PiecePage>
                           labelPadding:
                               const EdgeInsets.symmetric(horizontal: 4),
                           tabs: [
-                            _buildTabButton("Marque", _marqueTabIndex),
-                            _buildTabButton("Modèles", _modeleTabIndex),
                             _buildTabButton(
-                              "Localisation",
+                              l10n.filterTypeTab,
+                              _typeTabIndex,
+                              isWide: true,
+                            ),
+                            _buildTabButton(l10n.filterBrandTab, _marqueTabIndex),
+                            _buildTabButton(
+                              l10n.filterLocationTab,
                               _localisationTabIndex,
                               isWide: true,
                             ),
-                            _buildTabButton("Budget", _budgetTabIndex),
+                            _buildTabButton(l10n.budgetLabel, _budgetTabIndex),
                           ],
                         ),
                       ),
                     ),
                     // Sections de filtres
+                    if (_tabController.index == _typeTabIndex)
+                      _buildTypeSection(),
                     if (_tabController.index == _marqueTabIndex)
                       _buildMarqueSection(),
-                    if (_tabController.index == _modeleTabIndex)
-                      _buildModeleSection(),
                     if (_tabController.index == _localisationTabIndex)
                       _buildLocalisationSection(),
                     // Liste des pièces

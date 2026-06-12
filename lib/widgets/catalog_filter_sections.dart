@@ -80,7 +80,8 @@ class CatalogFilterImage extends StatelessWidget {
   }
 
   Widget _letterFallback() {
-    final letter = option.label.isNotEmpty ? option.label[0].toUpperCase() : '?';
+    final letter =
+        option.label.isNotEmpty ? option.label[0].toUpperCase() : '?';
     return CircleAvatar(
       radius: width / 2,
       backgroundColor: Colors.grey.shade300,
@@ -184,6 +185,101 @@ class CatalogMarqueFilterGrid extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w600,
+                        color: highlightSelection && isSelected
+                            ? Colors.black
+                            : Colors.black87,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+IconData _pieceTypeIcon(String normalizedKey) {
+  switch (normalizedKey) {
+    case 'pneus':
+      return Icons.trip_origin;
+    case 'huiles_lubrifiants':
+      return Icons.water_drop_outlined;
+    case 'batteries':
+      return Icons.battery_charging_full_outlined;
+    case 'accessoires':
+      return Icons.shopping_bag_outlined;
+    default:
+      return Icons.build_circle_outlined;
+  }
+}
+
+class CatalogPieceTypeFilterGrid extends StatelessWidget {
+  final String? selected;
+  final ValueChanged<String?> onSelected;
+  final bool highlightSelection;
+
+  const CatalogPieceTypeFilterGrid({
+    super.key,
+    required this.selected,
+    required this.onSelected,
+    this.highlightSelection = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: SizedBox(
+        height: 86,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: kPieceTypeFilters.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final item = kPieceTypeFilters[index];
+            final isSelected =
+                selected != null && selected == item.normalizedKey;
+            return GestureDetector(
+              onTap: () =>
+                  onSelected(isSelected ? null : item.normalizedKey),
+              child: Container(
+                width: 76,
+                decoration: BoxDecoration(
+                  color: highlightSelection && isSelected
+                      ? _kFilterSelected
+                      : _kFilterBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: highlightSelection && isSelected
+                        ? _kFilterSelected
+                        : _kFilterBorder,
+                  ),
+                ),
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _pieceTypeIcon(item.normalizedKey),
+                      size: 26,
+                      color: highlightSelection && isSelected
+                          ? Colors.black
+                          : Colors.black87,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      pieceTypeFilterLabel(l10n, item.normalizedKey),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        height: 1.1,
                         color: highlightSelection && isSelected
                             ? Colors.black
                             : Colors.black87,
@@ -589,8 +685,7 @@ Future<void> showCatalogBudgetBottomSheet({
   prixList.sort();
 
   final double minPrice = prixList.isNotEmpty ? prixList.first : 0;
-  final double maxPrice =
-      prixList.isNotEmpty ? prixList.last : 20000000;
+  final double maxPrice = prixList.isNotEmpty ? prixList.last : 20000000;
   double currentMin = budgetMin ?? minPrice;
   double currentMax = budgetMax ?? maxPrice;
   if (currentMin < minPrice) currentMin = minPrice;

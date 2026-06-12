@@ -77,6 +77,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get call => 'Appeler';
 
   @override
+  String get callShort => 'Appel';
+
+  @override
   String get message => 'Message';
 
   @override
@@ -259,12 +262,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get maxLabel => 'Max.';
-
-  @override
-  String get budgetMinHint => 'Minimum';
-
-  @override
-  String get budgetMaxHint => 'Maximum';
 
   @override
   String get confirmDeletion => 'Confirmer la suppression';
@@ -2775,6 +2772,138 @@ class AppLocalizationsFr extends AppLocalizations {
   String get forwardersTitle => 'Transitaires';
 
   @override
+  String get forwarderTabStarred => 'Étoilé';
+
+  @override
+  String get forwarderTabAll => 'Tout';
+
+  @override
+  String get viewProfile => 'Voir profil';
+
+  @override
+  String galleryMediaCount(int count) {
+    return '$count médias';
+  }
+
+  @override
+  String subscribedSince(String date) {
+    return 'Abonné depuis le $date';
+  }
+
+  @override
+  String get noStarredForwarders => 'Aucun transitaire étoilé.';
+
+  @override
+  String get transitaireProfileTabGallery => 'Galerie';
+
+  @override
+  String get transitaireGalleryEmpty => 'Aucune photo ou vidéo pour le moment.';
+
+  @override
+  String get transitaireGalleryEmptyOwner =>
+      'Appuyez sur + pour ajouter des photos ou vidéos.';
+
+  @override
+  String get transitaireGalleryAddTitle => 'Ajouter à la galerie';
+
+  @override
+  String get transitaireGalleryPhotosMulti => 'Photos (une ou plusieurs)';
+
+  @override
+  String get transitaireGalleryVideo => 'Vidéo';
+
+  @override
+  String get transitaireGalleryUploadingPhotos => 'Envoi des photos…';
+
+  @override
+  String get transitaireGalleryUploadingVideo => 'Envoi de la vidéo…';
+
+  @override
+  String get transitaireGalleryUploadFailed => 'Échec de l\'upload. Réessayez.';
+
+  @override
+  String get transitaireGallerySaveError =>
+      'Erreur lors de la sauvegarde de la galerie.';
+
+  @override
+  String get transitaireGalleryUploadError => 'Erreur lors de l\'upload.';
+
+  @override
+  String get transitaireGalleryDeleteTitle => 'Supprimer ?';
+
+  @override
+  String get transitaireGalleryDeleteConfirm =>
+      'Retirer cet élément de la galerie ?';
+
+  @override
+  String get transitaireGalleryDeleteFailed => 'Suppression impossible.';
+
+  @override
+  String transitaireGalleryMaxItems(int count) {
+    return 'Limite de $count éléments atteinte.';
+  }
+
+  @override
+  String get videoPlaybackError => 'Impossible de lire la vidéo';
+
+  @override
+  String get contactPhoneUnavailable => 'Numéro de contact indisponible.';
+
+  @override
+  String get transitaireDefaultName => 'Transitaire';
+
+  @override
+  String get transitaireServicesSubtitle => 'Services de transit international';
+
+  @override
+  String get transitaireDescriptionLabel => 'Description (optionnelle)';
+
+  @override
+  String get transitaireDescriptionHint => 'Décrivez vos services de transit…';
+
+  @override
+  String get transitaireBadgeLabel => 'Transitaire';
+
+  @override
+  String get westAfricaDefault => 'Afrique de l\'Ouest';
+
+  @override
+  String get editProfile => 'Modifier le profil';
+
+  @override
+  String get myProfile => 'Mon profil';
+
+  @override
+  String get actions => 'Actions';
+
+  @override
+  String get deleteAccount => 'Supprimer le compte';
+
+  @override
+  String get filterTypeTab => 'Type';
+
+  @override
+  String get filterBrandTab => 'Marque';
+
+  @override
+  String get filterLocationTab => 'Localisation';
+
+  @override
+  String get pieceTypeSpareParts => 'Pièces détachées';
+
+  @override
+  String get pieceTypeTires => 'Pneus';
+
+  @override
+  String get pieceTypeOils => 'Huiles et lubrifiants';
+
+  @override
+  String get pieceTypeBatteries => 'Batteries';
+
+  @override
+  String get pieceTypeAccessories => 'Accessoires';
+
+  @override
   String get forwarderSubscription => 'Abonnement Transitaire';
 
   @override
@@ -3815,9 +3944,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get filterModelsTab => 'Modèles';
 
   @override
-  String get filterLocationTab => 'Localisation';
-
-  @override
   String get filterBudgetTab => 'Budget';
 
   @override
@@ -3911,6 +4037,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get budgetLabel => 'Budget';
+
+  @override
+  String get budgetMinHint => 'Budget min';
+
+  @override
+  String get budgetMaxHint => 'Budget max';
 
   @override
   String get addressLabel => 'Adresse';

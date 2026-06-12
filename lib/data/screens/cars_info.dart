@@ -842,7 +842,6 @@ class _CarsinfoState extends State<CarsInfo> {
         const TransitaireCarouselSection(
           showTitle: true,
           showSeeMoreButton: true,
-          height: 116,
         ),
         const SizedBox(height: 16),
         _buildSpecGrid(bottomCards),

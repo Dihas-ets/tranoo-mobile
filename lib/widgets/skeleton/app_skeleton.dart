@@ -463,6 +463,112 @@ abstract final class SkeletonPresets {
     );
   }
 
+  /// Liste transitaires : carousel + onglets + lignes.
+  static Widget transitairesList({int count = 4}) {
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      itemCount: count,
+      separatorBuilder: (_, __) => const SizedBox(height: 14),
+      itemBuilder: (_, __) => const SkeletonBox(
+        height: 220,
+        borderRadius: BorderRadius.all(Radius.circular(18)),
+      ),
+    );
+  }
+
+  /// Profil transitaire : en-tête + onglets + contenu.
+  static Widget transitaireProfile() {
+    return Column(
+      children: [
+        SizedBox(
+          height: 200,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const SkeletonBox(
+                width: double.infinity,
+                height: 140,
+                borderRadius: BorderRadius.zero,
+              ),
+              const Positioned(
+                top: 66,
+                left: 0,
+                right: 0,
+                child: Center(child: SkeletonCircle(size: 88)),
+              ),
+              Positioned(
+                top: 158,
+                left: 24,
+                right: 24,
+                child: Column(
+                  children: const [
+                    SkeletonLine(widthFactor: 0.45, height: 16, margin: EdgeInsets.zero),
+                    SizedBox(height: 8),
+                    SkeletonLine(widthFactor: 0.35, height: 12, margin: EdgeInsets.zero),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              SkeletonLine(widthFactor: 0.2, height: 14, margin: EdgeInsets.zero),
+              SizedBox(width: 40),
+              SkeletonLine(widthFactor: 0.2, height: 14, margin: EdgeInsets.zero),
+            ],
+          ),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              children: [
+                const SkeletonBox(
+                  width: double.infinity,
+                  height: 48,
+                  borderRadius: BorderRadius.all(Radius.circular(14)),
+                ),
+                const SizedBox(height: 16),
+                const SkeletonBox(
+                  width: double.infinity,
+                  height: 140,
+                  borderRadius: BorderRadius.all(Radius.circular(14)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Grille galerie transitaire (2 colonnes).
+  static Widget transitaireGalleryGrid({int count = 6}) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: GridView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 0.72,
+        ),
+        itemCount: count,
+        itemBuilder: (_, __) => const SkeletonBox(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
+      ),
+    );
+  }
+
   /// Discussion / chat.
   static Widget chatList({int count = 10}) {
     return ListView.builder(

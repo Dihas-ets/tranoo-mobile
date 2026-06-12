@@ -8,8 +8,9 @@ import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:tranoo/widgets/transitaire_profile_ui.dart';
+import 'package:tranoo/widgets/transitaire_public_ui.dart';
 
-/// Liste complète des transitaires (abonnés en tête).
+/// Liste transitaires — cartes style « My Booking », sans filtre.
 class TransitairesListPage extends StatefulWidget {
   const TransitairesListPage({super.key});
 
@@ -45,14 +46,11 @@ class _TransitairesListPageState extends State<TransitairesListPage> {
         final data = jsonDecode(res.body);
         final list = data is List ? data : (data['users'] ?? []);
         final all = (list as List)
-            .where((u) => u is Map)
-            .map((u) => Map<String, dynamic>.from(u as Map))
+            .whereType<Map>()
+            .map((u) => Map<String, dynamic>.from(u))
             .toList();
-        all.sort((a, b) {
-          final aSub = a['hasSubscription'] == true ? 0 : 1;
-          final bSub = b['hasSubscription'] == true ? 0 : 1;
-          return aSub.compareTo(bSub);
-        });
+        all.sort((a, b) => TransitairePublicUi.displayName(a)
+            .compareTo(TransitairePublicUi.displayName(b)));
         setState(() {
           _transitaires = all;
           _loading = false;
@@ -64,9 +62,6 @@ class _TransitairesListPageState extends State<TransitairesListPage> {
       if (mounted) setState(() => _loading = false);
     }
   }
-
-  bool _isSubscribed(Map<String, dynamic> u) =>
-      u['hasSubscription'] == true || u['subscriptionStatus'] == 'active';
 
   void _openProfile(Map<String, dynamic> u) {
     Navigator.push(
@@ -80,14 +75,15 @@ class _TransitairesListPageState extends State<TransitairesListPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F6F8),
       appBar: AppBar(
         title: Text(
           l10n.forwardersTitle,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
             color: kTransitaireNavy,
           ),
         ),
@@ -97,143 +93,38 @@ class _TransitairesListPageState extends State<TransitairesListPage> {
         centerTitle: true,
       ),
       body: _loading
-          ? ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: 6,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, __) => const SkeletonBox(
-                height: 72,
-                borderRadius: BorderRadius.all(Radius.circular(16)),
-              ),
-            )
+          ? SkeletonPresets.transitairesList()
           : _transitaires.isEmpty
               ? Center(
                   child: Text(
                     l10n.noForwardersAvailable,
-                    style: const TextStyle(color: Colors.grey),
+                    style: TextStyle(color: Colors.grey.shade600),
                   ),
                 )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _transitaires.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final u = _transitaires[index];
-                    final name = TransitaireProfileHelpers.displayName(u);
-                    final photo = TransitaireProfileHelpers.photoUrl(u);
-                    final location =
-                        TransitaireProfileHelpers.locationLine(u);
-                    final subscribed = _isSubscribed(u);
-
-                    return Material(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      elevation: subscribed ? 3 : 1,
-                      shadowColor: subscribed
-                          ? kTransitaireAmber.withOpacity(0.35)
-                          : Colors.black12,
-                      child: InkWell(
+              : RefreshIndicator(
+                  color: kTransitaireAmber,
+                  onRefresh: _loadTransitaires,
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      12,
+                      16,
+                      24 + MediaQuery.paddingOf(context).bottom,
+                    ),
+                    itemCount: _transitaires.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 14),
+                    itemBuilder: (context, index) {
+                      final u = _transitaires[index];
+                      return TransitaireListCard(
+                        user: u,
+                        l10n: l10n,
                         onTap: () => _openProfile(u),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: subscribed
-                                  ? kTransitaireAmber.withOpacity(0.5)
-                                  : Colors.grey.shade200,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 28,
-                                backgroundColor: kTransitaireNavy.withOpacity(0.08),
-                                backgroundImage:
-                                    photo != null ? NetworkImage(photo) : null,
-                                child: photo == null
-                                    ? Text(
-                                        TransitaireProfileHelpers.initials(u),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: kTransitaireNavy,
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      name,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: kTransitaireNavy,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      location,
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: subscribed
-                                      ? kTransitaireAmber.withOpacity(0.2)
-                                      : Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      subscribed
-                                          ? Icons.star_rounded
-                                          : Icons.person_outline,
-                                      size: 14,
-                                      color: subscribed
-                                          ? kTransitaireAmber
-                                          : Colors.grey,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      subscribed
-                                          ? l10n.forwarderSubscribedShort
-                                          : l10n.forwarderStandardShort,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: subscribed
-                                            ? kTransitaireNavy
-                                            : Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
     );
   }

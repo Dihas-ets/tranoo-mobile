@@ -75,9 +75,8 @@ String? _readModele(Map<String, dynamic> article) {
 }
 
 String? _readLocationRaw(Map<String, dynamic> article) {
-  final loc = (article['localisation'] ?? article['lieu'] ?? '')
-      .toString()
-      .trim();
+  final loc =
+      (article['localisation'] ?? article['lieu'] ?? '').toString().trim();
   return loc.isNotEmpty ? loc : null;
 }
 
@@ -92,14 +91,12 @@ const List<CatalogFilterOption> _seedMarques = [
   CatalogFilterOption(
     label: 'Nissan',
     normalizedKey: 'nissan',
-    networkSvgUrl:
-        'https://cdn.worldvectorlogo.com/logos/nissan-6.svg',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/nissan-6.svg',
   ),
   CatalogFilterOption(
     label: 'Ford',
     normalizedKey: 'ford',
-    networkSvgUrl:
-        'https://cdn.worldvectorlogo.com/logos/ford-5.svg',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/ford-5.svg',
   ),
   CatalogFilterOption(
     label: 'Hyundai',
@@ -110,20 +107,17 @@ const List<CatalogFilterOption> _seedMarques = [
   CatalogFilterOption(
     label: 'Honda',
     normalizedKey: 'honda',
-    networkSvgUrl:
-        'https://cdn.worldvectorlogo.com/logos/honda-4.svg',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/honda-4.svg',
   ),
   CatalogFilterOption(
     label: 'Kia',
     normalizedKey: 'kia',
-    networkSvgUrl:
-        'https://cdn.worldvectorlogo.com/logos/kia-motors-1.svg',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/kia-motors-1.svg',
   ),
   CatalogFilterOption(
     label: 'BMW',
     normalizedKey: 'bmw',
-    networkSvgUrl:
-        'https://cdn.worldvectorlogo.com/logos/bmw-7.svg',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/bmw-7.svg',
   ),
   CatalogFilterOption(
     label: 'Mercedes',
@@ -146,8 +140,7 @@ const List<CatalogFilterOption> _seedMarques = [
   CatalogFilterOption(
     label: 'Lexus',
     normalizedKey: 'lexus',
-    networkSvgUrl:
-        'https://cdn.worldvectorlogo.com/logos/lexus-2.svg',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/lexus-2.svg',
   ),
   CatalogFilterOption(
     label: 'Mazda',
@@ -164,14 +157,12 @@ const List<CatalogFilterOption> _seedMarques = [
   CatalogFilterOption(
     label: 'Jeep',
     normalizedKey: 'jeep',
-    networkSvgUrl:
-        'https://cdn.worldvectorlogo.com/logos/jeep-4.svg',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/jeep-4.svg',
   ),
   CatalogFilterOption(
     label: 'Peugeot',
     normalizedKey: 'peugeot',
-    networkSvgUrl:
-        'https://cdn.worldvectorlogo.com/logos/peugeot-9.svg',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/peugeot-9.svg',
   ),
   CatalogFilterOption(
     label: 'Renault',
@@ -288,6 +279,93 @@ List<CatalogFilterOption> get catalogSeedLocations =>
 
 /// Liste fixe des modèles affichés dans les filtres.
 List<String> get catalogSeedModeles => List<String>.from(_seedModeles);
+
+class PieceTypeFilterOption {
+  final String label;
+  final String normalizedKey;
+  final List<String> categorieKeys;
+
+  const PieceTypeFilterOption({
+    required this.label,
+    required this.normalizedKey,
+    required this.categorieKeys,
+  });
+}
+
+const List<PieceTypeFilterOption> kPieceTypeFilters = [
+  PieceTypeFilterOption(
+    label: 'Pièces détachées',
+    normalizedKey: 'pieces_detachees',
+    categorieKeys: ['piece_detachee', 'piece', 'pieces', 'pieces_detachees'],
+  ),
+  PieceTypeFilterOption(
+    label: 'Pneus',
+    normalizedKey: 'pneus',
+    categorieKeys: ['pneu', 'pneus'],
+  ),
+  PieceTypeFilterOption(
+    label: 'Huiles et lubrifiants',
+    normalizedKey: 'huiles_lubrifiants',
+    categorieKeys: ['huile_moteur', 'huile', 'lubrifiant', 'lubrifiants'],
+  ),
+  PieceTypeFilterOption(
+    label: 'Batteries',
+    normalizedKey: 'batteries',
+    categorieKeys: ['batterie', 'batteries'],
+  ),
+  PieceTypeFilterOption(
+    label: 'Accessoires',
+    normalizedKey: 'accessoires',
+    categorieKeys: ['accessoire', 'accessoires'],
+  ),
+];
+
+List<String> buildPieceTypeFilterOptions() =>
+    kPieceTypeFilters.map((e) => e.normalizedKey).toList();
+
+String pieceTypeFilterLabel(dynamic l10n, String normalizedKey) {
+  switch (normalizedKey) {
+    case 'pieces_detachees':
+      return l10n.pieceTypeSpareParts;
+    case 'pneus':
+      return l10n.pieceTypeTires;
+    case 'huiles_lubrifiants':
+      return l10n.pieceTypeOils;
+    case 'batteries':
+      return l10n.pieceTypeBatteries;
+    case 'accessoires':
+      return l10n.pieceTypeAccessories;
+    default:
+      return normalizedKey;
+  }
+}
+
+PieceTypeFilterOption? _matchPieceTypeFilter(String? selected) {
+  if (selected == null || selected.isEmpty) return null;
+  final sel = normalizeCatalogKey(selected);
+  for (final opt in kPieceTypeFilters) {
+    if (normalizeCatalogKey(opt.label) == sel ||
+        opt.normalizedKey == sel) {
+      return opt;
+    }
+  }
+  return null;
+}
+
+bool pieceMatchesTypeFilter(dynamic piece, String? selectedType) {
+  if (selectedType == null || selectedType.isEmpty) return true;
+  final opt = _matchPieceTypeFilter(selectedType);
+  if (opt == null) return true;
+  final cat = normalizeCatalogKey((piece['categorie'] ?? '').toString());
+  final titre = normalizeCatalogKey((piece['titre'] ?? piece['title'] ?? '').toString());
+  for (final key in opt.categorieKeys) {
+    final nk = normalizeCatalogKey(key);
+    if (cat.contains(nk) || nk.contains(cat) || titre.contains(nk)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /// Marque saisie par un vendeur : conservée seulement si elle correspond
 /// à une marque connue du catalogue (évite Occasion, Nouveau, etc.).
