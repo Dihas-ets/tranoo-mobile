@@ -172,6 +172,96 @@ const List<CatalogFilterOption> _seedMarques = [
   ),
 ];
 
+/// Marques moto (filtres catalogue motos — distinct des marques auto).
+const List<CatalogFilterOption> _seedMarquesMoto = [
+  CatalogFilterOption(
+    label: 'Yamaha',
+    normalizedKey: 'yamaha',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/yamaha-motor-2.svg',
+  ),
+  CatalogFilterOption(
+    label: 'Honda',
+    normalizedKey: 'honda',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/honda-4.svg',
+  ),
+  CatalogFilterOption(
+    label: 'Suzuki',
+    normalizedKey: 'suzuki',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/suzuki-3.svg',
+  ),
+  CatalogFilterOption(
+    label: 'Kawasaki',
+    normalizedKey: 'kawasaki',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/kawasaki-2.svg',
+  ),
+  CatalogFilterOption(
+    label: 'BMW',
+    normalizedKey: 'bmw',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/bmw-7.svg',
+  ),
+  CatalogFilterOption(
+    label: 'Ducati',
+    normalizedKey: 'ducati',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/ducati-4.svg',
+  ),
+  CatalogFilterOption(
+    label: 'KTM',
+    normalizedKey: 'ktm',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/ktm-3.svg',
+  ),
+  CatalogFilterOption(
+    label: 'Piaggio',
+    normalizedKey: 'piaggio',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/piaggio-2.svg',
+  ),
+  CatalogFilterOption(
+    label: 'TVS',
+    normalizedKey: 'tvs',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/tvs-2.svg',
+  ),
+  CatalogFilterOption(
+    label: 'Harley-Davidson',
+    normalizedKey: 'harley-davidson',
+    networkSvgUrl:
+        'https://cdn.worldvectorlogo.com/logos/harley-davidson-5.svg',
+  ),
+  CatalogFilterOption(
+    label: 'Benelli',
+    normalizedKey: 'benelli',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/benelli-2.svg',
+  ),
+  CatalogFilterOption(
+    label: 'Sym',
+    normalizedKey: 'sym',
+  ),
+  CatalogFilterOption(
+    label: 'Royal Enfield',
+    normalizedKey: 'royal enfield',
+  ),
+  CatalogFilterOption(
+    label: 'Bajaj',
+    normalizedKey: 'bajaj',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/bajaj-auto-2.svg',
+  ),
+  CatalogFilterOption(
+    label: 'Hero',
+    normalizedKey: 'hero',
+    networkSvgUrl: 'https://cdn.worldvectorlogo.com/logos/hero-motocorp.svg',
+  ),
+];
+
+const List<String> kMotoTypeFilters = [
+  'Scooter',
+  'Routière',
+  'Sportive',
+  'Trail',
+  'Cross',
+  'Tricycle',
+];
+
+List<String> buildMotoTypeFilterOptions() =>
+    List<String>.from(kMotoTypeFilters);
+
 /// Pays / zones avec drapeaux SVG (flagcdn).
 const List<CatalogFilterOption> _seedLocations = [
   CatalogFilterOption(
@@ -243,9 +333,10 @@ CatalogFilterOption? _matchSeedLocation(String raw) {
   return null;
 }
 
-CatalogFilterOption? _matchSeedMarque(String raw) {
+CatalogFilterOption? _matchSeedMarque(String raw, {bool isMoto = false}) {
   final key = normalizeCatalogKey(raw);
-  for (final seed in _seedMarques) {
+  final seeds = isMoto ? _seedMarquesMoto : _seedMarques;
+  for (final seed in seeds) {
     if (key == seed.normalizedKey || key.contains(seed.normalizedKey)) {
       return seed;
     }
@@ -272,6 +363,9 @@ const List<String> _seedModeles = [
 /// Liste fixe des marques affichées dans les filtres.
 List<CatalogFilterOption> get catalogSeedMarques =>
     List<CatalogFilterOption>.from(_seedMarques);
+
+List<CatalogFilterOption> get catalogSeedMarquesMoto =>
+    List<CatalogFilterOption>.from(_seedMarquesMoto);
 
 /// Liste fixe des localisations affichées dans les filtres.
 List<CatalogFilterOption> get catalogSeedLocations =>
@@ -379,10 +473,11 @@ String? normalizeVendorMarque(String? raw) {
 List<CatalogFilterOption> buildMarqueFilterOptions(
   List<dynamic> articles, {
   required bool isPiece,
+  bool isMoto = false,
 }) {
-  // Toujours la liste complète des graines ; les articles servent uniquement
-  // à vérifier qu'une marque vendeur est reconnue (pas à enrichir modèle/lieu).
-  final options = List<CatalogFilterOption>.from(_seedMarques);
+  final options = List<CatalogFilterOption>.from(
+    isMoto ? _seedMarquesMoto : _seedMarques,
+  );
   final keys = options.map((e) => e.normalizedKey).toSet();
 
   for (final raw in articles) {
@@ -390,7 +485,7 @@ List<CatalogFilterOption> buildMarqueFilterOptions(
     final map = Map<String, dynamic>.from(raw);
     final marque = _readMarque(map, isPiece: isPiece);
     if (marque == null) continue;
-    final seed = _matchSeedMarque(marque);
+    final seed = _matchSeedMarque(marque, isMoto: isMoto);
     if (seed != null && !keys.contains(seed.normalizedKey)) {
       keys.add(seed.normalizedKey);
       options.add(seed);

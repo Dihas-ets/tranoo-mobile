@@ -357,7 +357,7 @@ class _PiecePageState extends State<PiecePage>
 
   Widget _buildTypeSection() {
     if (isLoading && pieces.isEmpty) {
-      return const CatalogFilterHorizSkeleton(itemWidth: 88, height: 76);
+      return const CatalogFilterHorizSkeleton(itemWidth: 76, height: 86);
     }
     return CatalogPieceTypeFilterGrid(
       selected: _selectedType,
@@ -383,7 +383,7 @@ class _PiecePageState extends State<PiecePage>
       articles: pieces,
       budgetMin: _budgetMin,
       budgetMax: _budgetMax,
-      countLabel: (n) => l10n.vehiclesAvailableCount(n),
+      countLabel: (n) => l10n.partsAvailableCount(n),
       onReset: () => setState(() {
         _budgetMin = null;
         _budgetMax = null;

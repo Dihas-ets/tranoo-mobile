@@ -9,6 +9,7 @@ import '../../providers/counter_provider.dart';
 import '../../config/backend_config.dart';
 import 'marque.dart';
 import 'voitures.dart';
+import 'motos.dart';
 import 'piece.dart';
 import 'profil3.dart';
 import 'profilutilisateurpage.dart';
@@ -165,6 +166,7 @@ class _AvantHomeState extends State<AvantHome>
     return [
       const Marque(),
       const VoituresPage(),
+      const MotosPage(),
       PiecePage(),
       _profilePageForUser(user),
     ];
@@ -475,6 +477,8 @@ class _AvantHomeState extends State<AvantHome>
           BottomNavigationBarItem(icon: const Icon(Icons.home), label: l10n.home),
           BottomNavigationBarItem(
               icon: const Icon(Icons.directions_car), label: l10n.cars),
+          BottomNavigationBarItem(
+              icon: _buildMotoNavIcon(24), label: 'Motos'),
           BottomNavigationBarItem(icon: const Icon(Icons.build), label: l10n.pieces),
           BottomNavigationBarItem(icon: const Icon(Icons.person), label: l10n.profile),
         ],
@@ -665,5 +669,15 @@ class _AvantHomeState extends State<AvantHome>
     } catch (_) {
       // Silencieux: on ne bloque pas l'appbar si erreur réseau.
     }
+  }
+
+  Widget _buildMotoNavIcon(double size) {
+    final motoSize = size * 1.25;
+    return Image.asset(
+      'assets/images/motorbike.png',
+      width: motoSize,
+      height: motoSize,
+      fit: BoxFit.contain,
+    );
   }
 }
