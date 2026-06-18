@@ -168,6 +168,12 @@ class AuthProvider with ChangeNotifier {
               if (role != null) {
                 debugPrint('[AuthProvider] setRole: $role');
                 UserService().setRole(role);
+                final vendeurType = _user!['vendeurType']?.toString();
+                UserService().setVendeurType(
+                  vendeurType != null && vendeurType.trim().isNotEmpty
+                      ? vendeurType.trim()
+                      : null,
+                );
               } else {
                 debugPrint('[AuthProvider] clearRole (role null)');
                 UserService().clearRole();
@@ -276,6 +282,12 @@ class AuthProvider with ChangeNotifier {
           final role = stringToUserRole(_user!['role']);
           if (role != null) {
             UserService().setRole(role);
+            final vendeurType = _user!['vendeurType']?.toString();
+            UserService().setVendeurType(
+              vendeurType != null && vendeurType.trim().isNotEmpty
+                  ? vendeurType.trim()
+                  : null,
+            );
           } else {
             UserService().clearRole();
           }

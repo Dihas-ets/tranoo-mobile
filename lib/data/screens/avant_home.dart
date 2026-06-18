@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/cart_service.dart';
+import '../../services/user_service.dart';
+import '../../utils/role_redirect.dart';
 import '../../providers/counter_provider.dart';
 import '../../config/backend_config.dart';
 import 'marque.dart';
@@ -163,6 +165,12 @@ class _AvantHomeState extends State<AvantHome>
   }
 
   List<Widget> _pagesForUser(Map<String, dynamic>? user) {
+    final role = (user?['role'] ?? user?['typeUtilisateur'] ?? user?['type'])
+        ?.toString()
+        .toLowerCase();
+    if (role == 'vendeur') {
+      return _buildVendeurPages(user);
+    }
     return [
       const Marque(),
       const VoituresPage(),
@@ -170,6 +178,71 @@ class _AvantHomeState extends State<AvantHome>
       PiecePage(),
       _profilePageForUser(user),
     ];
+  }
+
+  List<Widget> _buildVendeurPages(Map<String, dynamic>? user) {
+    final userService = UserService();
+    final pages = <Widget>[const Marque()];
+    if (userService.peutVendreVehicules) {
+      pages.add(const VoituresPage());
+    }
+    if (userService.peutVendreMotos) {
+      pages.add(const MotosPage());
+    }
+    if (userService.peutVendrePieces) {
+      pages.add(PiecePage());
+    }
+    pages.add(_profilePageForUser(user));
+    return pages;
+  }
+
+  List<BottomNavigationBarItem> _buildBottomNavItems(
+    Map<String, dynamic>? user,
+    AppLocalizations l10n,
+  ) {
+    final role = (user?['role'] ?? user?['typeUtilisateur'] ?? user?['type'])
+        ?.toString()
+        .toLowerCase();
+    if (role != 'vendeur') {
+      return [
+        BottomNavigationBarItem(icon: const Icon(Icons.home), label: l10n.home),
+        BottomNavigationBarItem(
+            icon: const Icon(Icons.directions_car), label: l10n.cars),
+        BottomNavigationBarItem(
+            icon: const Icon(Icons.motorcycle), label: 'Motos'),
+        BottomNavigationBarItem(
+            icon: const Icon(Icons.build), label: l10n.pieces),
+        BottomNavigationBarItem(
+            icon: const Icon(Icons.person), label: l10n.profile),
+      ];
+    }
+    final userService = UserService();
+    final items = <BottomNavigationBarItem>[
+      BottomNavigationBarItem(icon: const Icon(Icons.home), label: l10n.home),
+    ];
+    if (userService.peutVendreVehicules) {
+      items.add(BottomNavigationBarItem(
+        icon: const Icon(Icons.directions_car),
+        label: l10n.cars,
+      ));
+    }
+    if (userService.peutVendreMotos) {
+      items.add(BottomNavigationBarItem(
+        icon: const Icon(Icons.motorcycle),
+        label: 'Motos',
+      ));
+    }
+    if (userService.peutVendrePieces) {
+      items.add(BottomNavigationBarItem(
+        icon: const Icon(Icons.build),
+        label: l10n.pieces,
+      ));
+    }
+    items.add(BottomNavigationBarItem(
+      icon: const Icon(Icons.person),
+      label: l10n.profile,
+    ));
+    return items;
   }
 
   @override
@@ -473,15 +546,7 @@ class _AvantHomeState extends State<AvantHome>
         unselectedItemColor: Colors.black,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        items: [
-          BottomNavigationBarItem(icon: const Icon(Icons.home), label: l10n.home),
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.directions_car), label: l10n.cars),
-          BottomNavigationBarItem(
-              icon: _buildMotoNavIcon(24), label: 'Motos'),
-          BottomNavigationBarItem(icon: const Icon(Icons.build), label: l10n.pieces),
-          BottomNavigationBarItem(icon: const Icon(Icons.person), label: l10n.profile),
-        ],
+        items: _buildBottomNavItems(user, l10n),
       ),
     );
   }
@@ -671,13 +736,4 @@ class _AvantHomeState extends State<AvantHome>
     }
   }
 
-  Widget _buildMotoNavIcon(double size) {
-    final motoSize = size * 1.25;
-    return Image.asset(
-      'assets/images/motorbike.png',
-      width: motoSize,
-      height: motoSize,
-      fit: BoxFit.contain,
-    );
-  }
 }

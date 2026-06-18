@@ -20,7 +20,6 @@ import 'package:tranoo/utils/article_view_helper.dart';
 import 'package:tranoo/utils/text_display.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/widgets/spec_info_card.dart';
-import 'package:tranoo/widgets/transitaire_carousel_section.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -58,6 +57,7 @@ class MotoInfo extends StatefulWidget {
   final String? couleur; // Couleur
   final bool? dedouanement; // Dédouanement
   final String? lieu;
+  final Map<String, dynamic>? fournisseur;
   final List<String> images;
   final List<String> videos;
   final String? video;
@@ -100,6 +100,7 @@ class MotoInfo extends StatefulWidget {
     this.couleur,
     this.dedouanement,
     this.lieu,
+    this.fournisseur,
     required this.images,
     this.videos = const [],
     this.video,
@@ -142,6 +143,9 @@ class MotoInfo extends StatefulWidget {
       condition: m['condition']?.toString(),
       cylindre: m['cylindre']?.toString(),
       lieu: (m['localisation'] ?? m['lieu'])?.toString(),
+      fournisseur: m['fournisseur'] is Map
+          ? Map<String, dynamic>.from(m['fournisseur'] as Map)
+          : null,
       images: photos,
       video: m['video']?.toString(),
       videoOptimized: m['videoOptimized']?.toString(),
@@ -175,35 +179,12 @@ class _MotoInfoState extends State<MotoInfo> {
   late PageController _pageController;
   late List<String> _videos; // Vidéos associées
   Set<String> _favoriteIds = <String>{};
-  String? _selectedCountry;
   int get _imagesCount => widget.images.length;
   int get _videosCount => _videos.length;
   int get _totalMediaCount => _imagesCount + _videosCount;
   String? get _primaryVideo => _videos.isNotEmpty
       ? _videos.first
       : (widget.videoOptimized ?? widget.video);
-  final List<String> africanCountries = [
-    'Bénin',
-    'Burkina Faso',
-    'Côte d\'Ivoire',
-    'Mali',
-    'Niger',
-    'Sénégal',
-    'Togo',
-    'Cameroun',
-    'Gabon',
-    'Guinée',
-    'Congo',
-    'RDC',
-    'Maroc',
-    'Algérie',
-    'Tunisie',
-    'Afrique du Sud',
-    'Nigeria',
-    'Ghana',
-    'Kenya',
-    'Éthiopie',
-  ];
   late ConfettiController _confettiController;
   static const String _whatsAppPhone = '22941839801'; // sans +
   int _verificationPrice = 20000;
@@ -234,15 +215,6 @@ class _MotoInfoState extends State<MotoInfo> {
   String _specValue(AppLocalizations l10n, String? value) {
     if (value != null && value.isNotEmpty) return value;
     return l10n.notProvided;
-  }
-
-  String _locationSpecValue(AppLocalizations l10n) {
-    final raw = concatLocationParts(
-      location: widget.lieu,
-      company: widget.entreprise,
-    );
-    if (raw.isEmpty) return l10n.notProvided;
-    return truncateWithEllipsis(raw);
   }
 
   String _yesNoValue(AppLocalizations l10n, bool? value) {
@@ -767,8 +739,6 @@ class _MotoInfoState extends State<MotoInfo> {
     bool isAcheteur,
     AppLocalizations l10n,
   ) {
-    final bool shouldShowDeliveryOptions =
-        isAcheteur || (widget.fromPub == true);
     return Padding(
       padding: EdgeInsets.all(screenWidth * 0.04), // Espacement ajusté
       child: Column(
@@ -779,8 +749,6 @@ class _MotoInfoState extends State<MotoInfo> {
           _buildDescription(l10n),
           const SizedBox(height: 24),
           _buildSpecifications(l10n),
-          const SizedBox(height: 24),
-          _buildCheckboxes(screenWidth, shouldShowDeliveryOptions, l10n),
           const SizedBox(height: 24),
           _buildActionButton(isAcheteur, l10n),
         ],
@@ -869,7 +837,6 @@ class _MotoInfoState extends State<MotoInfo> {
         Icons.verified,
       ),
       _buildSpecCard('Kilométrage', _specValue(l10n, widget.kilometrage ?? widget.distance), Icons.speed),
-      _buildSpecCard(l10n.location, _locationSpecValue(l10n), Icons.location_on),
       if (widget.equipements.isNotEmpty)
         _buildSpecCard('Équipements', widget.equipements.join(', '), Icons.checklist),
     ];
@@ -878,11 +845,6 @@ class _MotoInfoState extends State<MotoInfo> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSpecGrid(topCards),
-        const SizedBox(height: 16),
-        const TransitaireCarouselSection(
-          showTitle: true,
-          showSeeMoreButton: true,
-        ),
         const SizedBox(height: 16),
         _buildSpecGrid(bottomCards),
       ],
@@ -981,99 +943,6 @@ class _MotoInfoState extends State<MotoInfo> {
     );
   }
 
-  // Cases à cocher et champs de livraison (ramenés ici)
-  bool _isEnConsommationChecked = false;
-  bool _isEnTransitChecked = false;
-  final TextEditingController _detailsController = TextEditingController();
-
-  Widget _buildCheckboxes(
-    double screenWidth,
-    bool shouldShowDeliveryOptions,
-    AppLocalizations l10n,
-  ) {
-    if (!shouldShowDeliveryOptions) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Checkbox(
-              value: _isEnConsommationChecked,
-              onChanged: (v) {
-                setState(() {
-                  _isEnConsommationChecked = v ?? false;
-                  if (_isEnConsommationChecked) _isEnTransitChecked = false;
-                });
-              },
-              activeColor: Colors.black,
-            ),
-            Text(l10n.inConsumption),
-            const SizedBox(width: 16),
-            Checkbox(
-              value: _isEnTransitChecked,
-              onChanged: (v) {
-                setState(() {
-                  _isEnTransitChecked = v ?? false;
-                  if (_isEnTransitChecked) _isEnConsommationChecked = false;
-                });
-              },
-              activeColor: Colors.black,
-            ),
-            Text(l10n.inTransit),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Text(l10n.location, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF2F2F2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedCountry,
-              hint: Text(
-                l10n.chooseCountry,
-                style: const TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              isExpanded: true,
-              items: africanCountries
-                  .map(
-                    (c) => DropdownMenuItem<String>(value: c, child: Text(c)),
-                  )
-                  .toList(),
-              onChanged: (value) => setState(() => _selectedCountry = value),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          l10n.additionalDetails,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: _detailsController,
-          decoration: InputDecoration(
-            hintText: l10n.enterDestinationDetails,
-            filled: true,
-            fillColor: const Color(0xFFF2F2F2),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-          ),
-          maxLines: 3,
-        ),
-      ],
-    );
-  }
-
   // Bouton d'action dynamique - Toujours afficher les 2 boutons (bleu + jaune) pour les acheteurs
   Widget _buildActionButton(bool isAcheteurOuChauffeur, AppLocalizations l10n) {
     return Row(
@@ -1084,19 +953,6 @@ class _MotoInfoState extends State<MotoInfo> {
               final firebaseUser = FirebaseAuth.instance.currentUser;
               if (firebaseUser == null) {
                 showAuthDialog(context, message: l10n.signInForVerification);
-                return;
-              }
-
-              if (!_isEnConsommationChecked && !_isEnTransitChecked) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.chooseDeliveryMode)),
-                );
-                return;
-              }
-              if (_selectedCountry == null || _selectedCountry!.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.selectLocationPlease)),
-                );
                 return;
               }
 
@@ -1122,10 +978,7 @@ class _MotoInfoState extends State<MotoInfo> {
                 'video': _primaryVideo,
                 'entreprise': widget.entreprise,
                 'type': 'moto',
-                'modeLivraison':
-                    _isEnTransitChecked ? 'transit' : 'consommation',
-                'paysDestination': _selectedCountry,
-                'detailsSupplementaires': _detailsController.text.trim(),
+                if (widget.fournisseur != null) 'fournisseur': widget.fournisseur,
               };
               log('[MotoInfo][verif] Article payload: $article');
 

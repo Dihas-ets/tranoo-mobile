@@ -39,6 +39,7 @@ class UserService extends ChangeNotifier {
   }
 
   UserRole? _currentRole;
+  String? _vendeurType; // 'mixte' | 'vehicules' | 'pieces' | 'motos' | null
 
   // =============================
   // IMPORTANT : URL DU BACKEND
@@ -51,10 +52,30 @@ class UserService extends ChangeNotifier {
   Dio get dio => _dio;
 
   UserRole? get currentRole => _currentRole;
+  String? get vendeurType => _vendeurType;
   bool get isAcheteur => _currentRole == UserRole.acheteur;
+  bool get isVendeur => _currentRole == UserRole.vendeur;
+  bool get isVendeurMotos => isVendeur && _vendeurType == 'motos';
+
+  bool get peutVendreVehicules =>
+      isVendeur &&
+      (_vendeurType == null ||
+          _vendeurType == 'mixte' ||
+          _vendeurType == 'vehicules');
+
+  bool get peutVendrePieces =>
+      isVendeur &&
+      (_vendeurType == null || _vendeurType == 'mixte' || _vendeurType == 'pieces');
+
+  bool get peutVendreMotos => isVendeur && _vendeurType == 'motos';
 
   void setRole(UserRole role) {
     _currentRole = role;
+    notifyListeners();
+  }
+
+  void setVendeurType(String? vendeurType) {
+    _vendeurType = vendeurType;
     notifyListeners();
   }
 
@@ -62,6 +83,7 @@ class UserService extends ChangeNotifier {
 
   void clearRole() {
     _currentRole = null;
+    _vendeurType = null;
     notifyListeners();
   }
 

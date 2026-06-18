@@ -11,6 +11,7 @@ import 'package:tranoo/utils/cloudinary_upload.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'cars_info.dart';
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/role_redirect.dart';
 import 'package:tranoo/data/screens/cars_info.dart';
 import 'package:tranoo/services/alert_service.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
@@ -74,6 +75,11 @@ class _VoituresPageState extends State<VoituresPage>
   Timer? _autoRefreshTimer;
   bool _noResultDialogShown = false;
   Timer? _noResultDialogTimer;
+  final UserService _userService = UserService();
+  List<dynamic> _motosForFilters = [];
+
+  bool get _useMotoFilterMode =>
+      _userService.isVendeurMotos && !_userService.peutVendreVehicules;
 
   @override
   void initState() {
@@ -103,6 +109,7 @@ class _VoituresPageState extends State<VoituresPage>
     });
 
     fetchVoitures();
+    if (_useMotoFilterMode) _fetchMotosForFilters();
     _autoRefreshTimer =
         Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) fetchVoitures(silent: true);
@@ -346,11 +353,39 @@ class _VoituresPageState extends State<VoituresPage>
     );
   }
 
+  Future<void> _fetchMotosForFilters() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final response = await http.get(
+        Uri.parse(
+          '${getBaseUrl()}/public/articles?type=moto&statut=en_ligne&vendu=false',
+        ),
+        headers: {
+          'Content-Type': 'application/json',
+          if (idToken != null) 'Authorization': 'Bearer $idToken',
+        },
+      );
+      if (response.statusCode == 200 && mounted) {
+        setState(() {
+          _motosForFilters = json.decode(response.body) as List<dynamic>;
+        });
+      }
+    } catch (_) {}
+  }
+
+  List<dynamic> get _filterCatalogSource =>
+      _useMotoFilterMode ? _motosForFilters : voitures;
+
   Widget _buildMarqueSection() {
-    if (isLoading && voitures.isEmpty) {
+    if (isLoading && _filterCatalogSource.isEmpty) {
       return const CatalogFilterHorizSkeleton();
     }
-    final options = buildMarqueFilterOptions(voitures, isPiece: false);
+    final options = buildMarqueFilterOptions(
+      _filterCatalogSource,
+      isPiece: false,
+      isMoto: _useMotoFilterMode,
+    );
     return CatalogMarqueFilterGrid(
       options: options,
       selected: _selectedBrand,
@@ -359,8 +394,16 @@ class _VoituresPageState extends State<VoituresPage>
   }
 
   Widget _buildModeleSection() {
-    if (isLoading && voitures.isEmpty) {
+    if (isLoading && _filterCatalogSource.isEmpty) {
       return const CatalogFilterHorizSkeleton(itemWidth: 88, height: 60);
+    }
+    if (_useMotoFilterMode) {
+      final types = buildMotoTypeFilterOptions();
+      return CatalogModeleFilterGrid(
+        modeles: types,
+        selected: _selectedModel,
+        onSelected: (v) => setState(() => _selectedModel = v),
+      );
     }
     final modeles = buildModeleFilterOptions(voitures);
     return CatalogModeleFilterGrid(
@@ -371,10 +414,10 @@ class _VoituresPageState extends State<VoituresPage>
   }
 
   Widget _buildLocalisationSection() {
-    if (isLoading && voitures.isEmpty) {
+    if (isLoading && _filterCatalogSource.isEmpty) {
       return const CatalogFilterHorizSkeleton();
     }
-    final options = buildLocationFilterOptions(voitures);
+    final options = buildLocationFilterOptions(_filterCatalogSource);
     return CatalogLocationFilterGrid(
       options: options,
       selected: _selectedLocation,
@@ -852,7 +895,10 @@ class _VoituresPageState extends State<VoituresPage>
                               const EdgeInsets.symmetric(horizontal: 4),
                           tabs: [
                             _buildTabButton("Marque", _marqueTabIndex),
-                            _buildTabButton("Modèles", _modeleTabIndex),
+                            _buildTabButton(
+                              _useMotoFilterMode ? 'Type' : 'Modèles',
+                              _modeleTabIndex,
+                            ),
                             _buildTabButton(
                               "Localisation",
                               _localisationTabIndex,

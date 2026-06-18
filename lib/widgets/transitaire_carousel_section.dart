@@ -95,6 +95,25 @@ class _TransitaireCarouselSectionState extends State<TransitaireCarouselSection>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (widget.showSeeMoreButton && !widget.showTitle)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: _openList,
+              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+              label: Text(l10n.seeMoreForwarders),
+              style: TextButton.styleFrom(
+                foregroundColor: kTransitaireNavy,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         if (widget.showTitle) ...[
           Row(
             children: [
@@ -121,6 +140,22 @@ class _TransitaireCarouselSectionState extends State<TransitaireCarouselSection>
                   ),
                 ),
               ),
+              if (widget.showSeeMoreButton)
+                TextButton.icon(
+                  onPressed: _openList,
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                  label: Text(l10n.seeMoreForwarders),
+                  style: TextButton.styleFrom(
+                    foregroundColor: kTransitaireNavy,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 10),
@@ -144,25 +179,6 @@ class _TransitaireCarouselSectionState extends State<TransitaireCarouselSection>
             ],
           ),
         ),
-        if (widget.showSeeMoreButton) ...[
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: _openList,
-              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-              label: Text(l10n.seeMoreForwarders),
-              style: TextButton.styleFrom(
-                foregroundColor: kTransitaireNavy,
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                textStyle: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }

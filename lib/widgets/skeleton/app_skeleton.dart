@@ -219,6 +219,95 @@ abstract final class SkeletonPresets {
     );
   }
 
+  /// Bande horizontale type accueil (véhicules / motos).
+  static Widget articleHorizontalStrip({int count = 3, double cardWidth = 160}) {
+    return SizedBox(
+      height: 220,
+      child: ListView.separated(
+        physics: const NeverScrollableScrollPhysics(),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: count,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (_, __) => SizedBox(
+          width: cardWidth,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              SkeletonBox(
+                width: double.infinity,
+                height: 120,
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              SizedBox(height: 8),
+              SkeletonLine(widthFactor: 0.9, height: 13),
+              SkeletonLine(widthFactor: 0.55, height: 11),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Bloc Services (4 icônes).
+  static Widget servicesSummary() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SkeletonLine(widthFactor: 0.28, height: 18),
+          const SizedBox(height: 12),
+          Row(
+            children: List.generate(
+              4,
+              (i) => Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(left: i == 0 ? 0 : 6),
+                  child: Column(
+                    children: const [
+                      SkeletonCircle(size: 56),
+                      SizedBox(height: 8),
+                      SkeletonLine(widthFactor: 0.9, height: 10),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Bandeau publicités sponsorisées horizontales.
+  static Widget sponsoriseStrip({int count = 3}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: SkeletonLine(widthFactor: 0.3, height: 18),
+        ),
+        SizedBox(
+          height: 120,
+          child: ListView.separated(
+            physics: const NeverScrollableScrollPhysics(),
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: count,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (_, __) => const SkeletonBox(
+              width: 200,
+              height: 110,
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Grille 2 colonnes (accueil, recommandé).
   static Widget articleGrid({int count = 4}) {
     return Padding(
@@ -283,18 +372,20 @@ abstract final class SkeletonPresets {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           pubBanner(height: 120),
+          servicesSummary(),
+          sponsoriseStrip(),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: SkeletonLine(widthFactor: 0.35, height: 18),
           ),
-          articleGrid(count: 4),
+          articleHorizontalStrip(count: 3),
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: SkeletonLine(widthFactor: 0.3, height: 18),
           ),
-          articleGrid(count: 4),
+          articleHorizontalStrip(count: 3),
         ],
       ),
     );

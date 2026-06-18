@@ -25,6 +25,18 @@ import 'package:tranoo/data/screens/orders_page.dart';
 import 'package:tranoo/data/screens/mes_commandes.dart';
 import 'package:tranoo/widgets/catalog_article_grid_card.dart';
 import 'package:tranoo/data/screens/tricycle/tricycle_home.dart';
+import 'package:tranoo/utils/page_refresh_registry.dart';
+import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
+import 'package:tranoo/utils/catalog_filter_options.dart';
+import 'package:tranoo/widgets/catalog_filter_sections.dart';
+import 'package:tranoo/widgets/seller_stats_dashboard.dart';
+import 'package:tranoo/widgets/transitaire_carousel_section.dart';
+
+String _formatCompactCount(int n) {
+  if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+  if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
+  return '$n';
+}
 
 class Article {
   final String id;
@@ -293,8 +305,27 @@ class Marque extends StatefulWidget {
   State<Marque> createState() => _MarqueState();
 }
 
-class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
+class _MarqueState extends State<Marque>
+    with SingleTickerProviderStateMixin, RegisterPageRefresh {
   AppLocalizations get l10n => AppLocalizations.of(context)!;
+
+  @override
+  Future<void> onPagePullRefresh() async {
+    try {
+      await Future.wait<void>([
+        fetchArticlesPieces(silent: true),
+        fetchVoituresRecommandees(silent: true),
+        fetchMotosRecommandees(silent: true),
+        fetchPubs(silent: true),
+        fetchPubsSponsorisees(silent: true),
+      ]);
+      if (_userService.currentRole == UserRole.vendeur) {
+        await _loadSellerMarqueStats();
+      }
+    } catch (_) {
+      // RefreshIndicator gère l'état visuel.
+    }
+  }
 
   int _currentPage = 0;
   late PageController _pageController;
@@ -305,9 +336,20 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   final UserService _userService = UserService();
   late int _marqueTabIndex;
   late int _modeleTabIndex;
+  late int _enAttenteTabIndex;
   late int _statistiquesTabIndex;
   late int _localisationTabIndex;
   late int _budgetTabIndex;
+  List<ArticleVoiture> _voituresEnAttente = [];
+  bool _isLoadingEnAttente = false;
+  String? _errorEnAttente;
+  String? _selectedMotoBrand;
+  String? _statsVendeurType;
+  int _statsVehiclesOnline = 0;
+  int _statsPiecesOnline = 0;
+  int _statsVehiclesSold = 0;
+  int _statsPiecesSold = 0;
+  bool _sellerMarqueStatsLoading = false;
   List<Article> articlesPieces = [];
   bool isLoadingPieces = true;
   String? errorPieces;
@@ -395,15 +437,25 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    // Initialisation des indices des onglets
-    // On ne garde que le rôle acheteur
-    _marqueTabIndex = 0;
-    _modeleTabIndex = 1;
-    _localisationTabIndex = 2;
-    _budgetTabIndex = 3;
-    _tabController = TabController(length: 4, vsync: this);
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    if (isVendeur) {
+      _marqueTabIndex = 0;
+      _statistiquesTabIndex = 1;
+      _tabController = TabController(length: 2, vsync: this);
+    } else {
+      _marqueTabIndex = 0;
+      _modeleTabIndex = 1;
+      _localisationTabIndex = 2;
+      _budgetTabIndex = 3;
+      _tabController = TabController(length: 4, vsync: this);
+    }
 
     _tabController.addListener(() {
+      if (!_tabController.indexIsChanging &&
+          _userService.currentRole == UserRole.vendeur &&
+          _tabController.index == _statistiquesTabIndex) {
+        _loadSellerMarqueStats();
+      }
       setState(() {});
     });
 
@@ -421,6 +473,9 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     fetchMotosRecommandees();
     fetchPubs();
     fetchPubsSponsorisees();
+    if (_userService.currentRole == UserRole.vendeur) {
+      _loadSellerMarqueStats();
+    }
     _marqueAutoRefreshTimer =
         Timer.periodic(const Duration(seconds: 30), (_) async {
       if (!mounted) return;
@@ -646,6 +701,121 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     }).toList();
   }
 
+  List<ArticleVoiture> _applyMotoFilters(List<ArticleVoiture> source) {
+    return source.where((m) {
+      if (_selectedMotoBrand != null && _selectedMotoBrand!.isNotEmpty) {
+        if (!catalogValueMatches(_selectedMotoBrand, m.marque)) return false;
+      }
+      if (_selectedLocation != null && _selectedLocation!.isNotEmpty) {
+        final loc = [
+          m.entreprise,
+          m.description,
+          m.titre,
+        ].map((e) => e?.toString() ?? '').join(' ');
+        if (!catalogValueMatches(_selectedLocation, loc)) return false;
+      }
+      if (_budgetMin != null || _budgetMax != null) {
+        final price =
+            double.tryParse(m.prix.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+        if (_budgetMin != null && price < _budgetMin!) return false;
+        if (_budgetMax != null && price > _budgetMax!) return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> _catalogMapsForFilters() {
+    return voituresRecommandees.map((v) => v.toArticleMap()).toList();
+  }
+
+  List<Map<String, dynamic>> _catalogMotoMapsForFilters() {
+    return motosRecommandees.map((m) => m.toArticleMap()).toList();
+  }
+
+  Future<void> _loadSellerMarqueStats() async {
+    if (_userService.currentRole != UserRole.vendeur) return;
+    setState(() => _sellerMarqueStatsLoading = true);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final response = await http
+          .get(
+            Uri.parse('${getBaseUrl()}/protected/stats/seller-marque'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (idToken != null) 'Authorization': 'Bearer $idToken',
+            },
+          )
+          .timeout(const Duration(seconds: 12));
+      if (response.statusCode != 200 || !mounted) {
+        if (mounted) setState(() => _sellerMarqueStatsLoading = false);
+        return;
+      }
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _statsVendeurType = data['vendeurType']?.toString();
+        _statsVehiclesOnline =
+            (data['vehiclesOnline'] as num?)?.round() ?? 0;
+        _statsPiecesOnline = (data['piecesOnline'] as num?)?.round() ?? 0;
+        _statsVehiclesSold = (data['vehiclesSold'] as num?)?.round() ?? 0;
+        _statsPiecesSold = (data['piecesSold'] as num?)?.round() ?? 0;
+        _sellerMarqueStatsLoading = false;
+      });
+    } catch (e) {
+      _logger.warning('[SELLER_STATS] $e');
+      if (mounted) setState(() => _sellerMarqueStatsLoading = false);
+    }
+  }
+
+  Future<void> fetchVoituresEnAttente() async {
+    if (_userService.currentRole != UserRole.vendeur) return;
+    setState(() {
+      _isLoadingEnAttente = true;
+      _errorEnAttente = null;
+    });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final type = _userService.peutVendreMotos && !_userService.peutVendreVehicules
+          ? 'moto'
+          : 'voiture';
+      final response = await http
+          .get(
+            Uri.parse(
+              '${getBaseUrl()}/articles?type=$type&statut=en_attente&vendu=false',
+            ),
+            headers: {
+              if (idToken != null) 'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        if (!mounted) return;
+        setState(() {
+          _voituresEnAttente =
+              data.map((e) => ArticleVoiture.fromJson(e)).toList();
+          _isLoadingEnAttente = false;
+        });
+      } else if (mounted) {
+        setState(() {
+          _errorEnAttente = 'Erreur chargement (code ${response.statusCode})';
+          _isLoadingEnAttente = false;
+        });
+      }
+    } catch (e) {
+      _logger.warning('[Marque] fetchVoituresEnAttente: $e');
+      if (mounted) {
+        setState(() {
+          _errorEnAttente = 'Erreur réseau';
+          _isLoadingEnAttente = false;
+        });
+      }
+    }
+  }
+
   Future<void> fetchVoituresRecommandees({bool silent = false}) async {
     if (!silent) {
       setState(() {
@@ -656,8 +826,10 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      String url =
-          getBaseUrl() + '/public/articles?type=voiture&statut=en_ligne&vendu=false';
+      final isVendeur = _userService.currentRole == UserRole.vendeur;
+      String url = isVendeur
+          ? '${getBaseUrl()}/articles?type=voiture&statut=en_ligne&vendu=false'
+          : '${getBaseUrl()}/public/articles?type=voiture&statut=en_ligne&vendu=false';
       _logger.info('[DEBUG] URL voitures: $url');
       final headers = <String, String>{
         'Content-Type': 'application/json',
@@ -731,8 +903,10 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      String url =
-          getBaseUrl() + '/public/articles?type=moto&statut=en_ligne&vendu=false';
+      final isVendeur = _userService.currentRole == UserRole.vendeur;
+      String url = isVendeur
+          ? '${getBaseUrl()}/articles?type=moto&statut=en_ligne&vendu=false'
+          : '${getBaseUrl()}/public/articles?type=moto&statut=en_ligne&vendu=false';
       final headers = <String, String>{'Content-Type': 'application/json'};
       if (idToken != null) headers['Authorization'] = 'Bearer $idToken';
       final response = await http
@@ -1017,13 +1191,13 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   // Section Recommandé :
   Widget buildVoituresRecommandeesGrid() {
     if (isLoadingVoitures) {
-      return const Center(child: CircularProgressIndicator());
+      return SkeletonPresets.articleGrid(count: 2);
     }
     if (errorVoitures != null) {
       return Center(child: Text(errorVoitures!));
     }
     // Filtrer les voitures avec statut 'en_ligne' et non vendues
-    const bool isVendeur = false;
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
     final voituresEnLigne = voituresRecommandees
         .where(
           (v) =>
@@ -1634,7 +1808,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   }
 
   Widget buildVoituresRecommandeesSection() {
-    const bool isVendeur = false;
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
     final voituresEnLigne = voituresRecommandees
         .where(
           (v) =>
@@ -1682,7 +1856,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             ],
           ),
         ),
-        if (isLoadingVoitures) const Center(child: CircularProgressIndicator()),
+        if (isLoadingVoitures) SkeletonPresets.articleHorizontalStrip(count: 3),
         if (errorVoitures != null) Center(child: Text(errorVoitures!)),
         if (!isLoadingVoitures && errorVoitures == null)
           _applyFilters(voituresEnLigne).isEmpty
@@ -1706,14 +1880,14 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   }
 
   Widget buildMotosSection() {
-    const bool isVendeur = false;
-    final motosEnLigne = motosRecommandees
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    final motosEnLigne = _applyMotoFilters(motosRecommandees
         .where(
           (m) =>
               (m.statut ?? 'en_ligne') == 'en_ligne' &&
               (m.statut ?? '') != 'vendu',
         )
-        .toList();
+        .toList());
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1723,8 +1897,8 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                "Motos",
+              Text(
+                isVendeur ? 'Mes motos' : 'Motos',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -1746,16 +1920,18 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
             ],
           ),
         ),
-        if (isLoadingMotos) const Center(child: CircularProgressIndicator()),
+        if (isLoadingMotos) SkeletonPresets.articleHorizontalStrip(count: 3),
         if (errorMotos != null) Center(child: Text(errorMotos!)),
         if (!isLoadingMotos && errorMotos == null)
           motosEnLigne.isEmpty
-              ? const Center(
+              ? Center(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
+                    padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Text(
-                      "Aucune moto disponible pour le moment.",
-                      style: TextStyle(
+                      isVendeur
+                          ? "Vous n'avez aucune moto en ligne"
+                          : "Aucune moto disponible pour le moment.",
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.grey,
                       ),
@@ -2016,10 +2192,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
           ),
         ),
         if (isLoadingPubs)
-          const SizedBox(
-            height: 100,
-            child: Center(child: CircularProgressIndicator()),
-          )
+          SkeletonPresets.sponsoriseStrip()
         else if (errorPubs != null)
           SizedBox(height: 100, child: Center(child: Text(errorPubs!)))
         else if (pubsValides.isEmpty)
@@ -2317,7 +2490,7 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   // SECTION À LA UNE (carrousel)
   Widget buildPubsALaUneCarousel() {
     if (isLoadingPubs) {
-      return const Center(child: CircularProgressIndicator());
+      return SkeletonPresets.pubBanner(height: 260);
     }
     if (errorPubs != null) {
       return Center(child: Text(errorPubs!));
@@ -2469,29 +2642,76 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     final screenHeight = mediaQuery.size.height;
     final isPortrait = mediaQuery.orientation == Orientation.portrait;
     const bool isTransitaire = false;
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    final isMotoSeller =
+        isVendeur && _userService.peutVendreMotos && !_userService.peutVendreVehicules;
+
+    final showBudgetPanel = !isVendeur && _tabController.index == _budgetTabIndex;
+    final isInitialHomeLoading = isLoadingPubs &&
+        pubsALaUne.isEmpty &&
+        isLoadingVoitures &&
+        voituresRecommandees.isEmpty;
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _reloadAll,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              buildPubsALaUneCarousel(),
-              _buildServicesSummarySection(
-                screenWidth: screenWidth,
-                screenHeight: screenHeight,
-                isPortrait: isPortrait,
+      body: Column(
+        children: [
+          Expanded(
+            child: RefreshIndicator(
+              color: const Color(0xFFFFCC00),
+              onRefresh: onPagePullRefresh,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    buildPubsALaUneCarousel(),
+                    if (isVendeur)
+                      _buildFilterTabRow(screenWidth, isTransitaire)
+                    else if (isInitialHomeLoading)
+                      SkeletonPresets.servicesSummary()
+                    else
+                      _buildServicesSummarySection(
+                        screenWidth: screenWidth,
+                        screenHeight: screenHeight,
+                        isPortrait: isPortrait,
+                      ),
+                    if (isVendeur && _tabController.index == _marqueTabIndex)
+                      isMotoSeller
+                          ? _buildMotosMarqueSection()
+                          : _buildMarqueSection(),
+                    if (!isVendeur &&
+                        _tabController.index == _modeleTabIndex)
+                      _buildMotosMarqueSection(),
+                    if (isVendeur &&
+                        _tabController.index == _statistiquesTabIndex)
+                      _buildStatistiquesSection(),
+                    if (!isVendeur &&
+                        _tabController.index == _localisationTabIndex)
+                      _buildLocalisationSection(),
+                    buildPubsSponsoriseesSection(),
+                    if (!isVendeur || _userService.peutVendreVehicules)
+                      buildVoituresRecommandeesSection(),
+                    if (!isVendeur) _buildHomeTransitairesSection(),
+                    if (!isVendeur || _userService.peutVendreMotos)
+                      buildMotosSection(),
+                    if (!isVendeur || _userService.peutVendrePieces)
+                      buildPiecesSection(),
+                  ],
+                ),
               ),
-              // Section sponsorisée: toujours affichée
-              buildPubsSponsoriseesSection(),
-              buildVoituresRecommandeesSection(),
-              buildMotosSection(),
-              buildPiecesSection(),
-              // Add the new sections here
-            ],
+            ),
           ),
-        ),
+          if (showBudgetPanel) _buildBudgetSection(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHomeTransitairesSection() {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: TransitaireCarouselSection(
+        showTitle: false,
+        showSeeMoreButton: true,
       ),
     );
   }
@@ -2775,7 +2995,155 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
     );
   }
 
+  Widget _buildFilterTabRow(double screenWidth, bool isTransitaire) {
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    final isMotoSeller =
+        isVendeur && _userService.peutVendreMotos && !_userService.peutVendreVehicules;
+    final chips = <Widget>[];
+
+    void addChip(String title, int index, {bool wide = false}) {
+      const selectedColor = Color(0xFFF8BF13);
+      const unselectedBorderColor = Color(0xFF000000);
+      final isSelected = _tabController.index == index;
+      chips.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: GestureDetector(
+            onTap: () => setState(() => _tabController.index = index),
+            child: Container(
+              height: 40,
+              width: wide ? 100 : 72,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isSelected ? selectedColor : Colors.transparent,
+                border: Border.all(
+                  color: isSelected ? selectedColor : unselectedBorderColor,
+                  width: 0.8,
+                ),
+                borderRadius: BorderRadius.circular(7),
+              ),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isSelected ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (isMotoSeller) {
+      addChip('Marque', _marqueTabIndex);
+      addChip('Statistiques', _statistiquesTabIndex, wide: true);
+    } else if (isVendeur) {
+      addChip('Marque', _marqueTabIndex);
+      addChip('Statistiques', _statistiquesTabIndex, wide: true);
+    } else {
+      addChip('Marque', _marqueTabIndex);
+      addChip('Motos', _modeleTabIndex);
+      addChip('Localisation', _localisationTabIndex, wide: true);
+      addChip('Budget', _budgetTabIndex, wide: true);
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(screenWidth * 0.02),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: chips),
+      ),
+    );
+  }
+
+  Widget _buildEnAttenteSection() {
+    final isMotoSeller = _userService.peutVendreMotos &&
+        !_userService.peutVendreVehicules;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isMotoSeller ? 'Motos en attente' : 'Véhicules en attente',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF040415),
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (_isLoadingEnAttente)
+            SkeletonPresets.articleList(count: 3)
+          else if (_errorEnAttente != null)
+            Text(_errorEnAttente!)
+          else if (_voituresEnAttente.isEmpty)
+            const Text(
+              'Aucune annonce en attente de validation.',
+              style: TextStyle(color: Colors.grey),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount:
+                  _voituresEnAttente.length > 8 ? 8 : _voituresEnAttente.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, i) {
+                final v = _voituresEnAttente[i];
+                return ListTile(
+                  tileColor: const Color(0xFFF9FAFB),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  title: Text(
+                    '${v.marque} ${v.modele}'.trim(),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(v.prix),
+                  trailing: const Icon(Icons.hourglass_top, color: Colors.orange),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMarqueSection() {
+    if (isLoadingVoitures && voituresRecommandees.isEmpty) {
+      return const CatalogFilterHorizSkeleton();
+    }
+    final options = buildMarqueFilterOptions(_catalogMapsForFilters(), isPiece: false);
+    return CatalogMarqueFilterGrid(
+      options: options,
+      selected: _selectedBrand,
+      onSelected: (v) => setState(() => _selectedBrand = v),
+    );
+  }
+
+  Widget _buildMotosMarqueSection() {
+    if (isLoadingMotos && motosRecommandees.isEmpty) {
+      return const CatalogFilterHorizSkeleton();
+    }
+    final options = buildMarqueFilterOptions(
+      _catalogMotoMapsForFilters(),
+      isPiece: false,
+      isMoto: true,
+    );
+    return CatalogMarqueFilterGrid(
+      options: options,
+      selected: _selectedMotoBrand,
+      onSelected: (v) => setState(() => _selectedMotoBrand = v),
+    );
+  }
+
+  Widget _buildMarqueSectionLegacy() {
     // Liste élargie; on gère les images manquantes avec errorBuilder
     final List<Map<String, String>> marques = [
       {"name": "Toyota", "image": "assets/images/Toyota.png"},
@@ -2926,37 +3294,149 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildStatistiquesSection() {
-    final currentVehicleIds = voituresRecommandees.map((v) => v.id).toSet();
-    final totalClicks =
-        _backendViews.values.fold<int>(0, (sum, value) => sum + value);
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    if (!isVendeur) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8E1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFFFE082)),
+          ),
+          child: const Text(
+            "Les statistiques détaillées sont réservées aux vendeurs.",
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF795548),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
 
-    final statsCards = [
+    final vtRaw = _statsVendeurType ?? _userService.vendeurType ?? 'mixte';
+    final vt = vtRaw.toString().toLowerCase().trim();
+    final showVehicules =
+        vt.isEmpty || vt == 'mixte' || vt == 'vehicules' || vt == 'véhicules';
+    final showPieces = vt.isEmpty || vt == 'mixte' || vt == 'pieces';
+    final showMotos = vt == 'motos';
+
+    final motosEnLigne = motosRecommandees
+        .where(
+          (m) =>
+              (m.statut ?? 'en_ligne') == 'en_ligne' &&
+              (m.statut ?? '') != 'vendu',
+        )
+        .length;
+
+    final totalViewsVehicles = voituresRecommandees.fold<int>(
+      0,
+      (sum, v) => sum + (_backendViews[v.id] ?? 0),
+    );
+    final totalViewsMotos = motosRecommandees.fold<int>(
+      0,
+      (sum, m) => sum + (_backendViews[m.id] ?? 0),
+    );
+    final totalViewsPieces = articlesPieces.fold<int>(
+      0,
+      (sum, p) => sum + (_backendViews[p.id] ?? 0),
+    );
+    final totalViews = totalViewsVehicles + totalViewsMotos + totalViewsPieces;
+
+    final statsCards = <Map<String, Object?>>[
+      if (showVehicules)
+        {
+          'kind': 'plain',
+          'label': 'Véhicules en ligne',
+          'value': _statsVehiclesOnline,
+          'icon': Icons.directions_car_filled,
+          'color': const Color(0xFFF8BF13),
+        },
+      if (showMotos)
+        {
+          'kind': 'plain',
+          'label': 'Motos en ligne',
+          'value': motosEnLigne,
+          'icon': Icons.two_wheeler,
+          'color': const Color(0xFFF8BF13),
+        },
+      if (showPieces)
+        {
+          'kind': 'plain',
+          'label': 'Pièces en ligne',
+          'value': _statsPiecesOnline,
+          'icon': Icons.build_circle_outlined,
+          'color': const Color(0xFFF8BF13),
+        },
+      if (showVehicules)
+        {
+          'kind': 'plain',
+          'label': 'Véhicules vendus',
+          'value': _statsVehiclesSold,
+          'icon': Icons.sell_outlined,
+          'color': const Color(0xFF2E7D32),
+        },
+      if (showPieces)
+        {
+          'kind': 'plain',
+          'label': 'Pièces vendues',
+          'value': _statsPiecesSold,
+          'icon': Icons.handyman_outlined,
+          'color': const Color(0xFF2E7D32),
+        },
       {
-        "label": "Véhicules en ligne",
-        "value": currentVehicleIds.length,
-        "icon": Icons.directions_car_filled,
-        "color": const Color(0xFFF8BF13),
-        "background": const Color(0xFFFFF3CD),
-        "description": "Annonce(s) visibles"
-      },
-      {
-        "label": "Vues enregistrées",
-        "value": totalClicks,
-        "icon": Icons.remove_red_eye,
-        "color": const Color(0xFF536DFE),
-        "background": const Color(0xFFE8EAFE),
-        "description": "Consultations sur vos annonces"
+        'kind': 'plain',
+        'label': 'Vues enregistrées',
+        'value': totalViews,
+        'icon': Icons.remove_red_eye,
+        'color': const Color(0xFFF8BF13),
       },
     ];
 
-    final topVehicles = voituresRecommandees
-        .where((v) => (_backendViews[v.id] ?? 0) > 0)
-        .toList()
-      ..sort((a, b) {
-        final countA = _backendViews[a.id] ?? 0;
-        final countB = _backendViews[b.id] ?? 0;
-        return countB.compareTo(countA);
-      });
+    final viewPoints = <double>[
+      ...voituresRecommandees.map((v) => (_backendViews[v.id] ?? 0).toDouble()),
+      ...motosRecommandees.map((m) => (_backendViews[m.id] ?? 0).toDouble()),
+      ...articlesPieces.map((p) => (_backendViews[p.id] ?? 0).toDouble()),
+    ]..sort((a, b) => b.compareTo(a));
+    while (viewPoints.length < 8) {
+      viewPoints.add(0);
+    }
+    final activityPoints = viewPoints.take(8).toList().reversed.toList();
+
+    final dashboardKpis = statsCards.take(4).map((card) {
+      final valueNum = (card['value'] as num?)?.round() ?? 0;
+      return SellerStatsKpi(
+        label: card['label'] as String,
+        value: '$valueNum',
+        icon: card['icon'] as IconData,
+        color: card['color'] as Color,
+      );
+    }).toList();
+
+    final donutSlices = <SellerStatsDonutSlice>[
+      if (showVehicules && totalViewsVehicles > 0)
+        SellerStatsDonutSlice(
+          label: 'Véhicules',
+          value: totalViewsVehicles.toDouble(),
+          color: const Color(0xFFF8BF13),
+        ),
+      if (showMotos && totalViewsMotos > 0)
+        SellerStatsDonutSlice(
+          label: 'Motos',
+          value: totalViewsMotos.toDouble(),
+          color: const Color(0xFF1565C0),
+        ),
+      if (showPieces && totalViewsPieces > 0)
+        SellerStatsDonutSlice(
+          label: 'Pièces',
+          value: totalViewsPieces.toDouble(),
+          color: const Color(0xFF5D4037),
+        ),
+    ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -2965,169 +3445,31 @@ class _MarqueState extends State<Marque> with SingleTickerProviderStateMixin {
         children: [
           const Text(
             "Vos statistiques",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+          if (_sellerMarqueStatsLoading) ...[
+            const SizedBox(height: 8),
+            const LinearProgressIndicator(minHeight: 3),
+          ],
           const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: statsCards.map((card) {
-                return Container(
-                  width: 190,
-                  margin: const EdgeInsets.only(right: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        (card["color"] as Color).withOpacity(0.15),
-                        Colors.white,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+          SellerStatsDashboard(
+            activityTitle: 'Activité (vues)',
+            activitySubtitle: 'Répartition par annonces les plus consultées',
+            activityPoints: activityPoints,
+            kpis: dashboardKpis,
+            donutTitle: 'Répartition des vues',
+            donutCenterValue: _formatCompactCount(totalViews),
+            donutCenterLabel: 'Vues totales',
+            donutSlices: donutSlices.isNotEmpty
+                ? donutSlices
+                : const [
+                    SellerStatsDonutSlice(
+                      label: 'Aucune vue',
+                      value: 1,
+                      color: Color(0xFFE0E0E0),
                     ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: (card["color"] as Color).withOpacity(0.3),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (card["color"] as Color).withOpacity(0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        card["icon"] as IconData,
-                        color: card["color"] as Color,
-                        size: 28,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        card["label"] as String,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: (card["color"] as Color).withOpacity(0.9),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        "${card["value"]}",
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        card["description"] as String,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+                  ],
           ),
-          const SizedBox(height: 16),
-          if (topVehicles.isNotEmpty)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Top véhicules cliqués",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...topVehicles.take(3).map((vehicle) {
-                  final clicks = _backendViews[vehicle.id] ?? 0;
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12.withOpacity(0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundImage: vehicle.images.isNotEmpty
-                              ? NetworkImage(vehicle.images.first)
-                              : null,
-                          backgroundColor: Colors.grey.shade200,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                vehicle.titre,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "${vehicle.marque} | ${vehicle.modele}",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEEF2FF),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            "$clicks clic(s)",
-                            style: const TextStyle(
-                              color: Color(0xFF536DFE),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-            )
-          else
-            const Text(
-              "Vos clics apparaîtront ici dès que vos véhicules seront consultés.",
-              style: TextStyle(fontSize: 12, color: Color(0xFF795548)),
-            ),
         ],
       ),
     );
