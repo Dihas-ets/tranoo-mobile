@@ -258,6 +258,7 @@ String? errorMotos;
 // Ajout : modèle Pub pour la récupération des publicités
 class Pub {
   final String id;
+  final String? articleId;
   final String description;
   final String typePub;
   final String statut;
@@ -270,6 +271,7 @@ class Pub {
 
   Pub({
     required this.id,
+    this.articleId,
     required this.description,
     required this.typePub,
     required this.statut,
@@ -282,8 +284,13 @@ class Pub {
   });
 
   factory Pub.fromJson(Map<String, dynamic> json) {
+    final dynamic rawArticleId = json['articleId'];
+    final String? parsedArticleId = rawArticleId is Map<String, dynamic>
+        ? rawArticleId['_id']?.toString()
+        : rawArticleId?.toString();
     return Pub(
       id: json['_id'] ?? '',
+      articleId: parsedArticleId,
       description: json['description'] ?? '',
       typePub: json['typePub'] ?? '',
       statut: json['statut'] ?? '',
@@ -459,7 +466,10 @@ class _MarqueState extends State<Marque>
       setState(() {});
     });
 
-    _pageController = PageController(initialPage: 0);
+    _pageController = PageController(
+      initialPage: 0,
+      viewportFraction: 0.85,
+    );
     _searchGlobalController.addListener(() {
       setState(() {
         _searchGlobalText = _searchGlobalController.text.trim();
@@ -2192,7 +2202,7 @@ class _MarqueState extends State<Marque>
           ),
         ),
         if (isLoadingPubs)
-          SkeletonPresets.sponsoriseStrip()
+          SkeletonPresets.pubBanner(height: 100)
         else if (errorPubs != null)
           SizedBox(height: 100, child: Center(child: Text(errorPubs!)))
         else if (pubsValides.isEmpty)
@@ -2210,7 +2220,7 @@ class _MarqueState extends State<Marque>
           )
         else
           Container(
-            height: 210,
+            height: 190,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: pubsValides.length,
@@ -2353,7 +2363,7 @@ class _MarqueState extends State<Marque>
                     }
                   },
                   child: SizedBox(
-                    width: 340,
+                    width: 255,
                     child: Card(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -2374,12 +2384,12 @@ class _MarqueState extends State<Marque>
                                 ),
                                 child: Container(
                                   height: 170,
-                                  width: 340,
+                                  width: 255,
                                   color: Colors.grey[300],
                                   child: pub.media.isNotEmpty
                                       ? Image.network(
                                           pub.media[0],
-                                          width: 340,
+                                          width: 255,
                                           height: 170,
                                           fit: BoxFit.cover,
                                           errorBuilder: (
@@ -2450,29 +2460,6 @@ class _MarqueState extends State<Marque>
                                   ),
                                 ),
                               ),
-                              // Badge (simplified)
-                              Positioned(
-                                left: 8,
-                                top: 8,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF8BF13),
-                                    borderRadius: BorderRadius.circular(50),
-                                  ),
-                                  child: const Text(
-                                    'Sponsorisé',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
                         ],
@@ -2490,7 +2477,7 @@ class _MarqueState extends State<Marque>
   // SECTION À LA UNE (carrousel)
   Widget buildPubsALaUneCarousel() {
     if (isLoadingPubs) {
-      return SkeletonPresets.pubBanner(height: 260);
+      return SkeletonPresets.articleGrid(count: 2);
     }
     if (errorPubs != null) {
       return Center(child: Text(errorPubs!));
@@ -2498,128 +2485,79 @@ class _MarqueState extends State<Marque>
     if (pubsALaUne.isEmpty) {
       return const SizedBox.shrink();
     }
-    // Affiche le carrousel et l'indicateur uniquement si la liste n'est pas vide
     return Column(
       children: [
-        SizedBox(
-          height: 260,
+        Container(
+          height: 200,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
           child: PageView.builder(
             controller: _pageController,
+            padEnds: true,
             itemCount: pubsALaUne.length,
             itemBuilder: (context, index) {
               final pub = pubsALaUne[index];
               final hasLink = (pub.lien ?? '').trim().isNotEmpty;
               final card = Card(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: pub.media.isNotEmpty
-                          ? Container(
-                              width: double.infinity,
-                              height: 260,
-                              color: Colors.black,
-                              child: Image.network(
-                                pub.media[0],
-                                fit: BoxFit.contain,
-                                alignment: Alignment.center,
-                                filterQuality: FilterQuality.high,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey[300],
-                                    child: const Icon(
-                                      Icons.image_not_supported,
-                                      size: 80,
-                                      color: Colors.black54,
-                                    ),
-                                  );
-                                },
-                              ),
-                            )
-                          : Container(
-                              height: 260,
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.image, size: 120),
-                            ),
-                    ),
-                    Positioned(
-                      left: 8,
-                      bottom: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          pub.description,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    if (hasLink)
-                      Positioned(
-                        right: 12,
-                        bottom: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.link, size: 16, color: Colors.black87),
-                              SizedBox(width: 4),
-                              Text(
-                                'Voir plus',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    height: 180,
+                    color: Colors.black,
+                    child: pub.media.isNotEmpty
+                        ? Image.network(
+                            pub.media[0],
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            filterQuality: FilterQuality.high,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.image_not_supported,
+                                  size: 60,
+                                  color: Colors.black54,
                                 ),
-                              ),
-                            ],
+                              );
+                            },
+                          )
+                        : Container(
+                            height: 180,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.image, size: 80),
                           ),
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
               );
 
-              if (hasLink) {
-                return InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => _openPubLink(pub.lien!.trim()),
-                  child: card,
-                );
-              }
-              return InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () =>
-                    _openFlyerPreview(pub.media.isNotEmpty ? pub.media[0] : ''),
+              return GestureDetector(
+                onTap: () {
+                  if (hasLink) {
+                    _openPubLink(pub.lien!.trim());
+                  } else {
+                    _openFlyerPreview(
+                      pub.media.isNotEmpty ? pub.media[0] : '',
+                    );
+                  }
+                },
+                onDoubleTap: () {
+                  if (hasLink) {
+                    _openFlyerPreview(
+                      pub.media.isNotEmpty ? pub.media[0] : '',
+                    );
+                  }
+                },
                 child: card,
               );
             },
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         if (pubsALaUne.length > 1)
           SmoothPageIndicator(
             controller: _pageController,
@@ -2627,8 +2565,8 @@ class _MarqueState extends State<Marque>
             effect: JumpingDotEffect(
               activeDotColor: Color(0xFFF8BF13),
               dotColor: Colors.grey.shade300,
-              dotHeight: 10,
-              dotWidth: 10,
+              dotHeight: 8,
+              dotWidth: 8,
             ),
           ),
       ],
@@ -2721,7 +2659,6 @@ class _MarqueState extends State<Marque>
     required double screenHeight,
     required bool isPortrait,
   }) {
-    final l10n = AppLocalizations.of(context)!;
     final iconSize = screenWidth * (isPortrait ? 0.085 : 0.06);
 
     return Padding(
@@ -2742,21 +2679,6 @@ class _MarqueState extends State<Marque>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.services,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF040415),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(

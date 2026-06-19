@@ -916,6 +916,8 @@ class _VoituresPageState extends State<VoituresPage>
                       _buildModeleSection(),
                     if (_tabController.index == _localisationTabIndex)
                       _buildLocalisationSection(),
+                    if (_tabController.index == _budgetTabIndex)
+                      _buildBudgetSection(),
                     // Liste des voitures
                     Expanded(
                       child: RefreshIndicator(
@@ -1323,8 +1325,6 @@ class _VoituresPageState extends State<VoituresPage>
                               ),
                       ),
                     ),
-                    if (_tabController.index == _budgetTabIndex)
-                      _buildBudgetSection(),
                   ],
                 ),
       ),

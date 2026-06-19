@@ -870,6 +870,8 @@ class _MotosPageState extends State<MotosPage>
                       _buildTypeMotoSection(),
                     if (_tabController.index == _localisationTabIndex)
                       _buildLocalisationSection(),
+                    if (_tabController.index == _budgetTabIndex)
+                      _buildBudgetSection(),
                     // Liste des Motos
                     Expanded(
                       child: RefreshIndicator(
@@ -1238,8 +1240,6 @@ class _MotosPageState extends State<MotosPage>
                               ),
                       ),
                     ),
-                    if (_tabController.index == _budgetTabIndex)
-                      _buildBudgetSection(),
                   ],
                 ),
       ),
