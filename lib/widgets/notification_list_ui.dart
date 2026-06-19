@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tranoo/utils/notification_i18n.dart';
 
 enum NotificationVisualKind {
   systemApp,
@@ -90,14 +91,35 @@ Widget buildNotificationLeadingAvatar({
   );
 }
 
+String resolveNotificationTitle(
+  Map<String, dynamic> notif,
+  String locale, {
+  String fallback = '',
+}) =>
+    NotificationI18n.resolveTitle(notif, locale: locale, fallback: fallback);
+
+String resolveNotificationMessage(
+  Map<String, dynamic> notif,
+  String locale, {
+  String fallback = '',
+}) =>
+    NotificationI18n.resolveMessage(notif, locale: locale, fallback: fallback);
+
 String notificationPreviewText(
   Map<String, dynamic> notif, {
   required String defaultLabel,
+  String? locale,
 }) {
   final data = notif['data'] is Map
       ? Map<String, dynamic>.from(notif['data'])
       : <String, dynamic>{};
-  final message = (notif['message'] ?? '').toString().trim();
+  final message = locale != null
+      ? NotificationI18n.resolveMessage(
+          notif,
+          locale: locale,
+          fallback: defaultLabel,
+        ).trim()
+      : (notif['message'] ?? '').toString().trim();
   final articleTitle = (data['articleTitle'] ?? '').toString().trim();
   if (articleTitle.isNotEmpty) return articleTitle;
   if (message.length > 90) return '${message.substring(0, 90)}...';

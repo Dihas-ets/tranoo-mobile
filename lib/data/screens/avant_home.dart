@@ -27,6 +27,7 @@ import '../../utils/page_refresh_registry.dart';
 import '../../main.dart' show rootNavigatorKey;
 import '../../widgets/alert_incoming_call_overlay.dart';
 import '../../widgets/alert_display_permission_dialog.dart';
+import 'package:tranoo/widgets/notification_list_ui.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'create_sell.dart';
 import 'create_sell2.dart';
@@ -571,7 +572,12 @@ class _AvantHomeState extends State<AvantHome>
 
       final notif = Map<String, dynamic>.from(unreadAlerts.first);
       final id = (notif['_id'] ?? '').toString();
-      final title = (notif['title'] ?? l10n.newAlertDefault).toString();
+      final locale = Localizations.localeOf(context).languageCode;
+      final title = resolveNotificationTitle(
+        notif,
+        locale,
+        fallback: l10n.newAlertDefault,
+      );
       final dataMap = (notif['data'] is Map)
           ? Map<String, dynamic>.from(notif['data'])
           : {};

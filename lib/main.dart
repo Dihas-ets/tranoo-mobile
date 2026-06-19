@@ -14,6 +14,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_html/flutter_html.dart' as flutter_html;
 import 'dart:developer' as developer;
+import 'package:tranoo/utils/notification_i18n.dart';
+import 'package:tranoo/utils/locale_helper.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
 import 'package:tranoo/services/user_service.dart';
@@ -180,16 +182,18 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   Logger('FCM').info('Message reçu en arrière-plan: ${message.messageId}');
   if (isUrgentFcmMessage(message)) {
     await LocalNotificationService.initialize();
+    final locale = await LocaleHelper.storedLanguageCode();
+    final push = NotificationI18n.resolvePush(
+      message,
+      locale,
+      defaultTitle: 'Nouvelle proposition',
+    );
     final data = message.data.map(
       (k, v) => MapEntry(k, v?.toString() ?? ''),
     );
     await LocalNotificationService.showAlertIncomingCallNotification(
-      title: message.notification?.title ??
-          data['title'] ??
-          'Nouvelle proposition',
-      body: message.notification?.body ??
-          data['message'] ??
-          'Un vendeur a répondu à votre alerte',
+      title: push.title,
+      body: push.body,
       data: data,
     );
   }
@@ -303,7 +307,7 @@ class NotificationService {
     }
   }
 
-  void _showLocalNotification(RemoteMessage message) {
+  void _showLocalNotification(RemoteMessage message) async {
     _logger.info('Notification locale: ${message.notification?.title}');
 
     // Popup global (in-app) pour arrivée livreur (peu importe l'écran)
@@ -328,15 +332,17 @@ class NotificationService {
         }
       }
     } else {
+      final locale = await LocaleHelper.storedLanguageCode();
+      final push = NotificationI18n.resolvePush(message, locale);
       if (message.data['type'] == 'tricycle') {
         LocalNotificationService.showTricycleNotification(
-          message.notification?.title ?? 'Tranoo',
-          message.notification?.body ?? '',
+          push.title,
+          push.body,
         );
       } else {
         LocalNotificationService.showNotification(
-          message.notification?.title ?? 'Tranoo',
-          message.notification?.body ?? '',
+          push.title,
+          push.body,
         );
       }
     }

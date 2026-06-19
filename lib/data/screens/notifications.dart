@@ -15,6 +15,8 @@ import 'package:tranoo/widgets/notification_list_ui.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:tranoo/utils/verification_notification_helpers.dart';
 import 'package:tranoo/utils/order_status_l10n.dart';
+import 'package:tranoo/utils/notification_i18n.dart';
+import 'package:tranoo/utils/locale_helper.dart';
 
 // --------- HELPERS SÉCURISÉS ----------
 String stripHtmlDocumentWrapper(String html) {
@@ -463,17 +465,25 @@ class NotificationProvider with ChangeNotifier {
   }
 
   void _initFCMListener() {
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      final locale = await LocaleHelper.storedLanguageCode();
+      final push = NotificationI18n.resolvePush(message, locale);
+      final data = message.data;
       final notif = {
         'id': message.messageId ?? DateTime.now().toIso8601String(),
-        'title': message.notification?.title ?? 'Notification',
-        'message': message.notification?.body ?? '',
+        'title': push.title,
+        'message': push.body,
+        if (data['titleKey'] != null) 'titleKey': data['titleKey'],
+        if (data['messageKey'] != null) 'messageKey': data['messageKey'],
+        if (data['i18nParams'] != null)
+          'i18nParams': NotificationI18n.parseI18nParams(data['i18nParams']),
         'date': DateTime.now(),
         'isRead': false,
-        'type': message.data['type'] ?? 'general',
-        'actions': message.data['actions'] ?? [],
-        'status': message.data['status'] ?? 'pending',
-        'verificationData': message.data['verificationData'] ?? {},
+        'type': data['type'] ?? 'general',
+        'actions': data['actions'] ?? [],
+        'status': data['status'] ?? 'pending',
+        'verificationData': data['verificationData'] ?? {},
+        'data': Map<String, dynamic>.from(data),
       };
       addNotification(notif);
     });
@@ -501,6 +511,7 @@ class NotificationsBody extends StatefulWidget {
 
 class _NotificationsBodyState extends State<NotificationsBody> {
   AppLocalizations get l10n => AppLocalizations.of(context)!;
+  String get _localeCode => Localizations.localeOf(context).languageCode;
 
   final Set<String> _selectedNotificationIds = <String>{};
 
@@ -925,14 +936,23 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     final kind = resolveNotificationVisualKind(notif);
     final imageUrl = notificationThumbUrl(notif) ?? _alertImageUrl(notif);
     final l10n = AppLocalizations.of(context)!;
-    final title = _safeGetString(notif, 'title') ?? l10n.notificationDefault;
+    final title = resolveNotificationTitle(
+      notif,
+      _localeCode,
+      fallback: l10n.notificationDefault,
+    );
     final preview = _isProposalNotification(notif)
-        ? (_safeGetString(notif, 'message') ?? l10n.alertProposalForYourAlert)
+        ? resolveNotificationMessage(
+            notif,
+            _localeCode,
+            fallback: l10n.alertProposalForYourAlert,
+          )
         : _isAlertNotification(notif)
             ? _alertPreviewText(notif)
             : notificationPreviewText(
                 notif,
-                defaultLabel: AppLocalizations.of(context)!.notificationDefault,
+                defaultLabel: l10n.notificationDefault,
+                locale: _localeCode,
               );
     final dateStr =
         notif['date'] is DateTime ? _formatDate(notif['date'] as DateTime) : '';
@@ -1179,8 +1199,11 @@ class _NotificationsBodyState extends State<NotificationsBody> {
           final signatureUrl = getSignatureUrl(notification);
           final pdfUrl = getVerificationPdfUrl(notification);
           final bodyHtml = resolveNotificationBodyHtml(notification) ??
-              _safeGetString(notification, 'message') ??
-              '-';
+              resolveNotificationMessage(
+                notification,
+                _localeCode,
+                fallback: _safeGetString(notification, 'message') ?? '-',
+              );
 
           Widget detailContent;
 
@@ -1278,7 +1301,11 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     final requestType = (dataMap['requestType'] ?? '').toString();
     final isPiece = requestType == 'piece_search';
     final imageUrl = _alertImageUrl(notification);
-    final title = _safeGetString(notification, 'title') ?? l10n.newAlertDefault;
+    final title = resolveNotificationTitle(
+      notification,
+      _localeCode,
+      fallback: l10n.newAlertDefault,
+    );
     final preview = _alertPreviewText(notification);
     final description = (dataMap['description'] ?? '').toString();
     final anneeVal = _alertAnneeValue(dataMap, isPiece);
@@ -1473,7 +1500,11 @@ class _NotificationsBodyState extends State<NotificationsBody> {
           ),
           const SizedBox(height: 10),
           Text(
-            _safeGetString(notification, 'title') ?? '',
+            resolveNotificationTitle(
+              notification,
+              _localeCode,
+              fallback: _safeGetString(notification, 'title') ?? '',
+            ),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 21,
@@ -1543,7 +1574,11 @@ class _NotificationsBodyState extends State<NotificationsBody> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _safeGetString(notification, 'title') ?? '',
+            resolveNotificationTitle(
+              notification,
+              _localeCode,
+              fallback: _safeGetString(notification, 'title') ?? '',
+            ),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: Colors.blue[800],

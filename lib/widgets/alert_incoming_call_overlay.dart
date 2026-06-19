@@ -8,6 +8,7 @@ import 'package:tranoo/services/urgent_fcm_utils.dart';
 import 'package:tranoo/services/notification_ringtone_player.dart';
 import 'package:tranoo/services/alert_pending_store.dart';
 import 'package:tranoo/utils/local_notification_service.dart';
+import 'package:tranoo/utils/locale_helper.dart';
 
 /// Écran plein écran pour proposition vendeur (acheteurs).
 class AlertIncomingCallOverlay extends StatefulWidget {
@@ -463,8 +464,9 @@ class AlertIncomingCallService {
     RemoteMessage message, {
     required GlobalKey<NavigatorState> navigatorKey,
   }) async {
+    final locale = await LocaleHelper.storedLanguageCode();
     await showPayload(
-      AlertCallPayload.fromRemoteMessage(message),
+      AlertCallPayload.fromRemoteMessage(message, locale: locale),
       navigatorKey: navigatorKey,
     );
   }

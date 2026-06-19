@@ -697,6 +697,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorValidationError => 'Invalid data.';
 
   @override
+  String get errorNotAuthenticated => 'User not authenticated.';
+
+  @override
+  String get errorForbidden => 'Access denied.';
+
+  @override
+  String get errorAccessDenied => 'Access denied.';
+
+  @override
+  String get errorNotFound => 'Resource not found.';
+
+  @override
+  String get errorNoUpdateData => 'No data to update.';
+
+  @override
+  String get errorDescriptionTooLong =>
+      'Description too long (500 characters max).';
+
+  @override
+  String get errorGalleryTransitaireOnly => 'Gallery is for forwarders only.';
+
+  @override
+  String get errorGalleryMustBeArray => 'Gallery must be a list.';
+
+  @override
+  String get errorGalleryMaxItems => 'Maximum 20 items in the gallery.';
+
+  @override
+  String get errorGalleryInvalidItem => 'Invalid gallery item.';
+
+  @override
+  String get errorGalleryItemTypeUrl =>
+      'Each item must have a type (image or video) and a URL.';
+
+  @override
+  String get errorVendeurTypeSellersOnly => 'This setting is for sellers only.';
+
+  @override
+  String get errorVendeurTypeInvalid => 'Invalid seller type.';
+
+  @override
+  String get errorPhoneAlreadyUsed =>
+      'This number is already used for this app.';
+
+  @override
+  String get errorPhoneAmbiguous =>
+      'This number is linked to multiple accounts. Contact support.';
+
+  @override
+  String get errorUserIncomplete => 'Incomplete user information.';
+
+  @override
+  String get errorProfileUpdateFailed => 'Failed to update profile.';
+
+  @override
+  String get errorFirebaseEmailSyncFailed =>
+      'Email updated locally but not on the account.';
+
+  @override
+  String get errorFcmTokenRequired => 'Notification token required.';
+
+  @override
+  String get errorArticleIdRequired => 'Article ID required.';
+
+  @override
+  String get errorFileRequired => 'No file uploaded.';
+
+  @override
   String get errorConnectionFailed => 'Connection error.';
 
   @override

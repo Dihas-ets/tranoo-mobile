@@ -1360,6 +1360,132 @@ abstract class AppLocalizations {
   /// **'Invalid data.'**
   String get errorValidationError;
 
+  /// No description provided for @errorNotAuthenticated.
+  ///
+  /// In en, this message translates to:
+  /// **'User not authenticated.'**
+  String get errorNotAuthenticated;
+
+  /// No description provided for @errorForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Access denied.'**
+  String get errorForbidden;
+
+  /// No description provided for @errorAccessDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Access denied.'**
+  String get errorAccessDenied;
+
+  /// No description provided for @errorNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource not found.'**
+  String get errorNotFound;
+
+  /// No description provided for @errorNoUpdateData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data to update.'**
+  String get errorNoUpdateData;
+
+  /// No description provided for @errorDescriptionTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Description too long (500 characters max).'**
+  String get errorDescriptionTooLong;
+
+  /// No description provided for @errorGalleryTransitaireOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery is for forwarders only.'**
+  String get errorGalleryTransitaireOnly;
+
+  /// No description provided for @errorGalleryMustBeArray.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery must be a list.'**
+  String get errorGalleryMustBeArray;
+
+  /// No description provided for @errorGalleryMaxItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum 20 items in the gallery.'**
+  String get errorGalleryMaxItems;
+
+  /// No description provided for @errorGalleryInvalidItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid gallery item.'**
+  String get errorGalleryInvalidItem;
+
+  /// No description provided for @errorGalleryItemTypeUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Each item must have a type (image or video) and a URL.'**
+  String get errorGalleryItemTypeUrl;
+
+  /// No description provided for @errorVendeurTypeSellersOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'This setting is for sellers only.'**
+  String get errorVendeurTypeSellersOnly;
+
+  /// No description provided for @errorVendeurTypeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid seller type.'**
+  String get errorVendeurTypeInvalid;
+
+  /// No description provided for @errorPhoneAlreadyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'This number is already used for this app.'**
+  String get errorPhoneAlreadyUsed;
+
+  /// No description provided for @errorPhoneAmbiguous.
+  ///
+  /// In en, this message translates to:
+  /// **'This number is linked to multiple accounts. Contact support.'**
+  String get errorPhoneAmbiguous;
+
+  /// No description provided for @errorUserIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Incomplete user information.'**
+  String get errorUserIncomplete;
+
+  /// No description provided for @errorProfileUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update profile.'**
+  String get errorProfileUpdateFailed;
+
+  /// No description provided for @errorFirebaseEmailSyncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Email updated locally but not on the account.'**
+  String get errorFirebaseEmailSyncFailed;
+
+  /// No description provided for @errorFcmTokenRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification token required.'**
+  String get errorFcmTokenRequired;
+
+  /// No description provided for @errorArticleIdRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Article ID required.'**
+  String get errorArticleIdRequired;
+
+  /// No description provided for @errorFileRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'No file uploaded.'**
+  String get errorFileRequired;
+
   /// No description provided for @errorConnectionFailed.
   ///
   /// In en, this message translates to:

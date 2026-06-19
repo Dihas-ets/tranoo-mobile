@@ -691,6 +691,71 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errorValidationError => 'بيانات غير صالحة.';
 
   @override
+  String get errorNotAuthenticated => 'المستخدم غير مصادق عليه.';
+
+  @override
+  String get errorForbidden => 'تم رفض الوصول.';
+
+  @override
+  String get errorAccessDenied => 'تم رفض الوصول.';
+
+  @override
+  String get errorNotFound => 'المورد غير موجود.';
+
+  @override
+  String get errorNoUpdateData => 'لا توجد بيانات للتحديث.';
+
+  @override
+  String get errorDescriptionTooLong => 'الوصف طويل جداً (500 حرف كحد أقصى).';
+
+  @override
+  String get errorGalleryTransitaireOnly => 'المعرض مخصص لوسطاء الشحن فقط.';
+
+  @override
+  String get errorGalleryMustBeArray => 'يجب أن يكون المعرض قائمة.';
+
+  @override
+  String get errorGalleryMaxItems => '20 عنصراً كحد أقصى في المعرض.';
+
+  @override
+  String get errorGalleryInvalidItem => 'عنصر معرض غير صالح.';
+
+  @override
+  String get errorGalleryItemTypeUrl =>
+      'يجب أن يحتوي كل عنصر على نوع (صورة أو فيديو) وعنوان URL.';
+
+  @override
+  String get errorVendeurTypeSellersOnly => 'هذا الإعداد مخصص للبائعين فقط.';
+
+  @override
+  String get errorVendeurTypeInvalid => 'نوع بائع غير صالح.';
+
+  @override
+  String get errorPhoneAlreadyUsed => 'هذا الرقم مستخدم بالفعل لهذا التطبيق.';
+
+  @override
+  String get errorPhoneAmbiguous => 'هذا الرقم مرتبط بعدة حسابات. اتصل بالدعم.';
+
+  @override
+  String get errorUserIncomplete => 'معلومات المستخدم غير مكتملة.';
+
+  @override
+  String get errorProfileUpdateFailed => 'فشل تحديث الملف الشخصي.';
+
+  @override
+  String get errorFirebaseEmailSyncFailed =>
+      'تم تحديث البريد محلياً ولكن ليس على الحساب.';
+
+  @override
+  String get errorFcmTokenRequired => 'رمز الإشعار مطلوب.';
+
+  @override
+  String get errorArticleIdRequired => 'معرّف المقال مطلوب.';
+
+  @override
+  String get errorFileRequired => 'لم يتم إرسال ملف.';
+
+  @override
   String get errorConnectionFailed => 'خطأ في الاتصال.';
 
   @override

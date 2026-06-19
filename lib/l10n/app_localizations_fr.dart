@@ -708,6 +708,77 @@ class AppLocalizationsFr extends AppLocalizations {
   String get errorValidationError => 'Données invalides.';
 
   @override
+  String get errorNotAuthenticated => 'Utilisateur non authentifié.';
+
+  @override
+  String get errorForbidden => 'Accès refusé.';
+
+  @override
+  String get errorAccessDenied => 'Accès refusé.';
+
+  @override
+  String get errorNotFound => 'Ressource introuvable.';
+
+  @override
+  String get errorNoUpdateData => 'Aucune donnée à mettre à jour.';
+
+  @override
+  String get errorDescriptionTooLong =>
+      'Description trop longue (500 caractères max).';
+
+  @override
+  String get errorGalleryTransitaireOnly =>
+      'La galerie est réservée aux transitaires.';
+
+  @override
+  String get errorGalleryMustBeArray => 'La galerie doit être une liste.';
+
+  @override
+  String get errorGalleryMaxItems => 'Maximum 20 éléments dans la galerie.';
+
+  @override
+  String get errorGalleryInvalidItem => 'Élément de galerie invalide.';
+
+  @override
+  String get errorGalleryItemTypeUrl =>
+      'Chaque élément doit avoir un type (image ou vidéo) et une URL.';
+
+  @override
+  String get errorVendeurTypeSellersOnly =>
+      'Ce paramètre est réservé aux vendeurs.';
+
+  @override
+  String get errorVendeurTypeInvalid => 'Type de vendeur invalide.';
+
+  @override
+  String get errorPhoneAlreadyUsed =>
+      'Ce numéro est déjà utilisé pour cette application.';
+
+  @override
+  String get errorPhoneAmbiguous =>
+      'Ce numéro est associé à plusieurs comptes. Contactez le support.';
+
+  @override
+  String get errorUserIncomplete => 'Informations utilisateur incomplètes.';
+
+  @override
+  String get errorProfileUpdateFailed =>
+      'Erreur lors de la mise à jour du profil.';
+
+  @override
+  String get errorFirebaseEmailSyncFailed =>
+      'Email mis à jour localement mais pas sur le compte.';
+
+  @override
+  String get errorFcmTokenRequired => 'Token de notification requis.';
+
+  @override
+  String get errorArticleIdRequired => 'Identifiant d\'article requis.';
+
+  @override
+  String get errorFileRequired => 'Aucun fichier envoyé.';
+
+  @override
   String get errorConnectionFailed => 'Erreur de connexion.';
 
   @override
