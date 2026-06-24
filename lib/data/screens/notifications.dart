@@ -1182,6 +1182,8 @@ class _NotificationsBodyState extends State<NotificationsBody> {
         builder: (context) {
           final isVerification =
               _safeGetString(notification, 'type') == 'verification';
+          final isTransitRejected =
+              _safeGetString(notification, 'type') == 'transit_rejected';
           final isPromo = _safeGetString(notification, 'type') == 'promotion';
           final dataMap = (notification['data'] is Map)
               ? Map<String, dynamic>.from(notification['data'])
@@ -1217,6 +1219,12 @@ class _NotificationsBodyState extends State<NotificationsBody> {
               signatureUrl,
               bodyHtml,
               pdfUrl: pdfUrl,
+            );
+          } else if (isTransitRejected) {
+            detailContent = _buildTransitRejectedContent(
+              context,
+              notification,
+              bodyHtml,
             );
           } else if (isAlert) {
             detailContent = _buildAlertContent(notification, bodyHtml);
@@ -1548,6 +1556,67 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransitRejectedContent(
+    BuildContext context,
+    Map<String, dynamic> notification,
+    String bodyHtml,
+  ) {
+    final dataMap = (notification['data'] is Map)
+        ? Map<String, dynamic>.from(notification['data'])
+        : <String, dynamic>{};
+    final articleId = (dataMap['articleId'] ??
+            _safeGetString(notification, 'relatedId') ??
+            '')
+        .toString();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF8BF13).withOpacity(0.45)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            resolveNotificationTitle(
+              notification,
+              _localeCode,
+              fallback: _safeGetString(notification, 'title') ?? '',
+            ),
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1B2B4B),
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(bodyHtml, style: const TextStyle(height: 1.4)),
+          if (articleId.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _openProposalArticle(context, articleId: articleId);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1B2B4B),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('Choisir un autre transitaire'),
+              ),
+            ),
+          ],
         ],
       ),
     );

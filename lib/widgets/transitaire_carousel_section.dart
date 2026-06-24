@@ -4,21 +4,36 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:tranoo/data/screens/transitaires_list_page.dart';
+import 'package:tranoo/data/screens/transitaire_profile_page.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/services/transit_mission_service.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
+import 'package:tranoo/utils/tranoo_toast.dart';
 import 'package:tranoo/widgets/transitaire_profile_ui.dart';
 import 'package:tranoo/widgets/transitaire_public_ui.dart';
+
+const RouteSettings kTransitaireFlowRoute = RouteSettings(name: 'transitaire_flow');
 
 /// Bandeau transitaires — avatars carrés horizontaux (style « Send Again »).
 class TransitaireCarouselSection extends StatefulWidget {
   final bool showTitle;
   final bool showSeeMoreButton;
+  final String? articleId;
+  /// Avant d'ouvrir la liste ou un profil transitaire.
+  final Future<bool> Function()? beforeBrowseTransitaire;
+  /// Avant de confirmer le choix d'un transitaire.
+  final Future<bool> Function()? beforeSelectTransitaire;
+  final VoidCallback? onSelectSuccess;
 
   const TransitaireCarouselSection({
     super.key,
     this.showTitle = true,
     this.showSeeMoreButton = true,
+    this.articleId,
+    this.beforeBrowseTransitaire,
+    this.beforeSelectTransitaire,
+    this.onSelectSuccess,
   });
 
   @override
@@ -76,11 +91,84 @@ class _TransitaireCarouselSectionState extends State<TransitaireCarouselSection>
     }
   }
 
-  void _openList() {
+  Future<bool> _ensureCanBrowse() async {
+    if (widget.beforeBrowseTransitaire != null) {
+      return widget.beforeBrowseTransitaire!();
+    }
+    return true;
+  }
+
+  Future<bool> _ensureCanSelect() async {
+    if (widget.beforeSelectTransitaire != null) {
+      return widget.beforeSelectTransitaire!();
+    }
+    return true;
+  }
+
+  void _openList() async {
+    if (!await _ensureCanBrowse()) return;
+    if (!mounted) return;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const TransitairesListPage()),
+      MaterialPageRoute(
+        settings: kTransitaireFlowRoute,
+        builder: (_) => TransitairesListPage(
+          articleId: widget.articleId,
+          beforeBrowseTransitaire: widget.beforeBrowseTransitaire,
+          beforeSelectTransitaire: widget.beforeSelectTransitaire,
+          onSelectSuccess: widget.onSelectSuccess,
+        ),
+      ),
     );
+  }
+
+  Future<void> _openTransitaireProfile(Map<String, dynamic> user) async {
+    final articleId = widget.articleId;
+    if (articleId == null || articleId.isEmpty) {
+      _openList();
+      return;
+    }
+    if (!await _ensureCanBrowse()) return;
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        settings: kTransitaireFlowRoute,
+        builder: (_) => TransitaireProfilePage(
+          transitaire: user,
+          articleId: articleId,
+          beforeSelectTransitaire: widget.beforeSelectTransitaire,
+          onTransitaireSelected: () => _selectTransitaire(user),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectTransitaire(Map<String, dynamic> user) async {
+    final articleId = widget.articleId;
+    final transitaireId = user['_id']?.toString();
+    if (articleId == null || transitaireId == null) return;
+    if (!await _ensureCanSelect()) return;
+    if (!mounted) return;
+
+    final result = await withTranooLoading(
+      context,
+      () => TransitMissionService.instance.selectTransitaire(
+        articleId: articleId,
+        transitaireId: transitaireId,
+      ),
+    );
+    if (!mounted) return;
+
+    if (result.ok) {
+      Navigator.of(context).popUntil(
+        (route) => route.settings.name != kTransitaireFlowRoute.name,
+      );
+      if (!mounted) return;
+      widget.onSelectSuccess?.call();
+    } else if (result.error != null) {
+      showTranooToast(context, message: result.error!, isError: true);
+    }
   }
 
   @override
@@ -95,7 +183,8 @@ class _TransitaireCarouselSectionState extends State<TransitaireCarouselSection>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.showSeeMoreButton && !widget.showTitle)
+        if (widget.showSeeMoreButton && !widget.showTitle) ...[
+          const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
@@ -114,6 +203,8 @@ class _TransitaireCarouselSectionState extends State<TransitaireCarouselSection>
               ),
             ),
           ),
+          const SizedBox(height: 12),
+        ],
         if (widget.showTitle) ...[
           Row(
             children: [
@@ -173,7 +264,7 @@ class _TransitaireCarouselSectionState extends State<TransitaireCarouselSection>
                   l10n: l10n,
                   photoSize: _photoSize,
                   compact: true,
-                  onTap: _openList,
+                  onTap: () => _openTransitaireProfile(_transitaires[i]),
                 ),
               ],
             ],

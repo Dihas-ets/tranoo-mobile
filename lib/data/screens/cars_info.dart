@@ -20,7 +20,10 @@ import 'package:tranoo/utils/article_view_helper.dart';
 import 'package:tranoo/utils/text_display.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/widgets/spec_info_card.dart';
+import 'package:tranoo/utils/tranoo_toast.dart';
+import 'package:tranoo/utils/transit_parcours_guard.dart';
 import 'package:tranoo/widgets/transitaire_carousel_section.dart';
+import 'package:tranoo/services/transit_mission_service.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -181,6 +184,65 @@ class _CarsinfoState extends State<CarsInfo> {
     return value ? l10n.yes : l10n.no;
   }
 
+  Future<void> _restoreTransitParcours() async {
+    final articleId = widget.id;
+    if (articleId == null || articleId.isEmpty) return;
+    final mission =
+        await TransitMissionService.instance.getParcours(articleId);
+    if (!mounted || mission == null) return;
+    final mode = (mission['modeLivraison'] ?? '').toString();
+    final pays = (mission['paysDestination'] ?? '').toString();
+    final details = (mission['detailsSupplementaires'] ?? '').toString();
+    setState(() {
+      if (mode == 'transit') {
+        _isEnTransitChecked = true;
+        _isEnConsommationChecked = false;
+      } else if (mode == 'consommation') {
+        _isEnConsommationChecked = true;
+        _isEnTransitChecked = false;
+      }
+      if (pays.isNotEmpty) _selectedCountry = pays;
+      if (details.isNotEmpty) _detailsController.text = details;
+    });
+  }
+
+  Future<void> _persistTransitOptions() async {
+    final articleId = widget.id;
+    if (articleId == null || articleId.isEmpty) return;
+    if (!_isEnConsommationChecked && !_isEnTransitChecked) return;
+    if (_selectedCountry == null || _selectedCountry!.isEmpty) return;
+
+    await TransitMissionService.instance.startParcours(
+      articleId: articleId,
+      articleTitre: _articleDisplayTitle,
+      modeLivraison: _isEnTransitChecked ? 'transit' : 'consommation',
+      paysDestination: _selectedCountry,
+      detailsSupplementaires: _detailsController.text.trim().isEmpty
+          ? null
+          : _detailsController.text.trim(),
+    );
+  }
+
+  String get _articleDisplayTitle {
+    final titre = (widget.titre ?? '').trim();
+    if (titre.isNotEmpty) return titre;
+    final composed =
+        '${widget.annee ?? ''} ${widget.marque ?? ''} ${widget.modele ?? ''}'
+            .trim();
+    return composed.isNotEmpty ? composed : 'Véhicule';
+  }
+
+  Future<void> _startTransitParcours() async {
+    final articleId = widget.id;
+    if (articleId == null || articleId.isEmpty) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    await TransitMissionService.instance.startParcours(
+      articleId: articleId,
+      articleTitre: _articleDisplayTitle,
+    );
+  }
+
   Future<void> _loadVerificationPrice() async {
     try {
       final url =
@@ -204,6 +266,8 @@ class _CarsinfoState extends State<CarsInfo> {
   void initState() {
     super.initState();
     trackArticleView(widget.id);
+    _startTransitParcours();
+    _restoreTransitParcours();
     _loadVerificationPrice();
     // Log toutes les valeurs reçues
     log('[CarsInfo] titre: ${widget.titre}');
@@ -712,6 +776,10 @@ class _CarsinfoState extends State<CarsInfo> {
           _buildSpecifications(l10n),
           const SizedBox(height: 24),
           _buildCheckboxes(screenWidth, shouldShowDeliveryOptions, l10n),
+          if (_isEnConsommationChecked || _isEnTransitChecked) ...[
+            const SizedBox(height: 20),
+            _buildTransitairesSection(l10n),
+          ],
           const SizedBox(height: 24),
           _buildActionButton(isAcheteur, l10n),
         ],
@@ -839,12 +907,60 @@ class _CarsinfoState extends State<CarsInfo> {
       children: [
         _buildSpecGrid(topCards),
         const SizedBox(height: 16),
-        const TransitaireCarouselSection(
-          showTitle: true,
-          showSeeMoreButton: true,
-        ),
-        const SizedBox(height: 16),
         _buildSpecGrid(bottomCards),
+      ],
+    );
+  }
+
+  Future<bool> _ensureTransitInfoForBrowse() async {
+    final error = TransitParcoursGuard.validateBrowse(
+      transitChecked: _isEnTransitChecked,
+      consommationChecked: _isEnConsommationChecked,
+      paysDestination: _selectedCountry,
+    );
+    if (error != null) {
+      if (!mounted) return false;
+      showTranooToast(context, message: error, isError: true);
+      return false;
+    }
+    await _persistTransitOptions();
+    return true;
+  }
+
+  Future<bool> _ensureTransitInfoForSelect() async {
+    return _ensureTransitInfoForBrowse();
+  }
+
+  void _onTransitaireChosen() {
+    if (!mounted) return;
+    showTranooToast(
+      context,
+      message: 'Transitaire choisi pour ce véhicule',
+      isSuccess: true,
+    );
+  }
+
+  Widget _buildTransitairesSection(AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.recommendedForwarders,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1B2B4B),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TransitaireCarouselSection(
+          showTitle: false,
+          showSeeMoreButton: true,
+          articleId: widget.id,
+          beforeBrowseTransitaire: _ensureTransitInfoForBrowse,
+          beforeSelectTransitaire: _ensureTransitInfoForSelect,
+          onSelectSuccess: _onTransitaireChosen,
+        ),
       ],
     );
   }
@@ -964,6 +1080,7 @@ class _CarsinfoState extends State<CarsInfo> {
                   _isEnConsommationChecked = v ?? false;
                   if (_isEnConsommationChecked) _isEnTransitChecked = false;
                 });
+                _persistTransitOptions();
               },
               activeColor: Colors.black,
             ),
@@ -976,6 +1093,7 @@ class _CarsinfoState extends State<CarsInfo> {
                   _isEnTransitChecked = v ?? false;
                   if (_isEnTransitChecked) _isEnConsommationChecked = false;
                 });
+                _persistTransitOptions();
               },
               activeColor: Colors.black,
             ),
@@ -1003,7 +1121,10 @@ class _CarsinfoState extends State<CarsInfo> {
                     (c) => DropdownMenuItem<String>(value: c, child: Text(c)),
                   )
                   .toList(),
-              onChanged: (value) => setState(() => _selectedCountry = value),
+              onChanged: (value) {
+                setState(() => _selectedCountry = value);
+                _persistTransitOptions();
+              },
             ),
           ),
         ),
@@ -1015,6 +1136,7 @@ class _CarsinfoState extends State<CarsInfo> {
         const SizedBox(height: 6),
         TextField(
           controller: _detailsController,
+          onChanged: (_) => _persistTransitOptions(),
           decoration: InputDecoration(
             hintText: l10n.enterDestinationDetails,
             filled: true,
@@ -1048,17 +1170,23 @@ class _CarsinfoState extends State<CarsInfo> {
               }
 
               if (!_isEnConsommationChecked && !_isEnTransitChecked) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.chooseDeliveryMode)),
+                showTranooToast(
+                  context,
+                  message: l10n.chooseDeliveryMode,
+                  isError: true,
                 );
                 return;
               }
               if (_selectedCountry == null || _selectedCountry!.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.selectLocationPlease)),
+                showTranooToast(
+                  context,
+                  message: l10n.selectLocationPlease,
+                  isError: true,
                 );
                 return;
               }
+
+              _persistTransitOptions();
 
               final article = {
                 '_id': widget.id, // Doit être l'ID Mongo réel

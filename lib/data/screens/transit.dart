@@ -36,7 +36,6 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        // Récupérer l'ID MongoDB du transitaire connecté
         final response = await _userService.dio.get(
           '/protected/me',
           options: Options(
@@ -51,8 +50,6 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
           });
         }
       } catch (e) {
-        print('Erreur lors de la récupération des données utilisateur: $e');
-        // Fallback vers Firebase UID si erreur
         setState(() {
           currentUserId = user.uid;
         });
@@ -80,12 +77,10 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
           headers: {'Authorization': 'Bearer $idToken'},
         ),
       );
-      // Articles acceptés par le transitaire (proposition validée), statutVente = en_attente
       final resp = await dio.get('/transit/acceptes');
       final List data = resp.data is List ? resp.data : [];
       final items =
           data.map<Map<String, dynamic>>((a) => _mapArticle(a)).toList();
-      // Partition selon type (faute d’un flag dédié achat, on se base sur type)
       final transit =
           items.where((e) => (e['type'] ?? '') == 'voiture').toList();
       final consommation =
@@ -98,7 +93,6 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
         });
       }
     } catch (e) {
-      print('Erreur lors du chargement des articles: $e');
       if (mounted) {
         setState(() {
           isLoading = false;
@@ -144,50 +138,40 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
       return;
     }
 
+    final articleId = article['_id'] ?? article['id'];
+    if (articleId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.articleWithoutId),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final vendeurId =
+        article['vendeur']?['_id'] ??
+        article['vendeurId'] ??
+        article['vendeur'];
+
+    if (vendeurId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.sellerInfoError),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     try {
-      print('DEBUG: Article data: $article');
-      print('DEBUG: Current user ID: $currentUserId');
-
-      // Vérifier que l'article a un ID (peut être 'id' ou '_id')
-      final articleId = article['_id'] ?? article['id'];
-      print('DEBUG: Article ID found: $articleId');
-
-      if (articleId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.articleWithoutId),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      // Récupérer l'ID du vendeur de l'article
-      final vendeurId =
-          article['vendeur']?['_id'] ??
-          article['vendeurId'] ??
-          article['vendeur'];
-      print('DEBUG: Vendeur ID: $vendeurId');
-
-      if (vendeurId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.sellerInfoError),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      // Créer ou récupérer la room de discussion
       final room = await _chatService.createOrGetRoom(
         user1Id: currentUserId!,
         user2Id: vendeurId,
         articleId: articleId,
       );
 
-      if (room != null) {
-        // Naviguer vers la discussion
+      if (room != null && mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -195,7 +179,7 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
                 (context) => Discussion(roomId: room['_id'], roomData: room),
           ),
         );
-      } else {
+      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.discussionCreationError),
@@ -204,13 +188,14 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
         );
       }
     } catch (e) {
-      print('Erreur lors de l\'ouverture de la discussion: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.errorGeneric(e.toString())),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.errorGeneric(e.toString())),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

@@ -12,6 +12,7 @@ import 'package:random_string/random_string.dart';
 import 'package:tranoo/utils/feexpay_result_utils.dart';
 import 'package:tranoo/utils/feexpay_callback_state.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/tranoo_toast.dart';
 
 String get _fpToken {
   final a = (dotenv.env['FP_TOKEN_FEEXPAY'] ?? '').trim();
@@ -409,11 +410,10 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
           debugPrint('[VerificationPayment] verification/request: $e');
         }
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.paymentReceivedVerificationProcessing),
-            backgroundColor: const Color(0xFF00A86B),
-          ),
+        showTranooToast(
+          context,
+          message: l10n.paymentReceivedVerificationProcessing,
+          isSuccess: true,
         );
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const AvantHome()),

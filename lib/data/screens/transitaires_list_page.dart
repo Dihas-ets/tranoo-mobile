@@ -4,15 +4,30 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:tranoo/data/screens/transitaire_profile_page.dart';
+import 'package:tranoo/services/transit_mission_service.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
+import 'package:tranoo/utils/tranoo_toast.dart';
 import 'package:tranoo/widgets/transitaire_profile_ui.dart';
+import 'package:tranoo/widgets/transitaire_carousel_section.dart'
+    show kTransitaireFlowRoute;
 import 'package:tranoo/widgets/transitaire_public_ui.dart';
 
 /// Liste transitaires — cartes style « My Booking », sans filtre.
 class TransitairesListPage extends StatefulWidget {
-  const TransitairesListPage({super.key});
+  final String? articleId;
+  final Future<bool> Function()? beforeBrowseTransitaire;
+  final Future<bool> Function()? beforeSelectTransitaire;
+  final VoidCallback? onSelectSuccess;
+
+  const TransitairesListPage({
+    super.key,
+    this.articleId,
+    this.beforeBrowseTransitaire,
+    this.beforeSelectTransitaire,
+    this.onSelectSuccess,
+  });
 
   @override
   State<TransitairesListPage> createState() => _TransitairesListPageState();
@@ -63,13 +78,64 @@ class _TransitairesListPageState extends State<TransitairesListPage> {
     }
   }
 
-  void _openProfile(Map<String, dynamic> u) {
+  Future<bool> _ensureCanBrowse() async {
+    if (widget.beforeBrowseTransitaire != null) {
+      return widget.beforeBrowseTransitaire!();
+    }
+    return true;
+  }
+
+  Future<bool> _ensureCanSelect() async {
+    if (widget.beforeSelectTransitaire != null) {
+      return widget.beforeSelectTransitaire!();
+    }
+    return true;
+  }
+
+  Future<void> _openProfile(Map<String, dynamic> u) async {
+    if (!await _ensureCanBrowse()) return;
+    if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => TransitaireProfilePage(transitaire: u),
+        settings: kTransitaireFlowRoute,
+        builder: (_) => TransitaireProfilePage(
+          transitaire: u,
+          articleId: widget.articleId,
+          beforeSelectTransitaire: widget.beforeSelectTransitaire,
+          onTransitaireSelected: widget.articleId != null
+              ? () => _selectTransitaire(u)
+              : null,
+        ),
       ),
     );
+  }
+
+  Future<void> _selectTransitaire(Map<String, dynamic> user) async {
+    final articleId = widget.articleId;
+    final transitaireId = user['_id']?.toString();
+    if (articleId == null || transitaireId == null) return;
+    if (!await _ensureCanSelect()) return;
+    if (!mounted) return;
+
+    final result = await withTranooLoading(
+      context,
+      () => TransitMissionService.instance.selectTransitaire(
+        articleId: articleId,
+        transitaireId: transitaireId,
+      ),
+    );
+    if (!mounted) return;
+
+    if (result.ok) {
+      Navigator.of(context).popUntil(
+        (route) => route.settings.name != kTransitaireFlowRoute.name,
+      );
+      if (!mounted) return;
+      widget.onSelectSuccess?.call();
+    } else if (result.error != null) {
+      showTranooToast(context, message: result.error!, isError: true);
+    }
   }
 
   @override

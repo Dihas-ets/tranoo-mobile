@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/tranoo_toast.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 export 'transitaire_profile_ui.dart'
@@ -13,11 +14,12 @@ class TransitairePublicUi {
       u['hasSubscription'] == true || u['subscriptionStatus'] == 'active';
 
   static double displayRating(Map<String, dynamic> u) {
-    final id = (u['_id'] ?? u['uid'] ?? '').toString();
-    if (id.isEmpty) return 4.5;
-    final hash = id.codeUnits.fold<int>(0, (a, b) => a + b);
-    return 4.0 + (hash % 10) / 10;
+    final avg = (u['ratingAverage'] as num?)?.toDouble() ?? 0;
+    if (avg > 0) return avg;
+    return 0;
   }
+
+  static bool hasRating(Map<String, dynamic> u) => true;
 
   static String displayName(Map<String, dynamic> user) {
     final entreprise = (user['entreprise'] ?? '').toString().trim();
@@ -73,9 +75,7 @@ class TransitairePublicUi {
     final l10n = AppLocalizations.of(context)!;
     final tel = (user['telephone'] ?? '').toString().trim();
     if (tel.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.contactPhoneUnavailable)),
-      );
+      showTranooToast(context, message: l10n.contactPhoneUnavailable, isError: true);
       return;
     }
     final uri = Uri.parse('tel:$tel');
@@ -209,8 +209,9 @@ class TransitaireSquarePhoto extends StatelessWidget {
 }
 
 Widget _inlineStarRating(double rating, {bool numberFirst = false}) {
+  final safeRating = rating.clamp(0, 5).toDouble();
   final value = Text(
-    rating.toStringAsFixed(1),
+    safeRating.toStringAsFixed(1),
     style: const TextStyle(
       fontSize: 13,
       fontWeight: FontWeight.w800,
@@ -306,6 +307,7 @@ Widget _listMetaRow(AppLocalizations l10n, Map<String, dynamic> user) {
 }
 
 Widget _photoRatingBadge(double rating) {
+  final safeRating = rating.clamp(0, 5).toDouble();
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
     decoration: BoxDecoration(
@@ -316,7 +318,7 @@ Widget _photoRatingBadge(double rating) {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          rating.toStringAsFixed(1),
+          safeRating.toStringAsFixed(1),
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
@@ -353,6 +355,7 @@ class TransitaireSquareAvatarCard extends StatelessWidget {
     final photo = TransitairePublicUi.photoUrl(user);
     final initials = TransitairePublicUi.initials(user);
     final rating = TransitairePublicUi.displayRating(user);
+    final showRating = TransitairePublicUi.hasRating(user);
 
     return SizedBox(
       width: photoSize + 14,
@@ -379,7 +382,7 @@ class TransitaireSquareAvatarCard extends StatelessWidget {
                         initials: initials,
                       ),
                     ),
-                    if (compact)
+                    if (compact && showRating)
                       Positioned(
                         right: -10,
                         bottom: 6,
@@ -400,7 +403,7 @@ class TransitaireSquareAvatarCard extends StatelessWidget {
                     height: 1.15,
                   ),
                 ),
-                if (!compact) ...[
+                if (!compact && showRating) ...[
                   const SizedBox(height: 4),
                   _inlineStarRating(rating, numberFirst: true),
                 ],
@@ -481,6 +484,7 @@ class TransitaireListCard extends StatelessWidget {
     final initials = TransitairePublicUi.initials(user);
     final location = TransitairePublicUi.locationLine(user);
     final rating = TransitairePublicUi.displayRating(user);
+    final showRating = TransitairePublicUi.hasRating(user);
     final galleryCount = TransitairePublicUi.galleryCount(user);
 
     return Container(
@@ -561,8 +565,10 @@ class TransitaireListCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          _inlineStarRating(rating, numberFirst: true),
+                          if (showRating) ...[
+                            const SizedBox(width: 6),
+                            _inlineStarRating(rating, numberFirst: true),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 10),

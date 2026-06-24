@@ -4,8 +4,27 @@ import 'package:tranoo/widgets/transitaire_profile_ui.dart';
 /// Profil public transitaire — visible par les acheteurs depuis cars_info.
 class TransitaireProfilePage extends StatelessWidget {
   final Map<String, dynamic> transitaire;
+  final bool isOwner;
+  final String? articleId;
+  final VoidCallback? onTransitaireSelected;
+  final Future<bool> Function()? beforeSelectTransitaire;
 
-  const TransitaireProfilePage({super.key, required this.transitaire});
+  const TransitaireProfilePage({
+    super.key,
+    required this.transitaire,
+    this.isOwner = false,
+    this.articleId,
+    this.onTransitaireSelected,
+    this.beforeSelectTransitaire,
+  });
+
+  Future<void> _handleSelect(BuildContext context) async {
+    if (beforeSelectTransitaire != null) {
+      final ok = await beforeSelectTransitaire!();
+      if (!ok) return;
+    }
+    onTransitaireSelected?.call();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +46,10 @@ class TransitaireProfilePage extends StatelessWidget {
       ),
       body: TransitaireProfileView(
         user: transitaire,
-        isOwner: false,
+        isOwner: isOwner,
+        articleId: articleId,
+        onTransitaireSelected:
+            onTransitaireSelected == null ? null : () => _handleSelect(context),
       ),
     );
   }

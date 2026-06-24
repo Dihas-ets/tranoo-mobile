@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/services/transitaire_review_service.dart';
+import 'package:tranoo/utils/tranoo_toast.dart' show showTranooToast;
 import 'package:tranoo/widgets/transitaire_gallery_section.dart';
 import 'package:tranoo/widgets/transitaire_public_ui.dart';
+import 'package:tranoo/widgets/transitaire_reviews_section.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+export 'package:tranoo/utils/tranoo_toast.dart'
+    show hideTranooLoading, showTranooToast, withTranooLoading;
 
 const Color kTransitaireNavy = Color(0xFF1B2B4B);
 const Color kTransitaireAmber = Color(0xFFF8BF13);
@@ -30,6 +36,7 @@ class TransitaireStarRating extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final safeRating = rating.clamp(0, 5).toDouble();
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 6 : 8,
@@ -50,7 +57,7 @@ class TransitaireStarRating extends StatelessWidget {
           ),
           SizedBox(width: compact ? 2 : 4),
           Text(
-            rating.toStringAsFixed(1),
+            safeRating.toStringAsFixed(1),
             style: TextStyle(
               fontSize: compact ? 11 : 13,
               fontWeight: FontWeight.bold,
@@ -186,6 +193,8 @@ class TransitaireProfileAvatar extends StatelessWidget {
 class TransitaireProfileView extends StatefulWidget {
   final Map<String, dynamic> user;
   final bool isOwner;
+  final String? articleId;
+  final VoidCallback? onTransitaireSelected;
   final VoidCallback? onEditProfile;
   final VoidCallback? onOpenHistory;
   final VoidCallback? onOpenSubscription;
@@ -199,6 +208,8 @@ class TransitaireProfileView extends StatefulWidget {
     super.key,
     required this.user,
     this.isOwner = false,
+    this.articleId,
+    this.onTransitaireSelected,
     this.onEditProfile,
     this.onOpenHistory,
     this.onOpenSubscription,
@@ -216,12 +227,33 @@ class TransitaireProfileView extends StatefulWidget {
 class _TransitaireProfileViewState extends State<TransitaireProfileView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  double _ratingAverage = 0;
+  int _reviewCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() => setState(() {}));
+    _ratingAverage =
+        (widget.user['ratingAverage'] as num?)?.toDouble() ?? 0;
+    _reviewCount = (widget.user['reviewCount'] as num?)?.toInt() ?? 0;
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews() async {
+    final id = (widget.user['_id'] ?? widget.user['uid'] ?? '').toString();
+    if (id.isEmpty) return;
+    try {
+      final payload = widget.isOwner
+          ? await TransitaireReviewService.instance.fetchReceived()
+          : await TransitaireReviewService.instance.fetchForTransitaire(id);
+      if (!mounted) return;
+      setState(() {
+        _ratingAverage = payload.ratingAverage;
+        _reviewCount = payload.reviewCount;
+      });
+    } catch (_) {}
   }
 
   @override
@@ -234,9 +266,7 @@ class _TransitaireProfileViewState extends State<TransitaireProfileView>
     final l10n = AppLocalizations.of(context)!;
     final tel = (widget.user['telephone'] ?? '').toString().trim();
     if (tel.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.contactPhoneUnavailable)),
-      );
+      showTranooToast(context, message: l10n.contactPhoneUnavailable, isError: true);
       return;
     }
     final uri = Uri.parse('tel:$tel');
@@ -246,11 +276,12 @@ class _TransitaireProfileViewState extends State<TransitaireProfileView>
   }
 
   double _displayRating() {
-    final id = (widget.user['_id'] ?? widget.user['uid'] ?? '').toString();
-    if (id.isEmpty) return 4.5;
-    final hash = id.codeUnits.fold<int>(0, (a, b) => a + b);
-    return 4.0 + (hash % 10) / 10;
+    if (_ratingAverage > 0) return _ratingAverage;
+    return (widget.user['ratingAverage'] as num?)?.toDouble() ?? 0;
   }
+
+  String get _transitaireId =>
+      (widget.user['_id'] ?? widget.user['uid'] ?? '').toString();
 
   @override
   Widget build(BuildContext context) {
@@ -263,6 +294,7 @@ class _TransitaireProfileViewState extends State<TransitaireProfileView>
     final subtitle = TransitaireProfileHelpers.subtitle(user, l10n: l10n);
     final subscribed = TransitairePublicUi.isSubscribed(user);
     final galleryItems = parseTransitaireGallery(user['transitaireGallery']);
+    final rating = _displayRating();
 
     return Column(
       children: [
@@ -273,8 +305,9 @@ class _TransitaireProfileViewState extends State<TransitaireProfileView>
           subtitle: subtitle,
           location: location,
           premium: subscribed,
-          showRating: !widget.isOwner && subscribed,
-          rating: _displayRating(),
+          showRating: true,
+          rating: rating,
+          reviewCount: _reviewCount,
           premiumLabel: l10n.forwarderPremiumBadge,
         ),
         _ProfileTabBar(controller: _tabController, l10n: l10n),
@@ -286,6 +319,8 @@ class _TransitaireProfileViewState extends State<TransitaireProfileView>
                 user: user,
                 isOwner: widget.isOwner,
                 l10n: l10n,
+                articleId: widget.articleId,
+                onSelectTransitaire: widget.onTransitaireSelected,
                 onContact: () => _contactTransitaire(context),
                 onEditProfile: widget.onEditProfile,
                 onOpenHistory: widget.onOpenHistory,
@@ -300,6 +335,22 @@ class _TransitaireProfileViewState extends State<TransitaireProfileView>
                 items: galleryItems,
                 user: user,
                 emptyMessage: l10n.transitaireGalleryEmpty,
+              ),
+              ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  16,
+                  20,
+                  32 + MediaQuery.paddingOf(context).bottom,
+                ),
+                children: [
+                  if (_transitaireId.isNotEmpty)
+                    TransitaireReviewsSection(
+                      transitaireId: _transitaireId,
+                      isOwner: widget.isOwner,
+                    ),
+                ],
               ),
             ],
           ),
@@ -318,6 +369,7 @@ class _ProfileCoverHeader extends StatelessWidget {
   final bool premium;
   final bool showRating;
   final double rating;
+  final int reviewCount;
   final String premiumLabel;
 
   const _ProfileCoverHeader({
@@ -329,6 +381,7 @@ class _ProfileCoverHeader extends StatelessWidget {
     required this.premium,
     required this.showRating,
     required this.rating,
+    this.reviewCount = 0,
     required this.premiumLabel,
   });
 
@@ -424,7 +477,8 @@ class _ProfileCoverHeader extends StatelessWidget {
                       if (showRating) ...[
                         const SizedBox(height: 10),
                         TransitaireStarRating(rating: rating),
-                        const SizedBox(height: 4),
+                      ] else if (premium) ...[
+                        const SizedBox(height: 10),
                         Text(
                           premiumLabel,
                           style: TextStyle(
@@ -489,6 +543,7 @@ class _ProfileTabBar extends StatelessWidget {
         tabs: [
           Tab(text: l10n.details),
           Tab(text: l10n.transitaireProfileTabGallery),
+          const Tab(text: 'Avis'),
         ],
       ),
     );
@@ -499,6 +554,8 @@ class _DetailsTab extends StatelessWidget {
   final Map<String, dynamic> user;
   final bool isOwner;
   final AppLocalizations l10n;
+  final String? articleId;
+  final VoidCallback? onSelectTransitaire;
   final VoidCallback onContact;
   final VoidCallback? onEditProfile;
   final VoidCallback? onOpenHistory;
@@ -513,6 +570,8 @@ class _DetailsTab extends StatelessWidget {
     required this.user,
     required this.isOwner,
     required this.l10n,
+    this.articleId,
+    this.onSelectTransitaire,
     required this.onContact,
     this.onEditProfile,
     this.onOpenHistory,
@@ -554,6 +613,30 @@ class _DetailsTab extends StatelessWidget {
             ],
           ),
         ] else ...[
+          if (articleId != null && onSelectTransitaire != null) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onSelectTransitaire,
+                icon: const Icon(Icons.check_circle_outline, size: 20),
+                label: const Text('Choisir ce transitaire'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kTransitaireNavy,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                  textStyle: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(

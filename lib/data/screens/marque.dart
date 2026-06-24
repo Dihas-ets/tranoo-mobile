@@ -1841,9 +1841,9 @@ class _MarqueState extends State<Marque>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                "Véhicules",
-                style: TextStyle(
+              Text(
+                isVendeur ? "Mes voitures" : "Véhicules",
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF040415),
@@ -2628,7 +2628,8 @@ class _MarqueState extends State<Marque>
                     buildPubsSponsoriseesSection(),
                     if (!isVendeur || _userService.peutVendreVehicules)
                       buildVoituresRecommandeesSection(),
-                    if (!isVendeur) _buildHomeTransitairesSection(),
+                    if (!isVendeur || _userService.peutVendreVehicules)
+                      _buildHomeTransitairesSection(),
                     if (!isVendeur || _userService.peutVendreMotos)
                       buildMotosSection(),
                     if (!isVendeur || _userService.peutVendrePieces)
@@ -2646,7 +2647,7 @@ class _MarqueState extends State<Marque>
 
   Widget _buildHomeTransitairesSection() {
     return const Padding(
-      padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: EdgeInsets.fromLTRB(16, 24, 16, 12),
       child: TransitaireCarouselSection(
         showTitle: false,
         showSeeMoreButton: true,

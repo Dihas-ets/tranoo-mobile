@@ -15,7 +15,6 @@ import 'motos.dart';
 import 'piece.dart';
 import 'profil3.dart';
 import 'profilutilisateurpage.dart';
-import 'profil_utilisateur2.dart';
 import 'cart_page.dart';
 import 'notifications.dart';
 import 'connexion_page.dart';
@@ -161,7 +160,6 @@ class _AvantHomeState extends State<AvantHome>
         ?.toString()
         .toLowerCase();
     if (role == 'vendeur') return const ProfilUtilisateurPage();
-    if (role == 'transitaire') return const ProfilUtilisateur2();
     return const Profil3();
   }
 
