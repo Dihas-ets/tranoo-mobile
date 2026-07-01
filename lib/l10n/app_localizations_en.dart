@@ -4599,6 +4599,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorAchatAnnule => 'This purchase was cancelled.';
 
   @override
+  String get errorCaptchaInvalid => 'Security check failed. Try again.';
+
+  @override
+  String get errorCaptchaRequired => 'Security check required.';
+
+  @override
+  String get errorTransitaireOnly => 'Reserved for forwarders.';
+
+  @override
+  String get errorTransitaireVerifAlreadyVerified =>
+      'Your account is already verified.';
+
+  @override
+  String get errorTransitaireVerifPending =>
+      'A request is already under review (24h processing time).';
+
+  @override
+  String get errorTransitaireVerifCardsRequired =>
+      'Front and back photos of the forwarder card are required.';
+
+  @override
+  String get errorTransitaireVerifCompanyRequired =>
+      'Origin company name and reference phone are required.';
+
+  @override
+  String get errorTransitaireVerifReferencePhoneInvalid =>
+      'Reference must be a valid phone number.';
+
+  @override
+  String get errorTransitaireVerifSubmitSuccess =>
+      'Verification request sent. Review within 24h.';
+
+  @override
+  String get errorTransitaireVerifSubmitFailed =>
+      'Failed to submit verification request.';
+
+  @override
   String get purchaseForwarderSelected =>
       'Forwarder updated for this purchase.';
 }

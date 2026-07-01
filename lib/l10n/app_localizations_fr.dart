@@ -4664,6 +4664,43 @@ class AppLocalizationsFr extends AppLocalizations {
   String get errorAchatAnnule => 'Cet achat a été annulé.';
 
   @override
+  String get errorCaptchaInvalid => 'Échec du contrôle de sécurité. Réessayez.';
+
+  @override
+  String get errorCaptchaRequired => 'Contrôle de sécurité requis.';
+
+  @override
+  String get errorTransitaireOnly => 'Réservé aux transitaires.';
+
+  @override
+  String get errorTransitaireVerifAlreadyVerified =>
+      'Votre compte est déjà vérifié.';
+
+  @override
+  String get errorTransitaireVerifPending =>
+      'Une demande est déjà en cours d\'examen (délai 24h).';
+
+  @override
+  String get errorTransitaireVerifCardsRequired =>
+      'Les photos recto et verso de la carte transitaire sont requises.';
+
+  @override
+  String get errorTransitaireVerifCompanyRequired =>
+      'Le nom et le numéro de référence de l\'entreprise de provenance sont requis.';
+
+  @override
+  String get errorTransitaireVerifReferencePhoneInvalid =>
+      'Le numéro de référence doit être un numéro de téléphone valide.';
+
+  @override
+  String get errorTransitaireVerifSubmitSuccess =>
+      'Demande de vérification envoyée. Délai d\'examen : 24h.';
+
+  @override
+  String get errorTransitaireVerifSubmitFailed =>
+      'Erreur lors de l\'envoi de la demande de vérification.';
+
+  @override
   String get purchaseForwarderSelected =>
       'Transitaire mis à jour pour cet achat.';
 }

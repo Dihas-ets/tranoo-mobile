@@ -2418,5 +2418,15 @@
   "purchaseModeConsommation": "استهلاك محلي",
   "errorTransitaireActif": "يوجد وسيط نشط بالفعل لهذا الشراء.",
   "errorAchatAnnule": "تم إلغاء هذا الشراء.",
+  "errorCaptchaInvalid": "فشل التحقق الأمني. أعد المحاولة.",
+  "errorCaptchaRequired": "التحقق الأمني مطلوب.",
+  "errorTransitaireOnly": "مخصص لوسطاء الشحن.",
+  "errorTransitaireVerifAlreadyVerified": "حسابك موثق بالفعل.",
+  "errorTransitaireVerifPending": "طلب قيد المراجعة بالفعل (مهلة 24 ساعة).",
+  "errorTransitaireVerifCardsRequired": "صور بطاقة الوسيط (الوجه والظهر) مطلوبة.",
+  "errorTransitaireVerifCompanyRequired": "اسم شركة المنشأ ورقم المرجع مطلوبان.",
+  "errorTransitaireVerifReferencePhoneInvalid": "يجب أن يكون المرجع رقم هاتف صالحاً.",
+  "errorTransitaireVerifSubmitSuccess": "تم إرسال طلب التحقق. المراجعة خلال 24 ساعة.",
+  "errorTransitaireVerifSubmitFailed": "تعذر إرسال طلب التحقق.",
   "purchaseForwarderSelected": "تم تحديث الوسيط لهذا الشراء."
 }

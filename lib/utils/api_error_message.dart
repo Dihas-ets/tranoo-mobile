@@ -154,6 +154,26 @@ class ApiErrorMessage {
         return l10n.errorTransitaireActif;
       case 'ACHAT_ANNULE':
         return l10n.errorAchatAnnule;
+      case 'CAPTCHA_INVALID':
+        return l10n.errorCaptchaInvalid;
+      case 'CAPTCHA_TOKEN_MISSING':
+        return l10n.errorCaptchaRequired;
+      case 'TRANSITAIRE_ONLY':
+        return l10n.errorTransitaireOnly;
+      case 'TRANSITAIRE_VERIF_ALREADY_VERIFIED':
+        return l10n.errorTransitaireVerifAlreadyVerified;
+      case 'TRANSITAIRE_VERIF_PENDING':
+        return l10n.errorTransitaireVerifPending;
+      case 'TRANSITAIRE_VERIF_CARDS_REQUIRED':
+        return l10n.errorTransitaireVerifCardsRequired;
+      case 'TRANSITAIRE_VERIF_COMPANY_REQUIRED':
+        return l10n.errorTransitaireVerifCompanyRequired;
+      case 'TRANSITAIRE_VERIF_REFERENCE_PHONE_INVALID':
+        return l10n.errorTransitaireVerifReferencePhoneInvalid;
+      case 'TRANSITAIRE_VERIF_SUBMIT_SUCCESS':
+        return l10n.errorTransitaireVerifSubmitSuccess;
+      case 'TRANSITAIRE_VERIF_SUBMIT_FAILED':
+        return l10n.errorTransitaireVerifSubmitFailed;
       default:
         return null;
     }

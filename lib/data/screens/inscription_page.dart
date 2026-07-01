@@ -11,6 +11,9 @@ import 'connexion_page.dart';
 import 'avant_home.dart';
 import 'package:tranoo/utils/phone_country_config.dart';
 import 'package:tranoo/utils/auth_config.dart';
+// CAPTCHA mobile désactivé — web uniquement pour l'instant.
+// import 'package:tranoo/config/turnstile_config.dart';
+// import 'package:tranoo/utils/turnstile_captcha.dart';
 
 class InscriptionPage extends StatefulWidget {
   const InscriptionPage({super.key});
@@ -713,6 +716,21 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             _isLoading = true;
                           });
                           try {
+                            // --- CAPTCHA mobile (désactivé, web uniquement) ---
+                            // final captchaToken =
+                            //     await TurnstileCaptcha.requestToken(context);
+                            // if (isTurnstileConfigured &&
+                            //     (captchaToken == null ||
+                            //         captchaToken.isEmpty)) {
+                            //   AuthMessagePopup.showError(
+                            //     context,
+                            //     title: 'Contrôle de sécurité requis',
+                            //     subtitle:
+                            //         'Veuillez valider le contrôle de sécurité pour continuer.',
+                            //   );
+                            //   return;
+                            // }
+
                             final cc = selectedCountryCode ?? '+229';
                             final email = syntheticEmailFromPhone(
                               cc,
@@ -740,6 +758,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               numeroIFU: null,
                               entrepriseProvenance: null,
                               referralCode: pendingReferral,
+                              // captchaToken: captchaToken,
                               // fcmToken: ... (à ajouter si dispo)
                             );
 

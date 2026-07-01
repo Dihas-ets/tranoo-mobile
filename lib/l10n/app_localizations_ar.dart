@@ -4561,5 +4561,40 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errorAchatAnnule => 'تم إلغاء هذا الشراء.';
 
   @override
+  String get errorCaptchaInvalid => 'فشل التحقق الأمني. أعد المحاولة.';
+
+  @override
+  String get errorCaptchaRequired => 'التحقق الأمني مطلوب.';
+
+  @override
+  String get errorTransitaireOnly => 'مخصص لوسطاء الشحن.';
+
+  @override
+  String get errorTransitaireVerifAlreadyVerified => 'حسابك موثق بالفعل.';
+
+  @override
+  String get errorTransitaireVerifPending =>
+      'طلب قيد المراجعة بالفعل (مهلة 24 ساعة).';
+
+  @override
+  String get errorTransitaireVerifCardsRequired =>
+      'صور بطاقة الوسيط (الوجه والظهر) مطلوبة.';
+
+  @override
+  String get errorTransitaireVerifCompanyRequired =>
+      'اسم شركة المنشأ ورقم المرجع مطلوبان.';
+
+  @override
+  String get errorTransitaireVerifReferencePhoneInvalid =>
+      'يجب أن يكون المرجع رقم هاتف صالحاً.';
+
+  @override
+  String get errorTransitaireVerifSubmitSuccess =>
+      'تم إرسال طلب التحقق. المراجعة خلال 24 ساعة.';
+
+  @override
+  String get errorTransitaireVerifSubmitFailed => 'تعذر إرسال طلب التحقق.';
+
+  @override
   String get purchaseForwarderSelected => 'تم تحديث الوسيط لهذا الشراء.';
 }

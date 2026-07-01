@@ -2418,5 +2418,15 @@
   "purchaseModeConsommation": "Local consumption",
   "errorTransitaireActif": "A forwarder is already active for this purchase.",
   "errorAchatAnnule": "This purchase was cancelled.",
+  "errorCaptchaInvalid": "Security check failed. Try again.",
+  "errorCaptchaRequired": "Security check required.",
+  "errorTransitaireOnly": "Reserved for forwarders.",
+  "errorTransitaireVerifAlreadyVerified": "Your account is already verified.",
+  "errorTransitaireVerifPending": "A request is already under review (24h processing time).",
+  "errorTransitaireVerifCardsRequired": "Front and back photos of the forwarder card are required.",
+  "errorTransitaireVerifCompanyRequired": "Origin company name and reference phone are required.",
+  "errorTransitaireVerifReferencePhoneInvalid": "Reference must be a valid phone number.",
+  "errorTransitaireVerifSubmitSuccess": "Verification request sent. Review within 24h.",
+  "errorTransitaireVerifSubmitFailed": "Failed to submit verification request.",
   "purchaseForwarderSelected": "Forwarder updated for this purchase."
 }

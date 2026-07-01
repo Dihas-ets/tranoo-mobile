@@ -24,6 +24,7 @@ import 'second_page.dart';
 import '../../providers/auth_provider.dart' as myauth;
 import '../../services/notification_service.dart';
 import '../../utils/page_refresh_registry.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../../main.dart' show rootNavigatorKey;
 import '../../widgets/alert_incoming_call_overlay.dart';
 import '../../widgets/alert_display_permission_dialog.dart';
@@ -56,6 +57,9 @@ class _AvantHomeState extends State<AvantHome>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlutterNativeSplash.remove();
+    });
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AlertIncomingCallService.tryShowFromAppLaunchOnly(

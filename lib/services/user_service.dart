@@ -102,6 +102,7 @@ class UserService extends ChangeNotifier {
     String? numeroIFU,
     String? entrepriseProvenance,
     String? referralCode,
+    String? captchaToken,
   }) async {
     UserCredential? credential;
     try {
@@ -130,6 +131,9 @@ class UserService extends ChangeNotifier {
       if (entrepriseProvenance != null)
         data['entrepriseProvenance'] = entrepriseProvenance;
       if (referralCode != null) data['referralCode'] = referralCode;
+      if (captchaToken != null && captchaToken.isNotEmpty) {
+        data['captchaToken'] = captchaToken;
+      }
 
       final response = await _dio.post(
         '/auth/register',

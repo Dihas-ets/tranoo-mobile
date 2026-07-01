@@ -8434,6 +8434,66 @@ abstract class AppLocalizations {
   /// **'This purchase was cancelled.'**
   String get errorAchatAnnule;
 
+  /// No description provided for @errorCaptchaInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Security check failed. Try again.'**
+  String get errorCaptchaInvalid;
+
+  /// No description provided for @errorCaptchaRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Security check required.'**
+  String get errorCaptchaRequired;
+
+  /// No description provided for @errorTransitaireOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Reserved for forwarders.'**
+  String get errorTransitaireOnly;
+
+  /// No description provided for @errorTransitaireVerifAlreadyVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is already verified.'**
+  String get errorTransitaireVerifAlreadyVerified;
+
+  /// No description provided for @errorTransitaireVerifPending.
+  ///
+  /// In en, this message translates to:
+  /// **'A request is already under review (24h processing time).'**
+  String get errorTransitaireVerifPending;
+
+  /// No description provided for @errorTransitaireVerifCardsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Front and back photos of the forwarder card are required.'**
+  String get errorTransitaireVerifCardsRequired;
+
+  /// No description provided for @errorTransitaireVerifCompanyRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Origin company name and reference phone are required.'**
+  String get errorTransitaireVerifCompanyRequired;
+
+  /// No description provided for @errorTransitaireVerifReferencePhoneInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference must be a valid phone number.'**
+  String get errorTransitaireVerifReferencePhoneInvalid;
+
+  /// No description provided for @errorTransitaireVerifSubmitSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification request sent. Review within 24h.'**
+  String get errorTransitaireVerifSubmitSuccess;
+
+  /// No description provided for @errorTransitaireVerifSubmitFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to submit verification request.'**
+  String get errorTransitaireVerifSubmitFailed;
+
   /// No description provided for @purchaseForwarderSelected.
   ///
   /// In en, this message translates to:

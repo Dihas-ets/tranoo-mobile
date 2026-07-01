@@ -2418,5 +2418,15 @@
   "purchaseModeConsommation": "En consommation",
   "errorTransitaireActif": "Un transitaire est déjà actif pour cet achat.",
   "errorAchatAnnule": "Cet achat a été annulé.",
+  "errorCaptchaInvalid": "Échec du contrôle de sécurité. Réessayez.",
+  "errorCaptchaRequired": "Contrôle de sécurité requis.",
+  "errorTransitaireOnly": "Réservé aux transitaires.",
+  "errorTransitaireVerifAlreadyVerified": "Votre compte est déjà vérifié.",
+  "errorTransitaireVerifPending": "Une demande est déjà en cours d'examen (délai 24h).",
+  "errorTransitaireVerifCardsRequired": "Les photos recto et verso de la carte transitaire sont requises.",
+  "errorTransitaireVerifCompanyRequired": "Le nom et le numéro de référence de l'entreprise de provenance sont requis.",
+  "errorTransitaireVerifReferencePhoneInvalid": "Le numéro de référence doit être un numéro de téléphone valide.",
+  "errorTransitaireVerifSubmitSuccess": "Demande de vérification envoyée. Délai d'examen : 24h.",
+  "errorTransitaireVerifSubmitFailed": "Erreur lors de l'envoi de la demande de vérification.",
   "purchaseForwarderSelected": "Transitaire mis à jour pour cet achat."
 }

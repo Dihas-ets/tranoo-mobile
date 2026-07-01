@@ -61,6 +61,8 @@
 	<string>Tranoo utilise cet identifiant pour améliorer les performances de l'application et mesurer l'efficacité des campagnes.</string>
 	-->
 		<key>UIStatusBarHidden</key>
+		<true/>
+		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
 	</dict>
 </plist>
