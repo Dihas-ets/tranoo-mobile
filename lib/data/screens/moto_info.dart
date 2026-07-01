@@ -8,7 +8,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:confetti/confetti.dart';
 import 'dart:developer';
-import 'verification_payment.dart'; // Import pour la page de vérification de paiement
 import 'package:tranoo/services/views_service.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/alert_service.dart';
@@ -187,18 +186,6 @@ class _MotoInfoState extends State<MotoInfo> {
       : (widget.videoOptimized ?? widget.video);
   late ConfettiController _confettiController;
   static const String _whatsAppPhone = '22941839801'; // sans +
-  int _verificationPrice = 20000;
-  String _formatFcfa(int value) {
-    final priceStr = value.toString();
-    final reversed = priceStr.split('').reversed.join('');
-    final withDots = reversed.replaceAllMapped(
-      RegExp(r'(\d{3})(?=\d)'),
-      (Match m) => '${m[0]}.',
-    );
-    return withDots.split('').reversed.join('');
-  }
-
-  String get _verificationPriceLabel => '${_formatFcfa(_verificationPrice)} FCFA';
 
   bool _isNewCondition(String? value) {
     final lower = (value ?? '').toLowerCase();
@@ -222,30 +209,10 @@ class _MotoInfoState extends State<MotoInfo> {
     return value ? l10n.yes : l10n.no;
   }
 
-  Future<void> _loadVerificationPrice() async {
-    try {
-      final url =
-          '${UserService().dio.options.baseUrl}/admin/verification-pricing';
-      final res = await http.get(Uri.parse(url));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body) as Map<String, dynamic>;
-        final raw = data['prixVerification'] ??
-            (data['pricing'] is Map
-                ? data['pricing']['prixVerification']
-                : null);
-        final parsed = int.tryParse('$raw');
-        if (parsed != null && parsed >= 0 && mounted) {
-          setState(() => _verificationPrice = parsed);
-        }
-      }
-    } catch (_) {}
-  }
-
   @override
   void initState() {
     super.initState();
     trackArticleView(widget.id);
-    _loadVerificationPrice();
     // Log toutes les valeurs reçues
     log('[MotoInfo] titre: ${widget.titre}');
     log('[MotoInfo] description: ${widget.description}');
@@ -794,7 +761,7 @@ class _MotoInfoState extends State<MotoInfo> {
     );
   }
 
-  // Description de la voiture
+  // Description de la moto
   Widget _buildDescription(AppLocalizations l10n) {
     return Text(
       widget.description ?? l10n.sampleCarDescription,
@@ -943,141 +910,13 @@ class _MotoInfoState extends State<MotoInfo> {
     );
   }
 
-  // Bouton d'action dynamique - Toujours afficher les 2 boutons (bleu + jaune) pour les acheteurs
+  // Boutons acheteur : contacter / acheter via WhatsApp Tranoo
   Widget _buildActionButton(bool isAcheteurOuChauffeur, AppLocalizations l10n) {
     return Row(
       children: [
         Expanded(
           child: ElevatedButton(
-            onPressed: () {
-              final firebaseUser = FirebaseAuth.instance.currentUser;
-              if (firebaseUser == null) {
-                showAuthDialog(context, message: l10n.signInForVerification);
-                return;
-              }
-
-              final article = {
-                '_id': widget.id, // Doit être l'ID Mongo réel
-                'titre': widget.titre,
-                'description': widget.description,
-                'marque': widget.marque,
-                'modele': widget.modele,
-                'annee': widget.annee,
-                'prix': widget.prix,
-                'condition': widget.condition,
-                'boiteVitesse': widget.boiteVitesse,
-                'carburant': widget.carburant,
-                'climatiseur': widget.climatiseur,
-                'distance': widget.distance,
-                'sieges': widget.sieges,
-                'portes': widget.portes,
-                'cylindre': widget.cylindre,
-                'couleur': widget.couleur,
-                'dedouanement': widget.dedouanement,
-                'photos': widget.images,
-                'video': _primaryVideo,
-                'entreprise': widget.entreprise,
-                'type': 'moto',
-                if (widget.fournisseur != null) 'fournisseur': widget.fournisseur,
-              };
-              log('[MotoInfo][verif] Article payload: $article');
-
-              showDialog(
-                context: context,
-                builder: (ctx) {
-                  return AlertDialog(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    contentPadding: const EdgeInsets.all(20),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(
-                          'assets/images/smiley.png',
-                          height: 80,
-                          width: 80,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.verificationInProgress,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 14,
-                              height: 1.5,
-                            ),
-                            children: [
-                              TextSpan(text: l10n.verificationChecksPrefix),
-                              TextSpan(
-                                text: l10n.tenBusinessDays,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFFFA000),
-                                ),
-                              ),
-                              TextSpan(text: l10n.verificationChecksMiddle),
-                              TextSpan(
-                                text: l10n.verificationFeesLabel,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF00A86B),
-                                ),
-                              ),
-                              const TextSpan(text: '.'),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _verificationPriceLabel,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF00A86B),
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      VerificationPaymentScreen(
-                                    articleId: widget.id.toString(),
-                                  ),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFFCC00),
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: Text(l10n.payVerificationFees),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
+            onPressed: _openWhatsApp,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1085,16 +924,14 @@ class _MotoInfoState extends State<MotoInfo> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: Center(
-              child: Text(
-                l10n.requestVerification,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                textAlign: TextAlign.center,
+            child: Text(
+              l10n.contactSeller,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
         ),
@@ -1102,13 +939,11 @@ class _MotoInfoState extends State<MotoInfo> {
         Expanded(
           child: ElevatedButton(
             onPressed: () async {
-              // Vérifier l'authentification avant de continuer
               final firebaseUser = FirebaseAuth.instance.currentUser;
               if (firebaseUser == null) {
-                showAuthDialog(context, message: l10n.signInToBuyThisCar);
+                showAuthDialog(context, message: l10n.signInToBuyThisMoto);
                 return;
               }
-
               await _openWhatsApp();
             },
             style: ElevatedButton.styleFrom(
@@ -1119,7 +954,7 @@ class _MotoInfoState extends State<MotoInfo> {
               ),
             ),
             child: Text(
-              l10n.buyThisCar,
+              l10n.buyThisMoto,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

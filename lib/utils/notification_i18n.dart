@@ -188,9 +188,42 @@ class NotificationI18n {
     },
     'verification.resultAdmin.message': {
       'fr':
-          '{buyerName} a {actionLabel} la demande liée à l’article {articleTitle}.',
-      'en': '{buyerName} {actionLabel} the request for item {articleTitle}.',
-      'ar': '{buyerName} {actionLabel} الطلب المتعلق بالمنتج {articleTitle}.',
+          '{buyerName} {actionLabel} la demande de vérification pour l’article « {articleTitle} ».',
+      'en':
+          '{buyerName} {actionLabel} the verification request for item "{articleTitle}".',
+      'ar':
+          '{buyerName} {actionLabel} طلب التحقق للمنتج « {articleTitle} ».',
+    },
+    'transitaireVerification.rejected.message': {
+      'fr':
+          'Votre demande a été rejetée : {rejectionMotif}. Corrigez et renvoyez votre dossier.',
+      'en':
+          'Your request was rejected: {rejectionMotif}. Please fix and resubmit your file.',
+      'ar': 'تم رفض طلبك: {rejectionMotif}. صحّح الملف وأعد إرساله.',
+    },
+    'transit.purchaseCancelled.title': {
+      'fr': 'Achat annulé',
+      'en': 'Purchase cancelled',
+      'ar': 'تم إلغاء الشراء',
+    },
+    'transit.purchaseCancelled.message': {
+      'fr':
+          'L\'acheteur a annulé l\'achat du véhicule « {articleTitle} » après vérification.',
+      'en':
+          'The buyer cancelled the purchase of "{articleTitle}" after verification.',
+      'ar': 'ألغى المشتري شراء « {articleTitle} » بعد التحقق.',
+    },
+    'transit.rejected.title': {
+      'fr': 'Transitaire indisponible',
+      'en': 'Forwarder unavailable',
+      'ar': 'الوسيط غير متاح',
+    },
+    'transit.rejected.message': {
+      'fr':
+          'Le transitaire ne peut pas prendre en charge « {articleTitle} ». Choisissez un autre transitaire depuis votre historique.',
+      'en':
+          'The forwarder cannot handle "{articleTitle}". Choose another from your purchase history.',
+      'ar': 'لا يمكن للوسيط تولي « {articleTitle} ». اختر وسيطاً آخر من السجل.',
     },
     'alert.vehicle.title': {
       'fr': 'Nouvelle alerte véhicule',

@@ -1317,6 +1317,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get carsOnline => 'Voitures en ligne';
 
   @override
+  String get motosOnline => 'Motos en ligne';
+
+  @override
+  String get buyThisMoto => 'Acheter cette moto';
+
+  @override
+  String get signInToBuyThisMoto => 'Connectez-vous pour acheter cette moto';
+
+  @override
   String get carDeletedSuccess => 'Voiture supprimée avec succès !';
 
   @override
@@ -4583,4 +4592,78 @@ class AppLocalizationsFr extends AppLocalizations {
   String registrationSaveError(String error) {
     return 'Erreur lors de l\'enregistrement: $error';
   }
+
+  @override
+  String get purchaseHistoryTitle => 'Historique des achats';
+
+  @override
+  String get purchaseHistorySubtitle => 'Parcours véhicules et transitaires';
+
+  @override
+  String get purchaseHistoryEmpty => 'Aucun achat en cours pour le moment.';
+
+  @override
+  String get purchaseHistoryLoadError =>
+      'Impossible de charger l\'historique des achats.';
+
+  @override
+  String get purchaseHistoryChangeForwarder => 'Changer de transitaire';
+
+  @override
+  String get purchaseHistoryViewVehicle => 'Voir le véhicule';
+
+  @override
+  String get purchaseHistoryDetailsTitle => 'Détail de l\'achat';
+
+  @override
+  String get purchaseHistoryForwarderLabel => 'Transitaire choisi';
+
+  @override
+  String get purchaseHistoryNoForwarder => 'Aucun transitaire';
+
+  @override
+  String get purchaseHistoryDestinationLabel => 'Destination';
+
+  @override
+  String get purchaseHistoryModeLabel => 'Mode de livraison';
+
+  @override
+  String get purchaseHistoryDetailsLabel => 'Informations complémentaires';
+
+  @override
+  String purchaseHistoryStartedAt(String date) {
+    return 'Démarré le $date';
+  }
+
+  @override
+  String get purchaseStatusParcours => 'En cours — choix transitaire';
+
+  @override
+  String get purchaseStatusEnCours => 'Transitaire sélectionné';
+
+  @override
+  String get purchaseStatusTransferer => 'Vérification validée';
+
+  @override
+  String get purchaseStatusTraite => 'Terminé';
+
+  @override
+  String get purchaseStatusAnnule => 'Achat annulé';
+
+  @override
+  String get purchaseModeTransit => 'En transit';
+
+  @override
+  String get purchaseModeConsommation => 'En consommation';
+
+  @override
+  String get errorTransitaireActif =>
+      'Un transitaire est déjà actif pour cet achat.';
+
+  @override
+  String get errorAchatAnnule => 'Cet achat a été annulé.';
+
+  @override
+  String get purchaseForwarderSelected =>
+      'Transitaire mis à jour pour cet achat.';
 }

@@ -1296,6 +1296,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get carsOnline => 'Cars online';
 
   @override
+  String get motosOnline => 'Motorcycles online';
+
+  @override
+  String get buyThisMoto => 'Buy this motorcycle';
+
+  @override
+  String get signInToBuyThisMoto => 'Sign in to buy this motorcycle';
+
+  @override
   String get carDeletedSuccess => 'Car deleted successfully!';
 
   @override
@@ -4519,4 +4528,77 @@ class AppLocalizationsEn extends AppLocalizations {
   String registrationSaveError(String error) {
     return 'Save error: $error';
   }
+
+  @override
+  String get purchaseHistoryTitle => 'Purchase history';
+
+  @override
+  String get purchaseHistorySubtitle => 'Vehicle journeys and forwarders';
+
+  @override
+  String get purchaseHistoryEmpty => 'No purchases in progress yet.';
+
+  @override
+  String get purchaseHistoryLoadError => 'Unable to load purchase history.';
+
+  @override
+  String get purchaseHistoryChangeForwarder => 'Change forwarder';
+
+  @override
+  String get purchaseHistoryViewVehicle => 'View vehicle';
+
+  @override
+  String get purchaseHistoryDetailsTitle => 'Purchase details';
+
+  @override
+  String get purchaseHistoryForwarderLabel => 'Selected forwarder';
+
+  @override
+  String get purchaseHistoryNoForwarder => 'No forwarder';
+
+  @override
+  String get purchaseHistoryDestinationLabel => 'Destination';
+
+  @override
+  String get purchaseHistoryModeLabel => 'Delivery mode';
+
+  @override
+  String get purchaseHistoryDetailsLabel => 'Additional information';
+
+  @override
+  String purchaseHistoryStartedAt(String date) {
+    return 'Started on $date';
+  }
+
+  @override
+  String get purchaseStatusParcours => 'In progress — choose forwarder';
+
+  @override
+  String get purchaseStatusEnCours => 'Forwarder selected';
+
+  @override
+  String get purchaseStatusTransferer => 'Verification approved';
+
+  @override
+  String get purchaseStatusTraite => 'Completed';
+
+  @override
+  String get purchaseStatusAnnule => 'Purchase cancelled';
+
+  @override
+  String get purchaseModeTransit => 'In transit';
+
+  @override
+  String get purchaseModeConsommation => 'Local consumption';
+
+  @override
+  String get errorTransitaireActif =>
+      'A forwarder is already active for this purchase.';
+
+  @override
+  String get errorAchatAnnule => 'This purchase was cancelled.';
+
+  @override
+  String get purchaseForwarderSelected =>
+      'Forwarder updated for this purchase.';
 }

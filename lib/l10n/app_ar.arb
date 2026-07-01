@@ -563,6 +563,9 @@
   "cartEmptyHint": "أضف منتجات لبدء التسوق",
   "checkout": "إتمام الطلب",
   "carsOnline": "سيارات متاحة",
+  "motosOnline": "دراجات نارية متاحة",
+  "buyThisMoto": "شراء هذه الدراجة",
+  "signInToBuyThisMoto": "سجّل الدخول لشراء هذه الدراجة",
   "carDeletedSuccess": "تم حذف السيارة بنجاح!",
   "newCondition": "جديد",
   "usedCondition": "مستعمل",
@@ -2387,5 +2390,33 @@
         "type": "String"
       }
     }
-  }
+  },
+  "purchaseHistoryTitle": "سجل المشتريات",
+  "purchaseHistorySubtitle": "مسارات المركبات والوسطاء",
+  "purchaseHistoryEmpty": "لا توجد مشتريات جارية حالياً.",
+  "purchaseHistoryLoadError": "تعذر تحميل سجل المشتريات.",
+  "purchaseHistoryChangeForwarder": "تغيير الوسيط",
+  "purchaseHistoryViewVehicle": "عرض المركبة",
+  "purchaseHistoryDetailsTitle": "تفاصيل الشراء",
+  "purchaseHistoryForwarderLabel": "الوسيط المختار",
+  "purchaseHistoryNoForwarder": "لا يوجد وسيط",
+  "purchaseHistoryDestinationLabel": "الوجهة",
+  "purchaseHistoryModeLabel": "طريقة التسليم",
+  "purchaseHistoryDetailsLabel": "معلومات إضافية",
+  "purchaseHistoryStartedAt": "بدأ في {date}",
+  "@purchaseHistoryStartedAt": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "purchaseStatusParcours": "جارٍ — اختر وسيطاً",
+  "purchaseStatusEnCours": "تم اختيار الوسيط",
+  "purchaseStatusTransferer": "تمت الموافقة على التحقق",
+  "purchaseStatusTraite": "مكتمل",
+  "purchaseStatusAnnule": "تم إلغاء الشراء",
+  "purchaseModeTransit": "في العبور",
+  "purchaseModeConsommation": "استهلاك محلي",
+  "errorTransitaireActif": "يوجد وسيط نشط بالفعل لهذا الشراء.",
+  "errorAchatAnnule": "تم إلغاء هذا الشراء.",
+  "purchaseForwarderSelected": "تم تحديث الوسيط لهذا الشراء."
 }

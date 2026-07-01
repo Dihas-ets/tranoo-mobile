@@ -338,6 +338,7 @@ class _MarqueState extends State<Marque>
   late PageController _pageController;
   late TabController _tabController;
   Timer? _carouselTimer;
+
   /// Rafraîchissement périodique des données (comme la liste tricycle), sans bloquer l’UI.
   Timer? _marqueAutoRefreshTimer;
   final UserService _userService = UserService();
@@ -370,7 +371,8 @@ class _MarqueState extends State<Marque>
   String _searchPieceText = '';
   // Recherche globale (barre en haut)
   final TextEditingController _searchGlobalController = TextEditingController();
-  String _searchGlobalText = '';
+  String _searchText = '';
+  bool _hasTypedSearch = false;
 
   final _logger = Logger('MarquePage');
 
@@ -472,7 +474,11 @@ class _MarqueState extends State<Marque>
     );
     _searchGlobalController.addListener(() {
       setState(() {
-        _searchGlobalText = _searchGlobalController.text.trim();
+        _searchText = _searchGlobalController.text.trim();
+        _hasTypedSearch = _searchGlobalController.text.trim().isNotEmpty;
+        _logger.info(
+          '[DEBUG] 🔍 Recherche tapée: "${_searchGlobalController.text}"',
+        );
       });
     });
 
@@ -507,7 +513,7 @@ class _MarqueState extends State<Marque>
   Future<void> _reloadAll() async {
     // Réinitialiser la recherche
     _searchGlobalController.clear();
-    _searchGlobalText = '';
+    _searchText = '';
 
     // Réinitialiser les filtres
     _selectedBrand = null;
@@ -535,8 +541,8 @@ class _MarqueState extends State<Marque>
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      String url =
-          getBaseUrl() + '/public/articles?type=piece&statut=en_ligne&vendu=false';
+      String url = getBaseUrl() +
+          '/public/articles?type=piece&statut=en_ligne&vendu=false';
       _logger.info('[DEBUG] URL pièces: $url');
       final headers = <String, String>{
         'Content-Type': 'application/json',
@@ -643,7 +649,8 @@ class _MarqueState extends State<Marque>
       for (final id in ids) {
         final viewsData = await _viewsService.getArticleViews(id);
         if (viewsData != null && viewsData['success'] == true) {
-          nextViews[id] = (viewsData['views'] as num?)?.toInt() ?? (nextViews[id] ?? 0);
+          nextViews[id] =
+              (viewsData['views'] as num?)?.toInt() ?? (nextViews[id] ?? 0);
         }
       }
       if (!mounted) return;
@@ -657,7 +664,7 @@ class _MarqueState extends State<Marque>
 
   Widget _buildViewBadge(String articleId) {
     final totalViews = _backendViews[articleId] ?? 0;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -748,15 +755,13 @@ class _MarqueState extends State<Marque>
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      final response = await http
-          .get(
-            Uri.parse('${getBaseUrl()}/protected/stats/seller-marque'),
-            headers: {
-              'Content-Type': 'application/json',
-              if (idToken != null) 'Authorization': 'Bearer $idToken',
-            },
-          )
-          .timeout(const Duration(seconds: 12));
+      final response = await http.get(
+        Uri.parse('${getBaseUrl()}/protected/stats/seller-marque'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (idToken != null) 'Authorization': 'Bearer $idToken',
+        },
+      ).timeout(const Duration(seconds: 12));
       if (response.statusCode != 200 || !mounted) {
         if (mounted) setState(() => _sellerMarqueStatsLoading = false);
         return;
@@ -765,8 +770,7 @@ class _MarqueState extends State<Marque>
       if (!mounted) return;
       setState(() {
         _statsVendeurType = data['vendeurType']?.toString();
-        _statsVehiclesOnline =
-            (data['vehiclesOnline'] as num?)?.round() ?? 0;
+        _statsVehiclesOnline = (data['vehiclesOnline'] as num?)?.round() ?? 0;
         _statsPiecesOnline = (data['piecesOnline'] as num?)?.round() ?? 0;
         _statsVehiclesSold = (data['vehiclesSold'] as num?)?.round() ?? 0;
         _statsPiecesSold = (data['piecesSold'] as num?)?.round() ?? 0;
@@ -787,20 +791,19 @@ class _MarqueState extends State<Marque>
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      final type = _userService.peutVendreMotos && !_userService.peutVendreVehicules
-          ? 'moto'
-          : 'voiture';
-      final response = await http
-          .get(
-            Uri.parse(
-              '${getBaseUrl()}/articles?type=$type&statut=en_attente&vendu=false',
-            ),
-            headers: {
-              if (idToken != null) 'Authorization': 'Bearer $idToken',
-              'Content-Type': 'application/json',
-            },
-          )
-          .timeout(const Duration(seconds: 8));
+      final type =
+          _userService.peutVendreMotos && !_userService.peutVendreVehicules
+              ? 'moto'
+              : 'voiture';
+      final response = await http.get(
+        Uri.parse(
+          '${getBaseUrl()}/articles?type=$type&statut=en_attente&vendu=false',
+        ),
+        headers: {
+          if (idToken != null) 'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         if (!mounted) return;
@@ -883,7 +886,7 @@ class _MarqueState extends State<Marque>
           }
           isLoadingVoitures = false;
         });
-        
+
         // Charger les vues depuis le backend après avoir récupéré les véhicules
         _loadBackendViews();
       } else {
@@ -926,9 +929,8 @@ class _MarqueState extends State<Marque>
         final List<dynamic> data = json.decode(response.body);
         if (!mounted) return;
         final allMotos = data.map((e) => ArticleVoiture.fromJson(e)).toList();
-        final motosFiltered = allMotos
-            .where((m) => (m.statut ?? 'en_ligne') != 'vendu')
-            .toList();
+        final motosFiltered =
+            allMotos.where((m) => (m.statut ?? 'en_ligne') != 'vendu').toList();
         setState(() {
           motosRecommandees = motosFiltered;
           for (final m in motosFiltered) {
@@ -1162,6 +1164,8 @@ class _MarqueState extends State<Marque>
     _marqueAutoRefreshTimer?.cancel();
     _tabController.dispose();
     _pageController.dispose();
+    _searchGlobalController.dispose();
+    _searchPieceController.dispose();
     super.dispose();
   }
 
@@ -1230,7 +1234,7 @@ class _MarqueState extends State<Marque>
     }
     // Appliquer filtres + recherche globale
     final filtered = _applyFilters(voituresEnLigne).where((v) {
-      if (_searchGlobalText.isEmpty) return true;
+      if (_searchText.isEmpty) return true;
       final hay = (v.marque +
               ' ' +
               v.modele +
@@ -1239,7 +1243,7 @@ class _MarqueState extends State<Marque>
               ' ' +
               (v.entreprise ?? ''))
           .toLowerCase();
-      return hay.contains(_searchGlobalText.toLowerCase());
+      return hay.contains(_searchText.toLowerCase());
     }).toList();
     final screenWidth = MediaQuery.of(context).size.width;
     final cardAspectRatio = screenWidth < 360
@@ -1563,7 +1567,7 @@ class _MarqueState extends State<Marque>
     // Filtrage recherche
     final filteredPieces = piecesEnLigne.where((p) {
       final q1 = _searchPieceText.trim().toLowerCase();
-      final q2 = _searchGlobalText.trim().toLowerCase();
+      final q2 = _searchText.trim().toLowerCase();
       final hay =
           (p.title + ' ' + p.description + ' ' + p.company + ' ' + p.location)
               .toLowerCase();
@@ -2573,18 +2577,204 @@ class _MarqueState extends State<Marque>
     );
   }
 
+  void _showFilterDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    _logger.info('[DEBUG] 🔧 Ouverture du dialogue de filtre');
+    try {
+      showDialog(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: Row(
+              children: [
+                const Icon(Icons.tune, color: Color(0xFFB45309)),
+                const SizedBox(width: 8),
+                Text(l10n.searchTypeTitle),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.whatDoYouWantToSearch),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const VoituresPage(),
+                          settings: RouteSettings(
+                            arguments: {
+                              'searchQuery': _searchGlobalController.text,
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.directions_car),
+                    label: Text(l10n.vehicles),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB45309),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PiecePage(),
+                          settings: RouteSettings(
+                            arguments: {
+                              'searchQuery': _searchGlobalController.text,
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.build),
+                    label: Text(l10n.pieces),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[700],
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(l10n.cancel),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e, stackTrace) {
+      _logger.severe('[ERROR] 💥 Erreur lors de l\'ouverture du dialogue: $e');
+      _logger.severe('[ERROR] 💥 Stack trace: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.errorGeneric('$e')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showFilterHint() {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Row(
+          children: [
+            const Icon(Icons.lightbulb, color: Color(0xFFB45309)),
+            const SizedBox(width: 8),
+            Text(l10n.chooseTypeTitle),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.youTyped(_searchGlobalController.text)),
+            const SizedBox(height: 12),
+            Text(l10n.whatArticleTypeSearch),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const VoituresPage(),
+                          settings: RouteSettings(
+                            arguments: {
+                              'searchQuery': _searchGlobalController.text,
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.directions_car),
+                    label: Text(l10n.vehicleSingular),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB45309),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PiecePage(),
+                          settings: RouteSettings(
+                            arguments: {
+                              'searchQuery': _searchGlobalController.text,
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.build),
+                    label: Text(l10n.partSingular),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[700],
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
     final screenHeight = mediaQuery.size.height;
     final isPortrait = mediaQuery.orientation == Orientation.portrait;
     const bool isTransitaire = false;
     final isVendeur = _userService.currentRole == UserRole.vendeur;
-    final isMotoSeller =
-        isVendeur && _userService.peutVendreMotos && !_userService.peutVendreVehicules;
+    final isMotoSeller = isVendeur &&
+        _userService.peutVendreMotos &&
+        !_userService.peutVendreVehicules;
 
-    final showBudgetPanel = !isVendeur && _tabController.index == _budgetTabIndex;
+    final showBudgetPanel =
+        !isVendeur && _tabController.index == _budgetTabIndex;
     final isInitialHomeLoading = isLoadingPubs &&
         pubsALaUne.isEmpty &&
         isLoadingVoitures &&
@@ -2593,6 +2783,60 @@ class _MarqueState extends State<Marque>
     return Scaffold(
       body: Column(
         children: [
+          if (!isVendeur)
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.white,
+              child: TextField(
+                controller: _searchGlobalController,
+                decoration: InputDecoration(
+                  hintText: l10n.searchVehiclesPartsHint,
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: AnimatedBuilder(
+                    animation: _searchGlobalController,
+                    builder: (context, child) {
+                      return IconButton(
+                        icon: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: _hasTypedSearch
+                              ? Container(
+                                  key: const Key('filter_active'),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.filter_list,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.filter_list,
+                                  color: Colors.grey,
+                                  key: Key('filter_inactive'),
+                                ),
+                        ),
+                        onPressed: () {
+                          if (_hasTypedSearch &&
+                              _searchGlobalController.text.trim().isNotEmpty) {
+                            _showFilterHint();
+                          } else {
+                            _showFilterDialog();
+                          }
+                        },
+                      );
+                    },
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
           Expanded(
             child: RefreshIndicator(
               color: const Color(0xFFFFCC00),
@@ -2616,8 +2860,7 @@ class _MarqueState extends State<Marque>
                       isMotoSeller
                           ? _buildMotosMarqueSection()
                           : _buildMarqueSection(),
-                    if (!isVendeur &&
-                        _tabController.index == _modeleTabIndex)
+                    if (!isVendeur && _tabController.index == _modeleTabIndex)
                       _buildMotosMarqueSection(),
                     if (isVendeur &&
                         _tabController.index == _statistiquesTabIndex)
@@ -2707,7 +2950,8 @@ class _MarqueState extends State<Marque>
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const MotosPage()),
+                        MaterialPageRoute(
+                            builder: (context) => const MotosPage()),
                       );
                     },
                   ),
@@ -2722,7 +2966,8 @@ class _MarqueState extends State<Marque>
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const PiecePage()),
+                        MaterialPageRoute(
+                            builder: (context) => const PiecePage()),
                       );
                     },
                   ),
@@ -2737,7 +2982,8 @@ class _MarqueState extends State<Marque>
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const MesCommandesPage()),
+                        MaterialPageRoute(
+                            builder: (context) => const MesCommandesPage()),
                       );
                     },
                   ),
@@ -2920,8 +3166,9 @@ class _MarqueState extends State<Marque>
 
   Widget _buildFilterTabRow(double screenWidth, bool isTransitaire) {
     final isVendeur = _userService.currentRole == UserRole.vendeur;
-    final isMotoSeller =
-        isVendeur && _userService.peutVendreMotos && !_userService.peutVendreVehicules;
+    final isMotoSeller = isVendeur &&
+        _userService.peutVendreMotos &&
+        !_userService.peutVendreVehicules;
     final chips = <Widget>[];
 
     void addChip(String title, int index, {bool wide = false}) {
@@ -2985,8 +3232,8 @@ class _MarqueState extends State<Marque>
   }
 
   Widget _buildEnAttenteSection() {
-    final isMotoSeller = _userService.peutVendreMotos &&
-        !_userService.peutVendreVehicules;
+    final isMotoSeller =
+        _userService.peutVendreMotos && !_userService.peutVendreVehicules;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
@@ -3029,7 +3276,8 @@ class _MarqueState extends State<Marque>
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(v.prix),
-                  trailing: const Icon(Icons.hourglass_top, color: Colors.orange),
+                  trailing:
+                      const Icon(Icons.hourglass_top, color: Colors.orange),
                 );
               },
             ),
@@ -3042,7 +3290,8 @@ class _MarqueState extends State<Marque>
     if (isLoadingVoitures && voituresRecommandees.isEmpty) {
       return const CatalogFilterHorizSkeleton();
     }
-    final options = buildMarqueFilterOptions(_catalogMapsForFilters(), isPiece: false);
+    final options =
+        buildMarqueFilterOptions(_catalogMapsForFilters(), isPiece: false);
     return CatalogMarqueFilterGrid(
       options: options,
       selected: _selectedBrand,

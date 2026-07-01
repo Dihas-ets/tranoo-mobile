@@ -1279,6 +1279,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get carsOnline => 'سيارات متاحة';
 
   @override
+  String get motosOnline => 'دراجات نارية متاحة';
+
+  @override
+  String get buyThisMoto => 'شراء هذه الدراجة';
+
+  @override
+  String get signInToBuyThisMoto => 'سجّل الدخول لشراء هذه الدراجة';
+
+  @override
   String get carDeletedSuccess => 'تم حذف السيارة بنجاح!';
 
   @override
@@ -4482,4 +4491,75 @@ class AppLocalizationsAr extends AppLocalizations {
   String registrationSaveError(String error) {
     return 'خطأ في الحفظ: $error';
   }
+
+  @override
+  String get purchaseHistoryTitle => 'سجل المشتريات';
+
+  @override
+  String get purchaseHistorySubtitle => 'مسارات المركبات والوسطاء';
+
+  @override
+  String get purchaseHistoryEmpty => 'لا توجد مشتريات جارية حالياً.';
+
+  @override
+  String get purchaseHistoryLoadError => 'تعذر تحميل سجل المشتريات.';
+
+  @override
+  String get purchaseHistoryChangeForwarder => 'تغيير الوسيط';
+
+  @override
+  String get purchaseHistoryViewVehicle => 'عرض المركبة';
+
+  @override
+  String get purchaseHistoryDetailsTitle => 'تفاصيل الشراء';
+
+  @override
+  String get purchaseHistoryForwarderLabel => 'الوسيط المختار';
+
+  @override
+  String get purchaseHistoryNoForwarder => 'لا يوجد وسيط';
+
+  @override
+  String get purchaseHistoryDestinationLabel => 'الوجهة';
+
+  @override
+  String get purchaseHistoryModeLabel => 'طريقة التسليم';
+
+  @override
+  String get purchaseHistoryDetailsLabel => 'معلومات إضافية';
+
+  @override
+  String purchaseHistoryStartedAt(String date) {
+    return 'بدأ في $date';
+  }
+
+  @override
+  String get purchaseStatusParcours => 'جارٍ — اختر وسيطاً';
+
+  @override
+  String get purchaseStatusEnCours => 'تم اختيار الوسيط';
+
+  @override
+  String get purchaseStatusTransferer => 'تمت الموافقة على التحقق';
+
+  @override
+  String get purchaseStatusTraite => 'مكتمل';
+
+  @override
+  String get purchaseStatusAnnule => 'تم إلغاء الشراء';
+
+  @override
+  String get purchaseModeTransit => 'في العبور';
+
+  @override
+  String get purchaseModeConsommation => 'استهلاك محلي';
+
+  @override
+  String get errorTransitaireActif => 'يوجد وسيط نشط بالفعل لهذا الشراء.';
+
+  @override
+  String get errorAchatAnnule => 'تم إلغاء هذا الشراء.';
+
+  @override
+  String get purchaseForwarderSelected => 'تم تحديث الوسيط لهذا الشراء.';
 }

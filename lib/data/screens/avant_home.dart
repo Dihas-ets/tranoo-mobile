@@ -19,6 +19,7 @@ import 'cart_page.dart';
 import 'notifications.dart';
 import 'connexion_page.dart';
 import 'mesfactures.dart';
+import 'mes_achats_historique.dart';
 import 'second_page.dart';
 import '../../providers/auth_provider.dart' as myauth;
 import '../../services/notification_service.dart';
@@ -282,6 +283,18 @@ class _AvantHomeState extends State<AvantHome>
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history_rounded, color: Colors.black),
+            tooltip: AppLocalizations.of(context)!.purchaseHistoryTitle,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MesAchatsHistoriquePage(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: Stack(
               clipBehavior: Clip.none,

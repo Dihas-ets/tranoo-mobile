@@ -563,6 +563,9 @@
   "cartEmptyHint": "Add items to start shopping",
   "checkout": "Place order",
   "carsOnline": "Cars online",
+  "motosOnline": "Motorcycles online",
+  "buyThisMoto": "Buy this motorcycle",
+  "signInToBuyThisMoto": "Sign in to buy this motorcycle",
   "carDeletedSuccess": "Car deleted successfully!",
   "newCondition": "New",
   "usedCondition": "Used",
@@ -2387,5 +2390,33 @@
         "type": "String"
       }
     }
-  }
+  },
+  "purchaseHistoryTitle": "Purchase history",
+  "purchaseHistorySubtitle": "Vehicle journeys and forwarders",
+  "purchaseHistoryEmpty": "No purchases in progress yet.",
+  "purchaseHistoryLoadError": "Unable to load purchase history.",
+  "purchaseHistoryChangeForwarder": "Change forwarder",
+  "purchaseHistoryViewVehicle": "View vehicle",
+  "purchaseHistoryDetailsTitle": "Purchase details",
+  "purchaseHistoryForwarderLabel": "Selected forwarder",
+  "purchaseHistoryNoForwarder": "No forwarder",
+  "purchaseHistoryDestinationLabel": "Destination",
+  "purchaseHistoryModeLabel": "Delivery mode",
+  "purchaseHistoryDetailsLabel": "Additional information",
+  "purchaseHistoryStartedAt": "Started on {date}",
+  "@purchaseHistoryStartedAt": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "purchaseStatusParcours": "In progress — choose forwarder",
+  "purchaseStatusEnCours": "Forwarder selected",
+  "purchaseStatusTransferer": "Verification approved",
+  "purchaseStatusTraite": "Completed",
+  "purchaseStatusAnnule": "Purchase cancelled",
+  "purchaseModeTransit": "In transit",
+  "purchaseModeConsommation": "Local consumption",
+  "errorTransitaireActif": "A forwarder is already active for this purchase.",
+  "errorAchatAnnule": "This purchase was cancelled.",
+  "purchaseForwarderSelected": "Forwarder updated for this purchase."
 }

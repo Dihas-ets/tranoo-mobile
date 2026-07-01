@@ -10,6 +10,7 @@ import '../../services/user_service.dart';
 import '../../providers/counter_provider.dart';
 import 'cars_info.dart';
 import 'mastervacpage.dart';
+import 'package:tranoo/data/screens/mes_achats_historique.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/widgets/notification_list_ui.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
@@ -180,10 +181,17 @@ class VerificationDetailPage extends StatelessWidget {
   ) async {
     await _postVerificationActionStatic(context, notification, 'reject');
     if (!context.mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.requestRejected)),
+      SnackBar(content: Text(l10n.requestRejected)),
     );
+    final articleId = _safeGetStringLocal(
+          notification['verificationData'], 'articleId') ??
+        _safeGetStringLocal(notification, 'relatedId');
     Navigator.pop(context);
+    if (articleId != null && articleId.isNotEmpty) {
+      openPurchaseHistory(context, articleId: articleId);
+    }
   }
 
   static Future<void> _postVerificationActionStatic(
@@ -1606,14 +1614,17 @@ class _NotificationsBodyState extends State<NotificationsBody> {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  _openProposalArticle(context, articleId: articleId);
+                  openPurchaseHistory(
+                    context,
+                    articleId: articleId.isNotEmpty ? articleId : null,
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1B2B4B),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                child: const Text('Choisir un autre transitaire'),
+                child: Text(AppLocalizations.of(context)!.purchaseHistoryTitle),
               ),
             ),
           ],

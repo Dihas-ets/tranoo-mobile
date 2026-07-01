@@ -167,7 +167,14 @@ class _TransitaireCarouselSectionState extends State<TransitaireCarouselSection>
       if (!mounted) return;
       widget.onSelectSuccess?.call();
     } else if (result.error != null) {
-      showTranooToast(context, message: result.error!, isError: true);
+      final l10n = AppLocalizations.of(context)!;
+      var message = result.error!;
+      if (result.errorCode == 'TRANSITAIRE_ACTIF') {
+        message = l10n.errorTransitaireActif;
+      } else if (result.errorCode == 'ACHAT_ANNULE') {
+        message = l10n.errorAchatAnnule;
+      }
+      showTranooToast(context, message: message, isError: true);
     }
   }
 

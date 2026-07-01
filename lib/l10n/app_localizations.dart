@@ -2476,6 +2476,24 @@ abstract class AppLocalizations {
   /// **'Cars online'**
   String get carsOnline;
 
+  /// No description provided for @motosOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Motorcycles online'**
+  String get motosOnline;
+
+  /// No description provided for @buyThisMoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy this motorcycle'**
+  String get buyThisMoto;
+
+  /// No description provided for @signInToBuyThisMoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to buy this motorcycle'**
+  String get signInToBuyThisMoto;
+
   /// No description provided for @carDeletedSuccess.
   ///
   /// In en, this message translates to:
@@ -8283,6 +8301,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save error: {error}'**
   String registrationSaveError(String error);
+
+  /// No description provided for @purchaseHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase history'**
+  String get purchaseHistoryTitle;
+
+  /// No description provided for @purchaseHistorySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle journeys and forwarders'**
+  String get purchaseHistorySubtitle;
+
+  /// No description provided for @purchaseHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No purchases in progress yet.'**
+  String get purchaseHistoryEmpty;
+
+  /// No description provided for @purchaseHistoryLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load purchase history.'**
+  String get purchaseHistoryLoadError;
+
+  /// No description provided for @purchaseHistoryChangeForwarder.
+  ///
+  /// In en, this message translates to:
+  /// **'Change forwarder'**
+  String get purchaseHistoryChangeForwarder;
+
+  /// No description provided for @purchaseHistoryViewVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'View vehicle'**
+  String get purchaseHistoryViewVehicle;
+
+  /// No description provided for @purchaseHistoryDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase details'**
+  String get purchaseHistoryDetailsTitle;
+
+  /// No description provided for @purchaseHistoryForwarderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected forwarder'**
+  String get purchaseHistoryForwarderLabel;
+
+  /// No description provided for @purchaseHistoryNoForwarder.
+  ///
+  /// In en, this message translates to:
+  /// **'No forwarder'**
+  String get purchaseHistoryNoForwarder;
+
+  /// No description provided for @purchaseHistoryDestinationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination'**
+  String get purchaseHistoryDestinationLabel;
+
+  /// No description provided for @purchaseHistoryModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery mode'**
+  String get purchaseHistoryModeLabel;
+
+  /// No description provided for @purchaseHistoryDetailsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional information'**
+  String get purchaseHistoryDetailsLabel;
+
+  /// No description provided for @purchaseHistoryStartedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Started on {date}'**
+  String purchaseHistoryStartedAt(String date);
+
+  /// No description provided for @purchaseStatusParcours.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress — choose forwarder'**
+  String get purchaseStatusParcours;
+
+  /// No description provided for @purchaseStatusEnCours.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarder selected'**
+  String get purchaseStatusEnCours;
+
+  /// No description provided for @purchaseStatusTransferer.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification approved'**
+  String get purchaseStatusTransferer;
+
+  /// No description provided for @purchaseStatusTraite.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get purchaseStatusTraite;
+
+  /// No description provided for @purchaseStatusAnnule.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase cancelled'**
+  String get purchaseStatusAnnule;
+
+  /// No description provided for @purchaseModeTransit.
+  ///
+  /// In en, this message translates to:
+  /// **'In transit'**
+  String get purchaseModeTransit;
+
+  /// No description provided for @purchaseModeConsommation.
+  ///
+  /// In en, this message translates to:
+  /// **'Local consumption'**
+  String get purchaseModeConsommation;
+
+  /// No description provided for @errorTransitaireActif.
+  ///
+  /// In en, this message translates to:
+  /// **'A forwarder is already active for this purchase.'**
+  String get errorTransitaireActif;
+
+  /// No description provided for @errorAchatAnnule.
+  ///
+  /// In en, this message translates to:
+  /// **'This purchase was cancelled.'**
+  String get errorAchatAnnule;
+
+  /// No description provided for @purchaseForwarderSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarder updated for this purchase.'**
+  String get purchaseForwarderSelected;
 }
 
 class _AppLocalizationsDelegate

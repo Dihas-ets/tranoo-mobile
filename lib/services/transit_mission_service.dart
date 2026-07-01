@@ -6,8 +6,14 @@ class TransitSelectResult {
   final bool ok;
   final Map<String, dynamic>? mission;
   final String? error;
+  final String? errorCode;
 
-  const TransitSelectResult({required this.ok, this.mission, this.error});
+  const TransitSelectResult({
+    required this.ok,
+    this.mission,
+    this.error,
+    this.errorCode,
+  });
 }
 
 class TransitMissionService {
@@ -80,10 +86,14 @@ class TransitMissionService {
       return const TransitSelectResult(ok: false, error: 'Réponse invalide');
     } on DioException catch (e) {
       final msg = e.response?.data;
-      if (msg is Map && msg['message'] != null) {
-        return TransitSelectResult(ok: false, error: msg['message'].toString());
+      if (msg is Map) {
+        return TransitSelectResult(
+          ok: false,
+          error: msg['message']?.toString(),
+          errorCode: msg['code']?.toString(),
+        );
       }
-      return TransitSelectResult(
+      return const TransitSelectResult(
         ok: false,
         error: 'Impossible de sélectionner ce transitaire',
       );
@@ -93,6 +103,23 @@ class TransitMissionService {
         error: 'Impossible de sélectionner ce transitaire',
       );
     }
+  }
+
+  Future<List<Map<String, dynamic>>> listMesParcours() async {
+    try {
+      final resp = await _dio.get(
+        '/transit-missions/mes-parcours',
+        options: Options(headers: await _headers()),
+      );
+      final data = resp.data;
+      if (data is List) {
+        return data
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    } catch (_) {}
+    return [];
   }
 
   Future<List<Map<String, dynamic>>> listMissions(String statut) async {

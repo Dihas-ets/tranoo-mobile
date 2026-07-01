@@ -563,6 +563,9 @@
   "cartEmptyHint": "Ajoutez des articles pour commencer vos achats",
   "checkout": "Passer la commande",
   "carsOnline": "Voitures en ligne",
+  "motosOnline": "Motos en ligne",
+  "buyThisMoto": "Acheter cette moto",
+  "signInToBuyThisMoto": "Connectez-vous pour acheter cette moto",
   "carDeletedSuccess": "Voiture supprimée avec succès !",
   "newCondition": "Neuf",
   "usedCondition": "Occasion",
@@ -2387,5 +2390,33 @@
         "type": "String"
       }
     }
-  }
+  },
+  "purchaseHistoryTitle": "Historique des achats",
+  "purchaseHistorySubtitle": "Parcours véhicules et transitaires",
+  "purchaseHistoryEmpty": "Aucun achat en cours pour le moment.",
+  "purchaseHistoryLoadError": "Impossible de charger l'historique des achats.",
+  "purchaseHistoryChangeForwarder": "Changer de transitaire",
+  "purchaseHistoryViewVehicle": "Voir le véhicule",
+  "purchaseHistoryDetailsTitle": "Détail de l'achat",
+  "purchaseHistoryForwarderLabel": "Transitaire choisi",
+  "purchaseHistoryNoForwarder": "Aucun transitaire",
+  "purchaseHistoryDestinationLabel": "Destination",
+  "purchaseHistoryModeLabel": "Mode de livraison",
+  "purchaseHistoryDetailsLabel": "Informations complémentaires",
+  "purchaseHistoryStartedAt": "Démarré le {date}",
+  "@purchaseHistoryStartedAt": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "purchaseStatusParcours": "En cours — choix transitaire",
+  "purchaseStatusEnCours": "Transitaire sélectionné",
+  "purchaseStatusTransferer": "Vérification validée",
+  "purchaseStatusTraite": "Terminé",
+  "purchaseStatusAnnule": "Achat annulé",
+  "purchaseModeTransit": "En transit",
+  "purchaseModeConsommation": "En consommation",
+  "errorTransitaireActif": "Un transitaire est déjà actif pour cet achat.",
+  "errorAchatAnnule": "Cet achat a été annulé.",
+  "purchaseForwarderSelected": "Transitaire mis à jour pour cet achat."
 }

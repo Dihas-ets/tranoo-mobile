@@ -86,7 +86,7 @@ android {
         targetSdkVersion 36
     //     versionCode flutterVersionCode.toInteger()
     //   versionName flutterVersionName
-        versionCode 20
+        versionCode 21
         versionName "2.0.0"
         multiDexEnabled true  
     }
@@ -99,7 +99,6 @@ android {
             storePassword keystoreProperties["storePassword"]
         }
     }
-
     buildTypes {
         release {
             signingConfig signingConfigs.release

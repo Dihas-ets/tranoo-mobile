@@ -150,6 +150,10 @@ class ApiErrorMessage {
         return l10n.errorArticleIdRequired;
       case 'FILE_REQUIRED':
         return l10n.errorFileRequired;
+      case 'TRANSITAIRE_ACTIF':
+        return l10n.errorTransitaireActif;
+      case 'ACHAT_ANNULE':
+        return l10n.errorAchatAnnule;
       default:
         return null;
     }

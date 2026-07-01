@@ -184,6 +184,18 @@ class _CarsinfoState extends State<CarsInfo> {
     return value ? l10n.yes : l10n.no;
   }
 
+  bool _transitaireDejaChoisi = false;
+
+  bool _missionHasTransitaire(Map<String, dynamic> mission) {
+    final t = mission['transitaire'];
+    if (t == null) return false;
+    if (t is Map) {
+      final id = (t['_id'] ?? t['id'])?.toString().trim() ?? '';
+      return id.isNotEmpty;
+    }
+    return t.toString().trim().isNotEmpty;
+  }
+
   Future<void> _restoreTransitParcours() async {
     final articleId = widget.id;
     if (articleId == null || articleId.isEmpty) return;
@@ -194,6 +206,7 @@ class _CarsinfoState extends State<CarsInfo> {
     final pays = (mission['paysDestination'] ?? '').toString();
     final details = (mission['detailsSupplementaires'] ?? '').toString();
     setState(() {
+      _transitaireDejaChoisi = _missionHasTransitaire(mission);
       if (mode == 'transit') {
         _isEnTransitChecked = true;
         _isEnConsommationChecked = false;
@@ -776,7 +789,8 @@ class _CarsinfoState extends State<CarsInfo> {
           _buildSpecifications(l10n),
           const SizedBox(height: 24),
           _buildCheckboxes(screenWidth, shouldShowDeliveryOptions, l10n),
-          if (_isEnConsommationChecked || _isEnTransitChecked) ...[
+          if ((_isEnConsommationChecked || _isEnTransitChecked) &&
+              !_transitaireDejaChoisi) ...[
             const SizedBox(height: 20),
             _buildTransitairesSection(l10n),
           ],

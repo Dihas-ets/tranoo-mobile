@@ -800,7 +800,7 @@ class _MotosPageState extends State<MotosPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.carsOnline),
+        title: Text(l10n.motosOnline),
         backgroundColor: Colors.amber,
         actions: const [],
       ),
