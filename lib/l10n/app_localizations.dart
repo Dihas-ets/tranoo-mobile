@@ -6958,6 +6958,24 @@ abstract class AppLocalizations {
   /// **'Sign in to access your invoices'**
   String get signInForInvoices;
 
+  /// No description provided for @signInForPurchaseHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to access your purchase history'**
+  String get signInForPurchaseHistory;
+
+  /// No description provided for @signInForCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to access your cart'**
+  String get signInForCart;
+
+  /// No description provided for @signInForNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to access notifications'**
+  String get signInForNotifications;
+
   /// No description provided for @noInvoicesYet.
   ///
   /// In en, this message translates to:

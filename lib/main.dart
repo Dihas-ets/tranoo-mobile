@@ -19,6 +19,7 @@ import 'package:tranoo/utils/notification_i18n.dart';
 import 'package:tranoo/utils/locale_helper.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
+import 'package:tranoo/data/screens/second_page.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/blocked_user_service.dart';
 import 'package:tranoo/services/push_otp_service.dart';
@@ -431,6 +432,43 @@ void main() async {
 // Navigator global pour afficher des popups depuis n'importe où (FCM)
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Après le splash natif : onboarding (SecondPage) ou accueil.
+class TranooEntryFlow extends StatefulWidget {
+  const TranooEntryFlow({super.key});
+
+  @override
+  State<TranooEntryFlow> createState() => _TranooEntryFlowState();
+}
+
+class _TranooEntryFlowState extends State<TranooEntryFlow> {
+  bool? _hasSeenOnboarding;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveEntry();
+  }
+
+  Future<void> _resolveEntry() async {
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getBool('hasSeenOnboarding') ?? false;
+    if (!mounted) return;
+    FlutterNativeSplash.remove();
+    setState(() => _hasSeenOnboarding = seen);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hasSeenOnboarding == null) {
+      return const ColoredBox(color: Color(0xFFF8BF13));
+    }
+    if (!_hasSeenOnboarding!) {
+      return const SecondPage();
+    }
+    return const AvantHome();
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -460,7 +498,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const AvantHome(),
+      home: const TranooEntryFlow(),
       routes: {
         '/marque': (context) => const Marque(),
         '/subscription-success': (context) => _buildSubscriptionSuccessPage(),

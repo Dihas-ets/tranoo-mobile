@@ -20,11 +20,10 @@ import 'notifications.dart';
 import 'connexion_page.dart';
 import 'mesfactures.dart';
 import 'mes_achats_historique.dart';
-import 'second_page.dart';
 import '../../providers/auth_provider.dart' as myauth;
+import '../../utils/auth_dialog.dart';
 import '../../services/notification_service.dart';
 import '../../utils/page_refresh_registry.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../../main.dart' show rootNavigatorKey;
 import '../../widgets/alert_incoming_call_overlay.dart';
 import '../../widgets/alert_display_permission_dialog.dart';
@@ -57,9 +56,6 @@ class _AvantHomeState extends State<AvantHome>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      FlutterNativeSplash.remove();
-    });
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AlertIncomingCallService.tryShowFromAppLaunchOnly(
@@ -67,7 +63,6 @@ class _AvantHomeState extends State<AvantHome>
       );
       AlertDisplayPermissionDialog.showIfNeeded(context);
     });
-    _checkOnboardingAndInactivity();
     _updateLastLoginTime();
     _runLightRefresh(force: true);
     _lightRefreshTimer = Timer.periodic(
@@ -130,23 +125,12 @@ class _AvantHomeState extends State<AvantHome>
     } catch (_) {}
   }
 
-  Future<void> _checkOnboardingAndInactivity() async {
-    if (_didCheckOnboarding) return;
-    _didCheckOnboarding = true;
-
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
-
-    if (!hasSeenOnboarding) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const SecondPage()),
-          (route) => false,
-        );
-      });
-      return;
-    }
+  bool _requireAuth(BuildContext context, {required String message}) {
+    final user =
+        Provider.of<myauth.AuthProvider>(context, listen: false).user;
+    if (user != null) return true;
+    showAuthDialog(context, message: message);
+    return false;
   }
 
   Future<void> _updateLastLoginTime() async {
@@ -291,6 +275,12 @@ class _AvantHomeState extends State<AvantHome>
             icon: const Icon(Icons.history_rounded, color: Colors.black),
             tooltip: AppLocalizations.of(context)!.purchaseHistoryTitle,
             onPressed: () {
+              if (!_requireAuth(
+                context,
+                message: l10n.signInForPurchaseHistory,
+              )) {
+                return;
+              }
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -331,6 +321,9 @@ class _AvantHomeState extends State<AvantHome>
               ],
             ),
             onPressed: () async {
+              if (!_requireAuth(context, message: l10n.signInForInvoices)) {
+                return;
+              }
               await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -374,6 +367,9 @@ class _AvantHomeState extends State<AvantHome>
                   ],
                 ),
                 onPressed: () {
+                  if (!_requireAuth(context, message: l10n.signInForCart)) {
+                    return;
+                  }
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const CartPage()),
@@ -512,10 +508,10 @@ class _AvantHomeState extends State<AvantHome>
                     title: Text(l10n.profile),
                     onTap: () {
                       Navigator.pop(context);
-                      if (user == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.pleaseSignIn)),
-                        );
+                      if (!_requireAuth(
+                        context,
+                        message: l10n.signInForProfile,
+                      )) {
                         return;
                       }
                       final Widget page = _profilePageForUser(user);

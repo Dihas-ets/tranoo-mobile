@@ -3813,6 +3813,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get signInForInvoices => 'Connectez-vous pour accéder à vos factures';
 
   @override
+  String get signInForPurchaseHistory =>
+      'Connectez-vous pour accéder à votre historique d\'achats';
+
+  @override
+  String get signInForCart => 'Connectez-vous pour accéder au panier';
+
+  @override
+  String get signInForNotifications =>
+      'Connectez-vous pour accéder aux notifications';
+
+  @override
   String get noInvoicesYet => 'Vous n\'avez aucune facture pour le moment.';
 
   @override

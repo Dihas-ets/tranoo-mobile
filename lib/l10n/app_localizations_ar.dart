@@ -3734,6 +3734,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get signInForInvoices => 'سجّل الدخول للوصول إلى فواتيرك';
 
   @override
+  String get signInForPurchaseHistory => 'سجّل الدخول للوصول إلى سجل مشترياتك';
+
+  @override
+  String get signInForCart => 'سجّل الدخول للوصول إلى السلة';
+
+  @override
+  String get signInForNotifications => 'سجّل الدخول للوصول إلى الإشعارات';
+
+  @override
   String get noInvoicesYet => 'ليس لديك فواتير حالياً.';
 
   @override

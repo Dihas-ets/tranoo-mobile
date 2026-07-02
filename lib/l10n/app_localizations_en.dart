@@ -3765,6 +3765,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInForInvoices => 'Sign in to access your invoices';
 
   @override
+  String get signInForPurchaseHistory =>
+      'Sign in to access your purchase history';
+
+  @override
+  String get signInForCart => 'Sign in to access your cart';
+
+  @override
+  String get signInForNotifications => 'Sign in to access notifications';
+
+  @override
   String get noInvoicesYet => 'You have no invoices yet.';
 
   @override
