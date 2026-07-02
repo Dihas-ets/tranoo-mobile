@@ -16,6 +16,8 @@ import 'package:tranoo/utils/cloudinary_upload.dart';
 import 'dart:developer';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 class Une extends StatefulWidget {
   final String? articleId; // ID de l'article existant (optionnel)
@@ -1700,13 +1702,13 @@ class _UneState extends State<Une> {
                                   borderRadius: BorderRadius.circular(10),
                                   child: Container(
                                     color: Colors.black,
-                                    child: Image.network(
-                                      _cloudinaryImageUrls[0]!,
+                                    child: TranooNetworkImage(
+                                      url: _cloudinaryImageUrls[0]!,
                                       fit: BoxFit.contain,
-                                      alignment: Alignment.center,
-                                      filterQuality: FilterQuality.high,
                                       width: double.infinity,
                                       height: double.infinity,
+                                      cloudinaryWidthPx:
+                                          cloudinaryWidthPx(context),
                                     ),
                                   ),
                                 )
@@ -1823,11 +1825,13 @@ class _UneState extends State<Une> {
                                     _cloudinaryImageUrls[index]!.isNotEmpty)
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      _cloudinaryImageUrls[index]!,
+                                    child: TranooNetworkImage(
+                                      url: _cloudinaryImageUrls[index]!,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
                                       height: double.infinity,
+                                      cloudinaryWidthPx:
+                                          cloudinaryWidthPx(context),
                                     ),
                                   )
                                 else

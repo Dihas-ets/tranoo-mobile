@@ -18,6 +18,9 @@ import 'package:tranoo/languesentreprise.dart';
 import 'package:tranoo/providers/auth_provider.dart' as local_auth;
 import 'package:tranoo/providers/locale_provider.dart';
 import 'package:tranoo/utils/locale_helper.dart';
+import 'package:tranoo/utils/local_data_cache.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/widgets/delayed_loader.dart';
 
 void main() {
   runApp(const MyApp());
@@ -55,8 +58,26 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
   @override
   void initState() {
     super.initState();
-    fetchUser();
-    _loadWallet();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    final cached = await LocalDataCache.readJsonMapStale('profile_me');
+    if (cached != null && mounted) {
+      setState(() {
+        userData = cached;
+        loading = false;
+      });
+      final photo = cached['photo']?.toString();
+      if (photo != null && photo.isNotEmpty && mounted) {
+        precacheTranooImages(
+          context,
+          [photo],
+          cloudinaryWidthPx: 200,
+        );
+      }
+    }
+    await Future.wait<void>([fetchUser(), _loadWallet()]);
   }
 
   Future<void> fetchUser() async {
@@ -81,8 +102,12 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
         ),
       );
       final response = await dio.get('/protected/me');
+      final profile = response.data['user'] as Map<String, dynamic>?;
+      if (profile != null) {
+        await LocalDataCache.writeJsonMap('profile_me', profile);
+      }
       setState(() {
-        userData = response.data['user'];
+        userData = profile;
         loading = false;
         errorMsg = null;
       });
@@ -283,7 +308,9 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    if (loading) return const Center(child: CircularProgressIndicator());
+    if (loading) {
+      return const Center(child: DelayedLoader(loading: true, size: 32));
+    }
     if (errorMsg != null) return Center(child: Text(errorMsg!));
     if (userData == null) {
       return Center(child: Text(l10n.noUserData));
@@ -337,8 +364,13 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
                               : (userData != null &&
                                       userData!["photo"] != null &&
                                       userData!["photo"].toString().isNotEmpty)
-                                  ? NetworkImage(
-                                      userData!["photo"].toString())
+                                  ? tranooImageProvider(
+                                      userData!["photo"].toString(),
+                                      cloudinaryWidthPx: cloudinaryWidthPx(
+                                        context,
+                                        logicalWidth: 64,
+                                      ),
+                                    )
                                   : null,
                           child: (_image == null &&
                                   (userData == null ||

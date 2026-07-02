@@ -5,6 +5,8 @@ import '../../services/chat_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'discussion.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 
 class Transit extends StatefulWidget {
   const Transit({super.key});
@@ -259,22 +261,15 @@ class _TransitState extends State<Transit> with SingleTickerProviderStateMixin {
                 item['image'] != null
                     ? ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        item['image'],
+                      child: TranooNetworkImage(
+                        url: item['image'],
                         width: 60,
                         height: 60,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.image, color: Colors.grey),
-                          );
-                        },
+                        cloudinaryWidthPx: cloudinaryWidthPx(
+                          context,
+                          logicalWidth: 60,
+                        ),
                       ),
                     )
                     : Container(

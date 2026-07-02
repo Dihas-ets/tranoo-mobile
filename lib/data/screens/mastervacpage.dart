@@ -17,10 +17,13 @@ import 'package:confetti/confetti.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/utils/article_view_helper.dart';
 import 'package:tranoo/utils/auth_config.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/utils/whatsapp_helper.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/utils/text_display.dart';
 import 'package:tranoo/widgets/spec_info_card.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -56,6 +59,8 @@ class MastervacPage extends StatefulWidget {
   final List<String?> images;
   final String? video;
   final bool fromPub;
+  final Map<String, dynamic>? fournisseur;
+  final Map<String, dynamic>? vendeur;
 
   const MastervacPage({
     super.key,
@@ -75,6 +80,8 @@ class MastervacPage extends StatefulWidget {
     required this.images,
     this.video,
     this.fromPub = false,
+    this.fournisseur,
+    this.vendeur,
   });
 
   @override
@@ -106,31 +113,27 @@ class _MastervacPageState extends State<MastervacPage> {
       duration: const Duration(seconds: 2),
     );
     _pageController = PageController(initialPage: _currentImageIndex);
+    _sellerPhone = WhatsappHelper.phoneFromArticleSupplier(
+      fournisseur: widget.fournisseur,
+      vendeur: widget.vendeur,
+    );
     _loadArticleDetails();
   }
 
-  String? _extractSellerPhone(Map<String, dynamic> data) {
-    final fournisseur = data['fournisseur'];
-    if (fournisseur is Map) {
-      final phone = fournisseur['telephone']?.toString().trim() ?? '';
-      if (phone.isNotEmpty) return phone;
-    }
-    final vendeur = data['vendeur'];
-    if (vendeur is Map) {
-      final phone = vendeur['telephone']?.toString().trim() ?? '';
-      if (phone.isNotEmpty) return phone;
-    }
-    return null;
-  }
+  String? _extractSellerPhone(Map<String, dynamic> data) =>
+      WhatsappHelper.phoneFromArticle(data) ?? _sellerPhone;
 
-  String _digitsOnly(String raw) => raw.replaceAll(RegExp(r'\D'), '');
-
-  void _showSellerContactUnavailable() {
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.sellerPhoneUnavailable)),
-    );
+  void _precacheAdjacentImages(int index) {
+    if (!mounted || widget.images.isEmpty) return;
+    final w = cloudinaryWidthPx(context);
+    final urls = <String>[];
+    for (final delta in [-1, 0, 1]) {
+      final i = index + delta;
+      if (i < 0 || i >= widget.images.length) continue;
+      final url = widget.images[i]?.trim() ?? '';
+      if (url.startsWith('http')) urls.add(url);
+    }
+    precacheTranooImages(context, urls, cloudinaryWidthPx: w, maxCount: 3);
   }
 
   Future<void> _showContactSellerDialog() async {
@@ -200,29 +203,41 @@ class _MastervacPageState extends State<MastervacPage> {
   }
 
   Future<void> _openSellerWhatsApp() async {
+    await WhatsappHelper.openChat(
+      context,
+      phone: _sellerPhone,
+      unavailableMessage: l10n.sellerPhoneUnavailable,
+      cannotOpenMessage: l10n.cannotOpenWhatsApp,
+    );
+  }
+
+  String _digitsOnly(String raw) => raw.replaceAll(RegExp(r'\D'), '');
+
+  Future<void> _callSeller() async {
     final phone = _sellerPhone?.trim() ?? '';
     if (phone.isEmpty) {
-      _showSellerContactUnavailable();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.sellerPhoneUnavailable)),
+      );
       return;
     }
     final digits = _digitsOnly(phone);
     if (digits.isEmpty) {
-      _showSellerContactUnavailable();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.sellerPhoneUnavailable)),
+      );
       return;
     }
-    final uri = Uri.parse('https://wa.me/$digits');
+    final uri = Uri.parse('tel:+$digits');
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      await launchUrl(uri);
       return;
     }
-    try {
-      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (ok) return;
-    } catch (_) {}
     if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.cannotOpenWhatsApp)),
+      SnackBar(content: Text(l10n.cannotMakeCall)),
     );
   }
 
@@ -267,7 +282,7 @@ class _MastervacPageState extends State<MastervacPage> {
       final user = FirebaseAuth.instance.currentUser;
       final token = await user?.getIdToken();
       final res = await http.get(
-        Uri.parse(getBaseUrl() + '/articles/' + id),
+        Uri.parse(getBaseUrl() + '/public/articles/' + id),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer ' + token,
@@ -306,9 +321,15 @@ class _MastervacPageState extends State<MastervacPage> {
       appBar: _buildAppBar(),
       floatingActionButton: FloatingActionButton(
         onPressed: _startDeliveryFlow,
-        backgroundColor: const Color(0xFF2E7D32),
+        backgroundColor: const Color(0xFF0A903D),
         tooltip: l10n.orderWithDelivery,
-        child: const Icon(Icons.local_shipping, color: Colors.white),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Image.asset(
+            'assets/images/livro_logo.png',
+            fit: BoxFit.contain,
+          ),
+        ),
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
@@ -330,10 +351,6 @@ class _MastervacPageState extends State<MastervacPage> {
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.share, color: Colors.black),
-          onPressed: () {},
-        ),
         // Icône Panier avec compteur
         AnimatedBuilder(
           animation: CartService(),
@@ -399,19 +416,17 @@ class _MastervacPageState extends State<MastervacPage> {
               ? PageView.builder(
             controller: _pageController,
             itemCount: widget.images.length,
-            onPageChanged: (i) => setState(() => _currentImageIndex = i),
+            onPageChanged: (i) {
+              setState(() => _currentImageIndex = i);
+              _precacheAdjacentImages(i);
+            },
             itemBuilder: (context, index) {
               final String img = widget.images[index] ?? '';
               final Widget child = img.startsWith('http')
-                  ? Image.network(
-                      img,
+                  ? TranooNetworkImage(
+                      url: img,
                       fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => Container(
-                        color: Colors.grey[300],
-                        child: Center(
-                          child: Text(l10n.imageNotAvailable),
-                        ),
-                      ),
+                      cloudinaryWidthPx: cloudinaryWidthPx(context),
                     )
                   : (img.isNotEmpty
                       ? Image.asset(
@@ -444,6 +459,7 @@ class _MastervacPageState extends State<MastervacPage> {
                   ? VideoPreviewPlaceholder(
                       videoUrl: widget.video,
                       iconSize: 60,
+                      enablePreviewFrame: false,
                     )
                   : Container(
                       color: Colors.grey[300],
@@ -477,15 +493,14 @@ class _MastervacPageState extends State<MastervacPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Contact vendeur (même flux que WhatsApp : popup puis WA)
               GestureDetector(
-                onTap: _showContactSellerDialog,
+                onTap: _callSeller,
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.white,
                   child: const Icon(
-                    Icons.chat,
-                    color: Color(0xFF25D366),
+                    Icons.phone,
+                    color: Colors.green,
                     size: 20,
                   ),
                 ),
@@ -531,7 +546,11 @@ class _MastervacPageState extends State<MastervacPage> {
                 itemBuilder: (context, index) {
                   final String img = widget.images[index] ?? '';
                   final Widget child = img.startsWith('http')
-                      ? Image.network(img, fit: BoxFit.contain)
+                      ? TranooNetworkImage(
+                          url: img,
+                          fit: BoxFit.contain,
+                          cloudinaryWidthPx: cloudinaryWidthPx(context),
+                        )
                       : (img.isNotEmpty
                           ? Image.asset(img, fit: BoxFit.contain)
                           : const Icon(
@@ -731,8 +750,8 @@ class _MastervacPageState extends State<MastervacPage> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            onPressed: _showContactSellerDialog,
-            icon: const Icon(Icons.chat_bubble_outline),
+            onPressed: _callSeller,
+            icon: const Icon(Icons.phone),
             label: Text(
               l10n.contactSeller,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),

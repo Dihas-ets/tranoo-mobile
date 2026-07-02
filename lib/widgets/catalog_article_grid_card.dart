@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tranoo/utils/article_view_helper.dart';
 import 'package:tranoo/utils/catalog_display.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 
 /// Carte catalogue identique à [VoituresPage] (grille 2 colonnes).
 class CatalogArticleGridCard extends StatelessWidget {
@@ -55,6 +56,7 @@ class CatalogArticleGridCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final height = width / aspectRatioForWidth(width * 2.2);
+    final dpr = MediaQuery.of(context).devicePixelRatio;
     final photos = article['photos'] as List?;
     final hasPhoto = photos != null && photos.isNotEmpty;
     final video = article['video']?.toString();
@@ -97,11 +99,15 @@ class CatalogArticleGridCard extends StatelessWidget {
                         topRight: Radius.circular(12),
                       ),
                       child: hasPhoto
-                          ? Image.network(
-                              photos!.first.toString(),
-                              height: double.infinity,
+                          ? TranooNetworkImage(
+                              url: photos.first.toString(),
                               width: double.infinity,
+                              height: double.infinity,
                               fit: BoxFit.cover,
+                              cloudinaryWidthPx: (width * dpr).round().clamp(
+                                    200,
+                                    900,
+                                  ),
                             )
                           : hasVideo
                               ? VideoPreviewPlaceholder(

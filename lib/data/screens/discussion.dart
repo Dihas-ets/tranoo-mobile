@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 class Discussion extends StatefulWidget {
   final String roomId;
@@ -299,7 +301,10 @@ class _DiscussionState extends State<Discussion> {
               backgroundColor: Colors.grey[300],
               backgroundImage:
                   _getOtherParticipantPhoto() != null
-                      ? NetworkImage(_getOtherParticipantPhoto()!)
+                      ? tranooImageProvider(
+                          _getOtherParticipantPhoto()!,
+                          cloudinaryWidthPx: 200,
+                        )
                       : null,
               child:
                   _getOtherParticipantPhoto() == null
@@ -373,7 +378,10 @@ class _DiscussionState extends State<Discussion> {
                                     backgroundImage:
                                         avatarUrl != null &&
                                                 avatarUrl.isNotEmpty
-                                            ? NetworkImage(avatarUrl)
+                                            ? tranooImageProvider(
+                                                avatarUrl,
+                                                cloudinaryWidthPx: 200,
+                                              )
                                             : null,
                                     child:
                                         avatarUrl == null || avatarUrl.isEmpty
@@ -548,19 +556,15 @@ class _DiscussionState extends State<Discussion> {
           borderRadius: BorderRadius.circular(8),
           child:
               fileUrl.startsWith('http')
-                  ? Image.network(
-                    fileUrl,
+                  ? TranooNetworkImage(
+                    url: fileUrl,
                     width: 120,
                     height: 120,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 120,
-                        height: 120,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.image, color: Colors.grey),
-                      );
-                    },
+                    cloudinaryWidthPx: cloudinaryWidthPx(
+                      context,
+                      logicalWidth: 120,
+                    ),
                   )
                   : Container(
                     width: 120,
@@ -624,17 +628,10 @@ class _DiscussionState extends State<Discussion> {
             mainAxisSize: MainAxisSize.min,
             children: [
               imageUrl.startsWith('http')
-                  ? Image.network(
-                    imageUrl,
+                  ? TranooNetworkImage(
+                    url: imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 200,
-                        height: 200,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.image, color: Colors.grey),
-                      );
-                    },
+                    cloudinaryWidthPx: cloudinaryWidthPx(context),
                   )
                   : Image.asset(imageUrl, fit: BoxFit.cover),
               TextButton(

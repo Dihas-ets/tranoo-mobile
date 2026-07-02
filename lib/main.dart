@@ -20,6 +20,7 @@ import 'package:tranoo/utils/locale_helper.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
 import 'package:tranoo/data/screens/second_page.dart';
+import 'package:tranoo/utils/onboarding_prefs.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/blocked_user_service.dart';
 import 'package:tranoo/services/push_otp_service.dart';
@@ -42,6 +43,7 @@ import 'package:tranoo/data/screens/reset/verify_code_page.dart';
 import 'package:tranoo/data/screens/reset/create_new_password_page.dart';
 import 'package:tranoo/data/screens/order_details_page.dart';
 import 'package:tranoo/data/screens/mes_commandes.dart';
+import 'package:tranoo/services/app_bootstrap.dart';
 
 /// Clés souvent utilisées par FeexPay / le package sur la redirection.
 /// Doc V2 (intégrations front) : paramètre **`ref`** sur l’URL de callback.
@@ -398,24 +400,14 @@ class NotificationService {
 void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Charger les variables d'environnement
-  await dotenv.load(fileName: ".env");
 
-  // Initialiser le service de notifications locales
-  try {
-    await LocalNotificationService.initialize();
-    print('LocalNotificationService initialisé');
-  } catch (e) {
-    print('Erreur LocalNotificationService: $e');
-  }
+  await Future.wait<void>([
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge),
+    Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+    dotenv.load(fileName: ".env"),
+    AppBootstrap.warmUp(),
+  ]);
 
-  // Initialiser le service de notifications
-  await NotificationService().initialize();
-
-  // Initialiser le service OTP Push
-  await PushOTPService.initialize();
   runApp(
     MultiProvider(
       providers: [
@@ -427,6 +419,24 @@ void main() async {
       child: const MyApp(),
     ),
   );
+
+  _initializeDeferredServices();
+}
+
+Future<void> _initializeDeferredServices() async {
+  try {
+    await LocalNotificationService.initialize();
+    print('LocalNotificationService initialisé');
+  } catch (e) {
+    print('Erreur LocalNotificationService: $e');
+  }
+
+  try {
+    await NotificationService().initialize();
+    await PushOTPService.initialize();
+  } catch (e) {
+    print('Erreur services notifications: $e');
+  }
 }
 
 // Navigator global pour afficher des popups depuis n'importe où (FCM)
@@ -446,26 +456,59 @@ class _TranooEntryFlowState extends State<TranooEntryFlow> {
   @override
   void initState() {
     super.initState();
-    _resolveEntry();
+    _hasSeenOnboarding = AppBootstrap.onboardingComplete;
+    if (_hasSeenOnboarding == null) {
+      _resolveEntry();
+    } else {
+      _scheduleNativeSplashRemove();
+    }
+  }
+
+  void _scheduleNativeSplashRemove() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        FlutterNativeSplash.remove();
+      });
+    });
   }
 
   Future<void> _resolveEntry() async {
-    final prefs = await SharedPreferences.getInstance();
-    final seen = prefs.getBool('hasSeenOnboarding') ?? false;
+    await AppBootstrap.warmUp();
+    final onboardingComplete =
+        AppBootstrap.onboardingComplete ?? false;
     if (!mounted) return;
-    FlutterNativeSplash.remove();
-    setState(() => _hasSeenOnboarding = seen);
+    setState(() => _hasSeenOnboarding = onboardingComplete);
+    _scheduleNativeSplashRemove();
   }
 
   @override
   Widget build(BuildContext context) {
     if (_hasSeenOnboarding == null) {
-      return const ColoredBox(color: Color(0xFFF8BF13));
+      return const _TranooBootShell();
     }
     if (!_hasSeenOnboarding!) {
-      return const SecondPage();
+      return const SecondPage(key: ValueKey('tranoo_onboarding'));
     }
-    return const AvantHome();
+    return const AvantHome(key: ValueKey('tranoo_home'));
+  }
+}
+
+/// Shell de démarrage (évite l'écran blanc avant onboarding / accueil).
+class _TranooBootShell extends StatelessWidget {
+  const _TranooBootShell();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: Color(0xFFF8BF13),
+      child: Center(
+        child: Image(
+          image: AssetImage('assets/images/logo_connexion.png'),
+          height: 56,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
   }
 }
 
@@ -496,6 +539,8 @@ class MyApp extends StatelessWidget {
       },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        scaffoldBackgroundColor: const Color(0xFFF9FAFB),
+        canvasColor: const Color(0xFFF9FAFB),
         useMaterial3: true,
       ),
       home: const TranooEntryFlow(),
@@ -942,25 +987,21 @@ class _AppInitializerState extends State<AppInitializer> {
   }
 
   Future<void> _checkUserStatus() async {
-    // Attendre un peu pour que le contexte soit disponible
-    await Future.delayed(const Duration(milliseconds: 500));
+    await AppBootstrap.warmUp();
 
-    // Définir le contexte pour BlockedUserService
+    if (!mounted) return;
+
     BlockedUserService.setContext(context);
 
-    // Vérifier le statut de blocage
     final userService = UserService();
     final isBlocked = await userService.checkUserBlockedStatus();
 
     if (isBlocked) {
-      // L'utilisateur est bloqué, le dialogue sera affiché automatiquement
       return;
     }
 
-    // Détecter le code de parrainage depuis l'URL
     await _handleReferralCode();
 
-    // Naviguer vers l'écran principal
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const AvantHome()),
@@ -1099,6 +1140,6 @@ class _AppInitializerState extends State<AppInitializer> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return const _TranooBootShell();
   }
 }

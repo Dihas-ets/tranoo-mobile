@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'succes.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 
 class FinalisationAchatScreen extends StatelessWidget {
   final String? articleImage;
@@ -69,11 +71,12 @@ class FinalisationAchatScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 child:
                     (displayedImage.startsWith('http'))
-                        ? Image.network(
-                          displayedImage,
+                        ? TranooNetworkImage(
+                          url: displayedImage,
                           height: 200,
                           width: double.infinity,
                           fit: BoxFit.cover,
+                          cloudinaryWidthPx: cloudinaryWidthPx(context),
                         )
                         : Image.asset(
                           displayedImage,

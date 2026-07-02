@@ -16,6 +16,7 @@ import 'package:tranoo/services/seller_profile_locations.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/utils/amount_display.dart';
 import 'package:tranoo/utils/cloudinary_upload.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 import 'moto_info.dart';
 import 'movie.dart';
@@ -637,7 +638,13 @@ class _CreateSellMotoPageState extends State<CreateSellMotoPage> {
                     border: Border.all(color: const Color(0xFFF8BF13)),
                     image: url != null && url.isNotEmpty
                         ? DecorationImage(
-                            image: NetworkImage(url),
+                            image: tranooImageProvider(
+                              url,
+                              cloudinaryWidthPx: cloudinaryWidthPx(
+                                context,
+                                logicalWidth: 80,
+                              ),
+                            ),
                             fit: BoxFit.cover,
                           )
                         : null,

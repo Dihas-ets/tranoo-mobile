@@ -6,6 +6,7 @@ import 'order_tracking_page_modern.dart';
 import '../../config/backend_config.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/utils/order_status_l10n.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 
 class OrderDetailsPage extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -507,10 +508,11 @@ class QrImageView extends StatelessWidget {
     final encoded = Uri.encodeComponent(data);
     final qrUrl =
         'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=$encoded';
-    return Image.network(
-      qrUrl,
+    return TranooNetworkImage(
+      url: qrUrl,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => const Icon(Icons.qr_code_2, size: 60),
+      width: 220,
+      height: 220,
     );
   }
 }

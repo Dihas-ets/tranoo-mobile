@@ -8,6 +8,8 @@ import '../../utils/cloudinary_upload.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'dart:developer';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 
 class CreateSellPage2 extends StatefulWidget {
   const CreateSellPage2({super.key});
@@ -717,11 +719,14 @@ class CreateSellPage2State extends State<CreateSellPage2> {
                                 if (uploadedUrl != null)
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      uploadedUrl,
-                              fit: BoxFit.cover,
+                                    child: TranooNetworkImage(
+                                      url: uploadedUrl,
+                                      fit: BoxFit.cover,
                                       width: double.infinity,
                                       height: double.infinity,
+                                      cloudinaryWidthPx: cloudinaryWidthPx(
+                                        context,
+                                      ),
                                     ),
                                   )
                                 else if (file != null)

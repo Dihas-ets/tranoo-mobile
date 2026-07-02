@@ -8,6 +8,8 @@ import 'package:tranoo/services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 
 class DriverCertifiedPage extends StatefulWidget {
   const DriverCertifiedPage({super.key});
@@ -234,10 +236,14 @@ class DriverCertifiedPageState extends State<DriverCertifiedPage> {
             if (_cloudinaryUrl != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Image.network(
-                  _cloudinaryUrl!,
+                child: TranooNetworkImage(
+                  url: _cloudinaryUrl!,
                   height: 120,
                   fit: BoxFit.cover,
+                  cloudinaryWidthPx: cloudinaryWidthPx(
+                    context,
+                    logicalWidth: 120,
+                  ),
                 ),
               ),
             SizedBox(

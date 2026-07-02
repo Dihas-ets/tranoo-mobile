@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 
 class Profile2 extends StatefulWidget {
   const Profile2({super.key});
@@ -119,7 +121,12 @@ class _Profile2State extends State<Profile2> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    if (loading) return const Center(child: CircularProgressIndicator());
+    if (loading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB),
+        body: SkeletonPresets.profile(),
+      );
+    }
     if (errorMsg != null) return Center(child: Text(errorMsg!));
     if (userData == null) {
       return Center(child: Text(l10n.noUserData));
@@ -168,7 +175,13 @@ class _Profile2State extends State<Profile2> {
                           : (userData != null &&
                               userData!["photo"] != null &&
                               userData!["photo"].toString().isNotEmpty)
-                          ? NetworkImage(userData!["photo"])
+                          ? tranooImageProvider(
+                              userData!["photo"].toString(),
+                              cloudinaryWidthPx: cloudinaryWidthPx(
+                                context,
+                                logicalWidth: avatarRadius * 2,
+                              ),
+                            )
                           : const AssetImage("assets/images/jenifer.jpg")
                               as ImageProvider,
                   child:

@@ -9,6 +9,8 @@ import 'package:tranoo/services/notification_ringtone_player.dart';
 import 'package:tranoo/services/alert_pending_store.dart';
 import 'package:tranoo/utils/local_notification_service.dart';
 import 'package:tranoo/utils/locale_helper.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 /// Écran plein écran pour proposition vendeur (acheteurs).
 class AlertIncomingCallOverlay extends StatefulWidget {
@@ -323,10 +325,10 @@ class _AvatarRing extends StatelessWidget {
         padding: const EdgeInsets.all(4),
         child: ClipOval(
           child: imageUrl != null && imageUrl!.isNotEmpty
-              ? Image.network(
-                  imageUrl!,
+              ? TranooNetworkImage(
+                  url: imageUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _placeholder(),
+                  cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 148),
                 )
               : _placeholder(),
         ),

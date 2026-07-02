@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 class ProductCard extends StatelessWidget {
   final String imagePath;
@@ -33,11 +35,15 @@ class ProductCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                imagePath,
+              child: TranooNetworkImage(
+                url: imagePath,
                 height: imageHeight,
                 width: imageWidth,
                 fit: BoxFit.cover,
+                cloudinaryWidthPx: cloudinaryWidthPx(
+                  context,
+                  logicalWidth: imageWidth,
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -51,11 +57,15 @@ class ProductCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.blueAccent),
                   ),
-                  child: Image.network(
-                    imagePath,
+                  child: TranooNetworkImage(
+                    url: imagePath,
                     width: 40,
                     height: 40,
                     fit: BoxFit.cover,
+                    cloudinaryWidthPx: cloudinaryWidthPx(
+                      context,
+                      logicalWidth: 40,
+                    ),
                   ),
                 ),
               ),

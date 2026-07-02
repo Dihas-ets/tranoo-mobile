@@ -131,9 +131,13 @@ class AuthProvider with ChangeNotifier {
     // 2. Ensuite, écouter FirebaseAuth pour les changements d'état
     FirebaseAuth.instance.authStateChanges().listen((firebaseUser) async {
       debugPrint('[AuthProvider] Firebase user: $firebaseUser');
-      _loading = true;
-      notifyListeners();
-      debugPrint('[AuthProvider] notifyListeners() loading=true');
+      // Jamais bloquer l'UI si un profil est déjà affiché (retour app / sync).
+      final blockUi = firebaseUser != null && _user == null;
+      if (blockUi) {
+        _loading = true;
+        notifyListeners();
+        debugPrint('[AuthProvider] notifyListeners() loading=true (première sync)');
+      }
       if (firebaseUser != null) {
         debugPrint(
           '[AuthProvider] Firebase user (avant getIdToken): $firebaseUser',
@@ -260,8 +264,11 @@ class AuthProvider with ChangeNotifier {
   // Ajout : méthode pour forcer le rechargement de l'utilisateur
   Future<void> reloadUser() async {
     final firebaseUser = FirebaseAuth.instance.currentUser;
-    _loading = true;
-    notifyListeners();
+    final silent = _user != null;
+    if (!silent) {
+      _loading = true;
+      notifyListeners();
+    }
     if (firebaseUser != null) {
       final idToken = await firebaseUser.getIdToken();
       _token = idToken;

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/utils/notification_i18n.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 enum NotificationVisualKind {
   systemApp,
@@ -142,7 +144,11 @@ String? notificationThumbUrl(Map<String, dynamic> notif) {
   return null;
 }
 
-Widget buildNotificationThumbnail(String? url, NotificationVisualKind kind) {
+Widget buildNotificationThumbnail(
+  BuildContext context,
+  String? url,
+  NotificationVisualKind kind,
+) {
   const w = 112.0;
   const h = 63.0;
   final placeholder = Container(
@@ -159,12 +165,12 @@ Widget buildNotificationThumbnail(String? url, NotificationVisualKind kind) {
   if (url == null || url.isEmpty) return placeholder;
   return ClipRRect(
     borderRadius: BorderRadius.circular(8),
-    child: Image.network(
-      url,
+    child: TranooNetworkImage(
+      url: url,
       width: w,
       height: h,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => placeholder,
+      cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: w),
     ),
   );
 }

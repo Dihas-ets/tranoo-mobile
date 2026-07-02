@@ -6,6 +6,8 @@ import 'package:tranoo/services/transit_mission_service.dart';
 import 'package:tranoo/utils/tranoo_toast.dart';
 import 'package:tranoo/widgets/transitaire_carousel_section.dart';
 import 'package:tranoo/widgets/transitaire_profile_ui.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 
 class MesAchatsHistoriquePage extends StatefulWidget {
   final String? highlightArticleId;
@@ -406,13 +408,16 @@ class _MesAchatsHistoriquePageState extends State<MesAchatsHistoriquePage> {
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(10),
                                       child: image != null
-                                          ? Image.network(
-                                              image,
+                                          ? TranooNetworkImage(
+                                              url: image,
                                               width: 72,
                                               height: 72,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  _placeholderThumb(),
+                                              cloudinaryWidthPx:
+                                                  cloudinaryWidthPx(
+                                                context,
+                                                logicalWidth: 72,
+                                              ),
                                             )
                                           : _placeholderThumb(),
                                     ),

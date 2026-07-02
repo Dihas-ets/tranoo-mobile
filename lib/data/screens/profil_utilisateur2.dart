@@ -16,6 +16,8 @@ import 'package:tranoo/languesentreprise.dart';
 import 'package:tranoo/providers/auth_provider.dart' as local_auth;
 import 'package:tranoo/providers/locale_provider.dart';
 import 'package:tranoo/utils/locale_helper.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 
 class ProfilUtilisateur2 extends StatefulWidget {
   const ProfilUtilisateur2({super.key});
@@ -266,7 +268,12 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    if (loading) return const Center(child: CircularProgressIndicator());
+    if (loading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB),
+        body: SkeletonPresets.profile(),
+      );
+    }
     if (errorMsg != null) return Center(child: Text(errorMsg!));
     if (userData == null) {
       return Center(child: Text(l10n.noUserData));
@@ -337,7 +344,13 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
                           : (userData != null &&
                               userData!["photo"] != null &&
                               userData!["photo"].toString().isNotEmpty)
-                          ? NetworkImage(userData!["photo"].toString()) as ImageProvider
+                          ? tranooImageProvider(
+                              userData!["photo"].toString(),
+                              cloudinaryWidthPx: cloudinaryWidthPx(
+                                context,
+                                logicalWidth: 60,
+                              ),
+                            )
                           : null,
                   child: (_image == null && 
                           (userData == null || 

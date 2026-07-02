@@ -17,6 +17,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/utils/cloudinary_upload.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 void main() {
   runApp(const MyApp());
@@ -47,6 +48,7 @@ class Profil3State extends State<Profil3> {
   double? _walletBalance;
   String _walletCurrency = "XOF";
   bool _walletLoading = true;
+  bool _guestAuthPrompted = false;
   // SUPPRIME : Map<String, dynamic>? userData;
   // SUPPRIME : bool loading = true;
   // SUPPRIME : String? errorMsg;
@@ -195,28 +197,55 @@ class Profil3State extends State<Profil3> {
   }
 
   @override
+  void deactivate() {
+    _guestAuthPrompted = false;
+    super.deactivate();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<myauth.AuthProvider>(context);
     final userData = authProvider.user;
-    final loading = authProvider.loading;
 
-    if (loading) return const Center(child: CircularProgressIndicator());
-
-    // Si l'utilisateur n'est pas connecté, afficher le popup d'authentification
     final l10n = AppLocalizations.of(context)!;
     if (userData == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showAuthDialog(context, message: l10n.signInForProfile);
-      });
+      if (!_guestAuthPrompted) {
+        _guestAuthPrompted = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          showAuthDialog(context, message: l10n.signInForProfile);
+        });
+      }
       return Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB),
         appBar: AppBar(
-          backgroundColor: const Color(0xFFF9FAFB),
+          backgroundColor: const Color(0xFFF8BF13),
           elevation: 0,
+          foregroundColor: Colors.black,
+          title: Text(
+            l10n.account,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: Colors.black,
+            ),
+          ),
         ),
         body: Center(
-          child: Text(
-            l10n.userNotConnected,
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.person_outline, size: 72, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.userNotConnected,
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -287,7 +316,13 @@ class Profil3State extends State<Profil3> {
                   backgroundImage: _image != null
                       ? FileImage(_image!)
                       : hasPhoto
-                          ? NetworkImage(userData["photo"]) as ImageProvider
+                          ? tranooImageProvider(
+                              userData["photo"].toString(),
+                              cloudinaryWidthPx: cloudinaryWidthPx(
+                                context,
+                                logicalWidth: 64,
+                              ),
+                            )
                           : const AssetImage("assets/images/jenifer.jpg"),
                   child: (!hasPhoto && _image == null)
                       ? Icon(Icons.person, size: 32, color: Colors.grey[500])

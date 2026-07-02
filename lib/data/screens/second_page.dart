@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tranoo/data/screens/inscription_page.dart';
+import 'package:tranoo/data/screens/avant_home.dart';
+import 'package:tranoo/utils/onboarding_prefs.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 
 class SecondPage extends StatefulWidget {
@@ -67,6 +68,8 @@ class SecondPageState extends State<SecondPage>
             duration: const Duration(milliseconds: 800),
             child: Container(
               key: ValueKey(_currentImageIndex),
+              width: double.infinity,
+              height: double.infinity,
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage(_images[_currentImageIndex]),
@@ -125,13 +128,14 @@ class SecondPageState extends State<SecondPage>
                       child: IconButton(
                         onPressed: () async {
                           final prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool(kOnboardingCompleteKey, true);
                           await prefs.setBool('hasSeenOnboarding', true);
 
                           if (!context.mounted) return;
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const InscriptionPage(),
+                              builder: (context) => const AvantHome(),
                             ),
                           );
                         },

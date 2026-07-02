@@ -24,6 +24,8 @@ import 'package:tranoo/utils/tranoo_toast.dart';
 import 'package:tranoo/utils/transit_parcours_guard.dart';
 import 'package:tranoo/widgets/transitaire_carousel_section.dart';
 import 'package:tranoo/services/transit_mission_service.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -346,14 +348,10 @@ class _CarsinfoState extends State<CarsInfo> {
                     child: InteractiveViewer(
                       minScale: 1,
                       maxScale: 5,
-                      child: Image.network(
-                        widget.images[index],
+                      child: TranooNetworkImage(
+                        url: widget.images[index],
                         fit: BoxFit.contain,
-                        errorBuilder: (c, e, s) => const Icon(
-                          Icons.image_not_supported,
-                          color: Colors.white,
-                          size: 80,
-                        ),
+                        cloudinaryWidthPx: cloudinaryWidthPx(context),
                       ),
                     ),
                   );
@@ -381,6 +379,19 @@ class _CarsinfoState extends State<CarsInfo> {
         );
       },
     );
+  }
+
+  void _precacheAdjacentImages(int index) {
+    if (!mounted || widget.images.isEmpty) return;
+    final w = cloudinaryWidthPx(context);
+    final urls = <String>[];
+    for (final delta in [-1, 0, 1]) {
+      final i = index + delta;
+      if (i < 0 || i >= widget.images.length) continue;
+      final url = widget.images[i].trim();
+      if (url.startsWith('http')) urls.add(url);
+    }
+    precacheTranooImages(context, urls, cloudinaryWidthPx: w, maxCount: 3);
   }
 
   @override
@@ -487,7 +498,10 @@ class _CarsinfoState extends State<CarsInfo> {
               ? PageView.builder(
                   controller: _pageController,
                   itemCount: _totalMediaCount,
-                  onPageChanged: (i) => setState(() => _currentImageIndex = i),
+                  onPageChanged: (i) {
+                    setState(() => _currentImageIndex = i);
+                    _precacheAdjacentImages(i);
+                  },
                   itemBuilder: (context, index) {
                     if (index < _imagesCount) {
                       final hasImage = index < widget.images.length &&
@@ -506,16 +520,10 @@ class _CarsinfoState extends State<CarsInfo> {
                           child: InteractiveViewer(
                             minScale: 1,
                             maxScale: 4,
-                            child: Image.network(
-                              widget.images[index],
+                            child: TranooNetworkImage(
+                              url: widget.images[index],
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                color: Colors.grey[300],
-                                child: Center(
-                                  child: Text(l10n.imageNotAvailable),
-                                ),
-                              ),
+                              cloudinaryWidthPx: cloudinaryWidthPx(context),
                             ),
                           ),
                         ),
@@ -528,6 +536,7 @@ class _CarsinfoState extends State<CarsInfo> {
                       return VideoPreviewPlaceholder(
                         videoUrl: videoUrl,
                         iconSize: 60,
+                        enablePreviewFrame: false,
                         onTap: () {
                           final article = {
                             'id': widget.id,

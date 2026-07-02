@@ -6,6 +6,8 @@ import 'package:tranoo/widgets/transitaire_gallery_section.dart';
 import 'package:tranoo/widgets/transitaire_public_ui.dart';
 import 'package:tranoo/widgets/transitaire_reviews_section.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 export 'package:tranoo/utils/tranoo_toast.dart'
     show hideTranooLoading, showTranooToast, withTranooLoading;
@@ -156,7 +158,9 @@ class TransitaireProfileAvatar extends StatelessWidget {
     final inner = CircleAvatar(
       radius: radius,
       backgroundColor: const Color(0xFFE8EDF5),
-      backgroundImage: photoUrl != null ? NetworkImage(photoUrl!) : null,
+      backgroundImage: photoUrl != null
+          ? tranooImageProvider(photoUrl!, cloudinaryWidthPx: 200)
+          : null,
       child: photoUrl == null
           ? Text(
               initials,
@@ -385,12 +389,16 @@ class _ProfileCoverHeader extends StatelessWidget {
     required this.premiumLabel,
   });
 
-  Widget _coverBackground() {
+  Widget _coverBackground(BuildContext context) {
     if (photoUrl != null) {
       return Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(photoUrl!, fit: BoxFit.cover),
+          TranooNetworkImage(
+            url: photoUrl!,
+            fit: BoxFit.cover,
+            cloudinaryWidthPx: cloudinaryWidthPx(context),
+          ),
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -428,7 +436,7 @@ class _ProfileCoverHeader extends StatelessWidget {
             SizedBox(
               height: 132,
               width: double.infinity,
-              child: _coverBackground(),
+              child: _coverBackground(context),
             ),
             Transform.translate(
               offset: const Offset(0, -16),

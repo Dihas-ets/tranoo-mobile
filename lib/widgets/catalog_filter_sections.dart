@@ -57,6 +57,8 @@ class CatalogFilterImage extends StatelessWidget {
           height: boxHeight,
           child: Image.network(
             logoUrl,
+            width: width,
+            height: boxHeight,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) {
               if (svgUrl != null && svgUrl.isNotEmpty) {

@@ -18,6 +18,9 @@ import 'package:tranoo/utils/verification_notification_helpers.dart';
 import 'package:tranoo/utils/order_status_l10n.dart';
 import 'package:tranoo/utils/notification_i18n.dart';
 import 'package:tranoo/utils/locale_helper.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/local_data_cache.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 // --------- HELPERS SÉCURISÉS ----------
 String stripHtmlDocumentWrapper(String html) {
@@ -309,18 +312,15 @@ class VerificationDetailPage extends StatelessWidget {
                   child: Stack(
                     alignment: Alignment.bottomRight,
                     children: [
-                      Image.network(
-                        img,
+                      TranooNetworkImage(
+                        url: img,
                         height: 90,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 90,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.broken_image),
-                          );
-                        },
+                        cloudinaryWidthPx: cloudinaryWidthPx(
+                          context,
+                          logicalWidth: MediaQuery.sizeOf(context).width,
+                        ),
                       ),
                       const Padding(
                         padding: EdgeInsets.all(4),
@@ -340,6 +340,8 @@ class VerificationDetailPage extends StatelessWidget {
 }
 
 class NotificationProvider with ChangeNotifier {
+  static const String _cacheKey = 'notifications_list';
+
   final List<Map<String, dynamic>> _notifications = [];
   List<Map<String, dynamic>> get notifications =>
       List.unmodifiable(_notifications);
@@ -347,6 +349,28 @@ class NotificationProvider with ChangeNotifier {
 
   NotificationProvider() {
     _initFCMListener();
+    _primeFromCache();
+  }
+
+  Future<void> _primeFromCache() async {
+    final cached = await LocalDataCache.readJsonListStale(_cacheKey);
+    if (cached == null || cached.isEmpty) return;
+    _notifications
+      ..clear()
+      ..addAll(cached.map(_mapCachedNotification));
+    loading = false;
+    notifyListeners();
+  }
+
+  Map<String, dynamic> _mapCachedNotification(dynamic notif) {
+    if (notif is! Map) return {};
+    final map = Map<String, dynamic>.from(notif);
+    map['date'] = map['date'] is DateTime
+        ? map['date']
+        : (map['createdAt'] != null
+            ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
+            : DateTime.now());
+    return map;
   }
 
   void addNotification(Map<String, dynamic> notif) {
@@ -354,9 +378,12 @@ class NotificationProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadNotificationsFromAPI(String token) async {
-    loading = true;
-    notifyListeners();
+  Future<void> loadNotificationsFromAPI(String token, {bool silent = false}) async {
+    final hasData = _notifications.isNotEmpty;
+    if (!silent && !hasData) {
+      loading = true;
+      notifyListeners();
+    }
     try {
       final response = await http.get(
         Uri.parse('${getBaseUrl()}/notifications/'),
@@ -384,6 +411,10 @@ class NotificationProvider with ChangeNotifier {
             }
           }
         }
+        await LocalDataCache.writeJsonList(
+          _cacheKey,
+          _notifications.map((n) => Map<String, dynamic>.from(n)).toList(),
+        );
         notifyListeners();
       } else {
         print(
@@ -599,7 +630,12 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     if (user != null) {
       user.getIdToken().then((token) {
         if (token != null) {
-          provider.loadNotificationsFromAPI(token).then((_) {
+          provider
+              .loadNotificationsFromAPI(
+                token,
+                silent: provider.notifications.isNotEmpty,
+              )
+              .then((_) {
             if (!mounted) return;
             _syncUnreadCountWithHeader(provider);
           });
@@ -671,7 +707,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
             ),
         ],
       ),
-      body: provider.loading
+      body: provider.loading && provider.notifications.isEmpty
           ? SkeletonPresets.notificationList()
           : provider.notifications.isEmpty
               ? Center(
@@ -834,12 +870,12 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: url != null && url.isNotEmpty
-          ? Image.network(
-              url,
+          ? TranooNetworkImage(
+              url: url,
               width: 112,
               height: 63,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _alertThumbnailPlaceholder(isPiece),
+              cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 112),
             )
           : _alertThumbnailPlaceholder(isPiece),
     );
@@ -904,7 +940,11 @@ class _NotificationsBodyState extends State<NotificationsBody> {
             InteractiveViewer(
               minScale: 0.5,
               maxScale: 4,
-              child: Image.network(url, fit: BoxFit.contain),
+              child: TranooNetworkImage(
+                url: url,
+                fit: BoxFit.contain,
+                cloudinaryWidthPx: cloudinaryWidthPx(context),
+              ),
             ),
             Positioned(
               top: 8,
@@ -1036,7 +1076,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
               ),
             ),
             const SizedBox(width: 8),
-            buildNotificationThumbnail(imageUrl, kind),
+            buildNotificationThumbnail(context, imageUrl, kind),
             PopupMenuButton<String>(
               icon: Icon(Icons.more_vert, color: Colors.grey[700], size: 20),
               padding: EdgeInsets.zero,
@@ -1119,6 +1159,12 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                   ? (article['photos'] as List).map((e) => e?.toString()).toList()
                   : const [],
               video: article['video']?.toString(),
+              fournisseur: article['fournisseur'] is Map
+                  ? Map<String, dynamic>.from(article['fournisseur'] as Map)
+                  : null,
+              vendeur: article['vendeur'] is Map
+                  ? Map<String, dynamic>.from(article['vendeur'] as Map)
+                  : null,
             ),
           ),
         );
@@ -1355,22 +1401,14 @@ class _NotificationsBodyState extends State<NotificationsBody> {
               child: Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  Image.network(
-                    imageUrl,
+                  TranooNetworkImage(
+                    url: imageUrl,
                     width: double.infinity,
                     height: 200,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      height: 160,
-                      color: Colors.grey[200],
-                      alignment: Alignment.center,
-                      child: Icon(
-                        isPiece
-                            ? Icons.build_outlined
-                            : Icons.directions_car_outlined,
-                        size: 48,
-                        color: Colors.grey[500],
-                      ),
+                    cloudinaryWidthPx: cloudinaryWidthPx(
+                      context,
+                      logicalWidth: MediaQuery.sizeOf(context).width,
                     ),
                   ),
                   Container(

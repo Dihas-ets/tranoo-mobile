@@ -19,6 +19,9 @@ import 'package:tranoo/utils/catalog_display.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/utils/catalog_filter_options.dart';
 import 'package:tranoo/widgets/catalog_filter_sections.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/utils/local_data_cache.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -152,6 +155,11 @@ class _PiecePageState extends State<PiecePage>
     return '';
   }
 
+  Map<String, dynamic>? _contactMap(dynamic value) {
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return null;
+  }
+
   Future<void> _reloadAll() async {
     // Réinitialiser la recherche
     _searchController.clear();
@@ -170,10 +178,26 @@ class _PiecePageState extends State<PiecePage>
 
   Future<void> fetchPieces({bool silent = false}) async {
     if (!silent) {
-      setState(() {
-        isLoading = true;
-        error = null;
-      });
+      final stale = await LocalDataCache.readJsonListStale('catalog_pieces');
+      if (stale != null && mounted) {
+        setState(() {
+          pieces = stale;
+          _isVisible = List.generate(stale.length, (index) => true);
+          isLoading = false;
+        });
+        precacheTranooImages(
+          context,
+          photoUrlsFromArticles(
+            stale.cast<Map<String, dynamic>>(),
+          ),
+          cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 120),
+        );
+      } else {
+        setState(() {
+          isLoading = true;
+          error = null;
+        });
+      }
     }
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -193,11 +217,18 @@ class _PiecePageState extends State<PiecePage>
           .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
+        await LocalDataCache.writeJsonList('catalog_pieces', data);
+        if (!mounted) return;
         setState(() {
           pieces = data;
           _isVisible = List.generate(data.length, (index) => true);
           isLoading = false;
         });
+        precacheTranooImages(
+          context,
+          photoUrlsFromArticles(data.cast<Map<String, dynamic>>()),
+          cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 120),
+        );
       } else {
         debugPrint(
             '[PIECES_PUBLIC] HTTP ${response.statusCode}: ${response.body}');
@@ -552,11 +583,14 @@ class _PiecePageState extends State<PiecePage>
                                             (url) => ClipRRect(
                                               borderRadius:
                                                   BorderRadius.circular(8),
-                                              child: Image.network(
-                                                url,
+                                              child: TranooNetworkImage(
+                                                url: url,
                                                 width: 56,
                                                 height: 56,
                                                 fit: BoxFit.cover,
+                                                cloudinaryWidthPx:
+                                                    cloudinaryWidthPx(context,
+                                                        logicalWidth: 56),
                                               ),
                                             ),
                                           )
@@ -885,9 +919,7 @@ class _PiecePageState extends State<PiecePage>
                       _buildLocalisationSection(),
                     // Liste des pièces
                     Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: () => fetchPieces(silent: true),
-                        child: filteredPieces.isEmpty
+                      child: filteredPieces.isEmpty
                             ? LayoutBuilder(
                                 builder: (context, constraints) {
                                   return SingleChildScrollView(
@@ -1023,6 +1055,11 @@ class _PiecePageState extends State<PiecePage>
                                                     marque: piece['marque']
                                                         ?.toString(),
                                                     video: piece['video'],
+                                                    fournisseur:
+                                                        _contactMap(piece[
+                                                            'fournisseur']),
+                                                    vendeur: _contactMap(
+                                                        piece['vendeur']),
                                                   ),
                                                 ),
                                               ).then((_) => fetchPieces());
@@ -1060,11 +1097,15 @@ class _PiecePageState extends State<PiecePage>
                                                                             as List?)
                                                                         ?.isNotEmpty ==
                                                                     true
-                                                                ? Image.network(
-                                                                    piece['photos']
+                                                                ? TranooNetworkImage(
+                                                                    url: piece[
+                                                                            'photos']
                                                                         [0],
                                                                     fit: BoxFit
                                                                         .cover,
+                                                                    cloudinaryWidthPx:
+                                                                        cloudinaryWidthPx(
+                                                                            context),
                                                                   )
                                                                 : (piece['video'] !=
                                                                             null &&
@@ -1075,6 +1116,8 @@ class _PiecePageState extends State<PiecePage>
                                                                             piece['video']?.toString(),
                                                                         iconSize:
                                                                             36,
+                                                                        enablePreviewFrame:
+                                                                            false,
                                                                       )
                                                                     : Container(
                                                                         color: Colors
@@ -1141,7 +1184,6 @@ class _PiecePageState extends State<PiecePage>
                                   },
                                 ),
                               ),
-                      ),
                     ),
                     if (_tabController.index == _budgetTabIndex)
                       _buildBudgetSection(),

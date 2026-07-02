@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -268,9 +270,14 @@ class _ChatListPageState extends State<ChatListPage> {
                           children: [
                             // Photo de l'autre participant
                             CircleAvatar(
-                              backgroundImage: NetworkImage(
-                                _getOtherParticipantPhoto(room),
-                              ),
+                              backgroundImage:
+                                  _getOtherParticipantPhoto(room)
+                                          .startsWith('http')
+                                      ? tranooImageProvider(
+                                          _getOtherParticipantPhoto(room),
+                                          cloudinaryWidthPx: 200,
+                                        )
+                                      : null,
                               radius: 28,
                               onBackgroundImageError: (exception, stackTrace) {
                                 // Fallback vers une image locale en cas d'erreur
@@ -333,23 +340,15 @@ class _ChatListPageState extends State<ChatListPage> {
                                     children: [
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(6),
-                                        child: Image.network(
-                                          _getArticlePhoto(room),
+                                        child: TranooNetworkImage(
+                                          url: _getArticlePhoto(room),
                                           width: 36,
                                           height: 36,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (
+                                          cloudinaryWidthPx: cloudinaryWidthPx(
                                             context,
-                                            error,
-                                            stackTrace,
-                                          ) {
-                                            return Image.asset(
-                                              'assets/images/car.png',
-                                              width: 36,
-                                              height: 36,
-                                              fit: BoxFit.cover,
-                                            );
-                                          },
+                                            logicalWidth: 36,
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(width: 8),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/services/transitaire_review_service.dart';
 import 'package:tranoo/widgets/transitaire_profile_ui.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 class TransitaireInteractiveStarRating extends StatelessWidget {
   final int value;
@@ -155,7 +156,10 @@ class _TransitaireReviewsSectionState extends State<TransitaireReviewsSection> {
                 backgroundColor: kTransitaireAmber.withOpacity(0.25),
                 backgroundImage: review.reviewerPhoto != null &&
                         review.reviewerPhoto!.isNotEmpty
-                    ? NetworkImage(review.reviewerPhoto!)
+                    ? tranooImageProvider(
+                        review.reviewerPhoto!,
+                        cloudinaryWidthPx: 200,
+                      )
                     : null,
                 child: review.reviewerPhoto == null ||
                         review.reviewerPhoto!.isEmpty

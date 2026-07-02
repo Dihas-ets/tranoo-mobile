@@ -5,6 +5,8 @@ import 'package:tranoo/widgets/transitaire_public_ui.dart';
 import 'package:tranoo/widgets/transitaire_profile_ui.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:video_player/video_player.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 class TransitaireGalleryItem {
   final String type;
@@ -112,13 +114,10 @@ class TransitaireGalleryGrid extends StatelessWidget {
                     photoUrl: item.url,
                     initials: initials,
                   ),
-                  child: Image.network(
-                    item.url,
+                  child: TranooNetworkImage(
+                    url: item.url,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.broken_image_outlined),
-                    ),
+                    cloudinaryWidthPx: cloudinaryWidthPx(context),
                   ),
                 ),
         );

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/utils/tranoo_toast.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 export 'transitaire_profile_ui.dart'
     show kTransitaireAmber, kTransitaireNavy, TransitaireStarRating;
@@ -109,7 +111,11 @@ void showTransitairePhotoZoom(
                   minScale: 0.6,
                   maxScale: 5,
                   child: photoUrl != null
-                      ? Image.network(photoUrl, fit: BoxFit.contain)
+                      ? TranooNetworkImage(
+                          url: photoUrl,
+                          fit: BoxFit.contain,
+                          cloudinaryWidthPx: cloudinaryWidthPx(context),
+                        )
                       : Container(
                           width: 220,
                           height: 220,
@@ -177,7 +183,16 @@ class TransitaireSquarePhoto extends StatelessWidget {
           height: size,
           color: const Color(0xFFECEFF1),
           child: photoUrl != null
-              ? Image.network(photoUrl!, fit: BoxFit.cover)
+              ? TranooNetworkImage(
+                  url: photoUrl!,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                  cloudinaryWidthPx: cloudinaryWidthPx(
+                    context,
+                    logicalWidth: size,
+                  ),
+                )
               : Center(
                   child: Text(
                     initials,

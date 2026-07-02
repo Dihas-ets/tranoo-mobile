@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
-import 'package:video_player/video_player.dart';
+import 'package:tranoo/utils/cloudinary_url.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 
-/// Affiche un aperçu vidéo (première frame) avec bouton lecture cliquable.
-class VideoPreviewPlaceholder extends StatefulWidget {
+/// Aperçu vidéo léger : miniature Cloudinary + bouton lecture (pas de loader bloquant).
+class VideoPreviewPlaceholder extends StatelessWidget {
   final String? videoUrl;
   final double iconSize;
   final String? label;
@@ -18,96 +19,30 @@ class VideoPreviewPlaceholder extends StatefulWidget {
     this.videoUrl,
     this.iconSize = 40,
     this.label,
-    this.backgroundColor = Colors.black87,
+    this.backgroundColor = const Color(0xFF1A1A1A),
     this.iconColor = Colors.white,
     this.textColor = Colors.white,
     this.onTap,
-    this.enablePreviewFrame = true,
+    this.enablePreviewFrame = false,
   });
 
   @override
-  State<VideoPreviewPlaceholder> createState() =>
-      _VideoPreviewPlaceholderState();
-}
-
-class _VideoPreviewPlaceholderState extends State<VideoPreviewPlaceholder> {
-  AppLocalizations get l10n => AppLocalizations.of(context)!;
-
-  VideoPlayerController? _controller;
-  bool _initTried = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializePreview();
-  }
-
-  Future<void> _initializePreview() async {
-    if (widget.videoUrl == null || widget.videoUrl!.isEmpty) {
-      setState(() {
-        _initTried = true;
-      });
-      return;
-    }
-    if (widget.enablePreviewFrame) {
-      try {
-        final controller =
-            VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl!));
-        _controller = controller;
-        await controller.initialize();
-        await controller.setLooping(false);
-        await controller.pause();
-      } catch (_) {
-        // silent fail -> fallback to placeholder
-      }
-    }
-    if (mounted) {
-      setState(() {
-        _initTried = true;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final displayLabel =
-        widget.label ?? AppLocalizations.of(context)?.videoAvailable ?? '';
-    final canShowFrame = widget.enablePreviewFrame &&
-        _controller != null &&
-        _controller!.value.isInitialized;
-    final thumbUrl = _buildCloudinaryThumb(widget.videoUrl);
+    final l10n = AppLocalizations.of(context)!;
+    final thumbUrl = cloudinaryVideoThumbUrl(videoUrl);
+    final displayLabel = label ?? l10n.videoAvailable;
 
     Widget content = Container(
       width: double.infinity,
       height: double.infinity,
-      color: widget.backgroundColor,
+      color: backgroundColor,
       child: Stack(
+        fit: StackFit.expand,
         children: [
           if (thumbUrl != null)
-            Positioned.fill(
-              child: Image.network(
-                thumbUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    Container(color: widget.backgroundColor),
-              ),
-            ),
-          if (canShowFrame)
-            Positioned.fill(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _controller!.value.size.width,
-                  height: _controller!.value.size.height,
-                  child: VideoPlayer(_controller!),
-                ),
-              ),
+            TranooNetworkImage(
+              url: thumbUrl,
+              fit: BoxFit.cover,
             ),
           Center(
             child: Column(
@@ -116,15 +51,15 @@ class _VideoPreviewPlaceholderState extends State<VideoPreviewPlaceholder> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.92),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.play_circle_fill,
-                    color: widget.iconColor == Colors.white
-                        ? Colors.grey[900]
-                        : widget.iconColor,
-                    size: widget.iconSize,
+                    color: iconColor == Colors.white
+                        ? Colors.grey.shade900
+                        : iconColor,
+                    size: iconSize,
                   ),
                 ),
                 if (displayLabel.isNotEmpty) ...[
@@ -132,7 +67,7 @@ class _VideoPreviewPlaceholderState extends State<VideoPreviewPlaceholder> {
                   Text(
                     displayLabel,
                     style: TextStyle(
-                      color: widget.textColor,
+                      color: textColor,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -146,24 +81,9 @@ class _VideoPreviewPlaceholderState extends State<VideoPreviewPlaceholder> {
       ),
     );
 
-    if (widget.onTap != null) {
-      content = GestureDetector(onTap: widget.onTap, child: content);
+    if (onTap != null) {
+      content = GestureDetector(onTap: onTap, child: content);
     }
-
-    // If initialization has not been attempted yet, keep placeholder background
     return content;
-  }
-
-  String? _buildCloudinaryThumb(String? url) {
-    if (url == null || url.isEmpty) return null;
-    // Fonctionne pour URLs Cloudinary: .../upload/.../publicId.ext -> .../upload/so_1/.../publicId.jpg
-    final uploadIndex = url.indexOf('/upload/');
-    if (uploadIndex == -1) return null;
-    final prefix = url.substring(0, uploadIndex + '/upload/'.length);
-    final suffix = url.substring(uploadIndex + '/upload/'.length);
-    final noExt = suffix.contains('.')
-        ? suffix.substring(0, suffix.lastIndexOf('.'))
-        : suffix;
-    return '$prefix' 'so_1/$noExt.jpg';
   }
 }

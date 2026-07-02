@@ -4,6 +4,8 @@ import 'package:tranoo/l10n/app_localizations.dart';
 import '../../services/cart_service.dart';
 import 'order_summary.dart';
 import 'piece.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -101,11 +103,15 @@ class _CartPageState extends State<CartPage> {
                                   height: 80,
                                   color: Colors.grey[200],
                                   child: item.imageUrl != null
-                                      ? Image.network(
-                                          item.imageUrl!,
+                                      ? TranooNetworkImage(
+                                          url: item.imageUrl!,
+                                          width: 80,
+                                          height: 80,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) =>
-                                              const Icon(Icons.error),
+                                          cloudinaryWidthPx: cloudinaryWidthPx(
+                                            context,
+                                            logicalWidth: 80,
+                                          ),
                                         )
                                       : const Icon(Icons.image),
                                 ),

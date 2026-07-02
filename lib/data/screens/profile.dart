@@ -11,6 +11,7 @@ import 'package:tranoo/utils/cloudinary_upload.dart'; // Importer le composant d
 import 'package:provider/provider.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/providers/auth_provider.dart' as local_auth;
+import 'package:tranoo/utils/tranoo_image_utils.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -279,7 +280,13 @@ class _ProfileState extends State<Profile> {
                                           userData!["photo"]
                                               .toString()
                                               .isNotEmpty)
-                                      ? NetworkImage(userData!["photo"].toString()) as ImageProvider
+                                      ? tranooImageProvider(
+                                          userData!["photo"].toString(),
+                                          cloudinaryWidthPx: cloudinaryWidthPx(
+                                            context,
+                                            logicalWidth: 120,
+                                          ),
+                                        )
                                       : null,
                               child: (_image == null && 
                                       (userData == null || 

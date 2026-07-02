@@ -23,6 +23,9 @@ import 'package:tranoo/utils/catalog_display.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/utils/catalog_filter_options.dart';
 import 'package:tranoo/widgets/catalog_filter_sections.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/utils/local_data_cache.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -172,10 +175,26 @@ class _VoituresPageState extends State<VoituresPage>
 
   Future<void> fetchVoitures({bool silent = false}) async {
     if (!silent) {
-      setState(() {
-        isLoading = true;
-        error = null;
-      });
+      final stale = await LocalDataCache.readJsonListStale('catalog_voitures');
+      if (stale != null && mounted) {
+        setState(() {
+          voitures = stale;
+          _isVisible = List.generate(stale.length, (index) => true);
+          isLoading = false;
+        });
+        precacheTranooImages(
+          context,
+          photoUrlsFromArticles(
+            stale.cast<Map<String, dynamic>>(),
+          ),
+          cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
+        );
+      } else {
+        setState(() {
+          isLoading = true;
+          error = null;
+        });
+      }
     }
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -195,11 +214,18 @@ class _VoituresPageState extends State<VoituresPage>
           .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
+        await LocalDataCache.writeJsonList('catalog_voitures', data);
+        if (!mounted) return;
         setState(() {
           voitures = data;
           _isVisible = List.generate(data.length, (index) => true);
           isLoading = false;
         });
+        precacheTranooImages(
+          context,
+          photoUrlsFromArticles(data.cast<Map<String, dynamic>>()),
+          cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
+        );
       } else {
         if (!mounted) return;
         final l10n = AppLocalizations.of(context)!;
@@ -598,11 +624,14 @@ class _VoituresPageState extends State<VoituresPage>
                                             (url) => ClipRRect(
                                               borderRadius:
                                                   BorderRadius.circular(8),
-                                              child: Image.network(
-                                                url,
+                                              child: TranooNetworkImage(
+                                                url: url,
                                                 width: 56,
                                                 height: 56,
                                                 fit: BoxFit.cover,
+                                                cloudinaryWidthPx:
+                                                    cloudinaryWidthPx(context,
+                                                        logicalWidth: 56),
                                               ),
                                             ),
                                           )
@@ -920,9 +949,7 @@ class _VoituresPageState extends State<VoituresPage>
                       _buildBudgetSection(),
                     // Liste des voitures
                     Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: () => fetchVoitures(silent: true),
-                        child: filteredVoitures.isEmpty
+                      child: filteredVoitures.isEmpty
                             ? ListView(
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 children: [
@@ -1099,8 +1126,9 @@ class _VoituresPageState extends State<VoituresPage>
                                                                           as List?)
                                                                       ?.isNotEmpty ==
                                                                   true
-                                                              ? Image.network(
-                                                                  voiture['photos']
+                                                              ? TranooNetworkImage(
+                                                                  url: voiture[
+                                                                          'photos']
                                                                       [0],
                                                                   height: double
                                                                       .infinity,
@@ -1108,6 +1136,9 @@ class _VoituresPageState extends State<VoituresPage>
                                                                       .infinity,
                                                                   fit: BoxFit
                                                                       .cover,
+                                                                  cloudinaryWidthPx:
+                                                                      cloudinaryWidthPx(
+                                                                          context),
                                                                 )
                                                               : (voiture['video'] !=
                                                                           null &&
@@ -1323,7 +1354,6 @@ class _VoituresPageState extends State<VoituresPage>
                                   },
                                 ),
                               ),
-                      ),
                     ),
                   ],
                 ),

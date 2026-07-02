@@ -50,6 +50,8 @@ class _AvantHomeState extends State<AvantHome>
   bool _didShowSellerAlertPopup = false;
   Timer? _lightRefreshTimer;
   DateTime? _lastLightRefreshAt;
+  String? _tabPagesRoleKey;
+  List<Widget>? _tabPages;
 
   final NotificationService _notificationService = NotificationService();
 
@@ -95,9 +97,10 @@ class _AvantHomeState extends State<AvantHome>
       return;
     }
     _lastLightRefreshAt = now;
-    await _loadUnreadInvoicesCount();
-    if (!mounted) return;
-    await Provider.of<CounterProvider>(context, listen: false).loadCounters();
+    await Future.wait<void>([
+      _loadUnreadInvoicesCount(),
+      Provider.of<CounterProvider>(context, listen: false).loadCounters(),
+    ]);
   }
 
   Future<void> _loadUnreadInvoicesCount() async {
@@ -139,9 +142,51 @@ class _AvantHomeState extends State<AvantHome>
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (_selectedIndex == index) return;
+    setState(() => _selectedIndex = index);
+  }
+
+  Widget _buildAnimatedTabBody(List<Widget> pages) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        for (var i = 0; i < pages.length; i++)
+          IgnorePointer(
+            ignoring: _selectedIndex != i,
+            child: AnimatedOpacity(
+              opacity: _selectedIndex == i ? 1 : 0,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              child: TickerMode(
+                enabled: _selectedIndex == i,
+                child: pages[i],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _roleKeyForUser(Map<String, dynamic>? user) {
+    final role = (user?['role'] ?? user?['typeUtilisateur'] ?? user?['type'])
+        ?.toString()
+        .toLowerCase();
+    final userService = UserService();
+    if (role != 'vendeur') return 'acheteur';
+    return 'vendeur_${userService.vendeurType ?? 'mixte'}';
+  }
+
+  List<Widget> _resolveTabPages(Map<String, dynamic>? user) {
+    final roleKey = _roleKeyForUser(user);
+    if (_tabPages != null && _tabPagesRoleKey == roleKey) {
+      return _tabPages!;
+    }
+    _tabPagesRoleKey = roleKey;
+    _tabPages = _pagesForUser(user);
+    if (_selectedIndex >= _tabPages!.length) {
+      _selectedIndex = 0;
+    }
+    return _tabPages!;
   }
 
   Widget _profilePageForUser(Map<String, dynamic>? user) {
@@ -237,7 +282,7 @@ class _AvantHomeState extends State<AvantHome>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final user = Provider.of<myauth.AuthProvider>(context).user;
-    final pages = _pagesForUser(user);
+    final pages = _resolveTabPages(user);
     final role = (user?['role'] ?? user?['typeUtilisateur'] ?? user?['type'])
         ?.toString()
         .toLowerCase();
@@ -252,6 +297,7 @@ class _AvantHomeState extends State<AvantHome>
 
     return Scaffold(
       key: _scaffoldKey,
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF8BF13),
         elevation: 0,
@@ -413,6 +459,12 @@ class _AvantHomeState extends State<AvantHome>
                   ],
                 ),
                 onPressed: () {
+                  if (!_requireAuth(
+                    context,
+                    message: l10n.signInForNotifications,
+                  )) {
+                    return;
+                  }
                   () async {
                     await Navigator.push(
                       context,
@@ -438,7 +490,7 @@ class _AvantHomeState extends State<AvantHome>
           },
         ),
       ),
-      body: pages[_selectedIndex],
+      body: _buildAnimatedTabBody(pages),
       drawer: Drawer(
         child: Column(
           children: [

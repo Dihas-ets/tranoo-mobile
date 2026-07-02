@@ -6,6 +6,8 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 
 /// Palette unique — jaune doux Tranoo.
 const Color kVerifyYellow = Color(0xFFFBBF24);
@@ -176,12 +178,10 @@ void showVerificationImagePreview(
             height: MediaQuery.of(ctx).size.height * 0.45,
             width: double.infinity,
             child: InteractiveViewer(
-              child: Image.network(
-                url,
+              child: TranooNetworkImage(
+                url: url,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Center(
-                  child: Icon(Icons.broken_image, size: 48),
-                ),
+                cloudinaryWidthPx: cloudinaryWidthPx(ctx),
               ),
             ),
           ),
@@ -394,27 +394,25 @@ Widget buildVerificationNotificationContent({
               if (stamp != null)
                 Padding(
                   padding: const EdgeInsets.only(right: 12),
-                  child: Image.network(
-                    stamp,
+                  child: TranooNetworkImage(
+                    url: stamp,
                     height: 48,
                     width: 48,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(
-                      Icons.verified_outlined,
-                      size: 40,
-                      color: kVerifyYellow.withValues(alpha: 0.8),
+                    cloudinaryWidthPx: cloudinaryWidthPx(
+                      context,
+                      logicalWidth: 48,
                     ),
                   ),
                 ),
               if (signature != null)
-                Image.network(
-                  signature,
+                TranooNetworkImage(
+                  url: signature,
                   height: 36,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Icon(
-                    Icons.draw_outlined,
-                    size: 32,
-                    color: kVerifyTextMuted,
+                  cloudinaryWidthPx: cloudinaryWidthPx(
+                    context,
+                    logicalWidth: 36,
                   ),
                 ),
             ],

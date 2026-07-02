@@ -27,10 +27,14 @@ import 'package:tranoo/widgets/catalog_article_grid_card.dart';
 import 'package:tranoo/data/screens/tricycle/tricycle_home.dart';
 import 'package:tranoo/utils/page_refresh_registry.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
+import 'package:tranoo/widgets/page_pull_refresh.dart';
 import 'package:tranoo/utils/catalog_filter_options.dart';
 import 'package:tranoo/widgets/catalog_filter_sections.dart';
 import 'package:tranoo/widgets/seller_stats_dashboard.dart';
 import 'package:tranoo/widgets/transitaire_carousel_section.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/utils/local_data_cache.dart';
 
 String _formatCompactCount(int n) {
   if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
@@ -318,19 +322,26 @@ class _MarqueState extends State<Marque>
 
   @override
   Future<void> onPagePullRefresh() async {
+    final started = DateTime.now();
     try {
       await Future.wait<void>([
-        fetchArticlesPieces(silent: true),
-        fetchVoituresRecommandees(silent: true),
-        fetchMotosRecommandees(silent: true),
-        fetchPubs(silent: true),
-        fetchPubsSponsorisees(silent: true),
+        fetchArticlesPieces(),
+        fetchVoituresRecommandees(),
+        fetchMotosRecommandees(),
+        fetchPubs(),
+        fetchPubsSponsorisees(),
       ]);
       if (_userService.currentRole == UserRole.vendeur) {
         await _loadSellerMarqueStats();
       }
     } catch (_) {
       // RefreshIndicator gère l'état visuel.
+    } finally {
+      final elapsed = DateTime.now().difference(started);
+      const minSkeleton = Duration(milliseconds: 400);
+      if (elapsed < minSkeleton) {
+        await Future.delayed(minSkeleton - elapsed);
+      }
     }
   }
 
@@ -484,19 +495,94 @@ class _MarqueState extends State<Marque>
 
     // Configuration du carrousel automatique
     _startCarouselTimer();
-    fetchArticlesPieces();
-    fetchVoituresRecommandees();
-    fetchMotosRecommandees();
-    fetchPubs();
-    fetchPubsSponsorisees();
-    if (_userService.currentRole == UserRole.vendeur) {
-      _loadSellerMarqueStats();
-    }
+    unawaited(_primeFromStaleCache());
+    _loadMarqueInitialData();
     _marqueAutoRefreshTimer =
         Timer.periodic(const Duration(seconds: 30), (_) async {
       if (!mounted) return;
       await _refreshMarqueDataSilent();
     });
+  }
+
+  Future<void> _primeFromStaleCache() async {
+    final stalePubs =
+        await LocalDataCache.readJsonListStale(_marqueCacheKey('pubs'));
+    if (stalePubs != null && mounted) {
+      final pubs = stalePubs.map((e) => Pub.fromJson(e)).toList();
+      setState(() {
+        pubsALaUne = pubs
+            .where((p) => p.typePub == 'À la une' && _isPubValid(p))
+            .toList();
+        isLoadingPubs = false;
+        if (pubsALaUne.isNotEmpty) {
+          _startCarouselTimer();
+        }
+      });
+      _precachePubImages(pubsALaUne);
+    }
+
+    final staleVoitures =
+        await LocalDataCache.readJsonListStale(_marqueCacheKey('voitures'));
+    if (staleVoitures != null && mounted) {
+      setState(() {
+        voituresRecommandees = staleVoitures
+            .map((e) => ArticleVoiture.fromJson(e))
+            .toList();
+        isLoadingVoitures = false;
+      });
+      _precacheArticleVoitureThumbs(voituresRecommandees);
+    }
+  }
+
+  Future<void> _loadMarqueInitialData() async {
+    // Pubs en priorité (visibles en haut de l'accueil).
+    await Future.wait<void>([
+      fetchPubs(),
+      fetchPubsSponsorisees(),
+    ]);
+    if (!mounted) return;
+    unawaited(Future.wait<void>([
+      fetchArticlesPieces(),
+      fetchVoituresRecommandees(),
+      fetchMotosRecommandees(),
+      if (_userService.currentRole == UserRole.vendeur) _loadSellerMarqueStats(),
+    ]));
+  }
+
+  void _precachePubImages(Iterable<Pub> pubs) {
+    if (!mounted) return;
+    final urls = pubs
+        .expand((p) => p.media)
+        .where((u) => u.trim().isNotEmpty)
+        .take(6);
+    precacheTranooImages(
+      context,
+      urls,
+      cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 280),
+    );
+  }
+
+  String get _marqueCacheRole =>
+      _userService.currentRole == UserRole.vendeur ? 'vendeur' : 'acheteur';
+
+  String _marqueCacheKey(String name) => 'marque_${name}_$_marqueCacheRole';
+
+  void _precacheArticleVoitureThumbs(Iterable<ArticleVoiture> items) {
+    if (!mounted) return;
+    precacheTranooImages(
+      context,
+      items.where((v) => v.images.isNotEmpty).map((v) => v.images.first),
+      cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
+    );
+  }
+
+  void _precachePieceThumbs(Iterable<Article> items) {
+    if (!mounted) return;
+    precacheTranooImages(
+      context,
+      items.where((p) => p.images.isNotEmpty).map((p) => p.images.first),
+      cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 120),
+    );
   }
 
   /// Recharge listes / pubs sans réinitialiser filtres ni afficher les spinners de chargement.
@@ -533,10 +619,22 @@ class _MarqueState extends State<Marque>
 
   Future<void> fetchArticlesPieces({bool silent = false}) async {
     if (!silent) {
-      setState(() {
-        isLoadingPieces = true;
-        errorPieces = null;
-      });
+      final stale =
+          await LocalDataCache.readJsonListStale(_marqueCacheKey('pieces'));
+      if (stale != null && mounted) {
+        final cached = stale.map((e) => Article.fromJson(e)).toList();
+        setState(() {
+          articlesPieces =
+              cached.where((p) => (p.statut ?? 'en_ligne') != 'vendu').toList();
+          isLoadingPieces = false;
+        });
+        _precachePieceThumbs(articlesPieces);
+      } else {
+        setState(() {
+          isLoadingPieces = true;
+          errorPieces = null;
+        });
+      }
     }
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -561,6 +659,7 @@ class _MarqueState extends State<Marque>
         try {
           final List<dynamic> data = json.decode(body);
           if (!mounted) return;
+          await LocalDataCache.writeJsonList(_marqueCacheKey('pieces'), data);
           final allPieces = data.map((e) => Article.fromJson(e)).toList();
           final piecesFiltered = allPieces
               .where((p) => (p.statut ?? 'en_ligne') != 'vendu')
@@ -587,6 +686,7 @@ class _MarqueState extends State<Marque>
             }
             isLoadingPieces = false;
           });
+          _precachePieceThumbs(piecesFiltered);
           _loadBackendViews();
         } catch (e) {
           _logger.info('[DEBUG] Erreur de décodage JSON: $e');
@@ -831,10 +931,22 @@ class _MarqueState extends State<Marque>
 
   Future<void> fetchVoituresRecommandees({bool silent = false}) async {
     if (!silent) {
-      setState(() {
-        isLoadingVoitures = true;
-        errorVoitures = null;
-      });
+      final stale =
+          await LocalDataCache.readJsonListStale(_marqueCacheKey('voitures'));
+      if (stale != null && mounted) {
+        final cached = stale.map((e) => ArticleVoiture.fromJson(e)).toList();
+        setState(() {
+          voituresRecommandees =
+              cached.where((v) => (v.statut ?? 'en_ligne') != 'vendu').toList();
+          isLoadingVoitures = false;
+        });
+        _precacheArticleVoitureThumbs(voituresRecommandees);
+      } else {
+        setState(() {
+          isLoadingVoitures = true;
+          errorVoitures = null;
+        });
+      }
     }
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -859,6 +971,7 @@ class _MarqueState extends State<Marque>
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         if (!mounted) return;
+        await LocalDataCache.writeJsonList(_marqueCacheKey('voitures'), data);
         final allVoitures =
             data.map((e) => ArticleVoiture.fromJson(e)).toList();
         final voituresFiltered = allVoitures
@@ -887,6 +1000,7 @@ class _MarqueState extends State<Marque>
           isLoadingVoitures = false;
         });
 
+        _precacheArticleVoitureThumbs(voituresFiltered);
         // Charger les vues depuis le backend après avoir récupéré les véhicules
         _loadBackendViews();
       } else {
@@ -908,10 +1022,22 @@ class _MarqueState extends State<Marque>
 
   Future<void> fetchMotosRecommandees({bool silent = false}) async {
     if (!silent) {
-      setState(() {
-        isLoadingMotos = true;
-        errorMotos = null;
-      });
+      final stale =
+          await LocalDataCache.readJsonListStale(_marqueCacheKey('motos'));
+      if (stale != null && mounted) {
+        final cached = stale.map((e) => ArticleVoiture.fromJson(e)).toList();
+        setState(() {
+          motosRecommandees =
+              cached.where((m) => (m.statut ?? 'en_ligne') != 'vendu').toList();
+          isLoadingMotos = false;
+        });
+        _precacheArticleVoitureThumbs(motosRecommandees);
+      } else {
+        setState(() {
+          isLoadingMotos = true;
+          errorMotos = null;
+        });
+      }
     }
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -928,6 +1054,7 @@ class _MarqueState extends State<Marque>
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         if (!mounted) return;
+        await LocalDataCache.writeJsonList(_marqueCacheKey('motos'), data);
         final allMotos = data.map((e) => ArticleVoiture.fromJson(e)).toList();
         final motosFiltered =
             allMotos.where((m) => (m.statut ?? 'en_ligne') != 'vendu').toList();
@@ -938,6 +1065,7 @@ class _MarqueState extends State<Marque>
           }
           isLoadingMotos = false;
         });
+        _precacheArticleVoitureThumbs(motosFiltered);
         _loadBackendViews();
       } else {
         if (!mounted) return;
@@ -957,10 +1085,26 @@ class _MarqueState extends State<Marque>
 
   Future<void> fetchPubs({bool silent = false}) async {
     if (!silent) {
-      setState(() {
-        isLoadingPubs = true;
-        errorPubs = null;
-      });
+      final stale =
+          await LocalDataCache.readJsonListStale(_marqueCacheKey('pubs'));
+      if (stale != null && mounted) {
+        final pubs = stale.map((e) => Pub.fromJson(e)).toList();
+        setState(() {
+          pubsALaUne = pubs
+              .where((p) => p.typePub == 'À la une' && _isPubValid(p))
+              .toList();
+          isLoadingPubs = false;
+          if (pubsALaUne.isNotEmpty) {
+            _startCarouselTimer();
+          }
+        });
+        _precachePubImages(pubsALaUne);
+      } else {
+        setState(() {
+          isLoadingPubs = true;
+          errorPubs = null;
+        });
+      }
     }
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -978,6 +1122,7 @@ class _MarqueState extends State<Marque>
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        await LocalDataCache.writeJsonList(_marqueCacheKey('pubs'), data);
         final pubs = data.map((e) => Pub.fromJson(e)).toList();
         if (!mounted) return;
         setState(() {
@@ -1005,6 +1150,7 @@ class _MarqueState extends State<Marque>
             _startCarouselTimer();
           }
         });
+        _precachePubImages(pubsALaUne);
       } else {
         if (!mounted) return;
         setState(() {
@@ -1023,10 +1169,22 @@ class _MarqueState extends State<Marque>
 
   Future<void> fetchPubsSponsorisees({bool silent = false}) async {
     if (!silent) {
-      setState(() {
-        isLoadingPubs = true;
-        errorPubs = null;
-      });
+      final stale = await LocalDataCache.readJsonListStale(
+        _marqueCacheKey('pubs_sponsor'),
+      );
+      if (stale != null && mounted) {
+        final pubs = stale.map((e) => Pub.fromJson(e)).toList();
+        setState(() {
+          pubsSponsorisees = pubs.where((p) => _isPubValid(p)).toList();
+          isLoadingPubs = false;
+        });
+        _precachePubImages(pubsSponsorisees);
+      } else {
+        setState(() {
+          isLoadingPubs = true;
+          errorPubs = null;
+        });
+      }
     }
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -1045,6 +1203,7 @@ class _MarqueState extends State<Marque>
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        await LocalDataCache.writeJsonList(_marqueCacheKey('pubs_sponsor'), data);
         final pubs = data.map((e) => Pub.fromJson(e)).toList();
         if (!mounted) return;
         setState(() {
@@ -1068,6 +1227,7 @@ class _MarqueState extends State<Marque>
           }
           isLoadingPubs = false;
         });
+        _precachePubImages(pubsSponsorisees);
       } else {
         if (!mounted) return;
         setState(() {
@@ -1138,9 +1298,14 @@ class _MarqueState extends State<Marque>
               padding: const EdgeInsets.all(12),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  imageUrl,
+                child: TranooNetworkImage(
+                  url: imageUrl,
                   fit: BoxFit.contain,
+                  cloudinaryWidthPx:
+                      (MediaQuery.of(context).size.width *
+                              MediaQuery.of(context).devicePixelRatio)
+                          .round()
+                          .clamp(600, 1600),
                 ),
               ),
             ),
@@ -1331,11 +1496,15 @@ class _MarqueState extends State<Marque>
                             topRight: Radius.circular(12),
                           ),
                           child: voiture.images.isNotEmpty
-                              ? Image.network(
-                                  voiture.images.first,
+                              ? TranooNetworkImage(
+                                  url: voiture.images.first,
                                   height: double.infinity,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
+                                  cloudinaryWidthPx: cloudinaryWidthPx(
+                                    context,
+                                    logicalWidth: 180,
+                                  ),
                                 )
                               : (voiture.video?.isNotEmpty ?? false)
                                   ? VideoPreviewPlaceholder(
@@ -1551,7 +1720,7 @@ class _MarqueState extends State<Marque>
 
   Widget buildPiecesGrid() {
     if (isLoadingPieces) {
-      return const Center(child: CircularProgressIndicator());
+      return SkeletonPresets.articleGrid(count: 2);
     }
     if (errorPieces != null) {
       return Center(child: Text(errorPieces!));
@@ -1652,11 +1821,15 @@ class _MarqueState extends State<Marque>
                       child: Stack(
                         children: [
                           piece.images.isNotEmpty
-                              ? Image.network(
-                                  piece.images.first,
+                              ? TranooNetworkImage(
+                                  url: piece.images.first,
                                   height: 40,
                                   width: 40,
                                   fit: BoxFit.cover,
+                                  cloudinaryWidthPx: cloudinaryWidthPx(
+                                    context,
+                                    logicalWidth: 40,
+                                  ),
                                 )
                               : (piece.video?.isNotEmpty ?? false)
                                   ? VideoPreviewPlaceholder(
@@ -1998,7 +2171,7 @@ class _MarqueState extends State<Marque>
             ],
           ),
         ),
-        if (isLoadingPieces) const Center(child: CircularProgressIndicator()),
+        if (isLoadingPieces) SkeletonPresets.articleGrid(count: 2),
         if (errorPieces != null) Center(child: Text(errorPieces!)),
         if (!isLoadingPieces && errorPieces == null)
           piecesEnLigne.isEmpty
@@ -2074,9 +2247,11 @@ class _MarqueState extends State<Marque>
                                       child: SizedBox(
                                         width: double.infinity,
                                         child: piece.images.isNotEmpty
-                                            ? Image.network(
-                                                piece.images.first,
+                                            ? TranooNetworkImage(
+                                                url: piece.images.first,
                                                 fit: BoxFit.cover,
+                                                cloudinaryWidthPx:
+                                                    cloudinaryWidthPx(context),
                                               )
                                             : (piece.video?.isNotEmpty ?? false)
                                                 ? VideoPreviewPlaceholder(
@@ -2391,22 +2566,15 @@ class _MarqueState extends State<Marque>
                                   width: 255,
                                   color: Colors.grey[300],
                                   child: pub.media.isNotEmpty
-                                      ? Image.network(
-                                          pub.media[0],
+                                      ? TranooNetworkImage(
+                                          url: pub.media[0],
                                           width: 255,
                                           height: 170,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (
+                                          cloudinaryWidthPx: cloudinaryWidthPx(
                                             context,
-                                            error,
-                                            stackTrace,
-                                          ) {
-                                            return Icon(
-                                              Icons.image_not_supported,
-                                              size: 80,
-                                              color: Colors.grey[600],
-                                            );
-                                          },
+                                            logicalWidth: 255,
+                                          ),
                                         )
                                       : Icon(
                                           Icons.image_not_supported,
@@ -2514,21 +2682,12 @@ class _MarqueState extends State<Marque>
                     height: 180,
                     color: Colors.black,
                     child: pub.media.isNotEmpty
-                        ? Image.network(
-                            pub.media[0],
+                        ? TranooNetworkImage(
+                            url: pub.media[0],
                             fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                            filterQuality: FilterQuality.high,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[300],
-                                child: const Icon(
-                                  Icons.image_not_supported,
-                                  size: 60,
-                                  color: Colors.black54,
-                                ),
-                              );
-                            },
+                            height: 180,
+                            width: double.infinity,
+                            cloudinaryWidthPx: cloudinaryWidthPx(context),
                           )
                         : Container(
                             height: 180,
@@ -2838,9 +2997,9 @@ class _MarqueState extends State<Marque>
               ),
             ),
           Expanded(
-            child: RefreshIndicator(
-              color: const Color(0xFFFFCC00),
+            child: PagePullRefresh(
               onRefresh: onPagePullRefresh,
+              refreshSkeleton: SkeletonPresets.homeMarque(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(

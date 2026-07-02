@@ -12,6 +12,8 @@ import 'package:http/http.dart' as http; // Ajouté pour l'upload web
 import 'cars_info.dart'; // Importer le fichier combiné cars_info
 import 'movie.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/widgets/tranoo_network_image.dart';
 
 class CreateSellPage extends StatefulWidget {
   const CreateSellPage({super.key});
@@ -1562,10 +1564,14 @@ class _CreateSellPageState extends State<CreateSellPage> {
                     if (_cloudinaryUrl != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Image.network(
-                          _cloudinaryUrl!,
+                        child: TranooNetworkImage(
+                          url: _cloudinaryUrl!,
                           height: 120,
                           fit: BoxFit.cover,
+                          cloudinaryWidthPx: cloudinaryWidthPx(
+                            context,
+                            logicalWidth: 120,
+                          ),
                         ),
                       ),
                   ],
