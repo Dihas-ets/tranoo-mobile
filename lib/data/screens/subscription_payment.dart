@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
-import 'dart:convert';
 import 'dart:developer' as developer;
 import '../../services/user_service.dart';
-import 'package:feexpay_flutter/feexpay_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
-import 'package:tranoo/utils/feexpay_callback_state.dart';
-import 'package:tranoo/utils/feexpay_result_utils.dart';
+import 'package:tranoo/utils/payment_debug_logger.dart';
+import 'package:tranoo/widgets/feexpay_v2_payment_screen.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
-
-final fpToken = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
-final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
 
 class SubscriptionPaymentScreen extends StatefulWidget {
   const SubscriptionPaymentScreen({super.key});
@@ -335,66 +329,23 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
         throw Exception(l10n.userNotLoggedIn);
       }
 
-      if (fpToken.isEmpty || idUser.isEmpty) {
-        throw Exception(l10n.feexpayConfigMissing);
-      }
-
-      FeexPayCallbackState.clearPendingAtNewCheckout();
-      final result = await Navigator.push(
+      final result = await openFeexPayV2Payment(
         context,
-        MaterialPageRoute(
-          builder: (context) => ChoicePage(
-            token: fpToken,
-            id: idUser,
-            amount: _prixMensuel.toInt().toString(),
-            redirecturl: '/subscription-success',
-            errorredirecturl: '/subscription-error',
-            trans_key: transKey,
-          ),
-        ),
+        amount: _prixMensuel,
+        description: 'Abonnement Premium Transitaire - 1 mois',
+        customId: transKey,
+        paymentType: 'subscription',
+        duree: '1 mois',
       );
 
-      final cb = FeexPayCallbackState.takeLatest();
-      final callbackHint = result is Map && result['successHint'] == true;
-      String? feexId =
-          extractFeexPayTransactionId(result) ?? _extractTransactionRef(result) ?? cb.transactionId;
-      bool paid = feexPayReturnIndicatesSuccess(result) ||
-          cb.success == true ||
-          callbackHint;
-
-      if (feexId != null && feexId.isNotEmpty) {
-        try {
-          final idToken = await user.getIdToken();
-          final st = await Dio().get(
-            '${UserService().dio.options.baseUrl}/payments/feexpay/public/status/$feexId',
-            options: Options(
-              headers: {
-                if (idToken != null) 'Authorization': 'Bearer $idToken',
-              },
-            ),
-          );
-          if (st.statusCode == 200 && st.data is Map) {
-            final s = (st.data['status'] ?? '').toString().toLowerCase();
-            paid = paid ||
-                s.contains('success') ||
-                s.contains('successful') ||
-                s.contains('paid') ||
-                s.contains('ok') ||
-                s.contains('completed') ||
-                s.contains('approved');
-          }
-        } catch (e) {
-          developer.log('[SUBSCRIPTION_PAYMENT] public/status: $e');
-        }
-      }
-
-      developer.log(
-        '[SUBSCRIPTION_PAYMENT] ChoicePage result=$result feexId=$feexId paid=$paid callbackSuccess=${cb.success}',
-      );
-
-      if (paid) {
-        final realFeexPayId = feexId;
-        await _recordSubscriptionPayment(realFeexPayId);
+      if (result == null || !result.success) {
+        PaymentDebugLogger.blocked(
+          'SUBSCRIPTION_PAYMENT',
+          'Paiement abonnement non confirmé',
+          result?.errorMessage,
+        );
+      } else {
+        await _recordSubscriptionPayment(result.transactionId);
         await _activateSubscription();
         if (mounted) {
           Navigator.pop(context, true);
@@ -406,7 +357,12 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
           );
         }
       }
-    } catch (e) {
+    } catch (e, st) {
+      PaymentDebugLogger.blocked(
+        'SUBSCRIPTION_PAYMENT',
+        'Exception flux abonnement',
+        '$e\n$st',
+      );
       setState(() {
         errorMessage = l10n.errorGeneric(e.toString());
       });
@@ -415,39 +371,6 @@ class _SubscriptionPaymentScreenState extends State<SubscriptionPaymentScreen> {
         isLoading = false;
       });
     }
-  }
-
-  String? _extractTransactionRef(dynamic result) {
-    if (result is Map) {
-      final keys = [
-        'id_transaction',
-        'reference',
-        'ref',
-        'transactionId',
-        'transaction_id',
-        'short_code',
-        'shortCode',
-        'payment_reference',
-        'id',
-      ];
-      for (final key in keys) {
-        final value = result[key]?.toString().trim();
-        if (value != null && value.isNotEmpty) return value;
-      }
-    }
-    if (result is String) {
-      final parsed = result.trim();
-      if (parsed.startsWith('{') && parsed.endsWith('}')) {
-        try {
-          final decoded = jsonDecode(parsed);
-          if (decoded is Map<String, dynamic>) {
-            return _extractTransactionRef(decoded);
-          }
-        } catch (_) {}
-      }
-      if (parsed.isNotEmpty) return parsed;
-    }
-    return null;
   }
 
   Future<void> _recordSubscriptionPayment(String? realFeexPayId) async {

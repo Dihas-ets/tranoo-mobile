@@ -6,29 +6,11 @@ import 'avant_home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import '../../services/user_service.dart' show UserService, getBaseUrl;
-import 'package:feexpay_flutter/feexpay_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
-import 'package:tranoo/utils/feexpay_result_utils.dart';
-import 'package:tranoo/utils/feexpay_callback_state.dart';
+import 'package:tranoo/utils/payment_debug_logger.dart';
+import 'package:tranoo/widgets/feexpay_v2_payment_screen.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/utils/tranoo_toast.dart';
-
-String get _fpToken {
-  final a = (dotenv.env['FP_TOKEN_FEEXPAY'] ?? '').trim();
-  if (a.isNotEmpty) return a;
-  return (dotenv.env['FEEXPAY_API_TOKEN'] ?? '').trim();
-}
-
-String get _idUser {
-  final a = (dotenv.env['ID_USER_FEEXPAY'] ?? '').trim();
-  if (a.isNotEmpty) return a;
-  return (dotenv.env['FEEXPAY_SHOP_ID'] ?? '').trim();
-}
-
-/// Routes Flutter internes (FeexPay V2). Ne pas utiliser les URLs ngrok du .env ici.
-const String _kVerificationSuccessRoute = '/verification-success';
-const String _kVerificationErrorRoute = '/verification-error';
 
 class VerificationPaymentScreen extends StatefulWidget {
   final String? articleId; // Optionnel: pour lier le paiement à un article
@@ -344,88 +326,44 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
         throw Exception(l10n.userNotLoggedIn);
       }
 
-      if (_fpToken.isEmpty || _idUser.isEmpty) {
-        throw Exception(l10n.feexpayConfigMissingDetailed);
-      }
-
-      FeexPayCallbackState.clearPendingAtNewCheckout();
-      debugPrint(
-        '[VerificationPayment] ChoicePage amount=$_verificationPrice '
-        'trans_key=$transKey success=$_kVerificationSuccessRoute',
-      );
-      final result = await Navigator.push(
+      final result = await openFeexPayV2Payment(
         context,
-        MaterialPageRoute(
-          builder: (context) => ChoicePage(
-            token: _fpToken,
-            id: _idUser,
-            amount: _verificationPrice.toString(),
-            redirecturl: _kVerificationSuccessRoute,
-            errorredirecturl: _kVerificationErrorRoute,
-            trans_key: transKey,
-          ),
-        ),
+        amount: _verificationPrice.toDouble(),
+        description: 'Frais vérification documents',
+        customId: transKey,
+        paymentType: 'verification',
       );
 
       if (!mounted) return;
-      final cb = FeexPayCallbackState.takeLatest();
-      final callbackHint = result is Map && result['successHint'] == true;
-      var paid = feexPayReturnIndicatesSuccess(result) ||
-          cb.success == true ||
-          callbackHint;
-      final txId = extractFeexPayTransactionId(result) ?? cb.transactionId;
-      if (!paid && txId != null && txId.isNotEmpty) {
-        try {
-          final url = Uri.parse(
-            '${getBaseUrl()}/payments/feexpay/public/status/$txId',
-          );
-          final r = await http.get(url);
-          if (r.statusCode == 200) {
-            final body = jsonDecode(r.body) as Map<String, dynamic>;
-            final st = (body['status'] ?? '').toString().toLowerCase();
-            paid = st.contains('success') ||
-                st.contains('successful') ||
-                st.contains('paid') ||
-                st.contains('ok') ||
-                st.contains('completed') ||
-                st.contains('approved');
-          }
-        } catch (e) {
-          debugPrint('[verification_payment] public/status fallback: $e');
-        }
-      }
-      if (paid) {
-        final recorded = await _recordVerificationFeexPayFlutter(txId);
-        if (!recorded) {
-          if (mounted) {
-            setState(() {
-              errorMessage = l10n.paymentReceivedIncompleteRecord;
-            });
-          }
-          return;
-        }
-        try {
-          await _processVerificationRequest();
-        } catch (e) {
-          debugPrint('[VerificationPayment] verification/request: $e');
-        }
-        if (!mounted) return;
-        showTranooToast(
-          context,
-          message: l10n.paymentReceivedVerificationProcessing,
-          isSuccess: true,
+
+      if (result == null || !result.success) {
+        PaymentDebugLogger.blocked(
+          'VERIFICATION_PAYMENT',
+          'Paiement vérification non confirmé',
+          result?.errorMessage,
         );
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const AvantHome()),
-          (route) => false,
-        );
-      } else {
-        if (mounted) {
-          setState(() {
-            errorMessage = l10n.paymentCancelledNotConfirmed;
-          });
-        }
+        setState(() {
+          errorMessage = result?.errorMessage ??
+              l10n.paymentCancelledNotConfirmed;
+        });
+        return;
       }
+
+      try {
+        await _processVerificationRequest();
+      } catch (e) {
+        debugPrint('[VerificationPayment] verification/request: $e');
+      }
+      if (!mounted) return;
+      showTranooToast(
+        context,
+        message: l10n.paymentReceivedVerificationProcessing,
+        isSuccess: true,
+      );
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AvantHome()),
+        (route) => false,
+      );
     } catch (e) {
       debugPrint('[VerificationPayment] erreur flux: $e');
       if (mounted) {
@@ -437,44 +375,6 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
       setState(() {
         isLoading = false;
       });
-    }
-  }
-
-  Future<bool> _recordVerificationFeexPayFlutter(String? txId) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return false;
-      final token = await user.getIdToken();
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: UserService().dio.options.baseUrl,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json',
-          },
-        ),
-      );
-      final body = <String, dynamic>{
-        'transKey': transKey,
-        'amount': _verificationPrice,
-        'description': 'Frais vérification documents',
-        'type': 'verification',
-        'status': 'success',
-      };
-      final tid = txId?.trim();
-      if (tid != null && tid.isNotEmpty) {
-        body['id_transaction'] = tid;
-        body['ref'] = tid;
-        body['reference'] = tid;
-      }
-      final res = await dio.post('/payments/feexpay/flutter/record', data: body);
-      debugPrint(
-        '[VerificationPayment] recordFeexPayFlutter status=${res.statusCode} data=${res.data}',
-      );
-      return res.statusCode == 200;
-    } catch (e) {
-      debugPrint('[VerificationPayment] recordFeexPayFlutter error: $e');
-      return false;
     }
   }
 

@@ -2,17 +2,24 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../config/feexpay_config.dart';
+import '../utils/payment_debug_logger.dart';
 
 class FeexPayService {
+  static const _transactionsPath = '/api/transactions';
+  static const _statusPath = '/api/transactions/public/single/status';
+  static const _feexLinkInitPath = '/api/feexlink/api-create';
+
   /// Headers pour les requêtes API
   static Map<String, String> get _headers => FeexPayConfig.defaultHeaders;
 
   /// Initialise le service FeexPay
   static Future<void> initialize() async {
+    if (!_hasCredentials()) {
+      throw Exception(FeexPayConfig.errorMessages['invalid_credentials']!);
+    }
     try {
-      // Vérifier la connexion avec l'API
       final response = await http.get(
-        Uri.parse('${FeexPayConfig.baseUrl}/status'),
+        Uri.parse('${FeexPayConfig.baseUrl}$_transactionsPath?page=1&limit=1'),
         headers: _headers,
       );
 
@@ -38,6 +45,12 @@ class FeexPayService {
     String? paymentType, // "MOBILE", "CARD", "WALLET"
     Map<String, String>? customFields,
   }) async {
+    if (!_hasCredentials()) {
+      return {
+        'status': 'error',
+        'message': FeexPayConfig.errorMessages['invalid_credentials']!,
+      };
+    }
     try {
       // Validation des paramètres
       if (!FeexPayConfig.isValidAmount(amount)) {
@@ -56,37 +69,57 @@ class FeexPayService {
       }
 
       final payload = {
-        'amount': amount,
-        'custom_id': customId,
+        'shop': FeexPayConfig.shopId,
+        'amount': amount.round(),
         'description': description,
-        'callback_url': callbackUrl ?? FeexPayConfig.successCallbackUrl,
-        'error_callback_url':
+        'paymentMethod': paymentType?.toUpperCase() ?? 'ALL',
+        'success_redirect_url':
+            callbackUrl ?? FeexPayConfig.successCallbackUrl,
+        'error_redirect_url':
             errorCallbackUrl ?? FeexPayConfig.errorCallbackUrl,
-        'case': paymentType,
+        'callback_info': customId,
         'custom_fields': customFields,
+        'range': 1,
+        'expireIn': 15,
         'mode': FeexPayConfig.mode,
         'currency': FeexPayConfig.defaultCurrency,
       };
 
+      PaymentDebugLogger.step('FEEXPAY_SERVICE', 'startPayment', {
+        'amount': amount,
+        'customId': customId,
+        'paymentType': paymentType,
+        'baseUrl': FeexPayConfig.baseUrl,
+      });
+
       final response = await http.post(
-        Uri.parse('${FeexPayConfig.baseUrl}/payment/init'),
+        Uri.parse('${FeexPayConfig.baseUrl}$_feexLinkInitPath'),
         headers: _headers,
         body: jsonEncode(payload),
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        PaymentDebugLogger.api(
+          'POST',
+          _feexLinkInitPath,
+          status: response.statusCode,
+          body: data,
+        );
         return {
           'status': 'success',
           'data': data,
-          'payment_url': data['payment_url'],
-          'transaction_id': data['transaction_id'],
+          'payment_url': data['urlPay'] ?? data['payment_url'] ?? data['url'],
+          'transaction_id':
+              data['reference'] ??
+              data['id'] ??
+              data['order_id'] ??
+              data['short_code'],
         };
       } else {
         return {
           'status': 'error',
-          'message':
-              'Erreur lors de l\'initialisation du paiement: ${response.statusCode}',
+          'message': _extractErrorMessage(response),
         };
       }
     } catch (e) {
@@ -100,7 +133,7 @@ class FeexPayService {
   ) async {
     try {
       final response = await http.get(
-        Uri.parse('${FeexPayConfig.baseUrl}/transaction/$transactionId/status'),
+        Uri.parse('${FeexPayConfig.baseUrl}$_statusPath/$transactionId'),
         headers: _headers,
       );
 
@@ -110,7 +143,7 @@ class FeexPayService {
       } else {
         return {
           'status': 'error',
-          'message': 'Erreur lors de la vérification: ${response.statusCode}',
+          'message': _extractErrorMessage(response),
         };
       }
     } catch (e) {
@@ -127,38 +160,11 @@ class FeexPayService {
     required double amount,
     String? reason,
   }) async {
-    try {
-      if (!FeexPayConfig.isValidAmount(amount)) {
-        return {
-          'status': 'error',
-          'message': FeexPayConfig.errorMessages['invalid_amount']!,
-        };
-      }
-
-      final payload = {
-        'transaction_id': transactionId,
-        'amount': amount,
-        'reason': reason,
-      };
-
-      final response = await http.post(
-        Uri.parse('${FeexPayConfig.baseUrl}/transaction/refund'),
-        headers: _headers,
-        body: jsonEncode(payload),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return {'status': 'success', 'data': data};
-      } else {
-        return {
-          'status': 'error',
-          'message': 'Erreur lors du reversement: ${response.statusCode}',
-        };
-      }
-    } catch (e) {
-      return {'status': 'error', 'message': 'Erreur lors du reversement: $e'};
-    }
+    return {
+      'status': 'error',
+      'message':
+          'Le reversement direct n\'est pas expose par cette integration FeexPay v2.',
+    };
   }
 
   /// Obtient l'historique des transactions
@@ -176,14 +182,34 @@ class FeexPayService {
       if (endDate != null) queryParams['end_date'] = endDate;
 
       final uri = Uri.parse(
-        '${FeexPayConfig.baseUrl}/transactions',
+        '${FeexPayConfig.baseUrl}$_transactionsPath',
       ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: _headers);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return List<Map<String, dynamic>>.from(data['transactions'] ?? []);
+        final rawList =
+            (data is Map<String, dynamic> ? data['data'] : null) ??
+            (data is Map<String, dynamic> ? data['transactions'] : null) ??
+            [];
+        return List<Map<String, dynamic>>.from(
+          (rawList as List).map((item) {
+            final map = Map<String, dynamic>.from(item as Map);
+            return {
+              ...map,
+              'transaction_id':
+                  map['id'] ??
+                  map['reference'] ??
+                  map['transaction_id'] ??
+                  map['short_code'],
+              'payment_method':
+                  map['payment_method'] ?? map['paymentMethod'] ?? map['method'],
+              'created_at':
+                  map['created_at'] ?? map['createdAt'] ?? map['date'],
+            };
+          }),
+        );
       } else {
         debugPrint(
           'Erreur lors de la récupération de l\'historique: ${response.statusCode}',
@@ -198,28 +224,11 @@ class FeexPayService {
 
   /// Obtient le solde du compte
   static Future<Map<String, dynamic>> getAccountBalance() async {
-    try {
-      final response = await http.get(
-        Uri.parse('${FeexPayConfig.baseUrl}/account/balance'),
-        headers: _headers,
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return {'status': 'success', 'data': data};
-      } else {
-        return {
-          'status': 'error',
-          'message':
-              'Erreur lors de la récupération du solde: ${response.statusCode}',
-        };
-      }
-    } catch (e) {
-      return {
-        'status': 'error',
-        'message': 'Erreur lors de la récupération du solde: $e',
-      };
-    }
+    return {
+      'status': 'error',
+      'message':
+          'Le solde FeexPay n\'est pas expose par cette integration FeexPay v2.',
+    };
   }
 
   /// Envoie de l'argent à un autre compte FeexPay
@@ -228,38 +237,11 @@ class FeexPayService {
     required double amount,
     String? description,
   }) async {
-    try {
-      if (!FeexPayConfig.isValidAmount(amount)) {
-        return {
-          'status': 'error',
-          'message': FeexPayConfig.errorMessages['invalid_amount']!,
-        };
-      }
-
-      final payload = {
-        'recipient_email': recipientEmail,
-        'amount': amount,
-        'description': description,
-      };
-
-      final response = await http.post(
-        Uri.parse('${FeexPayConfig.baseUrl}/money/send'),
-        headers: _headers,
-        body: jsonEncode(payload),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return {'status': 'success', 'data': data};
-      } else {
-        return {
-          'status': 'error',
-          'message': 'Erreur lors de l\'envoi: ${response.statusCode}',
-        };
-      }
-    } catch (e) {
-      return {'status': 'error', 'message': 'Erreur lors de l\'envoi: $e'};
-    }
+    return {
+      'status': 'error',
+      'message':
+          'Le transfert direct n\'est pas expose par cette integration FeexPay v2.',
+    };
   }
 
   /// Ouvre la page de paiement dans un navigateur
@@ -271,5 +253,24 @@ class FeexPayService {
     } catch (e) {
       debugPrint('Erreur lors de l\'ouverture de la page de paiement: $e');
     }
+  }
+
+  static bool _hasCredentials() {
+    return FeexPayConfig.apiToken.isNotEmpty && FeexPayConfig.shopId.isNotEmpty;
+  }
+
+  static String _extractErrorMessage(http.Response response) {
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        final message =
+            decoded['message'] ??
+            decoded['error'] ??
+            decoded['details'] ??
+            decoded['status'];
+        if (message != null) return message.toString();
+      }
+    } catch (_) {}
+    return 'Erreur FeexPay: ${response.statusCode}';
   }
 }

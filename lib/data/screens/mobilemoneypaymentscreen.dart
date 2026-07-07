@@ -4,16 +4,11 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:developer';
 import 'package:tranoo/services/user_service.dart';
-import 'package:feexpay_flutter/feexpay_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
 import 'package:tranoo/data/screens/succes6.dart';
-import 'package:tranoo/utils/feexpay_result_utils.dart';
-import 'package:tranoo/utils/feexpay_callback_state.dart';
+import 'package:tranoo/utils/payment_debug_logger.dart';
+import 'package:tranoo/widgets/feexpay_v2_payment_screen.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
-
-final fpToken = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
-final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
 
 class MobileMoneyPaymentScreen extends StatefulWidget {
   final String pubId;
@@ -363,65 +358,34 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
         throw Exception(l10n.userNotConnected);
       }
 
-      if (fpToken.isEmpty || idUser.isEmpty) {
-        throw Exception(l10n.feexpayConfigMissing);
+      final amountNum = num.tryParse(pubData!['prix']?.toString() ?? '0') ?? 0;
+      if (amountNum <= 0) {
+        throw Exception(l10n.invalidAmount);
       }
 
-      final amount = pubData!['prix']?.toString() ?? '0';
-
-      FeexPayCallbackState.clearPendingAtNewCheckout();
-      // Navigation vers FeexPay avec le package officiel
-      final result = await Navigator.push(
+      final result = await openFeexPayV2Payment(
         context,
-        MaterialPageRoute(
-          builder: (context) => ChoicePage(
-            token: fpToken,
-            id: idUser,
-            amount: amount,
-            redirecturl: '/payment-success',
-            errorredirecturl: '/payment-error',
-            trans_key: transKey,
-          ),
-        ),
+        amount: amountNum.toDouble(),
+        description: l10n.adPaymentMobileDescription(widget.pubId),
+        customId: transKey,
+        paymentType: 'publicite',
+        publiciteId: widget.pubId,
       );
 
-      final cb = FeexPayCallbackState.takeLatest();
-      final callbackHint = result is Map && result['successHint'] == true;
-      String? txId = extractFeexPayTransactionId(result) ?? cb.transactionId;
-      var success = feexPayReturnIndicatesSuccess(result) ||
-          cb.success == true ||
-          callbackHint;
-      if (txId != null && txId.isNotEmpty) {
-        try {
-          final st = await http.get(
-            Uri.parse('${getBaseUrl()}/payments/feexpay/public/status/$txId'),
-          );
-          if (st.statusCode == 200) {
-            final body = jsonDecode(st.body) as Map<String, dynamic>;
-            final s = (body['status'] ?? '').toString().toLowerCase();
-            success = success ||
-                s.contains('success') ||
-                s.contains('successful') ||
-                s.contains('paid') ||
-                s.contains('ok') ||
-                s.contains('completed') ||
-                s.contains('approved');
-          }
-        } catch (e) {
-          log('[MobileMoneyPayment] public/status: $e');
+      if (result == null || !result.success) {
+        PaymentDebugLogger.blocked(
+          'MOBILE_MONEY_PUB',
+          'Paiement pub non confirmé',
+          result?.errorMessage,
+        );
+        if (mounted) {
+          setState(() {
+            errorMessage = result?.errorMessage ?? l10n.paymentFailed;
+          });
         }
-      }
-
-      log(
-        '[MobileMoneyPayment] ChoicePage result=$result txId=$txId success=$success transKey=$transKey pubId=${widget.pubId}',
-      );
-
-      if (!success) {
         return;
       }
 
-      final amountNum = num.tryParse(amount) ?? 0;
-      await _recordPubFeexPay(amountNum, idTransaction: txId);
       await _updatePubStatus();
 
       if (mounted) {
@@ -454,40 +418,6 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
       setState(() {
         isLoading = false;
       });
-    }
-  }
-
-  Future<void> _recordPubFeexPay(num amount, {String? idTransaction}) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      final payload = <String, dynamic>{
-        'transKey': transKey,
-        'amount': amount,
-        'description': 'Paiement publicité (mobile money) ${widget.pubId}',
-        'type': 'publicite',
-        'status': 'success',
-        'publiciteId': widget.pubId,
-      };
-      final tid = idTransaction?.trim();
-      if (tid != null && tid.isNotEmpty) {
-        payload['id_transaction'] = tid;
-        payload['ref'] = tid;
-        payload['reference'] = tid;
-      }
-      final res = await http.post(
-        Uri.parse('${getBaseUrl()}/payments/feexpay/flutter/record'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-        body: jsonEncode(payload),
-      );
-      log(
-        '[MobileMoneyPayment] recordFeexPayFlutter status=${res.statusCode} body=${res.body}',
-      );
-    } catch (e) {
-      log('[MobileMoneyPayment] recordFeexPayFlutter error: $e');
     }
   }
 

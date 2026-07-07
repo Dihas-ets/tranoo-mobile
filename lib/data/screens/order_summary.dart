@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:feexpay_flutter/feexpay_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
@@ -12,8 +10,9 @@ import '../../config/backend_config.dart';
 import 'package:tranoo/providers/counter_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:tranoo/data/screens/map_picker_screen.dart';
-import 'package:tranoo/data/screens/order_payment_screen.dart';
 import 'package:tranoo/data/screens/avant_home.dart';
+import 'package:tranoo/utils/payment_debug_logger.dart';
+import 'package:tranoo/widgets/feexpay_v2_payment_screen.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 
 enum PaymentMethod { cash, online }
@@ -821,23 +820,24 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
                                   // Confirmer la commande
                                   final confirmed = await _confirmOrder(total);
                                   if (confirmed && mounted) {
-                                    developer.log('ÉTAPE Paiement: redirection vers OrderPaymentScreen...');
-                                    final paymentResult = await Navigator.push<dynamic>(
+                                    developer.log('ÉTAPE Paiement: ouverture FeexPay v2...');
+                                    final paymentResult = await openFeexPayV2Payment(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (_) => OrderPaymentScreen(
-                                          amount: total,
-                                          description: l10n.orderPaymentTranooDescription,
-                                        ),
-                                      ),
+                                      amount: total,
+                                      description: l10n.orderPaymentTranooDescription,
+                                      customId: _transKey,
+                                      paymentType: 'achat',
                                     );
-                                    final paid = paymentResult is Map
-                                        ? paymentResult['paid'] == true
-                                        : paymentResult == true;
+                                    final paid = paymentResult?.success == true;
                                     developer.log(
-                                      'ÉTAPE Paiement: résultat raw=$paymentResult resolvedPaid=$paid',
+                                      'ÉTAPE Paiement: résultat success=$paid tx=${paymentResult?.transactionId}',
                                     );
-                                    if (paid != true) {
+                                    if (!paid) {
+                                      PaymentDebugLogger.blocked(
+                                        'ORDER_CART',
+                                        'Paiement panier non confirmé',
+                                        paymentResult?.errorMessage,
+                                      );
                                       _showMessage(
                                         l10n.transactionFailedNotSaved,
                                       );
@@ -1081,7 +1081,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     try {
       developer.log('ÉTAPE 1: Sauvegarde commande en base de données...');
       
-      // Paiement validé avant création commande (via OrderPaymentScreen)
+      // Paiement validé avant création commande (via FeexPay v2)
       // On garde paymentMethod online.
       const paymentMethodStr = 'online';
       developer.log('Méthode de paiement: $paymentMethodStr (paiement validé)');

@@ -3,10 +3,9 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:feexpay_flutter/feexpay_flutter.dart';
 import 'package:random_string/random_string.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/widgets/feexpay_v2_payment_screen.dart';
 
 import '../config/backend_config.dart';
 import '../main.dart';
@@ -308,29 +307,13 @@ class InAppDeliveryPopup {
     required double amount,
     required String label,
   }) async {
-    final l10n = AppLocalizations.of(ctx)!;
-    final token = dotenv.env['FP_TOKEN_FEEXPAY'] ?? '';
-    final idUser = dotenv.env['ID_USER_FEEXPAY'] ?? '';
-    if (token.isEmpty || idUser.isEmpty) {
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text(l10n.feexpayConfigMissing)),
-      );
-      return;
-    }
-
     final transKey = '${label}_${randomAlphaNumeric(12)}';
-    await Navigator.push(
+    await openFeexPayV2Payment(
       ctx,
-      MaterialPageRoute(
-        builder: (_) => ChoicePage(
-          token: token,
-          id: idUser,
-          amount: amount.toStringAsFixed(0),
-          redirecturl: '/delivery-payment-success',
-          errorredirecturl: '/delivery-payment-error',
-          trans_key: transKey,
-        ),
-      ),
+      amount: amount,
+      description: label,
+      customId: transKey,
+      paymentType: 'achat',
     );
   }
 }

@@ -1,8 +1,50 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/feexpay_error_messages.dart';
+import 'package:tranoo/utils/payment_debug_logger.dart';
 
 class PaymentApi {
+  static String _extractApiError(Object error) {
+    if (error is DioException) {
+      final status = error.response?.statusCode;
+      final data = error.response?.data;
+      final fromPayload = FeexPayErrorMessages.fromApiPayload(data);
+      if (fromPayload != 'Paiement impossible pour le moment.') {
+        return fromPayload;
+      }
+      if (status != null) {
+        return FeexPayErrorMessages.fromHttpStatus(status, fallback: error.message);
+      }
+      if (data is Map) {
+        final nested = data['error'];
+        if (nested is Map) {
+          final nestedMsg = nested['message'] ?? nested['error'];
+          if (nestedMsg != null && nestedMsg.toString().trim().isNotEmpty) {
+            return nestedMsg.toString();
+          }
+        } else if (nested is String && nested.trim().isNotEmpty) {
+          return nested.trim();
+        }
+        final details = data['details'];
+        if (details is Map) {
+          final detailMsg = details['message'] ?? details['error'];
+          if (detailMsg != null && detailMsg.toString().trim().isNotEmpty) {
+            return detailMsg.toString();
+          }
+        }
+        final message = data['message'] ?? data['reason'];
+        if (message != null && message.toString().trim().isNotEmpty) {
+          return message.toString();
+        }
+      } else if (data is String && data.trim().isNotEmpty) {
+        return data.trim();
+      }
+      return error.message ?? 'Erreur réseau pendant le paiement';
+    }
+    return error.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+  }
+
   static Dio _dioWithAuth(String? token) {
     if (token == null || token.isEmpty) {
       throw Exception('Token d\'authentification indisponible');
@@ -27,6 +69,9 @@ class PaymentApi {
     String? description,
     String currency = 'XOF',
     String? achatId,
+    String? publiciteId,
+    String? type,
+    String? duree,
     String? otp, // requis par certains réseaux (ex: Coris)
   }) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -35,30 +80,54 @@ class PaymentApi {
     }
     final idToken = await user.getIdToken();
     final dio = _dioWithAuth(idToken);
-    final response = await dio.post(
-      '/payments/feexpay/requesttopay/$network',
-      data: {
-        'amount': amount,
-        'currency': currency,
-        'customId': customId,
-        'phoneNumber': phoneNumber,
-        if (description != null) 'description': description,
-        if (achatId != null) 'achatId': achatId,
-        if (otp != null) 'otp': otp,
-      },
-    );
-    return Map<String, dynamic>.from(response.data);
+    try {
+      final response = await dio.post(
+        '/payments/feexpay/requesttopay/$network',
+        data: {
+          'amount': amount,
+          'currency': currency,
+          'customId': customId,
+          'phoneNumber': int.tryParse(phoneNumber) ?? phoneNumber,
+          if (description != null) 'description': description,
+          if (achatId != null) 'achatId': achatId,
+          if (publiciteId != null) 'publiciteId': publiciteId,
+          if (type != null) 'type': type,
+          if (duree != null) 'duree': duree,
+          if (otp != null) 'otp': otp,
+        },
+      );
+      PaymentDebugLogger.api(
+        'POST',
+        '/payments/feexpay/requesttopay/$network',
+        status: response.statusCode,
+        body: response.data,
+      );
+      return Map<String, dynamic>.from(response.data);
+    } catch (e) {
+      PaymentDebugLogger.api(
+        'POST',
+        '/payments/feexpay/requesttopay/$network',
+        error: e,
+      );
+      throw Exception(_extractApiError(e));
+    }
   }
 
-  // Initialiser un paiement par carte (peut renvoyer une URL à ouvrir si nécessaire)
+  // Initialiser un paiement par carte (redirection vers page FeexPay)
   static Future<Map<String, dynamic>> initCardPayment({
     required double amount,
     required String customId,
+    required String phone,
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String typeCard,
     String? description,
     String currency = 'XOF',
     String? achatId,
-    String? cardHolderName,
-    String? email,
+    String? publiciteId,
+    String? type,
+    String? duree,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -66,19 +135,36 @@ class PaymentApi {
     }
     final idToken = await user.getIdToken();
     final dio = _dioWithAuth(idToken);
-    final response = await dio.post(
-      '/payments/feexpay/initcard',
-      data: {
-        'amount': amount,
-        'currency': currency,
-        'customId': customId,
-        if (description != null) 'description': description,
-        if (achatId != null) 'achatId': achatId,
-        if (cardHolderName != null) 'cardHolderName': cardHolderName,
-        if (email != null) 'email': email,
-      },
-    );
-    return Map<String, dynamic>.from(response.data);
+    try {
+      final response = await dio.post(
+        '/payments/feexpay/initcard',
+        data: {
+          'amount': amount,
+          'currency': currency,
+          'customId': customId,
+          'phone': int.tryParse(phone) ?? phone,
+          'first_name': firstName,
+          'last_name': lastName,
+          'email': email,
+          'type_card': typeCard,
+          if (description != null) 'description': description,
+          if (achatId != null) 'achatId': achatId,
+          if (publiciteId != null) 'publiciteId': publiciteId,
+          if (type != null) 'type': type,
+          if (duree != null) 'duree': duree,
+        },
+      );
+      PaymentDebugLogger.api(
+        'POST',
+        '/payments/feexpay/initcard',
+        status: response.statusCode,
+        body: response.data,
+      );
+      return Map<String, dynamic>.from(response.data);
+    } catch (e) {
+      PaymentDebugLogger.api('POST', '/payments/feexpay/initcard', error: e);
+      throw Exception(_extractApiError(e));
+    }
   }
 
   static Future<Map<String, dynamic>> initFeexPayPayment({

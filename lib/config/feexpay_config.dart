@@ -1,17 +1,26 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class FeexPayConfig {
   // Configuration de base
-  static const String baseUrl = "https://api-v2.feexpay.me";
+  static String get baseUrl =>
+      (dotenv.env['FEEXPAY_BASE_URL'] ?? 'https://api-v2.feexpay.me').trim();
 
-  // Configuration de votre compte (à remplacer par vos vraies valeurs)
-  static const String shopId = "VOTRE_SHOP_ID";
-  static const String apiToken = "VOTRE_API_TOKEN";
+  // Configuration marchande récupérée depuis le .env.
+  static String get shopId =>
+      (dotenv.env['FEEXPAY_SHOP_ID'] ?? dotenv.env['ID_USER_FEEXPAY'] ?? '')
+          .trim();
+  static String get apiToken =>
+      (dotenv.env['FEEXPAY_API_TOKEN'] ?? dotenv.env['FP_TOKEN_FEEXPAY'] ?? '')
+          .trim();
 
   // Mode d'environnement
-  static const String mode = "SANDBOX"; // ou "LIVE" pour la production
+  static String get mode => (dotenv.env['FEEXPAY_MODE'] ?? 'LIVE').trim();
 
-  // URLs de callback (à personnaliser selon votre application)
-  static const String successCallbackUrl = "https://votre-site.com/success";
-  static const String errorCallbackUrl = "https://votre-site.com/error";
+  // URLs de callback éventuelles pour les redirections web.
+  static String get successCallbackUrl =>
+      (dotenv.env['FEEXPAY_SUCCESS_URL'] ?? '').trim();
+  static String get errorCallbackUrl =>
+      (dotenv.env['FEEXPAY_ERROR_URL'] ?? '').trim();
 
   // Configuration des paiements
   static const String defaultCurrency = "XOF"; // FCFA

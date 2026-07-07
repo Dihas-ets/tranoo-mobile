@@ -111,8 +111,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
         customId: customId,
         description: description,
         paymentType: _selectedPaymentType,
-        callbackUrl: 'https://votre-site.com/success',
-        errorCallbackUrl: 'https://votre-site.com/error',
       );
 
       if (result['status'] == 'success') {
