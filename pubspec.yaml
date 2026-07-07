@@ -60,6 +60,7 @@ dependencies:
   # Carte gratuite (OpenStreetMap) — stack 0€
   flutter_map: ^8.3.0
   latlong2: ^0.9.1
+  livro_delivery_sdk: ^1.0.2
 
 dev_dependencies:
   flutter_test:

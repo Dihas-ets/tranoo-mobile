@@ -11,6 +11,10 @@ import 'order_summary.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:tranoo/providers/auth_provider.dart' as myauth;
+import 'package:livro_delivery_sdk/models/course_draft.dart';
+import 'package:tranoo/utils/livro_integration.dart';
 import 'package:tranoo/utils/auth_dialog.dart';
 import 'package:confetti/confetti.dart';
 // import 'verification_payment.dart';
@@ -104,6 +108,8 @@ class _MastervacPageState extends State<MastervacPage> {
   String? _loadedMarque;
   String? _loadedLocation;
   String? _loadedCompany;
+  double? _supplierLat;
+  double? _supplierLng;
 
   @override
   void initState() {
@@ -241,6 +247,67 @@ class _MastervacPageState extends State<MastervacPage> {
     );
   }
 
+  Future<void> _openLivroDeliveryFlow() async {
+    final l10n = AppLocalizations.of(context)!;
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) {
+      showAuthDialog(
+        context,
+        message: l10n.signInForDelivery,
+      );
+      return;
+    }
+
+    final authUser =
+        Provider.of<myauth.AuthProvider>(context, listen: false).user;
+    LivroIntegration.bindCurrentUser(authUser);
+
+    if (!mounted) return;
+    LivroIntegration.openDelivery(
+      context,
+      draft: _buildLivroDraftFromArticle(authUser),
+    );
+  }
+
+  CourseDraft _buildLivroDraftFromArticle(Map<String, dynamic>? authUser) {
+    final supplier = widget.fournisseur ?? widget.vendeur;
+    final supplierName = supplier?['nom']?.toString().trim() ??
+        supplier?['name']?.toString().trim() ??
+        (_loadedCompany ?? widget.company).trim();
+    final supplierPhone = _sellerPhone?.trim() ??
+        supplier?['telephone']?.toString().trim() ??
+        supplier?['phone']?.toString().trim() ??
+        '';
+    final supplierAddress = supplier?['adresseTexte']?.toString().trim() ??
+        (_loadedLocation ?? widget.location).trim();
+
+    final lat = _readCoord(supplier?['latitude']) ?? _supplierLat;
+    final lng = _readCoord(supplier?['longitude']) ?? _supplierLng;
+
+    final receiverName = [
+      authUser?['prenoms']?.toString().trim() ??
+          authUser?['prenom']?.toString().trim(),
+      authUser?['nom']?.toString().trim(),
+    ].whereType<String>().where((part) => part.isNotEmpty).join(' ').trim();
+
+    return LivroIntegration.buildCourseDraft(
+      supplierAddress: supplierAddress,
+      supplierName: supplierName,
+      supplierPhone: supplierPhone,
+      supplierLat: lat,
+      supplierLng: lng,
+      courseTitle: widget.title,
+      category: widget.categorie ?? widget.pieceType,
+      receiverName: receiverName.isEmpty ? null : receiverName,
+      receiverPhone: authUser?['telephone']?.toString().trim(),
+    );
+  }
+
+  double? _readCoord(dynamic value) {
+    if (value == null) return null;
+    return double.tryParse(value.toString());
+  }
+
   Future<void> _startDeliveryFlow() async {
     final l10n = AppLocalizations.of(context)!;
     final firebaseUser = FirebaseAuth.instance.currentUser;
@@ -294,6 +361,13 @@ class _MastervacPageState extends State<MastervacPage> {
         if (!mounted) return;
         final loc = (data['localisation'] ?? data['lieu'])?.toString().trim();
         final company = data['entreprise']?.toString().trim();
+        final fournisseur = data['fournisseur'];
+        double? lat;
+        double? lng;
+        if (fournisseur is Map) {
+          lat = _readCoord(fournisseur['latitude']);
+          lng = _readCoord(fournisseur['longitude']);
+        }
         setState(() {
           _isOnline = (statut == 'en_ligne');
           _sellerPhone = _extractSellerPhone(data);
@@ -301,6 +375,8 @@ class _MastervacPageState extends State<MastervacPage> {
           _loadedMarque = data['marque']?.toString();
           if (loc != null && loc.isNotEmpty) _loadedLocation = loc;
           if (company != null && company.isNotEmpty) _loadedCompany = company;
+          _supplierLat = lat;
+          _supplierLng = lng;
         });
       }
     } catch (_) {}
@@ -320,7 +396,7 @@ class _MastervacPageState extends State<MastervacPage> {
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: _buildAppBar(),
       floatingActionButton: FloatingActionButton(
-        onPressed: _startDeliveryFlow,
+        onPressed: _openLivroDeliveryFlow,
         backgroundColor: const Color(0xFF0A903D),
         tooltip: l10n.orderWithDelivery,
         child: Padding(

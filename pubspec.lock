@@ -526,6 +526,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.1"
+  flutter_contacts:
+    dependency: transitive
+    description:
+      name: flutter_contacts
+      sha256: "388d32cd33f16640ee169570128c933b45f3259bddbfae7a100bb49e5ffea9ae"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.9+2"
   flutter_dotenv:
     dependency: "direct main"
     description:
@@ -893,6 +901,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.12.0"
+  just_waveform:
+    dependency: transitive
+    description:
+      name: just_waveform
+      sha256: "8c65acd24f13b866e3377f07f8869e823f3f2d8b734938f4e6688075af40b4f2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.7"
   latlong2:
     dependency: "direct main"
     description:
@@ -938,6 +954,14 @@ packages:
     description:
       name: list_counter
       sha256: c447ae3dfcd1c55f0152867090e67e219d42fe6d4f2807db4bbe8b8d69912237
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
+  livro_delivery_sdk:
+    dependency: "direct main"
+    description:
+      name: livro_delivery_sdk
+      sha256: "706274b3f6b34243aaef3e9f6dbdd9a20723fd023bca8b44e5b322080d453072"
       url: "https://pub.dev"
     source: hosted
     version: "1.0.2"
@@ -997,6 +1021,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  mobile_scanner:
+    dependency: transitive
+    description:
+      name: mobile_scanner
+      sha256: c92c26bf2231695b6d3477c8dcf435f51e28f87b1745966b1fe4c47a286171ce
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.2.0"
   nested:
     dependency: transitive
     description:
@@ -1021,6 +1053,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
+  open_filex:
+    dependency: transitive
+    description:
+      name: open_filex
+      sha256: "9976da61b6a72302cf3b1efbce259200cd40232643a467aac7370addf94d6900"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.7.0"
   package_config:
     dependency: transitive
     description:
@@ -1229,6 +1269,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.2"
+  qr_flutter:
+    dependency: transitive
+    description:
+      name: qr_flutter
+      sha256: "5095f0fc6e3f71d08adef8feccc8cea4f12eec18a2e31c2e8d82cb6019f4b097"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.0"
   random_string:
     dependency: "direct main"
     description:
@@ -1237,6 +1285,54 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.1"
+  record:
+    dependency: transitive
+    description:
+      name: record
+      sha256: "10911465138fafacef459a780564e883e01bd48eabf87ab20543684884492870"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.2.1"
+  record_android:
+    dependency: transitive
+    description:
+      name: record_android
+      sha256: eb1732e42d0d2a1895b8db86e4fc917287e6d8491b6ed59918aea8bed6c69de4
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.5.2"
+  record_ios:
+    dependency: transitive
+    description:
+      name: record_ios
+      sha256: c051fb48edd7a0e265daafb9108730dc827c27b551728a3fdfb3ef69efd89c73
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.1"
+  record_linux:
+    dependency: transitive
+    description:
+      name: record_linux
+      sha256: "31181787bf7eccb0e298835836b69b3cd0a903863b75d70e937de3dec71cd8f3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.3.1"
+  record_macos:
+    dependency: transitive
+    description:
+      name: record_macos
+      sha256: cfe1b61435e27db418bf513dc36820d10c9f7eb1843786c2c9a52e07e2f4f627
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.2"
+  record_platform_interface:
+    dependency: transitive
+    description:
+      name: record_platform_interface
+      sha256: "8e56cbe06c6984137fb86132ff03459f29938d927496d9b2d0962e2d6345d488"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.0"
   record_use:
     dependency: transitive
     description:
@@ -1245,6 +1341,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
+  record_web:
+    dependency: transitive
+    description:
+      name: record_web
+      sha256: "7e9846981c1f2d111d86f0ae3309071f5bba8b624d1c977316706f08fc31d16d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.3.0"
+  record_windows:
+    dependency: transitive
+    description:
+      name: record_windows
+      sha256: "223258060a1d25c62bae18282c16783f28581ec19401d17e56b5205b9f039d78"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.7"
   rive:
     dependency: transitive
     description:

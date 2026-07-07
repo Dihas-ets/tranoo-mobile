@@ -51,6 +51,11 @@ public final class GeneratedPluginRegistrant {
       Log.e(TAG, "Error registering plugin firebase_storage, io.flutter.plugins.firebase.storage.FlutterFirebaseStoragePlugin", e);
     }
     try {
+      flutterEngine.getPlugins().add(new co.quis.flutter_contacts.FlutterContactsPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin flutter_contacts, co.quis.flutter_contacts.FlutterContactsPlugin", e);
+    }
+    try {
       flutterEngine.getPlugins().add(new com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin flutter_local_notifications, com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsPlugin", e);
@@ -81,6 +86,26 @@ public final class GeneratedPluginRegistrant {
       Log.e(TAG, "Error registering plugin jni_flutter, com.github.dart_lang.jni_flutter.JniFlutterPlugin", e);
     }
     try {
+      flutterEngine.getPlugins().add(new com.ryanheise.just_waveform.JustWaveformPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin just_waveform, com.ryanheise.just_waveform.JustWaveformPlugin", e);
+    }
+    try {
+      flutterEngine.getPlugins().add(new com.livro.sdk.livro_delivery_sdk.LivroDeliverySdkPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin livro_delivery_sdk, com.livro.sdk.livro_delivery_sdk.LivroDeliverySdkPlugin", e);
+    }
+    try {
+      flutterEngine.getPlugins().add(new dev.steenbakker.mobile_scanner.MobileScannerPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin mobile_scanner, dev.steenbakker.mobile_scanner.MobileScannerPlugin", e);
+    }
+    try {
+      flutterEngine.getPlugins().add(new com.crazecoder.openfile.OpenFilePlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin open_filex, com.crazecoder.openfile.OpenFilePlugin", e);
+    }
+    try {
       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.packageinfo.PackageInfoPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin package_info_plus, dev.fluttercommunity.plus.packageinfo.PackageInfoPlugin", e);
@@ -89,6 +114,11 @@ public final class GeneratedPluginRegistrant {
       flutterEngine.getPlugins().add(new com.baseflow.permissionhandler.PermissionHandlerPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin permission_handler_android, com.baseflow.permissionhandler.PermissionHandlerPlugin", e);
+    }
+    try {
+      flutterEngine.getPlugins().add(new com.llfbandit.record.RecordPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin record_android, com.llfbandit.record.RecordPlugin", e);
     }
     try {
       flutterEngine.getPlugins().add(new app.rive.rive_native.RiveNativePlugin());

@@ -44,6 +44,9 @@ import 'package:tranoo/data/screens/reset/create_new_password_page.dart';
 import 'package:tranoo/data/screens/order_details_page.dart';
 import 'package:tranoo/data/screens/mes_commandes.dart';
 import 'package:tranoo/services/app_bootstrap.dart';
+import 'package:livro_delivery_sdk/livro_delivery_sdk.dart';
+import 'package:livro_delivery_sdk/services/sdk_bubble_service.dart';
+import 'package:livro_delivery_sdk/widgets/sdk_floating_bubble.dart';
 
 /// Clés souvent utilisées par FeexPay / le package sur la redirection.
 /// Doc V2 (intégrations front) : paramètre **`ref`** sur l’URL de callback.
@@ -408,6 +411,9 @@ void main() async {
     AppBootstrap.warmUp(),
   ]);
 
+  await SDKBubbleService.initialize();
+  _initializeLivroSdk();
+
   runApp(
     MultiProvider(
       providers: [
@@ -439,8 +445,32 @@ Future<void> _initializeDeferredServices() async {
   }
 }
 
-// Navigator global pour afficher des popups depuis n'importe où (FCM)
-final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+// Navigator global Tranoo = clé Livro (bulle de suivi + navigation SDK).
+final GlobalKey<NavigatorState> rootNavigatorKey = LivroSDK.navigatorKey;
+
+/// Livro — plateforme externe de livraison (SDK partenaire Test de Tranoo).
+void _initializeLivroSdk() {
+  final publicKey = dotenv.env['LIVRO_PUBLIC_KEY'] ??
+      'pk_test_RMxCeIXfa1a2jB5PRBL14MhwW6KAbmS3QBBRPCoo';
+  final secretKey = dotenv.env['LIVRO_SECRET_KEY'] ??
+      'sk_test_qtlY6Bd71EUVSCOSc7RvKWJprMNFyJ0OJpOUVjoo';
+
+  LivroSDK.initialize(
+    baseUrl: dotenv.env['LIVRO_BASE_URL'] ??
+        'https://livro-plateforme.dihas.tech/api',
+    token: publicKey,
+    externalApp: true,
+    externalClientId:
+        dotenv.env['LIVRO_EXTERNAL_CLIENT_ID'] ?? 'USR_GUEST',
+    externalClientName:
+        dotenv.env['LIVRO_EXTERNAL_CLIENT_NAME'] ?? 'Tranoo',
+    publicKey: publicKey,
+    secretKey: secretKey,
+    onExit: () {
+      LivroSDK.navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    },
+  );
+}
 
 /// Après le splash natif : onboarding (SecondPage) ou accueil.
 class TranooEntryFlow extends StatefulWidget {
@@ -530,10 +560,16 @@ class MyApp extends StatelessWidget {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           BlockedUserService.setContext(context);
         });
+        final childWidget = child;
+        if (childWidget == null) {
+          return AlertLaunchBootstrap(child: const SizedBox.shrink());
+        }
         return AlertLaunchBootstrap(
-          child: MediaQuery(
-            data: MediaQuery.of(context).copyWith(),
-            child: DevicePreview.appBuilder(context, child),
+          child: SDKFloatingBubble(
+            child: MediaQuery(
+              data: MediaQuery.of(context).copyWith(),
+              child: DevicePreview.appBuilder(context, childWidget),
+            ),
           ),
         );
       },
