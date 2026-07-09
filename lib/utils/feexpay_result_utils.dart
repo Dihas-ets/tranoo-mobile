@@ -1,5 +1,23 @@
 import 'dart:convert';
 
+final RegExp _uuidReg = RegExp(
+  r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}',
+);
+final RegExp _trnReg = RegExp(r'\bTRN-[A-Z0-9-]+\b', caseSensitive: false);
+final RegExp _agReg = RegExp(r'\bAG_[A-Za-z0-9_]+\b');
+
+String? _extractTransactionLikeId(String raw) {
+  final parsed = raw.trim();
+  if (parsed.isEmpty) return null;
+  final uuid = _uuidReg.firstMatch(parsed);
+  if (uuid != null) return uuid.group(0);
+  final trn = _trnReg.firstMatch(parsed);
+  if (trn != null) return trn.group(0);
+  final ag = _agReg.firstMatch(parsed);
+  if (ag != null) return ag.group(0);
+  return null;
+}
+
 /// Statut explicite dans la payload FeexPay (prioritaire sur le bool [success],
 /// souvent [false] même après paiement réussi côté passerelle).
 bool? _statusFieldIndicatesSuccess(String raw) {
@@ -81,14 +99,7 @@ String? extractFeexPayTransactionId(dynamic result) {
         }
       } catch (_) {}
     }
-    final uuidReg = RegExp(
-      r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}',
-    );
-    final m = uuidReg.firstMatch(parsed);
-    if (m != null) return m.group(0);
-    final trn = RegExp(r'\bTRN-[A-Z0-9-]+\b', caseSensitive: false)
-        .firstMatch(parsed);
-    if (trn != null) return trn.group(0);
+    return _extractTransactionLikeId(parsed);
   }
   return null;
 }

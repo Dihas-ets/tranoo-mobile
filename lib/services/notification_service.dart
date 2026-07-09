@@ -70,7 +70,6 @@ class NotificationService {
     try {
       final token = await _getAuthToken();
       if (token == null) {
-        print('Token d\'authentification manquant - utilisateur non connecté');
         return 0;
       }
 

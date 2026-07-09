@@ -208,7 +208,9 @@ class Profil3State extends State<Profil3> {
     final userData = authProvider.user;
 
     final l10n = AppLocalizations.of(context)!;
-    if (userData == null) {
+    // Évite un popup "guest" si Firebase est déjà connecté mais le provider
+    // n'a pas encore chargé le profil.
+    if (userData == null && FirebaseAuth.instance.currentUser == null) {
       if (!_guestAuthPrompted) {
         _guestAuthPrompted = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -237,7 +239,8 @@ class Profil3State extends State<Profil3> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.person_outline, size: 72, color: Colors.grey.shade400),
+                Icon(Icons.person_outline,
+                    size: 72, color: Colors.grey.shade400),
                 const SizedBox(height: 16),
                 Text(
                   l10n.userNotConnected,
@@ -248,6 +251,15 @@ class Profil3State extends State<Profil3> {
             ),
           ),
         ),
+      );
+    }
+
+    // Firebase connecté mais profil non encore chargé: ne pas afficher le popup,
+    // afficher un loader le temps que le provider s'hydrate.
+    if (userData == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF9FAFB),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
     return Scaffold(

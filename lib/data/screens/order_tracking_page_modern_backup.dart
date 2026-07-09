@@ -7,7 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../config/backend_config.dart';
-import 'package:feexpay_flutter/feexpay_flutter.dart';
+import 'package:feexpay_flutter_v2/feexpay_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:random_string/random_string.dart';
 

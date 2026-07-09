@@ -330,7 +330,7 @@ class ChatService {
   Future<Map<String, int>> getUnreadCount() async {
     try {
       final token = await _getAuthToken();
-      if (token == null) throw Exception('Token d\'authentification manquant');
+      if (token == null) return {};
 
       final response = await http.get(
         Uri.parse('$_baseUrl/chat/unread-count'),

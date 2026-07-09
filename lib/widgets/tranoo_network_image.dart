@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:tranoo/utils/cloudinary_url.dart';
@@ -33,11 +31,15 @@ class TranooNetworkImage extends StatelessWidget {
       return _fallbackBox();
     }
 
+    // Pas de memCacheWidth/Height : forcer une taille de décode déforme les images
+    // quand width ou height est infini (pubs, cartes voitures) — même logique que
+    // CachedMediaImage sur tranoo_pro.
     Widget child = CachedNetworkImage(
       imageUrl: cloudinaryOptimizedUrl(
         trimmed,
-        widthPx:
-            cloudinaryWidthPx != null ? math.max(1, cloudinaryWidthPx!) : null,
+        widthPx: cloudinaryWidthPx != null && cloudinaryWidthPx! > 0
+            ? cloudinaryWidthPx
+            : null,
       ),
       width: width,
       height: height,
@@ -73,4 +75,3 @@ class TranooNetworkImage extends StatelessWidget {
     );
   }
 }
-

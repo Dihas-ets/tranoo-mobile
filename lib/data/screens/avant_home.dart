@@ -6,7 +6,6 @@ import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/cart_service.dart';
 import '../../services/user_service.dart';
-import '../../utils/role_redirect.dart';
 import '../../providers/counter_provider.dart';
 import '../../config/backend_config.dart';
 import 'marque.dart';
@@ -45,7 +44,6 @@ class _AvantHomeState extends State<AvantHome>
   Future<void> onPagePullRefresh() async => _runLightRefresh(force: true);
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _didCheckOnboarding = false;
   int _invoiceUnreadCount = 0;
   bool _didShowSellerAlertPopup = false;
   Timer? _lightRefreshTimer;
@@ -129,8 +127,10 @@ class _AvantHomeState extends State<AvantHome>
   }
 
   bool _requireAuth(BuildContext context, {required String message}) {
-    final user =
-        Provider.of<myauth.AuthProvider>(context, listen: false).user;
+    // Priorité à FirebaseAuth (source de vérité) : évite les faux "guest" quand
+    // AuthProvider n'est pas encore hydraté.
+    if (FirebaseAuth.instance.currentUser != null) return true;
+    final user = Provider.of<myauth.AuthProvider>(context, listen: false).user;
     if (user != null) return true;
     showAuthDialog(context, message: message);
     return false;
@@ -804,5 +804,4 @@ class _AvantHomeState extends State<AvantHome>
       // Silencieux: on ne bloque pas l'appbar si erreur réseau.
     }
   }
-
 }

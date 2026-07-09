@@ -81,6 +81,7 @@ String? _firstNonEmptyFromArgsMap(dynamic args, Iterable<String> keys) {
 final RegExp _feexFullUuidArg = RegExp(
   r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
 );
+final RegExp _feexAgRef = RegExp(r'\bAG_[A-Za-z0-9_]+\b');
 
 String? _feexIdFromRawArguments(dynamic args) {
   if (args == null) return null;
@@ -93,6 +94,8 @@ String? _feexIdFromRawArguments(dynamic args) {
     final trn =
         RegExp(r'\bTRN-[A-Z0-9-]+\b', caseSensitive: false).firstMatch(t);
     if (trn != null) return trn.group(0);
+    final ag = _feexAgRef.firstMatch(t);
+    if (ag != null) return ag.group(0);
     if (t.startsWith('{') && t.endsWith('}')) {
       try {
         final m = jsonDecode(t);
@@ -474,8 +477,7 @@ class _TranooEntryFlowState extends State<TranooEntryFlow> {
 
   Future<void> _resolveEntry() async {
     await AppBootstrap.warmUp();
-    final onboardingComplete =
-        AppBootstrap.onboardingComplete ?? false;
+    final onboardingComplete = AppBootstrap.onboardingComplete ?? false;
     if (!mounted) return;
     setState(() => _hasSeenOnboarding = onboardingComplete);
     _scheduleNativeSplashRemove();
@@ -629,6 +631,12 @@ class _CartPaymentCallbackPageState extends State<_CartPaymentCallbackPage> {
       developer.log(
           '[FEEPAY_CALLBACK] pop callback payload=$payload feexId=$feexId');
       Navigator.of(context).pop(payload);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final nav = rootNavigatorKey.currentState;
+        if (nav != null && nav.canPop()) {
+          nav.pop(payload);
+        }
+      });
     });
   }
 

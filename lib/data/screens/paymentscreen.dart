@@ -76,11 +76,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
         ),
       ),
-      body:
-          pubData == null
-              ? const Center(child: CircularProgressIndicator())
-              : SafeArea(
-                child: Padding(
+      body: pubData == null
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
+              child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,7 +110,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    pubData!['typePub'] ?? l10n.advertisingLabel,
+                                    pubData!['typePub'] ??
+                                        l10n.advertisingLabel,
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 24,
@@ -230,19 +230,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child:
-                            isLoading
-                                ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                )
-                                : Text(
-                                  '${l10n.pay} ${l10n.valueAmountFcfa('${pubData!['prix'] ?? 0}')}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
+                        child: isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              )
+                            : Text(
+                                '${l10n.pay} ${l10n.valueAmountFcfa('${pubData!['prix'] ?? 0}')}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
                                 ),
+                              ),
                       ),
                     ),
 
@@ -263,7 +262,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ],
                 ),
               ),
-              ),
+            ),
     );
   }
 
@@ -345,6 +344,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
         return;
       }
 
+      // Enregistre le paiement côté backend (dashboard + historique)
+      try {
+        await _recordPublicitePayment(amountNum,
+            idTransaction: result.transactionId);
+      } catch (e) {
+        log('[PUB_PAYMENT_APP] record (non bloquant) err=$e');
+      }
+
       await _updatePubStatus();
       if (mounted) {
         Navigator.pushAndRemoveUntil(
@@ -397,6 +404,43 @@ class _PaymentScreenState extends State<PaymentScreen> {
       }
     } catch (e) {
       log('Erreur mise à jour statut: $e');
+    }
+  }
+
+  Future<void> _recordPublicitePayment(
+    num amount, {
+    String? idTransaction,
+  }) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final payload = <String, dynamic>{
+        'transKey': transKey,
+        'amount': amount,
+        'description': l10n.adPaymentMobileDescription(widget.pubId),
+        'type': 'publicite',
+        'status': 'success',
+        'publiciteId': widget.pubId,
+      };
+      final tid = idTransaction?.trim();
+      if (tid != null && tid.isNotEmpty) {
+        payload['id_transaction'] = tid;
+        payload['ref'] = tid;
+        payload['reference'] = tid;
+      }
+      await http.post(
+        Uri.parse('${getBaseUrl()}/payments/feexpay/flutter/record'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (idToken != null) 'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode(payload),
+      );
+      log(
+        '[PUB_PAYMENT_APP] recordFeexPayFlutter called pubId=${widget.pubId} amount=$amount transKey=$transKey id_transaction=$tid',
+      );
+    } catch (e) {
+      log('[PUB_PAYMENT_APP] recordFeexPayFlutter error: $e');
     }
   }
 }

@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'avant_home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
-import '../../services/user_service.dart' show UserService, getBaseUrl;
+import '../../services/user_service.dart' show UserService;
 import 'package:random_string/random_string.dart';
 import 'package:tranoo/utils/payment_debug_logger.dart';
 import 'package:tranoo/widgets/feexpay_v2_payment_screen.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
-import 'package:tranoo/utils/tranoo_toast.dart';
 
 class VerificationPaymentScreen extends StatefulWidget {
   final String? articleId; // Optionnel: pour lier le paiement à un article
@@ -95,171 +93,172 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // En-tête avec icône vérification
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF00A86B), Colors.black],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // En-tête avec icône vérification
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF00A86B), Colors.black],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.verified_user,
-                            size: 60,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            l10n.documentVerification,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.verifyDocumentsAuthenticity,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
+                    const Icon(
+                      Icons.verified_user,
+                      size: 60,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 24),
-
-                    // Avantages de la vérification
+                    const SizedBox(height: 12),
                     Text(
-                      l10n.includedServices,
+                      l10n.documentVerification,
                       style: const TextStyle(
-                        fontSize: 18,
+                        color: Colors.white,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 16),
-
-                    _buildAdvantageItem(
-                      Icons.security,
-                      l10n.fullVerification,
-                      l10n.fullVerificationDesc,
-                    ),
-                    _buildAdvantageItem(
-                      Icons.schedule,
-                      l10n.fastProcessing,
-                      l10n.fastProcessingDesc,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Prix
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8F9FA),
-                        borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF00A86B), width: 2),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            l10n.verificationFeesTitle,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${_formatFcfa(_verificationPrice)} FCFA',
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF00A86B),
-                            ),
-                          ),
-                          Text(
-                            l10n.oneTimePayment,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Note
+                    const SizedBox(height: 8),
                     Text(
-                      l10n.verificationPaymentNote,
+                      l10n.verifyDocumentsAuthenticity,
                       style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
+                        color: Colors.white70,
+                        fontSize: 14,
                       ),
                       textAlign: TextAlign.center,
                     ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Avantages de la vérification
+              Text(
+                l10n.includedServices,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              _buildAdvantageItem(
+                Icons.security,
+                l10n.fullVerification,
+                l10n.fullVerificationDesc,
+              ),
+              _buildAdvantageItem(
+                Icons.schedule,
+                l10n.fastProcessing,
+                l10n.fastProcessingDesc,
+              ),
+
+              const SizedBox(height: 24),
+
+              // Prix
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F9FA),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF00A86B), width: 2),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      l10n.verificationFeesTitle,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${_formatFcfa(_verificationPrice)} FCFA',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF00A86B),
+                      ),
+                    ),
+                    Text(
+                      l10n.oneTimePayment,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Note
+              Text(
+                l10n.verificationPaymentNote,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
 
               const SizedBox(height: 24),
 
               // Bouton de paiement (un peu plus haut et scrollable)
               SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : _processVerification,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00A86B),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : _processVerification,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00A86B),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
-                ),
-                child: isLoading
-                    ? const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      )
-                    : Text(
-                          l10n.proceedToPayment(_formatFcfa(_verificationPrice)),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                  child: isLoading
+                      ? const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        )
+                      : Text(
+                          l10n.proceedToPayment(
+                              _formatFcfa(_verificationPrice)),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
+                ),
               ),
-            ),
 
               if (errorMessage != null) ...[
                 const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red[200]!),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
-                child: Text(
-                  errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-          ],
+              ],
 
               const SizedBox(height: 16),
             ],
@@ -343,10 +342,17 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
           result?.errorMessage,
         );
         setState(() {
-          errorMessage = result?.errorMessage ??
-              l10n.paymentCancelledNotConfirmed;
+          errorMessage =
+              result?.errorMessage ?? l10n.paymentCancelledNotConfirmed;
         });
         return;
+      }
+
+      // Enregistre le paiement côté backend (dashboard + historique)
+      try {
+        await _recordVerificationFeexPayFlutter(result.transactionId);
+      } catch (e) {
+        debugPrint('[VerificationPayment] record (non bloquant): $e');
       }
 
       try {
@@ -355,11 +361,15 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
         debugPrint('[VerificationPayment] verification/request: $e');
       }
       if (!mounted) return;
-      showTranooToast(
-        context,
-        message: l10n.paymentReceivedVerificationProcessing,
-        isSuccess: true,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.paymentSuccessful),
+          backgroundColor: const Color(0xFF16A34A),
+          duration: const Duration(seconds: 1),
+        ),
       );
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const AvantHome()),
         (route) => false,
@@ -412,78 +422,36 @@ class _VerificationPaymentScreenState extends State<VerificationPaymentScreen> {
     }
   }
 
-  Future<void> _showHtmlResultAndRedirect({required bool success}) async {
-    final String assetPath = success
-        ? 'assets/html/verification_success.html'
-        : 'assets/html/verification_error.html';
-    String? htmlContent;
+  Future<void> _recordVerificationFeexPayFlutter(String? txId) async {
     try {
-      htmlContent = await DefaultAssetBundle.of(context).loadString(assetPath);
-    } catch (_) {
-      htmlContent = null;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final token = await user.getIdToken();
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: UserService().dio.options.baseUrl,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+      final body = <String, dynamic>{
+        'transKey': transKey,
+        'amount': _verificationPrice,
+        'description': 'Frais vérification documents',
+        'type': 'verification',
+        'status': 'success',
+      };
+      final tid = txId?.trim();
+      if (tid != null && tid.isNotEmpty) {
+        body['id_transaction'] = tid;
+        body['ref'] = tid;
+        body['reference'] = tid;
+      }
+      await dio.post('/payments/feexpay/flutter/record', data: body);
+    } catch (e) {
+      debugPrint('[VerificationPayment] recordFeexPayFlutter error: $e');
     }
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => _ResultHtmlPage(
-          success: success,
-          htmlContent: htmlContent,
-        ),
-      ),
-    );
-
-    // Redirection finale vers Marque
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const AvantHome()),
-      (route) => false,
-    );
-  }
-}
-
-class _ResultHtmlPage extends StatelessWidget {
-  final bool success;
-  final String? htmlContent;
-  const _ResultHtmlPage({required this.success, this.htmlContent});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: const SizedBox.shrink(),
-        title: Text(
-          success ? l10n.paymentSuccessful : l10n.paymentFailed,
-          style: const TextStyle(
-              color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: htmlContent != null
-              ? SingleChildScrollView(child: Html(data: htmlContent))
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(success ? Icons.check_circle : Icons.cancel,
-                        size: 72,
-                        color: success ? const Color(0xFF00A86B) : Colors.red),
-                    const SizedBox(height: 12),
-                    Text(
-                      success ? l10n.paymentSuccessful : l10n.paymentFailed,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(l10n.redirecting,
-                        style: const TextStyle(color: Colors.grey)),
-                  ],
-                ),
-        ),
-      ),
-    );
   }
 }

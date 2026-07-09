@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:tranoo/data/screens/connexion_page.dart';
 import 'package:tranoo/data/screens/inscription_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Affiche un popup d'authentification demandant à l'utilisateur de se connecter ou s'inscrire.
-/// 
+///
 /// [context] : Le contexte BuildContext pour afficher le dialog
 /// [message] : Message optionnel à afficher dans le popup
 void showAuthDialog(BuildContext context, {String? message}) {
+  // Évite d'afficher le popup si l'utilisateur est déjà connecté (Firebase ok)
+  if (FirebaseAuth.instance.currentUser != null) return;
   showDialog(
     context: context,
     barrierDismissible: true,

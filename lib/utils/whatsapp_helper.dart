@@ -10,8 +10,30 @@ class WhatsappHelper {
   static String digitsOnly(String? phone) =>
       (phone ?? '').replaceAll(RegExp(r'[^0-9]'), '');
 
+  /// Chiffres internationaux pour wa.me (ex. Bénin 229XXXXXXXX).
+  static String normalizeWaMeDigits(String? phone) {
+    var d = digitsOnly(phone);
+    if (d.isEmpty) return d;
+    if (d.startsWith('00')) d = d.substring(2);
+    if (d.startsWith('229')) {
+      if (d.startsWith('22901') && d.length >= 12) {
+        return '229${d.substring(5)}';
+      }
+      if (d.startsWith('2290') && d.length >= 12) {
+        return '229${d.substring(4)}';
+      }
+      return d;
+    }
+    if (d.length == 8) return '229$d';
+    if (d.startsWith('01') && d.length == 10) return '229${d.substring(1)}';
+    if (d.startsWith('0') && d.length > 8) {
+      return '229${d.replaceFirst(RegExp(r'^0+'), '')}';
+    }
+    return d;
+  }
+
   static Uri? buildWaMeUri(String? phone, {String? message}) {
-    final digits = digitsOnly(phone);
+    final digits = normalizeWaMeDigits(phone);
     if (digits.isEmpty) return null;
     if (message != null && message.trim().isNotEmpty) {
       return Uri.parse(
@@ -21,10 +43,22 @@ class WhatsappHelper {
     return Uri.parse('https://wa.me/$digits');
   }
 
+  static Uri? buildWhatsAppSchemeUri(String? phone, {String? message}) {
+    final digits = normalizeWaMeDigits(phone);
+    if (digits.isEmpty) return null;
+    if (message != null && message.trim().isNotEmpty) {
+      return Uri.parse(
+        'whatsapp://send?phone=$digits&text=${Uri.encodeComponent(message.trim())}',
+      );
+    }
+    return Uri.parse('whatsapp://send?phone=$digits');
+  }
+
   static String? phoneFromMap(Map<String, dynamic>? data) {
     if (data == null) return null;
     for (final key in [
       'telephone',
+      'telephoneCanonical',
       'phone',
       'whatsapp',
       'tel',
@@ -32,6 +66,10 @@ class WhatsappHelper {
     ]) {
       final value = data[key]?.toString().trim();
       if (value != null && value.isNotEmpty) return value;
+    }
+    final fp = data['fournisseurProfil'];
+    if (fp is Map) {
+      return phoneFromMap(Map<String, dynamic>.from(fp));
     }
     return null;
   }
@@ -56,6 +94,32 @@ class WhatsappHelper {
     );
   }
 
+  static Future<bool> _tryLaunch(Uri uri) async {
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (ok) return true;
+    } catch (_) {}
+    try {
+      if (await canLaunchUrl(uri)) {
+        return await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  static Future<bool> launchChat({
+    required String? phone,
+    String? message,
+  }) async {
+    final waMe = buildWaMeUri(phone, message: message);
+    if (waMe != null && await _tryLaunch(waMe)) return true;
+
+    final scheme = buildWhatsAppSchemeUri(phone, message: message);
+    if (scheme != null && await _tryLaunch(scheme)) return true;
+
+    return false;
+  }
+
   static Future<bool> openChat(
     BuildContext context, {
     required String? phone,
@@ -63,17 +127,17 @@ class WhatsappHelper {
     required String unavailableMessage,
     required String cannotOpenMessage,
   }) async {
-    final uri = buildWaMeUri(phone, message: message);
-    if (uri == null) {
+    final digits = normalizeWaMeDigits(phone);
+    if (digits.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(unavailableMessage)),
       );
       return false;
     }
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return true;
-    }
+
+    final opened = await launchChat(phone: phone, message: message);
+    if (opened) return true;
+
     if (!context.mounted) return false;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(cannotOpenMessage)),

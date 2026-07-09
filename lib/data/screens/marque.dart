@@ -33,6 +33,7 @@ import 'package:tranoo/widgets/catalog_filter_sections.dart';
 import 'package:tranoo/widgets/seller_stats_dashboard.dart';
 import 'package:tranoo/widgets/transitaire_carousel_section.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
+import 'package:tranoo/widgets/cached_media_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/utils/local_data_cache.dart';
 
@@ -554,11 +555,12 @@ class _MarqueState extends State<Marque>
     final urls = pubs
         .expand((p) => p.media)
         .where((u) => u.trim().isNotEmpty)
-        .take(6);
-    precacheTranooImages(
+        .take(12);
+    precacheMediaImages(
       context,
       urls,
       cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 280),
+      maxCount: 12,
     );
   }
 
@@ -2566,15 +2568,12 @@ class _MarqueState extends State<Marque>
                                   width: 255,
                                   color: Colors.grey[300],
                                   child: pub.media.isNotEmpty
-                                      ? TranooNetworkImage(
+                                      ? CachedMediaImage(
                                           url: pub.media[0],
                                           width: 255,
                                           height: 170,
                                           fit: BoxFit.cover,
-                                          cloudinaryWidthPx: cloudinaryWidthPx(
-                                            context,
-                                            logicalWidth: 255,
-                                          ),
+                                          cloudinaryWidthPx: 280,
                                         )
                                       : Icon(
                                           Icons.image_not_supported,
@@ -2682,12 +2681,18 @@ class _MarqueState extends State<Marque>
                     height: 180,
                     color: Colors.black,
                     child: pub.media.isNotEmpty
-                        ? TranooNetworkImage(
-                            url: pub.media[0],
-                            fit: BoxFit.cover,
-                            height: 180,
-                            width: double.infinity,
-                            cloudinaryWidthPx: cloudinaryWidthPx(context),
+                        ? Stack(
+                            children: [
+                              Positioned.fill(
+                                child: CachedMediaImage(
+                                  url: pub.media[0],
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  cloudinaryWidthPx: 280,
+                                ),
+                              ),
+                            ],
                           )
                         : Container(
                             height: 180,

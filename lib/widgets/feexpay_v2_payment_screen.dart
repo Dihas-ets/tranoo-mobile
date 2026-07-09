@@ -1,10 +1,13 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:feexpay_flutter_v2/feexpay_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:random_string/random_string.dart';
-import 'package:tranoo/l10n/app_localizations.dart';
+import 'package:tranoo/config/feexpay_config.dart';
 import 'package:tranoo/services/feexpay_v2_payment_service.dart';
-import 'package:tranoo/widgets/feexpay_v2_constants.dart';
+import 'package:tranoo/utils/feexpay_callback_state.dart';
+import 'package:tranoo/utils/feexpay_result_utils.dart';
+
+// Ecran maison desactive: conserve en commentaire pour reference uniquement.
+/*
 class FeexPayV2PaymentScreen extends StatefulWidget {
   final double amount;
   final String description;
@@ -1196,6 +1199,7 @@ class _StepIndicator extends StatelessWidget {
     );
   }
 }
+*/
 
 Future<FeexPayV2PaymentResult?> openFeexPayV2Payment(
   BuildContext context, {
@@ -1206,19 +1210,104 @@ Future<FeexPayV2PaymentResult?> openFeexPayV2Payment(
   String? duree,
   String? publiciteId,
   String? achatId,
-}) {
-  return Navigator.push<FeexPayV2PaymentResult>(
+}) async {
+  final token = FeexPayConfig.apiToken;
+  final shopId = FeexPayConfig.shopId;
+  final localCustomId = (customId != null && customId.trim().isNotEmpty)
+      ? customId.trim()
+      : randomAlphaNumeric(15);
+
+  if (token.isEmpty || shopId.isEmpty) {
+    return FeexPayV2PaymentResult(
+      success: false,
+      customId: localCustomId,
+      errorMessage: 'Configuration FeexPay manquante (token/shop).',
+    );
+  }
+
+  final redirects = _choicePageRedirects(paymentType);
+  FeexPayCallbackState.clearPendingAtNewCheckout();
+
+  final rawResult = await Navigator.push<dynamic>(
     context,
     MaterialPageRoute(
-      builder: (_) => FeexPayV2PaymentScreen(
-        amount: amount,
-        description: description,
-        customId: customId,
-        paymentType: paymentType,
-        duree: duree,
-        publiciteId: publiciteId,
-        achatId: achatId,
+      builder: (_) => ChoicePage(
+        token: token,
+        id: shopId,
+        amount: amount.toStringAsFixed(0),
+        redirecturl: redirects.successRoute,
+        errorredirecturl: redirects.errorRoute,
+        trans_key: localCustomId,
       ),
     ),
   );
+
+  final callback = FeexPayCallbackState.takeLatest();
+  final merged = _mergeChoiceAndCallbackResult(rawResult, callback);
+  final transactionId = extractFeexPayTransactionId(merged);
+  final success = feexPayReturnIndicatesSuccess(merged) ||
+      (callback.success == true);
+
+  return FeexPayV2PaymentResult(
+    success: success,
+    customId: localCustomId,
+    transactionId: transactionId,
+    paymentId: null,
+    cancelled: merged == null && callback.success == null,
+    errorMessage: success ? null : 'Paiement annule ou non confirme.',
+  );
+}
+
+({String successRoute, String errorRoute}) _choicePageRedirects(
+  String paymentType,
+) {
+  switch (paymentType) {
+    case 'subscription':
+      return (
+        successRoute: '/subscription-success',
+        errorRoute: '/subscription-error',
+      );
+    case 'verification':
+      return (
+        successRoute: '/verification-success',
+        errorRoute: '/verification-error',
+      );
+    default:
+      return (
+        successRoute: '/cart-payment-success',
+        errorRoute: '/cart-payment-error',
+      );
+  }
+}
+
+dynamic _mergeChoiceAndCallbackResult(
+  dynamic rawResult,
+  ({bool? success, String? args, String? transactionId, DateTime? at}) callback,
+) {
+  if (rawResult is Map) {
+    final map = Map<String, dynamic>.from(rawResult);
+    if (callback.success != null) {
+      map.putIfAbsent('success', () => callback.success);
+      map.putIfAbsent('status', () => callback.success! ? 'SUCCESSFUL' : 'FAILED');
+    }
+    if (callback.transactionId != null && callback.transactionId!.isNotEmpty) {
+      map.putIfAbsent('ref', () => callback.transactionId);
+      map.putIfAbsent('reference', () => callback.transactionId);
+      map.putIfAbsent('id_transaction', () => callback.transactionId);
+    }
+    return map;
+  }
+
+  if (callback.success != null || callback.transactionId != null) {
+    return {
+      'success': callback.success,
+      'status': callback.success == true ? 'SUCCESSFUL' : 'FAILED',
+      if (callback.transactionId != null) 'reference': callback.transactionId,
+      if (callback.transactionId != null) 'ref': callback.transactionId,
+      if (callback.transactionId != null) 'id_transaction': callback.transactionId,
+      if (rawResult != null) 'rawResult': rawResult.toString(),
+    };
+  }
+
+  return rawResult;
 }

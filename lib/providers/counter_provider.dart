@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/chat_service.dart';
 import '../services/notification_service.dart';
 import '../services/cart_service.dart';
@@ -20,6 +21,13 @@ class CounterProvider with ChangeNotifier {
   // Charger les compteurs
   Future<void> loadCounters() async {
     try {
+      if (FirebaseAuth.instance.currentUser == null) {
+        _unreadMessagesCount = 0;
+        _unreadNotificationsCount = 0;
+        notifyListeners();
+        return;
+      }
+
       final messagesCount = await _chatService.getTotalUnreadCount();
       final notificationsCount = await _notificationService.getUnreadCount();
 

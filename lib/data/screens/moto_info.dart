@@ -19,6 +19,7 @@ import 'package:tranoo/utils/article_view_helper.dart';
 import 'package:tranoo/utils/text_display.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/widgets/spec_info_card.dart';
+import 'package:tranoo/utils/whatsapp_helper.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 
@@ -59,6 +60,7 @@ class MotoInfo extends StatefulWidget {
   final bool? dedouanement; // Dédouanement
   final String? lieu;
   final Map<String, dynamic>? fournisseur;
+  final Map<String, dynamic>? vendeur;
   final List<String> images;
   final List<String> videos;
   final String? video;
@@ -102,6 +104,7 @@ class MotoInfo extends StatefulWidget {
     this.dedouanement,
     this.lieu,
     this.fournisseur,
+    this.vendeur,
     required this.images,
     this.videos = const [],
     this.video,
@@ -147,6 +150,9 @@ class MotoInfo extends StatefulWidget {
       fournisseur: m['fournisseur'] is Map
           ? Map<String, dynamic>.from(m['fournisseur'] as Map)
           : null,
+      vendeur: m['vendeur'] is Map
+          ? Map<String, dynamic>.from(m['vendeur'] as Map)
+          : null,
       images: photos,
       video: m['video']?.toString(),
       videoOptimized: m['videoOptimized']?.toString(),
@@ -187,7 +193,7 @@ class _MotoInfoState extends State<MotoInfo> {
       ? _videos.first
       : (widget.videoOptimized ?? widget.video);
   late ConfettiController _confettiController;
-  static const String _whatsAppPhone = '22941839801'; // sans +
+  String? _sellerPhone;
 
   bool _isNewCondition(String? value) {
     final lower = (value ?? '').toLowerCase();
@@ -258,6 +264,74 @@ class _MotoInfoState extends State<MotoInfo> {
         0,
         totalMediaCount > 0 ? totalMediaCount - 1 : 0,
       ),
+    );
+    _sellerPhone = WhatsappHelper.phoneFromArticleSupplier(
+      fournisseur: widget.fournisseur,
+      vendeur: widget.vendeur,
+    );
+    _loadArticleDetails();
+  }
+
+  String? _extractSellerPhone(Map<String, dynamic> data) =>
+      WhatsappHelper.phoneFromArticle(data) ?? _sellerPhone;
+
+  Future<void> _loadArticleDetails() async {
+    try {
+      final id = widget.id;
+      if (id == null || id.isEmpty) return;
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+      final res = await http.get(
+        Uri.parse('${getBaseUrl()}/public/articles/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+      if (res.statusCode == 200 && mounted) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        setState(() {
+          _sellerPhone = _extractSellerPhone(data);
+        });
+      }
+    } catch (_) {}
+  }
+
+  String _buyWhatsAppMessage(AppLocalizations l10n) {
+    final title = (widget.titre ?? '').trim();
+    final id = (widget.id ?? '').trim();
+    if (id.isNotEmpty) {
+      return l10n.whatsappInterestWithRef(title, id);
+    }
+    return l10n.whatsappInterestNoRef(title);
+  }
+
+  Future<void> _openSellerWhatsApp({String? message}) async {
+    await WhatsappHelper.openChat(
+      context,
+      phone: _sellerPhone,
+      message: message,
+      unavailableMessage: l10n.sellerPhoneUnavailable,
+      cannotOpenMessage: l10n.cannotOpenWhatsApp,
+    );
+  }
+
+  Future<void> _callSeller() async {
+    final digits = WhatsappHelper.normalizeWaMeDigits(_sellerPhone);
+    if (digits.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.sellerPhoneUnavailable)),
+      );
+      return;
+    }
+    final uri = Uri.parse('tel:+$digits');
+    try {
+      if (await launchUrl(uri)) return;
+    } catch (_) {}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.cannotMakeCall)),
     );
   }
 
@@ -330,30 +404,6 @@ class _MotoInfoState extends State<MotoInfo> {
     _confettiController.dispose();
     _pageController.dispose();
     super.dispose();
-  }
-
-  Future<void> _openWhatsApp() async {
-    // Aligné sur Tranoo Pro : uniquement wa.me + app externe, jamais le Play Store.
-    final phone = _whatsAppPhone.replaceAll(RegExp(r'[^0-9]'), '');
-    final uri = Uri.parse('https://wa.me/$phone');
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return;
-    }
-
-    try {
-      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (ok) return;
-    } catch (e) {
-      log('[MotoInfo] WhatsApp launchUrl error: $e');
-    }
-
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.whatsappOpenDetailed)),
-    );
   }
 
   @override
@@ -603,7 +653,7 @@ class _MotoInfoState extends State<MotoInfo> {
               // WhatsApp
               GestureDetector(
                 onTap: () async {
-                  await _openWhatsApp();
+                  await _openSellerWhatsApp();
                 },
                 child: CircleAvatar(
                   radius: 18,
@@ -623,17 +673,7 @@ class _MotoInfoState extends State<MotoInfo> {
               const SizedBox(height: 8),
               // Appel téléphonique
               GestureDetector(
-                onTap: () async {
-                  final url = 'tel:+2290141839801';
-                  final uri = Uri.parse(url);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.cannotMakeCall)),
-                    );
-                  }
-                },
+                onTap: _callSeller,
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.white,
@@ -919,60 +959,36 @@ class _MotoInfoState extends State<MotoInfo> {
     );
   }
 
-  // Boutons acheteur : contacter / acheter via WhatsApp Tranoo
+  // Bouton acheteur : acheter via WhatsApp du vendeur
   Widget _buildActionButton(bool isAcheteurOuChauffeur, AppLocalizations l10n) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _openWhatsApp,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              l10n.contactSeller,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
-            ),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () async {
+          final firebaseUser = FirebaseAuth.instance.currentUser;
+          if (firebaseUser == null) {
+            showAuthDialog(context, message: l10n.signInToBuyThisMoto);
+            return;
+          }
+          await _openSellerWhatsApp(message: _buyWhatsAppMessage(l10n));
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.amber,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () async {
-              final firebaseUser = FirebaseAuth.instance.currentUser;
-              if (firebaseUser == null) {
-                showAuthDialog(context, message: l10n.signInToBuyThisMoto);
-                return;
-              }
-              await _openWhatsApp();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              l10n.buyThisMoto,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
+        child: Text(
+          l10n.buyThisMoto,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
+          textAlign: TextAlign.center,
         ),
-      ],
+      ),
     );
   }
 }

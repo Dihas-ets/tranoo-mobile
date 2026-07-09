@@ -15,7 +15,8 @@ class MobileMoneyPaymentScreen extends StatefulWidget {
   const MobileMoneyPaymentScreen({super.key, required this.pubId});
 
   @override
-  State<MobileMoneyPaymentScreen> createState() => _MobileMoneyPaymentScreenState();
+  State<MobileMoneyPaymentScreen> createState() =>
+      _MobileMoneyPaymentScreenState();
 }
 
 class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
@@ -25,18 +26,18 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
   String? errorMessage;
   final String transKey = randomAlphaNumeric(15);
   Map<String, dynamic>? pubData;
-  
+
   @override
   void initState() {
     super.initState();
     _loadPubData();
   }
-  
+
   Future<void> _loadPubData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      
+
       final response = await http.get(
         Uri.parse('${getBaseUrl()}/publicites/${widget.pubId}'),
         headers: {
@@ -44,7 +45,7 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
           if (idToken != null) 'Authorization': 'Bearer $idToken',
         },
       );
-      
+
       if (response.statusCode == 200) {
         setState(() {
           pubData = jsonDecode(response.body);
@@ -118,7 +119,8 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  pubData!['description'] ?? l10n.adForYourListing,
+                                  pubData!['description'] ??
+                                      l10n.adForYourListing,
                                   style: const TextStyle(
                                     color: Colors.white70,
                                     fontSize: 14,
@@ -139,7 +141,7 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          
+
                           _buildDetailItem(
                             Icons.star,
                             l10n.typeLabel,
@@ -155,7 +157,7 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                             l10n.paymentMethod,
                             l10n.mobileMoney,
                           ),
-                          
+
                           const SizedBox(height: 24),
 
                           // Prix
@@ -165,7 +167,8 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8F9FA),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFF00A86B), width: 2),
+                              border: Border.all(
+                                  color: const Color(0xFF00A86B), width: 2),
                             ),
                             child: Column(
                               children: [
@@ -195,9 +198,9 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                               ],
                             ),
                           ),
-                          
+
                           const SizedBox(height: 16),
-                          
+
                           // Opérateurs supportés
                           Text(
                             l10n.supportedOperators,
@@ -215,9 +218,9 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                               _buildOperatorChip('Orange', Colors.orange),
                             ],
                           ),
-                          
+
                           const SizedBox(height: 16),
-                          
+
                           // Note
                           Text(
                             l10n.afterPaymentAdValidationNote,
@@ -231,7 +234,7 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                       ),
                     ),
                   ),
-                  
+
                   // Bouton de paiement
                   Container(
                     width: double.infinity,
@@ -261,7 +264,7 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
                             ),
                     ),
                   ),
-                  
+
                   if (errorMessage != null)
                     Container(
                       margin: const EdgeInsets.only(top: 8),
@@ -386,6 +389,13 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
         return;
       }
 
+      // Enregistre le paiement côté backend (dashboard + historique)
+      try {
+        await _recordPubFeexPay(amountNum, idTransaction: result.transactionId);
+      } catch (e) {
+        log('[MobileMoneyPayment] record (non bloquant) err=$e');
+      }
+
       await _updatePubStatus();
 
       if (mounted) {
@@ -425,7 +435,7 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
-      
+
       final response = await http.patch(
         Uri.parse('${getBaseUrl()}/publicites/${widget.pubId}/statut'),
         headers: {
@@ -434,12 +444,46 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
         },
         body: jsonEncode({'statut': 'payee'}),
       );
-      
+
       if (response.statusCode != 200) {
         log('Erreur mise à jour statut: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       log('Erreur mise à jour statut: $e');
+    }
+  }
+
+  Future<void> _recordPubFeexPay(num amount, {String? idTransaction}) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final payload = <String, dynamic>{
+        'transKey': transKey,
+        'amount': amount,
+        'description': l10n.adPaymentMobileDescription(widget.pubId),
+        'type': 'publicite',
+        'status': 'success',
+        'publiciteId': widget.pubId,
+      };
+      final tid = idTransaction?.trim();
+      if (tid != null && tid.isNotEmpty) {
+        payload['id_transaction'] = tid;
+        payload['ref'] = tid;
+        payload['reference'] = tid;
+      }
+      final res = await http.post(
+        Uri.parse('${getBaseUrl()}/payments/feexpay/flutter/record'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (idToken != null) 'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode(payload),
+      );
+      log(
+        '[MobileMoneyPayment] recordFeexPayFlutter status=${res.statusCode} body=${res.body}',
+      );
+    } catch (e) {
+      log('[MobileMoneyPayment] recordFeexPayFlutter error: $e');
     }
   }
 }

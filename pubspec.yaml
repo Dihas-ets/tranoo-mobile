@@ -54,7 +54,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   dio: ^5.8.0+1
   socket_io_client: ^3.1.2
-  feexpay_flutter: ^1.0.12
+  feexpay_flutter_v2: ^1.1.2
   flutter_dotenv: ^6.0.0
   random_string: ^2.3.1
   # Carte gratuite (OpenStreetMap) — stack 0€

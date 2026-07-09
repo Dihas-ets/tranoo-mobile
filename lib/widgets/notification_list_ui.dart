@@ -12,7 +12,8 @@ enum NotificationVisualKind {
   verification,
 }
 
-NotificationVisualKind resolveNotificationVisualKind(Map<String, dynamic> notif) {
+NotificationVisualKind resolveNotificationVisualKind(
+    Map<String, dynamic> notif) {
   final type = (notif['type'] ?? '').toString();
   final data = notif['data'] is Map
       ? Map<String, dynamic>.from(notif['data'])
@@ -68,15 +69,21 @@ Widget buildNotificationLeadingAvatar({
       radius: 22,
       backgroundColor: Colors.grey[200],
       child: ClipOval(
-        child: Image.asset(
-          appLogoAsset,
+        child: SizedBox(
           width: 36,
           height: 36,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Icon(
-            iconForNotificationKind(kind),
-            color: Colors.black87,
-            size: 22,
+          child: Padding(
+            // évite le crop sur les logos "carrés" ou avec marges
+            padding: const EdgeInsets.all(2),
+            child: Image.asset(
+              appLogoAsset,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Icon(
+                iconForNotificationKind(kind),
+                color: Colors.black87,
+                size: 22,
+              ),
+            ),
           ),
         ),
       ),
@@ -172,5 +179,84 @@ Widget buildNotificationThumbnail(
       fit: BoxFit.cover,
       cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: w),
     ),
+  );
+}
+
+Widget wrapNotificationDetailDialog(BuildContext context, Widget child) {
+  return Dialog(
+    backgroundColor: Colors.white,
+    insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    child: ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Fermer',
+              icon: const Icon(Icons.close, size: 22, color: Colors.black87),
+              onPressed: () =>
+                  Navigator.of(context, rootNavigator: true).pop(),
+            ),
+          ),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: child,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget buildMonochromeNotificationDetail({
+  required String title,
+  String? dateStr,
+  required Widget body,
+  Widget? action,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        title,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          color: Colors.black,
+          letterSpacing: -0.3,
+        ),
+      ),
+      if (dateStr != null && dateStr.isNotEmpty) ...[
+        const SizedBox(height: 4),
+        Text(
+          dateStr,
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        ),
+      ],
+      const SizedBox(height: 12),
+      body,
+      if (action != null) ...[
+        const SizedBox(height: 20),
+        action,
+      ],
+    ],
+  );
+}
+
+ButtonStyle monochromeNotificationButtonStyle() {
+  return ElevatedButton.styleFrom(
+    backgroundColor: Colors.black,
+    foregroundColor: Colors.white,
+    padding: const EdgeInsets.symmetric(vertical: 14),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
   );
 }

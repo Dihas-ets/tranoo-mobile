@@ -5,7 +5,7 @@ class FeexPayV2Constants {
   static const double minAmount = 100;
   static const double minMobileAmount = minAmount;
   static const double minCardAmount = minAmount;
-  static const svgPackage = 'feexpay_flutter';
+  static const svgPackage = 'feexpay_flutter_v2';
 
   static const mtnLogo = 'assets/images/logo_mtn.svg';
   static const moovLogo = 'assets/images/logo_moov.svg';

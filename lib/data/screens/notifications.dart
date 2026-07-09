@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../services/user_service.dart';
 import '../../providers/counter_provider.dart';
 import 'cars_info.dart';
@@ -14,6 +13,7 @@ import 'package:tranoo/data/screens/mes_achats_historique.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/widgets/notification_list_ui.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
+import 'package:tranoo/widgets/page_pull_refresh.dart';
 import 'package:tranoo/utils/verification_notification_helpers.dart';
 import 'package:tranoo/utils/order_status_l10n.dart';
 import 'package:tranoo/utils/notification_i18n.dart';
@@ -29,15 +29,13 @@ String stripHtmlDocumentWrapper(String html) {
       !t.toLowerCase().startsWith('<html')) {
     return t;
   }
-  final bodyMatch =
-      RegExp(r'<body[^>]*>([\s\S]*)</body>', caseSensitive: false)
-          .firstMatch(t);
+  final bodyMatch = RegExp(r'<body[^>]*>([\s\S]*)</body>', caseSensitive: false)
+      .firstMatch(t);
   if (bodyMatch != null) return bodyMatch.group(1)!.trim();
   return t
       .replaceAll(RegExp(r'<!DOCTYPE[^>]*>', caseSensitive: false), '')
       .replaceAll(RegExp(r'</?html[^>]*>', caseSensitive: false), '')
-      .replaceAll(
-          RegExp(r'<head[\s\S]*?</head>', caseSensitive: false), '')
+      .replaceAll(RegExp(r'<head[\s\S]*?</head>', caseSensitive: false), '')
       .replaceAll(RegExp(r'</?body[^>]*>', caseSensitive: false), '')
       .trim();
 }
@@ -162,11 +160,12 @@ class VerificationDetailPage extends StatelessWidget {
   ) async {
     await _postVerificationActionStatic(context, notification, 'approve');
     final l10n = AppLocalizations.of(context)!;
-    final title = _safeGetStringLocal(notification, 'title') ?? l10n.vehicleSingular;
-    final articleId = _safeGetStringLocal(
-            notification['verificationData'], 'articleId') ??
-        _safeGetStringLocal(notification['relatedId'], '_id') ??
-        _safeGetStringLocal(notification, 'relatedId');
+    final title =
+        _safeGetStringLocal(notification, 'title') ?? l10n.vehicleSingular;
+    final articleId =
+        _safeGetStringLocal(notification['verificationData'], 'articleId') ??
+            _safeGetStringLocal(notification['relatedId'], '_id') ??
+            _safeGetStringLocal(notification, 'relatedId');
     final waText = articleId != null && articleId.isNotEmpty
         ? l10n.whatsappInterestWithRef(title, articleId)
         : l10n.whatsappInterestNoRef(title);
@@ -188,9 +187,9 @@ class VerificationDetailPage extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.requestRejected)),
     );
-    final articleId = _safeGetStringLocal(
-          notification['verificationData'], 'articleId') ??
-        _safeGetStringLocal(notification, 'relatedId');
+    final articleId =
+        _safeGetStringLocal(notification['verificationData'], 'articleId') ??
+            _safeGetStringLocal(notification, 'relatedId');
     Navigator.pop(context);
     if (articleId != null && articleId.isNotEmpty) {
       openPurchaseHistory(context, articleId: articleId);
@@ -273,35 +272,23 @@ class VerificationDetailPage extends StatelessWidget {
           showLogo: true,
           formatDate: (d) =>
               formatRelativeTime(AppLocalizations.of(context)!, d),
-          onApprove: (_safeGetStringLocal(notification, 'status') ?? 'pending') ==
-                  'pending'
-              ? () => _handleVerificationApprove(context, notification)
-              : null,
-          onReject: (_safeGetStringLocal(notification, 'status') ?? 'pending') ==
-                  'pending'
-              ? () => _handleVerificationReject(context, notification)
-              : null,
+          onApprove:
+              (_safeGetStringLocal(notification, 'status') ?? 'pending') ==
+                      'pending'
+                  ? () => _handleVerificationApprove(context, notification)
+                  : null,
+          onReject:
+              (_safeGetStringLocal(notification, 'status') ?? 'pending') ==
+                      'pending'
+                  ? () => _handleVerificationReject(context, notification)
+                  : null,
         ),
       ),
     );
   }
 
-  // Méthode helper sécurisée pour récupérer les strings
-  static String? _safeGetString(dynamic obj, String key) {
-    try {
-      if (obj is Map && obj.containsKey(key)) {
-        final value = obj[key];
-        if (value is String) return value;
-        if (value != null) return value.toString();
-      }
-      return null;
-    } catch (e) {
-      print('Erreur _safeGetString: $e');
-      return null;
-    }
-  }
-
-  static List<Widget> _safeMapImages(BuildContext context, List<String> images) {
+  static List<Widget> _safeMapImages(
+      BuildContext context, List<String> images) {
     try {
       return images
           .map((img) => GestureDetector(
@@ -367,9 +354,25 @@ class NotificationProvider with ChangeNotifier {
     final map = Map<String, dynamic>.from(notif);
     map['date'] = map['date'] is DateTime
         ? map['date']
-        : (map['createdAt'] != null
-            ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
-            : DateTime.now());
+        : (map['date'] != null
+            ? DateTime.tryParse(map['date'].toString()) ??
+                (map['createdAt'] != null
+                    ? DateTime.tryParse(map['createdAt'].toString()) ??
+                        DateTime.now()
+                    : DateTime.now())
+            : (map['createdAt'] != null
+                ? DateTime.tryParse(map['createdAt'].toString()) ??
+                    DateTime.now()
+                : DateTime.now()));
+    return map;
+  }
+
+  Map<String, dynamic> _serializeNotificationForCache(Map<String, dynamic> notif) {
+    final map = Map<String, dynamic>.from(notif);
+    final date = map['date'];
+    if (date is DateTime) {
+      map['date'] = date.toIso8601String();
+    }
     return map;
   }
 
@@ -378,7 +381,8 @@ class NotificationProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadNotificationsFromAPI(String token, {bool silent = false}) async {
+  Future<void> loadNotificationsFromAPI(String token,
+      {bool silent = false}) async {
     final hasData = _notifications.isNotEmpty;
     if (!silent && !hasData) {
       loading = true;
@@ -413,7 +417,11 @@ class NotificationProvider with ChangeNotifier {
         }
         await LocalDataCache.writeJsonList(
           _cacheKey,
-          _notifications.map((n) => Map<String, dynamic>.from(n)).toList(),
+          _notifications
+              .map((n) => _serializeNotificationForCache(
+                    Map<String, dynamic>.from(n),
+                  ))
+              .toList(),
         );
         notifyListeners();
       } else {
@@ -593,7 +601,8 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     ).updateNotificationsCount(unreadCount);
   }
 
-  Future<void> _trackDemoEventFromNotification(Map<String, dynamic> notif) async {
+  Future<void> _trackDemoEventFromNotification(
+      Map<String, dynamic> notif) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final token = await user?.getIdToken();
@@ -632,9 +641,9 @@ class _NotificationsBodyState extends State<NotificationsBody> {
         if (token != null) {
           provider
               .loadNotificationsFromAPI(
-                token,
-                silent: provider.notifications.isNotEmpty,
-              )
+            token,
+            silent: provider.notifications.isNotEmpty,
+          )
               .then((_) {
             if (!mounted) return;
             _syncUnreadCountWithHeader(provider);
@@ -716,7 +725,8 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                     style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 )
-              : RefreshIndicator(
+              : PagePullRefresh(
+                  refreshSkeleton: SkeletonPresets.notificationList(),
                   onRefresh: () async {
                     final user = FirebaseAuth.instance.currentUser;
                     if (user != null) {
@@ -752,13 +762,6 @@ class _NotificationsBodyState extends State<NotificationsBody> {
           final notif = provider.notifications[index];
           final isVerification =
               _safeGetString(notif, 'type') == 'verification';
-          final notifData = (notif['data'] is Map)
-              ? Map<String, dynamic>.from(notif['data'])
-              : <String, dynamic>{};
-          final requestType = (notifData['requestType'] ?? '').toString();
-          final isAlert = _safeGetString(notif, 'type') == 'alerte' ||
-              requestType == 'vehicle_search' ||
-              requestType == 'piece_search';
           final isUnread = !(notif['isRead'] ?? false);
           final notifId = (_safeGetString(notif, '_id') ?? '').toString();
           final isSelected =
@@ -782,8 +785,7 @@ class _NotificationsBodyState extends State<NotificationsBody> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (ctx) =>
-                      VerificationDetailPage(notification: notif),
+                  builder: (ctx) => VerificationDetailPage(notification: notif),
                 ),
               );
             } else {
@@ -857,42 +859,14 @@ class _NotificationsBodyState extends State<NotificationsBody> {
       final piece = (data['pieceName'] ?? '').toString().trim();
       if (piece.isNotEmpty) parts.add(piece);
     } else {
-      final budget = (data['budget'] ?? data['budgetMax'] ?? '').toString().trim();
+      final budget =
+          (data['budget'] ?? data['budgetMax'] ?? '').toString().trim();
       if (budget.isNotEmpty) parts.add(l10n.budgetAmountFcfa(budget));
     }
     if (parts.isNotEmpty) return parts.join(' · ');
     final msg = (_safeGetString(notif, 'message') ?? '').trim();
     if (msg.length > 90) return '${msg.substring(0, 90)}...';
     return msg.isNotEmpty ? msg : l10n.newRequest;
-  }
-
-  Widget _alertThumbnail(String? url, {bool isPiece = false}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: url != null && url.isNotEmpty
-          ? TranooNetworkImage(
-              url: url,
-              width: 112,
-              height: 63,
-              fit: BoxFit.cover,
-              cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 112),
-            )
-          : _alertThumbnailPlaceholder(isPiece),
-    );
-  }
-
-  Widget _alertThumbnailPlaceholder(bool isPiece) {
-    return Container(
-      width: 112,
-      height: 63,
-      color: Colors.grey[200],
-      alignment: Alignment.center,
-      child: Icon(
-        isPiece ? Icons.build_outlined : Icons.directions_car_outlined,
-        color: Colors.grey[500],
-        size: 32,
-      ),
-    );
   }
 
   Future<void> _handleAlertMenuAction({
@@ -911,7 +885,8 @@ class _NotificationsBodyState extends State<NotificationsBody> {
       if (ok) {
         _syncUnreadCountWithHeader(provider);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.notificationDeleted)),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)!.notificationDeleted)),
         );
       }
       return;
@@ -1136,7 +1111,8 @@ class _NotificationsBodyState extends State<NotificationsBody> {
       );
       if (response.statusCode != 200) return;
       final article = jsonDecode(response.body);
-      final articleType = (article['type'] ?? typeHint ?? '').toString().toLowerCase();
+      final articleType =
+          (article['type'] ?? typeHint ?? '').toString().toLowerCase();
 
       if (!mounted) return;
       if (articleType == 'piece') {
@@ -1150,13 +1126,17 @@ class _NotificationsBodyState extends State<NotificationsBody> {
               year: (article['annee'] ?? '').toString(),
               description: (article['description'] ?? '').toString(),
               company: (article['entreprise'] ?? '').toString(),
-              location: (article['lieu'] ?? article['localisation'] ?? '').toString(),
+              location:
+                  (article['lieu'] ?? article['localisation'] ?? '').toString(),
               price: (article['prix'] ?? '').toString(),
               fuelType: article['typeMoteur']?.toString(),
               model: article['modele']?.toString(),
-              pieceType: (article['pieceType'] ?? article['condition'])?.toString(),
+              pieceType:
+                  (article['pieceType'] ?? article['condition'])?.toString(),
               images: (article['photos'] is List)
-                  ? (article['photos'] as List).map((e) => e?.toString()).toList()
+                  ? (article['photos'] as List)
+                      .map((e) => e?.toString())
+                      .toList()
                   : const [],
               video: article['video']?.toString(),
               fournisseur: article['fournisseur'] is Map
@@ -1208,7 +1188,8 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.errorOpening('$e'))),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)!.errorOpening('$e'))),
       );
     }
   }
@@ -1218,88 +1199,76 @@ class _NotificationsBodyState extends State<NotificationsBody> {
     Map<String, dynamic> notification,
     NotificationProvider provider,
     String token,
-  ) async {
+  ) {
     try {
-      // Marquer comme lu dès l'ouverture
-      if (!(notification['isRead'] ?? false)) {
-        final notificationId = _safeGetString(notification, '_id');
-        if (notificationId != null) {
-          await provider.markNotificationAsRead(notificationId, token);
-          if (mounted) {
-            _syncUnreadCountWithHeader(provider);
-          }
+      final notificationId = _safeGetString(notification, '_id');
+      if (!(notification['isRead'] ?? false) && notificationId != null) {
+        provider.markNotificationAsRead(notificationId, token);
+        if (mounted) {
+          _syncUnreadCountWithHeader(provider);
         }
+      }
+
+      final isVerification =
+          _safeGetString(notification, 'type') == 'verification';
+      final isTransitRejected =
+          _safeGetString(notification, 'type') == 'transit_rejected';
+      final isPromo = _safeGetString(notification, 'type') == 'promotion';
+      final dataMap = (notification['data'] is Map)
+          ? Map<String, dynamic>.from(notification['data'])
+          : <String, dynamic>{};
+      final requestType = (dataMap['requestType'] ?? '').toString();
+      final isProposal =
+          _safeGetString(notification, 'type') == 'proposition_alerte';
+      final isAlert = !isProposal &&
+          (_safeGetString(notification, 'type') == 'alerte' ||
+              requestType == 'vehicle_search' ||
+              requestType == 'piece_search');
+      final images = getNotifImages(notification);
+      final documents = getNotifDocuments(notification);
+      final stampUrl = getStampUrl(notification);
+      final signatureUrl = getSignatureUrl(notification);
+      final pdfUrl = getVerificationPdfUrl(notification);
+      final bodyHtml = resolveNotificationBodyHtml(notification) ??
+          resolveNotificationMessage(
+            notification,
+            _localeCode,
+            fallback: _safeGetString(notification, 'message') ?? '-',
+          );
+
+      Widget detailContent;
+
+      if (isVerification) {
+        detailContent = _buildVerificationContent(
+          context,
+          notification,
+          images,
+          documents,
+          stampUrl,
+          signatureUrl,
+          bodyHtml,
+          pdfUrl: pdfUrl,
+        );
+      } else if (isTransitRejected) {
+        detailContent = _buildTransitRejectedContent(
+          context,
+          notification,
+          bodyHtml,
+        );
+      } else if (isAlert) {
+        detailContent = _buildAlertContent(notification, bodyHtml);
+      } else if (isPromo) {
+        detailContent =
+            _buildPromoContent(context, notification, images, bodyHtml);
+      } else {
+        detailContent = _buildStandardContent(notification, bodyHtml);
       }
 
       showDialog(
         context: context,
-        builder: (context) {
-          final isVerification =
-              _safeGetString(notification, 'type') == 'verification';
-          final isTransitRejected =
-              _safeGetString(notification, 'type') == 'transit_rejected';
-          final isPromo = _safeGetString(notification, 'type') == 'promotion';
-          final dataMap = (notification['data'] is Map)
-              ? Map<String, dynamic>.from(notification['data'])
-              : <String, dynamic>{};
-          final requestType = (dataMap['requestType'] ?? '').toString();
-          final isProposal =
-              _safeGetString(notification, 'type') == 'proposition_alerte';
-          final isAlert = !isProposal &&
-              (_safeGetString(notification, 'type') == 'alerte' ||
-                  requestType == 'vehicle_search' ||
-                  requestType == 'piece_search');
-          final images = getNotifImages(notification);
-          final documents = getNotifDocuments(notification);
-          final stampUrl = getStampUrl(notification);
-          final signatureUrl = getSignatureUrl(notification);
-          final pdfUrl = getVerificationPdfUrl(notification);
-          final bodyHtml = resolveNotificationBodyHtml(notification) ??
-              resolveNotificationMessage(
-                notification,
-                _localeCode,
-                fallback: _safeGetString(notification, 'message') ?? '-',
-              );
-
-          Widget detailContent;
-
-          if (isVerification) {
-            detailContent = _buildVerificationContent(
-              context,
-              notification,
-              images,
-              documents,
-              stampUrl,
-              signatureUrl,
-              bodyHtml,
-              pdfUrl: pdfUrl,
-            );
-          } else if (isTransitRejected) {
-            detailContent = _buildTransitRejectedContent(
-              context,
-              notification,
-              bodyHtml,
-            );
-          } else if (isAlert) {
-            detailContent = _buildAlertContent(notification, bodyHtml);
-          } else if (isPromo) {
-            detailContent =
-                _buildPromoContent(context, notification, images, bodyHtml);
-          } else {
-            detailContent = _buildStandardContent(notification, bodyHtml);
-          }
-
-          return Dialog(
-            backgroundColor: kVerifyYellowSoft,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(isVerification ? 12 : 20),
-              child: detailContent,
-            ),
-          );
-        },
+        barrierDismissible: true,
+        barrierColor: Colors.black54,
+        builder: (ctx) => wrapNotificationDetailDialog(ctx, detailContent),
       );
     } catch (e) {
       print('Erreur _showNotificationDetail: $e');
@@ -1350,9 +1319,8 @@ class _NotificationsBodyState extends State<NotificationsBody> {
   }
 
   String? _alertBudgetValue(Map<String, dynamic> dataMap) {
-    final budget = (dataMap['budget'] ?? dataMap['budgetMax'] ?? '')
-        .toString()
-        .trim();
+    final budget =
+        (dataMap['budget'] ?? dataMap['budgetMax'] ?? '').toString().trim();
     return budget.isNotEmpty ? budget : null;
   }
 
@@ -1382,11 +1350,13 @@ class _NotificationsBodyState extends State<NotificationsBody> {
       if ((dataMap['modele'] ?? '').toString().trim().isNotEmpty)
         MapEntry(l10n.model, (dataMap['modele'] ?? '').toString().trim()),
       if (isPiece && (dataMap['pieceName'] ?? '').toString().trim().isNotEmpty)
-        MapEntry(l10n.partSingular, (dataMap['pieceName'] ?? '').toString().trim()),
+        MapEntry(
+            l10n.partSingular, (dataMap['pieceName'] ?? '').toString().trim()),
       if (anneeVal != null) MapEntry(l10n.year, anneeVal),
       if (budgetVal != null) MapEntry(l10n.budgetLabel, '$budgetVal FCFA'),
       if ((dataMap['urgence'] ?? '').toString().trim().isNotEmpty)
-        MapEntry(l10n.urgencyLabel, (dataMap['urgence'] ?? '').toString().trim()),
+        MapEntry(
+            l10n.urgencyLabel, (dataMap['urgence'] ?? '').toString().trim()),
     ];
 
     return Column(
@@ -1422,11 +1392,13 @@ class _NotificationsBodyState extends State<NotificationsBody> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.zoom_in, color: Colors.white, size: 16),
+                        const Icon(Icons.zoom_in,
+                            color: Colors.white, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           l10n.enlarge,
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 12),
                         ),
                       ],
                     ),
@@ -1677,9 +1649,10 @@ class _NotificationsBodyState extends State<NotificationsBody> {
         ? Map<String, dynamic>.from(notification['data'])
         : <String, dynamic>{};
     final action = (dataMap['action'] ?? '').toString();
-    final targetArticleId =
-        (dataMap['targetArticleId'] ?? _safeGetString(notification, 'relatedId') ?? '')
-            .toString();
+    final targetArticleId = (dataMap['targetArticleId'] ??
+            _safeGetString(notification, 'relatedId') ??
+            '')
+        .toString();
     final targetType = (dataMap['targetType'] ?? '').toString();
     return Container(
       decoration: BoxDecoration(
