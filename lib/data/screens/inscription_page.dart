@@ -715,6 +715,8 @@ class _InscriptionPageState extends State<InscriptionPage> {
                           setState(() {
                             _isLoading = true;
                           });
+                          final auth = context.read<myauth.AuthProvider>();
+                          auth.beginRegistration();
                           try {
                             // --- CAPTCHA mobile (désactivé, web uniquement) ---
                             // final captchaToken =
@@ -799,22 +801,24 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               await prefs.remove('pending_referral');
                             }
                             _logger.info('Réponse inscription: $response');
-                            if (!mounted) return;
-                            
-                            // Charger l'utilisateur via AuthProvider (l'utilisateur est déjà connecté via Firebase)
-                            final auth = context.read<myauth.AuthProvider>();
-                            await auth.reloadUser();
-                            
-                            // Attendre brièvement que l'état soit bien propagé
-                            final startWait = DateTime.now();
-                            while (auth.user == null &&
-                                DateTime.now().difference(startWait) <
-                                    const Duration(seconds: 5)) {
-                              await Future.delayed(
-                                const Duration(milliseconds: 100),
+
+                            // Seed AuthProvider depuis la réponse register
+                            // (évite GET /me avant que Mongo soit prêt).
+                            Map<String, dynamic>? registeredUser;
+                            if (response.data is Map &&
+                                (response.data as Map)['user'] is Map) {
+                              registeredUser = Map<String, dynamic>.from(
+                                (response.data as Map)['user'] as Map,
                               );
                             }
-                            
+                            await auth.completeRegistration(registeredUser);
+
+                            if (!mounted) return;
+
+                            if (auth.user == null) {
+                              await auth.reloadUser(maxAttempts: 6);
+                            }
+
                             if (!mounted) return;
                             AuthMessagePopup.showSuccess(
                               context,
@@ -838,6 +842,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
                               (route) => false,
                             );
                           } catch (e) {
+                            auth.abortRegistration();
                             String title = regL10n.errorOccurredTitle;
                             String? subtitle;
                             if (e.toString().contains(

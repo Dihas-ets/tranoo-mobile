@@ -19,12 +19,94 @@ class AuthProvider with ChangeNotifier {
   bool _loading = true;
   final Logger _logger = Logger('AuthProvider');
 
+  /// Invalide les réponses /me obsolètes (évite la race inscription).
+  int _meGeneration = 0;
+
+  /// Pendant Firebase create + POST /register, ne pas appeler /me
+  /// (le user Mongo n'existe pas encore).
+  bool _registrationInProgress = false;
+
   static const String _tokenKey = 'token';
   static const String _userKey = 'user';
 
   String? get token => _token;
   Map<String, dynamic>? get user => _user;
   bool get loading => _loading;
+  bool get registrationInProgress => _registrationInProgress;
+
+  /// À appeler AVANT createUserWithEmailAndPassword.
+  void beginRegistration() {
+    _registrationInProgress = true;
+    _meGeneration++;
+    debugPrint(
+      '[AuthProvider] beginRegistration (gen=$_meGeneration) — /me ignoré',
+    );
+  }
+
+  /// Annule le mode inscription (échec register / rollback Firebase).
+  void abortRegistration() {
+    _registrationInProgress = false;
+    debugPrint('[AuthProvider] abortRegistration');
+  }
+
+  /// Applique le user renvoyé par POST /register (évite un /me prématuré).
+  Future<void> completeRegistration(Map<String, dynamic>? user) async {
+    try {
+      if (user != null) {
+        await _applyUserProfile(user);
+        return;
+      }
+      await reloadUser(maxAttempts: 6);
+    } finally {
+      _registrationInProgress = false;
+      debugPrint('[AuthProvider] completeRegistration done');
+    }
+  }
+
+  bool _isUserNotFoundError(Object e) {
+    if (e is! DioException) return false;
+    if (e.response?.statusCode != 401) return false;
+    final data = e.response?.data;
+    if (data is Map) {
+      final code = data['code']?.toString() ?? data['errorCode']?.toString();
+      if (code == 'USER_NOT_FOUND') return true;
+    }
+    return false;
+  }
+
+  Future<void> _applyUserProfile(Map<String, dynamic> user) async {
+    final gen = ++_meGeneration;
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null) {
+      _token = await firebaseUser.getIdToken();
+    }
+    if (gen != _meGeneration) return;
+    final cleaned = Map<String, dynamic>.from(user)..remove('password');
+    _user = cleaned;
+    await saveUserToPrefs(_token, _user);
+    if (_user != null && _user!['role'] != null) {
+      final role = stringToUserRole(_user!['role']);
+      if (role != null) {
+        UserService().setRole(role);
+        final vendeurType = _user!['vendeurType']?.toString();
+        UserService().setVendeurType(
+          vendeurType != null && vendeurType.trim().isNotEmpty
+              ? vendeurType.trim()
+              : null,
+        );
+      } else {
+        UserService().clearRole();
+      }
+    }
+    _loading = false;
+    notifyListeners();
+    try {
+      await _sendFcmTokenToBackend();
+      await ChatService().initializeSocket();
+    } catch (e) {
+      debugPrint('[AuthProvider] post-apply side effects: $e');
+    }
+  }
 
   AuthProvider() {
     debugPrint('[AuthProvider] CONSTRUCTEUR appelé');
@@ -131,6 +213,17 @@ class AuthProvider with ChangeNotifier {
     // 2. Ensuite, écouter FirebaseAuth pour les changements d'état
     FirebaseAuth.instance.authStateChanges().listen((firebaseUser) async {
       debugPrint('[AuthProvider] Firebase user: $firebaseUser');
+      // Pendant l'inscription : Firebase est connecté mais Mongo pas encore
+      // créé — ne pas appeler /me (race condition).
+      if (firebaseUser != null && _registrationInProgress) {
+        _token = await firebaseUser.getIdToken();
+        _loading = false;
+        notifyListeners();
+        debugPrint(
+          '[AuthProvider] authStateChanges ignoré (inscription en cours)',
+        );
+        return;
+      }
       // Jamais bloquer l'UI si un profil est déjà affiché (retour app / sync).
       final blockUi = firebaseUser != null && _user == null;
       if (blockUi) {
@@ -145,6 +238,7 @@ class AuthProvider with ChangeNotifier {
         final idToken = await firebaseUser.getIdToken();
         debugPrint('[AuthProvider] idToken (avant requête backend): $idToken');
         _token = idToken;
+        final gen = ++_meGeneration;
         try {
           final String baseUrl = getBaseUrl();
           final dio = Dio(
@@ -158,6 +252,12 @@ class AuthProvider with ChangeNotifier {
           try {
             debugPrint('[AuthProvider] Appel backend /protected/me');
             final response = await dio.get('/protected/me');
+            if (gen != _meGeneration || _registrationInProgress) {
+              debugPrint(
+                '[AuthProvider] /me obsolète ignoré (gen=$gen/$_meGeneration)',
+              );
+              return;
+            }
             debugPrint('[AuthProvider] /protected/me: ${response.data}');
             _user = response.data['user'];
             debugPrint('[AuthProvider] _user après /protected/me: \n${_user}');
@@ -187,11 +287,15 @@ class AuthProvider with ChangeNotifier {
             debugPrint(
               '[AuthProvider] Erreur lors de la récupération du user: $e',
             );
-            if (e is DioError) {
+            if (gen != _meGeneration || _registrationInProgress) {
+              debugPrint('[AuthProvider] erreur /me obsolète ignorée');
+              return;
+            }
+            if (e is DioException) {
               debugPrint(
-                '[AuthProvider] DioError: ${e.response?.statusCode} - ${e.response?.data}',
+                '[AuthProvider] DioException: ${e.response?.statusCode} - ${e.response?.data}',
               );
-              
+
               // Vérifier si l'utilisateur est bloqué
               if (e.response?.statusCode == 403) {
                 final data = e.response?.data;
@@ -200,19 +304,34 @@ class AuthProvider with ChangeNotifier {
                   return;
                 }
               }
+
+              // USER_NOT_FOUND : souvent la race inscription (Firebase OK, Mongo pas prêt).
+              // Ne pas effacer un profil déjà chargé par reloadUser / register.
+              if (_isUserNotFoundError(e)) {
+                debugPrint(
+                  '[AuthProvider] USER_NOT_FOUND — pas de logout forcé',
+                );
+                if (_user != null) return;
+                _loading = false;
+                notifyListeners();
+                return;
+              }
             }
             _user = null;
             await clearUserFromPrefs();
             debugPrint('[AuthProvider] clearRole (catch)');
             UserService().clearRole();
           } finally {
-            _loading = false;
-            debugPrint('[AuthProvider] _loading: $_loading, _user: $_user');
-            notifyListeners();
-            debugPrint('[AuthProvider] notifyListeners() après backend');
+            if (gen == _meGeneration) {
+              _loading = false;
+              debugPrint('[AuthProvider] _loading: $_loading, _user: $_user');
+              notifyListeners();
+              debugPrint('[AuthProvider] notifyListeners() après backend');
+            }
           }
         } catch (e) {
           debugPrint('[AuthProvider] Erreur globale: $e');
+          if (gen != _meGeneration || _registrationInProgress) return;
           _user = null;
           await clearUserFromPrefs();
           UserService().clearRole();
@@ -262,7 +381,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Ajout : méthode pour forcer le rechargement de l'utilisateur
-  Future<void> reloadUser() async {
+  Future<void> reloadUser({int maxAttempts = 1}) async {
     final firebaseUser = FirebaseAuth.instance.currentUser;
     final silent = _user != null;
     if (!silent) {
@@ -270,47 +389,71 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     }
     if (firebaseUser != null) {
-      final idToken = await firebaseUser.getIdToken();
-      _token = idToken;
-      try {
-        final String baseUrl = getBaseUrl();
-        final dio = Dio(
-          BaseOptions(
-            baseUrl: baseUrl,
-            headers: {'Authorization': 'Bearer $idToken'},
-            connectTimeout: const Duration(seconds: 30),
-            receiveTimeout: const Duration(seconds: 30),
-          ),
-        );
-        final response = await dio.get('/protected/me');
-        _user = response.data['user'];
-        await _sendFcmTokenToBackend();
-        if (_user != null && _user!['role'] != null) {
-          final role = stringToUserRole(_user!['role']);
-          if (role != null) {
-            UserService().setRole(role);
-            final vendeurType = _user!['vendeurType']?.toString();
-            UserService().setVendeurType(
-              vendeurType != null && vendeurType.trim().isNotEmpty
-                  ? vendeurType.trim()
-                  : null,
+      final gen = ++_meGeneration;
+      Object? lastError;
+      for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (gen != _meGeneration) return;
+        try {
+          final idToken = await firebaseUser.getIdToken();
+          _token = idToken;
+          final String baseUrl = getBaseUrl();
+          final dio = Dio(
+            BaseOptions(
+              baseUrl: baseUrl,
+              headers: {'Authorization': 'Bearer $idToken'},
+              connectTimeout: const Duration(seconds: 30),
+              receiveTimeout: const Duration(seconds: 30),
+            ),
+          );
+          final response = await dio.get('/protected/me');
+          if (gen != _meGeneration) return;
+          _user = response.data['user'];
+          await saveUserToPrefs(_token, _user);
+          await _sendFcmTokenToBackend();
+          if (_user != null && _user!['role'] != null) {
+            final role = stringToUserRole(_user!['role']);
+            if (role != null) {
+              UserService().setRole(role);
+              final vendeurType = _user!['vendeurType']?.toString();
+              UserService().setVendeurType(
+                vendeurType != null && vendeurType.trim().isNotEmpty
+                    ? vendeurType.trim()
+                    : null,
+              );
+            } else {
+              UserService().clearRole();
+            }
+          }
+          lastError = null;
+          break;
+        } catch (e) {
+          lastError = e;
+          if (e is DioException && e.response?.statusCode == 403) {
+            final data = e.response?.data;
+            if (data is Map && data['blocked'] == true) {
+              await _handleBlockedUser(data['message'] ?? 'Compte bloqué');
+              return;
+            }
+          }
+          // Retry si Mongo pas encore prêt juste après inscription.
+          if (_isUserNotFoundError(e) && attempt < maxAttempts) {
+            debugPrint(
+              '[AuthProvider] reloadUser USER_NOT_FOUND attempt $attempt/$maxAttempts',
             );
-          } else {
+            await Future.delayed(Duration(milliseconds: 200 * attempt));
+            continue;
+          }
+          if (gen != _meGeneration) return;
+          // Ne pas écraser un profil déjà présent (réponse /me tardive en échec).
+          if (_user == null) {
             UserService().clearRole();
           }
         }
-      } catch (e) {
-        // Vérifier si l'utilisateur est bloqué lors du rechargement
-        if (e is DioError && e.response?.statusCode == 403) {
-          final data = e.response?.data;
-          if (data is Map && data['blocked'] == true) {
-            await _handleBlockedUser(data['message'] ?? 'Compte bloqué');
-            return;
-          }
-        }
-        _user = null;
-        UserService().clearRole();
-      } finally {
+      }
+      if (lastError != null && _user == null && gen == _meGeneration) {
+        debugPrint('[AuthProvider] reloadUser échec: $lastError');
+      }
+      if (gen == _meGeneration) {
         _loading = false;
         notifyListeners();
       }
