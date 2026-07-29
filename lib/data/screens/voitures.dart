@@ -300,6 +300,11 @@ class _VoituresPageState extends State<VoituresPage>
   // Appliquer les filtres
   List<dynamic> _applyFilters(List<dynamic> source) {
     return source.where((v) {
+      // ─── Masquer les véhicules vendus aux acheteurs ───────────────────────
+      final statut = (v['statut'] ?? '').toString().toLowerCase();
+      final statutVente = (v['statutVente'] ?? '').toString().toLowerCase();
+      if (statut == 'vendu' || statutVente == 'vendu') return false;
+      // ─────────────────────────────────────────────────────────────────────
       if (_selectedBrand != null && _selectedBrand!.isNotEmpty) {
         final marque = (v['marque'] ?? '').toString();
         if (!catalogValueMatches(_selectedBrand, marque)) return false;
