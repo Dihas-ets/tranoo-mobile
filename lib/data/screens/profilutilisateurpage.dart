@@ -19,6 +19,7 @@ import 'package:tranoo/providers/auth_provider.dart' as local_auth;
 import 'package:tranoo/providers/locale_provider.dart';
 import 'package:tranoo/utils/locale_helper.dart';
 import 'package:tranoo/utils/local_data_cache.dart';
+import 'package:tranoo/utils/auth_dialog.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/widgets/delayed_loader.dart';
 
@@ -551,12 +552,23 @@ class ProfilUtilisateurPageState extends State<ProfilUtilisateurPage> {
           _buildListTile(
             title: l10n.logout,
             icon: Icons.logout,
-            color: Color(0xFFFFCE31),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ConnexionPage()),
-              );
+            color: const Color(0xFFFFCE31),
+            onTap: () async {
+              final confirm = await showLogoutConfirmationDialog(context);
+              if (confirm && context.mounted) {
+                await Provider.of<local_auth.AuthProvider>(
+                  context,
+                  listen: false,
+                ).logout();
+                if (!context.mounted) return;
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ConnexionPage(),
+                  ),
+                  (route) => false,
+                );
+              }
             },
           ),
         ],

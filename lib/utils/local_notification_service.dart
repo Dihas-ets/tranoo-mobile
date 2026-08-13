@@ -121,7 +121,11 @@ class LocalNotificationService {
     );
   }
 
-  static Future<void> showNotification(String title, String body) async {
+  static Future<void> showNotification(
+    String title,
+    String body, {
+    String? payload,
+  }) async {
     await initialize();
     const androidDetails = AndroidNotificationDetails(
       NotificationSounds.generalChannelId,
@@ -146,6 +150,7 @@ class LocalNotificationService {
         android: androidDetails,
         iOS: iosDetails,
       ),
+      payload: payload,
     );
   }
 

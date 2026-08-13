@@ -26,6 +26,7 @@ import 'package:tranoo/widgets/transitaire_carousel_section.dart';
 import 'package:tranoo/services/transit_mission_service.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/utils/whatsapp_helper.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -142,6 +143,7 @@ class _CarsinfoState extends State<CarsInfo> {
   ];
   late ConfettiController _confettiController;
   static const String _whatsAppPhone = '22941839801'; // sans +
+  bool _isSpecsExpanded = false;
   int _verificationPrice = 20000;
   String _formatFcfa(int value) {
     final priceStr = value.toString();
@@ -401,27 +403,27 @@ class _CarsinfoState extends State<CarsInfo> {
     super.dispose();
   }
 
-  Future<void> _openWhatsApp() async {
-    // Aligné sur Tranoo Pro : uniquement wa.me + app externe, jamais le Play Store.
-    final phone = _whatsAppPhone.replaceAll(RegExp(r'[^0-9]'), '');
-    final uri = Uri.parse('https://wa.me/$phone');
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return;
+  String _buyWhatsAppMessage(AppLocalizations l10n) {
+    final label = WhatsappHelper.articleListingLabel(
+      titre: widget.titre,
+      marque: widget.marque,
+      modele: widget.modele,
+      fallback: l10n.defaultVehicleTitle,
+    );
+    final id = (widget.id ?? '').trim();
+    if (id.isNotEmpty) {
+      return l10n.whatsappCarInterestWithRef(label, id);
     }
+    return l10n.whatsappCarInterestNoRef(label);
+  }
 
-    try {
-      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (ok) return;
-    } catch (e) {
-      log('[CarsInfo] WhatsApp launchUrl error: $e');
-    }
-
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.whatsappOpenDetailed)),
+  Future<void> _openWhatsApp({String? message}) async {
+    await WhatsappHelper.openChat(
+      context,
+      phone: _whatsAppPhone,
+      message: message,
+      unavailableMessage: l10n.sellerPhoneUnavailable,
+      cannotOpenMessage: l10n.whatsappOpenDetailed,
     );
   }
 
@@ -925,12 +927,56 @@ class _CarsinfoState extends State<CarsInfo> {
       ),
     ];
 
+    final allCards = [...topCards, ...bottomCards];
+    final hasMore = allCards.length > 4;
+    final visibleCards = (_isSpecsExpanded || !hasMore)
+        ? allCards
+        : allCards.take(4).toList();
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _buildSpecGrid(topCards),
-        const SizedBox(height: 16),
-        _buildSpecGrid(bottomCards),
+        _buildSpecGrid(visibleCards),
+        if (hasMore) ...[
+          const SizedBox(height: 8),
+          Center(
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _isSpecsExpanded = !_isSpecsExpanded;
+                });
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _isSpecsExpanded ? l10n.viewLess : l10n.viewMore,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1B2B4B),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: _isSpecsExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 220),
+                      child: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 22,
+                        color: Color(0xFF1B2B4B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1367,7 +1413,7 @@ class _CarsinfoState extends State<CarsInfo> {
                 return;
               }
 
-              await _openWhatsApp();
+              await _openWhatsApp(message: _buyWhatsAppMessage(l10n));
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.amber,

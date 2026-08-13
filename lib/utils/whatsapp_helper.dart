@@ -120,6 +120,24 @@ class WhatsappHelper {
     return false;
   }
 
+  /// Libellé affiché dans le message WhatsApp (titre ou marque + modèle).
+  static String articleListingLabel({
+    String? titre,
+    String? marque,
+    String? modele,
+    required String fallback,
+  }) {
+    final title = (titre ?? '').trim();
+    if (title.isNotEmpty) return title;
+    final built = [marque, modele]
+        .whereType<String>()
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .join(' ');
+    if (built.isNotEmpty) return built;
+    return fallback;
+  }
+
   static Future<bool> openChat(
     BuildContext context, {
     required String? phone,

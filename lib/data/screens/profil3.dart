@@ -535,17 +535,21 @@ class Profil3State extends State<Profil3> {
           _buildListTile(
             title: l10n.logout,
             icon: Icons.logout,
-            color: Color(0xFFFFCE31),
+            color: const Color(0xFFFFCE31),
             onTap: () async {
-              await Provider.of<myauth.AuthProvider>(
-                context,
-                listen: false,
-              ).logout();
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => ConnexionPage()),
-                (route) => false,
-              );
+              final confirm = await showLogoutConfirmationDialog(context);
+              if (confirm && context.mounted) {
+                await Provider.of<myauth.AuthProvider>(
+                  context,
+                  listen: false,
+                ).logout();
+                if (!context.mounted) return;
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ConnexionPage()),
+                  (route) => false,
+                );
+              }
             },
           ),
         ],

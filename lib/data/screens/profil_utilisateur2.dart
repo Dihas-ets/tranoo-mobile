@@ -486,10 +486,43 @@ class _ProfilUtilisateur2State extends State<ProfilUtilisateur2> {
             title: l10n.logout,
             icon: Icons.logout,
             color: Color(0xFFFFCE31),
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: Row(
+                    children: [
+                      const Icon(Icons.logout, color: Color(0xFFF8BF13)),
+                      const SizedBox(width: 8),
+                      Text(l10n.logout),
+                    ],
+                  ),
+                  content: Text(l10n.logout + ' ?\n\n' + l10n.confirmDeletion.replaceAll('suppression', 'déconnexion')),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: Text(l10n.cancel),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF8BF13),
+                        foregroundColor: Colors.black,
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: Text(l10n.confirm),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed != true) return;
+              if (!mounted) return;
+              await Provider.of<local_auth.AuthProvider>(context, listen: false).logout();
+              if (!mounted) return;
+              Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => ConnexionPage()),
+                MaterialPageRoute(builder: (context) => const ConnexionPage()),
+                (route) => false,
               );
             },
           ),

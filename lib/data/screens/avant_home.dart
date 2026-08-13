@@ -579,6 +579,9 @@ class _AvantHomeState extends State<AvantHome>
                       title: Text(l10n.logout),
                       onTap: () async {
                         Navigator.pop(context);
+                        final confirm =
+                            await showLogoutConfirmationDialog(context);
+                        if (confirm != true || !context.mounted) return;
                         await Provider.of<myauth.AuthProvider>(context,
                                 listen: false)
                             .logout();

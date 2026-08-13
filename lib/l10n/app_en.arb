@@ -1716,6 +1716,33 @@
       }
     }
   },
+  "whatsappCarInterestWithRef": "Hello Tranoo, I would like to buy the car \"{title}\" (ref. {articleId}).",
+  "@whatsappCarInterestWithRef": {
+    "placeholders": {
+      "title": { "type": "String" },
+      "articleId": { "type": "String" }
+    }
+  },
+  "whatsappCarInterestNoRef": "Hello Tranoo, I would like to buy the car \"{title}\".",
+  "@whatsappCarInterestNoRef": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "whatsappMotoInterestWithRef": "Hello Tranoo, I would like to buy the motorcycle \"{title}\" (ref. {articleId}).",
+  "@whatsappMotoInterestWithRef": {
+    "placeholders": {
+      "title": { "type": "String" },
+      "articleId": { "type": "String" }
+    }
+  },
+  "whatsappMotoInterestNoRef": "Hello Tranoo, I would like to buy the motorcycle \"{title}\".",
+  "@whatsappMotoInterestNoRef": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "defaultMotoTitle": "this motorcycle",
   "defaultVehicleTitle": "vehicle",
   "cannotLoadOrders": "Unable to load your orders",
   "noOrdersYetHint": "You haven't placed any orders yet",
@@ -2232,6 +2259,7 @@
   "cannotOpenDocument": "Unable to open document",
   "featureNoLongerAvailable": "This feature is no longer available",
   "articleNotFound": "Item not found",
+  "articleNoLongerOnline": "This listing is no longer online.",
   "sessionExpiredReconnect": "Session expired. Sign in again.",
   "cannotLoadProposal": "Unable to load proposal.",
   "searchDetails": "Search details",
@@ -2431,5 +2459,7 @@
   "errorTransitaireVerifReferencePhoneInvalid": "Reference must be a valid phone number.",
   "errorTransitaireVerifSubmitSuccess": "Verification request sent. Review within 24h.",
   "errorTransitaireVerifSubmitFailed": "Failed to submit verification request.",
-  "purchaseForwarderSelected": "Forwarder updated for this purchase."
+  "purchaseForwarderSelected": "Forwarder updated for this purchase.",
+  "viewLess": "View less",
+  "viewMore": "View more"
 }

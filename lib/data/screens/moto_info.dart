@@ -217,6 +217,8 @@ class _MotoInfoState extends State<MotoInfo> {
     return value ? l10n.yes : l10n.no;
   }
 
+  bool _isSpecsExpanded = false;
+
   @override
   void initState() {
     super.initState();
@@ -298,12 +300,17 @@ class _MotoInfoState extends State<MotoInfo> {
   }
 
   String _buyWhatsAppMessage(AppLocalizations l10n) {
-    final title = (widget.titre ?? '').trim();
+    final label = WhatsappHelper.articleListingLabel(
+      titre: widget.titre,
+      marque: widget.marque,
+      modele: widget.modele,
+      fallback: l10n.defaultMotoTitle,
+    );
     final id = (widget.id ?? '').trim();
     if (id.isNotEmpty) {
-      return l10n.whatsappInterestWithRef(title, id);
+      return l10n.whatsappMotoInterestWithRef(label, id);
     }
-    return l10n.whatsappInterestNoRef(title);
+    return l10n.whatsappMotoInterestNoRef(label);
   }
 
   Future<void> _openSellerWhatsApp({String? message}) async {
@@ -857,12 +864,56 @@ class _MotoInfoState extends State<MotoInfo> {
         _buildSpecCard('Équipements', widget.equipements.join(', '), Icons.checklist),
     ];
 
+    final allCards = [...topCards, ...bottomCards];
+    final hasMore = allCards.length > 4;
+    final visibleCards = (_isSpecsExpanded || !hasMore)
+        ? allCards
+        : allCards.take(4).toList();
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _buildSpecGrid(topCards),
-        const SizedBox(height: 16),
-        _buildSpecGrid(bottomCards),
+        _buildSpecGrid(visibleCards),
+        if (hasMore) ...[
+          const SizedBox(height: 8),
+          Center(
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _isSpecsExpanded = !_isSpecsExpanded;
+                });
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _isSpecsExpanded ? l10n.viewLess : l10n.viewMore,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1B2B4B),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: _isSpecsExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 220),
+                      child: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 22,
+                        color: Color(0xFF1B2B4B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

@@ -201,24 +201,150 @@ class _ConnexionPageState extends State<ConnexionPage> {
               ),
               SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
 
-              SegmentedButton<bool>(
-                segments: [
-                  ButtonSegment(value: false, label: Text(l10n.phoneTab)),
-                  ButtonSegment(
-                    value: true,
-                    label: Text(l10n.legacyEmailTab),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        if (_useLegacyEmail) {
+                          setState(() {
+                            _useLegacyEmail = false;
+                            _phoneController.clear();
+                          });
+                        }
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: !_useLegacyEmail
+                              ? const Color(0xFFFFCE31)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: !_useLegacyEmail
+                                ? const Color(0xFFFFCE31)
+                                : Colors.grey.shade300,
+                            width: 1.5,
+                          ),
+                          boxShadow: !_useLegacyEmail
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.08),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ]
+                              : [],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.phone_android_rounded,
+                              size: 18,
+                              color: !_useLegacyEmail
+                                  ? const Color(0xFF1B2B4B)
+                                  : Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                l10n.phoneTab,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontWeight: !_useLegacyEmail
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
+                                  color: !_useLegacyEmail
+                                      ? const Color(0xFF1B2B4B)
+                                      : Colors.grey.shade700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        if (!_useLegacyEmail) {
+                          setState(() {
+                            _useLegacyEmail = true;
+                            _phoneController.clear();
+                          });
+                        }
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _useLegacyEmail
+                              ? const Color(0xFFFFCE31)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _useLegacyEmail
+                                ? const Color(0xFFFFCE31)
+                                : Colors.grey.shade300,
+                            width: 1.5,
+                          ),
+                          boxShadow: _useLegacyEmail
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.08),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ]
+                              : [],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.email_outlined,
+                              size: 18,
+                              color: _useLegacyEmail
+                                  ? const Color(0xFF1B2B4B)
+                                  : Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                l10n.legacyEmailTab,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontWeight: _useLegacyEmail
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
+                                  color: _useLegacyEmail
+                                      ? const Color(0xFF1B2B4B)
+                                      : Colors.grey.shade700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
-                selected: {_useLegacyEmail},
-                onSelectionChanged: (s) {
-                  setState(() {
-                    _useLegacyEmail = s.first;
-                    _phoneController.clear();
-                  });
-                },
-                style: ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                ),
               ),
               SizedBox(height: screenHeight * 0.02),
 

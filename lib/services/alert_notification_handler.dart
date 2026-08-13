@@ -6,11 +6,28 @@ import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/main.dart';
 import 'package:tranoo/services/alert_call_payload.dart';
 import 'package:tranoo/services/alert_pending_store.dart';
+import 'package:tranoo/utils/notification_tap_router.dart';
 import 'package:tranoo/widgets/alert_incoming_call_overlay.dart';
 
 class AlertNotificationHandler {
   static Future<void> handleResponse(NotificationResponse response) async {
     final payload = response.payload ?? '';
+    if (payload.startsWith('fcm:')) {
+      try {
+        final decoded = jsonDecode(payload.substring(4));
+        if (decoded is Map) {
+          final data = decoded.map(
+            (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
+          );
+          await NotificationTapRouter.openFromData(
+            rootNavigatorKey.currentContext,
+            data,
+            navigatorKey: rootNavigatorKey,
+          );
+        }
+      } catch (_) {}
+      return;
+    }
     if (!payload.startsWith('alert:')) return;
 
     Map<String, String> data = {};
@@ -37,10 +54,22 @@ class AlertNotificationHandler {
 
     final notificationId = data['notificationId'] ?? '';
 
+    if (NotificationTapRouter.opensArticleDetail(data)) {
+      await NotificationTapRouter.openFromData(
+        rootNavigatorKey.currentContext,
+        data,
+        navigatorKey: rootNavigatorKey,
+      );
+      return;
+    }
+
     if (response.actionId == 'accept') {
       nav.push(
         MaterialPageRoute(
-          builder: (_) => const Notifications(),
+          builder: (_) => Notifications(
+            openNotificationId:
+                notificationId.isNotEmpty ? notificationId : null,
+          ),
         ),
       );
       return;

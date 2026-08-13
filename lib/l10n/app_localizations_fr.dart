@@ -3524,6 +3524,29 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String whatsappCarInterestWithRef(String title, String articleId) {
+    return 'Bonjour Tranoo, je souhaite acheter la voiture « $title » (réf. $articleId).';
+  }
+
+  @override
+  String whatsappCarInterestNoRef(String title) {
+    return 'Bonjour Tranoo, je souhaite acheter la voiture « $title ».';
+  }
+
+  @override
+  String whatsappMotoInterestWithRef(String title, String articleId) {
+    return 'Bonjour Tranoo, je souhaite acheter la moto « $title » (réf. $articleId).';
+  }
+
+  @override
+  String whatsappMotoInterestNoRef(String title) {
+    return 'Bonjour Tranoo, je souhaite acheter la moto « $title ».';
+  }
+
+  @override
+  String get defaultMotoTitle => 'cette moto';
+
+  @override
   String get defaultVehicleTitle => 'véhicule';
 
   @override
@@ -4319,6 +4342,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get articleNotFound => 'Article introuvable';
 
   @override
+  String get articleNoLongerOnline => 'Cette annonce n\'est plus en ligne.';
+
+  @override
   String get sessionExpiredReconnect => 'Session expirée. Reconnectez-vous.';
 
   @override
@@ -4714,4 +4740,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get purchaseForwarderSelected =>
       'Transitaire mis à jour pour cet achat.';
+
+  @override
+  String get viewLess => 'Voir moins';
+
+  @override
+  String get viewMore => 'Voir plus';
 }

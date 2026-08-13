@@ -6442,6 +6442,36 @@ abstract class AppLocalizations {
   /// **'Hello Tranoo, I confirm my interest in purchasing: {title}.'**
   String whatsappInterestNoRef(String title);
 
+  /// No description provided for @whatsappCarInterestWithRef.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello Tranoo, I would like to buy the car \"{title}\" (ref. {articleId}).'**
+  String whatsappCarInterestWithRef(String title, String articleId);
+
+  /// No description provided for @whatsappCarInterestNoRef.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello Tranoo, I would like to buy the car \"{title}\".'**
+  String whatsappCarInterestNoRef(String title);
+
+  /// No description provided for @whatsappMotoInterestWithRef.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello Tranoo, I would like to buy the motorcycle \"{title}\" (ref. {articleId}).'**
+  String whatsappMotoInterestWithRef(String title, String articleId);
+
+  /// No description provided for @whatsappMotoInterestNoRef.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello Tranoo, I would like to buy the motorcycle \"{title}\".'**
+  String whatsappMotoInterestNoRef(String title);
+
+  /// No description provided for @defaultMotoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'this motorcycle'**
+  String get defaultMotoTitle;
+
   /// No description provided for @defaultVehicleTitle.
   ///
   /// In en, this message translates to:
@@ -7828,6 +7858,12 @@ abstract class AppLocalizations {
   /// **'Item not found'**
   String get articleNotFound;
 
+  /// No description provided for @articleNoLongerOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'This listing is no longer online.'**
+  String get articleNoLongerOnline;
+
   /// No description provided for @sessionExpiredReconnect.
   ///
   /// In en, this message translates to:
@@ -8517,6 +8553,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Forwarder updated for this purchase.'**
   String get purchaseForwarderSelected;
+
+  /// No description provided for @viewLess.
+  ///
+  /// In en, this message translates to:
+  /// **'View less'**
+  String get viewLess;
+
+  /// No description provided for @viewMore.
+  ///
+  /// In en, this message translates to:
+  /// **'View more'**
+  String get viewMore;
 }
 
 class _AppLocalizationsDelegate

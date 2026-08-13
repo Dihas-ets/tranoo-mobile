@@ -96,7 +96,7 @@ void showTransitairePhotoZoom(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'close',
-    barrierColor: Colors.black.withOpacity(0.88),
+    barrierColor: Colors.black54,
     transitionDuration: const Duration(milliseconds: 220),
     pageBuilder: (ctx, _, __) {
       return SafeArea(

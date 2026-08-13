@@ -30,6 +30,7 @@ import 'package:tranoo/services/urgent_fcm_utils.dart';
 import 'package:tranoo/services/alert_launch_bootstrap.dart';
 import 'package:tranoo/widgets/alert_incoming_call_overlay.dart';
 import 'package:tranoo/data/screens/notifications.dart';
+import 'package:tranoo/utils/notification_tap_router.dart';
 import 'package:tranoo/providers/locale_provider.dart';
 import 'package:tranoo/utils/feexpay_callback_state.dart';
 import 'data/screens/marque.dart';
@@ -261,10 +262,16 @@ class NotificationService {
       });
 
       final initialMessage = await _messaging.getInitialMessage();
-      if (initialMessage != null && isUrgentFcmMessage(initialMessage)) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _openUrgentNotificationFromTap(initialMessage);
-        });
+      if (initialMessage != null) {
+        if (isUrgentFcmMessage(initialMessage)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _openUrgentNotificationFromTap(initialMessage);
+          });
+        } else {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _handleNotificationTap(initialMessage);
+          });
+        }
       }
 
       // Récupérer le token FCM
@@ -350,53 +357,52 @@ class NotificationService {
         LocalNotificationService.showNotification(
           push.title,
           push.body,
+          payload: 'fcm:${jsonEncode(message.data)}',
         );
       }
     }
   }
 
   void _openUrgentNotificationFromTap(RemoteMessage message) {
+    final type = (message.data['type'] ?? '').toString();
+    final action = (message.data['action'] ?? '').toString();
+    if (type == 'proposition_alerte' ||
+        action == 'view_proposal' ||
+        action == 'view_article') {
+      _handleNotificationTap(message);
+      return;
+    }
+    final notificationId = message.data['notificationId']?.toString();
     rootNavigatorKey.currentState?.push(
-      MaterialPageRoute(builder: (_) => const Notifications()),
+      MaterialPageRoute(
+        builder: (_) => Notifications(
+          openNotificationId:
+              (notificationId != null && notificationId.isNotEmpty)
+                  ? notificationId
+                  : null,
+        ),
+      ),
     );
   }
 
   void _handleNotificationTap(RemoteMessage message) {
-    // Navigation vers une page spécifique selon le type de notification
     _logger.info(
       'Gestion du tap sur notification: ${message.notification?.title}',
     );
 
-    // Exemple de navigation selon le type de notification
-    if (message.data.containsKey('type')) {
-      final type = message.data['type'];
-      final eventType = message.data['eventType'];
-      if (type == 'delivery' &&
-          eventType == 'arrived' &&
-          message.data['relatedId'] != null) {
-        final deliveryId = message.data['relatedId'].toString();
-        InAppDeliveryPopup.showLivreurArrived(deliveryId: deliveryId);
-        return;
-      }
-
-      switch (type) {
-        case 'chat':
-          _logger.info('Navigation vers chat: ${message.data['roomId']}');
-          break;
-        case 'publicite':
-          _logger.info('Navigation vers publicités');
-          break;
-        case 'article':
-          _logger.info('Navigation vers articles');
-          break;
-        case 'system':
-          _logger.info('Notification système: ${message.notification?.body}');
-          break;
-        default:
-          _logger.info('Navigation par défaut');
-          break;
-      }
+    if (message.data['type'] == 'delivery' &&
+        message.data['eventType'] == 'arrived' &&
+        message.data['relatedId'] != null) {
+      final deliveryId = message.data['relatedId'].toString();
+      InAppDeliveryPopup.showLivreurArrived(deliveryId: deliveryId);
+      return;
     }
+
+    NotificationTapRouter.openFromRemoteMessage(
+      rootNavigatorKey.currentContext,
+      message,
+      navigatorKey: rootNavigatorKey,
+    );
   }
 }
 
