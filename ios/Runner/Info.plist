@@ -55,6 +55,9 @@
 		<!-- Accès à la caméra -->
 		<key>NSCameraUsageDescription</key>
 		<string>Tranoo a besoin d'accéder à votre appareil photo pour prendre des photos de vos véhicules et documents.</string>
+		<!-- Localisation (services locaux, tricycle, Livro, cartes) -->
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Tranoo a besoin de votre position pour vous proposer des services locaux, la livraison et le suivi de courses à proximité.</string>
 		<!-- Tracking publicitaire (NON utilisé actuellement) -->
 		<!--
 	<key>NSUserTrackingUsageDescription</key>

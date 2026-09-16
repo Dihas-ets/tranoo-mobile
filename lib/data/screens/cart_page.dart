@@ -7,6 +7,13 @@ import 'piece.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 
+// =============================================================================
+// CODE MORT — panier interne Tranoo
+// -----------------------------------------------------------------------------
+// Gelé au profit de Livro (livraison externe). Ne pas supprimer : conservé pour
+// référence / rollback. Entrées UI (icône panier, « Acheter via l'app ») commentées.
+// =============================================================================
+
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
 

@@ -2,6 +2,13 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// =============================================================================
+// CODE MORT — panier interne Tranoo (CartService)
+// -----------------------------------------------------------------------------
+// Gelé au profit de Livro. Ne pas supprimer. Provider encore enregistré dans
+// main.dart pour ne pas casser d'éventuels listeners morts / CounterProvider.
+// =============================================================================
+
 class CartItem {
   final String articleId;
   final String title;

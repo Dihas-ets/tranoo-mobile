@@ -10,6 +10,14 @@ import 'package:tranoo/widgets/feexpay_v2_payment_screen.dart';
 import '../config/backend_config.dart';
 import '../main.dart';
 
+// =============================================================================
+// CODE MORT — livraison interne Tranoo (popup FCM « livreur arrivé »)
+// -----------------------------------------------------------------------------
+// Remplacé par le SDK Livro (bulle + BubbleEntryPage). Ne pas supprimer :
+// conservé pour référence / rollback. Les appels depuis main.dart et
+// notification_tap_router.dart sont commentés.
+// =============================================================================
+
 /// Popup global (peu importe l'écran) déclenché via FCM.
 class InAppDeliveryPopup {
   static bool _isShowing = false;

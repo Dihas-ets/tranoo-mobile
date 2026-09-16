@@ -25,7 +25,8 @@ import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/blocked_user_service.dart';
 import 'package:tranoo/services/push_otp_service.dart';
 import 'package:tranoo/utils/local_notification_service.dart';
-import 'package:tranoo/utils/in_app_delivery_popup.dart';
+// CODE MORT (livraison interne) — popup livreur arrivé remplacé par le suivi Livro.
+// import 'package:tranoo/utils/in_app_delivery_popup.dart';
 import 'package:tranoo/services/urgent_fcm_utils.dart';
 import 'package:tranoo/services/alert_launch_bootstrap.dart';
 import 'package:tranoo/widgets/alert_incoming_call_overlay.dart';
@@ -43,8 +44,13 @@ import 'package:tranoo/data/screens/reset/forgot_password_page.dart';
 import 'package:tranoo/data/screens/reset/verify_code_page.dart';
 import 'package:tranoo/data/screens/reset/create_new_password_page.dart';
 import 'package:tranoo/data/screens/order_details_page.dart';
-import 'package:tranoo/data/screens/mes_commandes.dart';
+// CODE MORT : MesCommandesPage — route /orders redirigée vers Livro.
+// import 'package:tranoo/data/screens/mes_commandes.dart';
+import 'package:tranoo/utils/livro_integration.dart';
 import 'package:tranoo/services/app_bootstrap.dart';
+import 'package:livro_delivery_sdk/livro_delivery_sdk.dart';
+import 'package:livro_delivery_sdk/services/sdk_bubble_service.dart';
+import 'package:livro_delivery_sdk/widgets/sdk_floating_bubble.dart';
 
 /// Clés souvent utilisées par FeexPay / le package sur la redirection.
 /// Doc V2 (intégrations front) : paramètre **`ref`** sur l’URL de callback.
@@ -324,14 +330,15 @@ class NotificationService {
   void _showLocalNotification(RemoteMessage message) async {
     _logger.info('Notification locale: ${message.notification?.title}');
 
-    // Popup global (in-app) pour arrivée livreur (peu importe l'écran)
-    if (message.data['type'] == 'delivery' &&
-        (message.data['eventType'] == 'arrived' ||
-            message.data['eventType'] == 'arrived'.toString()) &&
-        message.data['relatedId'] != null) {
-      final deliveryId = message.data['relatedId'].toString();
-      InAppDeliveryPopup.showLivreurArrived(deliveryId: deliveryId);
-    }
+    // CODE MORT (livraison interne Tranoo) — InAppDeliveryPopup désactivé.
+    // Le suivi livreur passe par la bulle / SDK Livro.
+    // if (message.data['type'] == 'delivery' &&
+    //     (message.data['eventType'] == 'arrived' ||
+    //         message.data['eventType'] == 'arrived'.toString()) &&
+    //     message.data['relatedId'] != null) {
+    //   final deliveryId = message.data['relatedId'].toString();
+    //   InAppDeliveryPopup.showLivreurArrived(deliveryId: deliveryId);
+    // }
 
     // Afficher une notification locale visible même en foreground
     if (message.data['type'] == 'otp') {
@@ -390,13 +397,14 @@ class NotificationService {
       'Gestion du tap sur notification: ${message.notification?.title}',
     );
 
-    if (message.data['type'] == 'delivery' &&
-        message.data['eventType'] == 'arrived' &&
-        message.data['relatedId'] != null) {
-      final deliveryId = message.data['relatedId'].toString();
-      InAppDeliveryPopup.showLivreurArrived(deliveryId: deliveryId);
-      return;
-    }
+    // CODE MORT (livraison interne) — InAppDeliveryPopup désactivé au profit de Livro.
+    // if (message.data['type'] == 'delivery' &&
+    //     message.data['eventType'] == 'arrived' &&
+    //     message.data['relatedId'] != null) {
+    //   final deliveryId = message.data['relatedId'].toString();
+    //   InAppDeliveryPopup.showLivreurArrived(deliveryId: deliveryId);
+    //   return;
+    // }
 
     NotificationTapRouter.openFromRemoteMessage(
       rootNavigatorKey.currentContext,
@@ -417,11 +425,15 @@ void main() async {
     AppBootstrap.warmUp(),
   ]);
 
+  await SDKBubbleService.initialize();
+  _initializeLivroSdk();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => myauth.AuthProvider()),
         ChangeNotifierProvider(create: (_) => CounterProvider()),
+        // CODE MORT — panier interne (UI gelée) ; provider conservé pour ne pas casser CounterProvider.
         ChangeNotifierProvider(create: (_) => CartService()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
       ],
@@ -448,8 +460,32 @@ Future<void> _initializeDeferredServices() async {
   }
 }
 
-// Navigator global pour afficher des popups depuis n'importe où (FCM)
-final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+// Navigator global Tranoo = clé Livro (bulle de suivi + navigation SDK + FCM).
+final GlobalKey<NavigatorState> rootNavigatorKey = LivroSDK.navigatorKey;
+
+/// Livro — plateforme externe de livraison (remplace la livraison interne Tranoo).
+void _initializeLivroSdk() {
+  final publicKey = dotenv.env['LIVRO_PUBLIC_KEY'] ??
+      'pk_test_RMxCeIXfa1a2jB5PRBL14MhwW6KAbmS3QBBRPCoo';
+  final secretKey = dotenv.env['LIVRO_SECRET_KEY'] ??
+      'sk_test_qtlY6Bd71EUVSCOSc7RvKWJprMNFyJ0OJpOUVjoo';
+
+  LivroSDK.initialize(
+    baseUrl: dotenv.env['LIVRO_BASE_URL'] ??
+        'https://livro-plateforme.dihas.tech/api',
+    token: publicKey,
+    externalApp: true,
+    externalClientId:
+        dotenv.env['LIVRO_EXTERNAL_CLIENT_ID'] ?? 'USR_GUEST',
+    externalClientName:
+        dotenv.env['LIVRO_EXTERNAL_CLIENT_NAME'] ?? 'Tranoo',
+    publicKey: publicKey,
+    secretKey: secretKey,
+    onExit: () {
+      LivroSDK.navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    },
+  );
+}
 
 /// Après le splash natif : onboarding (SecondPage) ou accueil.
 class TranooEntryFlow extends StatefulWidget {
@@ -538,10 +574,16 @@ class MyApp extends StatelessWidget {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           BlockedUserService.setContext(context);
         });
+        final childWidget = child;
+        if (childWidget == null) {
+          return AlertLaunchBootstrap(child: const SizedBox.shrink());
+        }
         return AlertLaunchBootstrap(
-          child: MediaQuery(
-            data: MediaQuery.of(context).copyWith(),
-            child: DevicePreview.appBuilder(context, child),
+          child: SDKFloatingBubble(
+            child: MediaQuery(
+              data: MediaQuery.of(context).copyWith(),
+              child: DevicePreview.appBuilder(context, childWidget),
+            ),
           ),
         );
       },
@@ -571,7 +613,8 @@ class MyApp extends StatelessWidget {
             deviceId: args?['deviceId'] ?? '',
           );
         },
-        '/orders': (context) => const MesCommandesPage(),
+        // CODE MORT : const MesCommandesPage() — livraison via Livro.
+        '/orders': (context) => const LivroOrdersRedirectPage(),
         '/order-details': (context) {
           final args = ModalRoute.of(context)?.settings.arguments
               as Map<String, dynamic>?;

@@ -4,17 +4,18 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/cart_service.dart';
+import '../../config/backend_config.dart';
+// CODE MORT — panier interne Tranoo (gelé au profit de Livro).
+// import '../../services/cart_service.dart';
 import '../../services/user_service.dart';
 import '../../providers/counter_provider.dart';
-import '../../config/backend_config.dart';
 import 'marque.dart';
 import 'voitures.dart';
 import 'motos.dart';
 import 'piece.dart';
 import 'profil3.dart';
 import 'profilutilisateurpage.dart';
-import 'cart_page.dart';
+// import 'cart_page.dart';
 import 'notifications.dart';
 import 'connexion_page.dart';
 import 'mesfactures.dart';
@@ -378,52 +379,53 @@ class _AvantHomeState extends State<AvantHome>
               await _loadUnreadInvoicesCount();
             },
           ),
-          Consumer<CartService>(
-            builder: (context, cart, child) {
-              return IconButton(
-                icon: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Icon(Icons.shopping_cart_outlined,
-                        color: Colors.black),
-                    if (cart.totalQuantity > 0)
-                      Positioned(
-                        right: 4,
-                        top: 4,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.amber,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            cart.totalQuantity.toString(),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                onPressed: () {
-                  if (!_requireAuth(context, message: l10n.signInForCart)) {
-                    return;
-                  }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const CartPage()),
-                  );
-                },
-              );
-            },
-          ),
+          // CODE MORT — icône panier (système panier Tranoo gelé au profit de Livro).
+          // Consumer<CartService>(
+          //   builder: (context, cart, child) {
+          //     return IconButton(
+          //       icon: Stack(
+          //         clipBehavior: Clip.none,
+          //         children: [
+          //           const Icon(Icons.shopping_cart_outlined,
+          //               color: Colors.black),
+          //           if (cart.totalQuantity > 0)
+          //             Positioned(
+          //               right: 4,
+          //               top: 4,
+          //               child: Container(
+          //                 padding: const EdgeInsets.all(2),
+          //                 decoration: BoxDecoration(
+          //                   color: Colors.amber,
+          //                   borderRadius: BorderRadius.circular(10),
+          //                 ),
+          //                 constraints: const BoxConstraints(
+          //                   minWidth: 16,
+          //                   minHeight: 16,
+          //                 ),
+          //                 child: Text(
+          //                   cart.totalQuantity.toString(),
+          //                   style: const TextStyle(
+          //                     color: Colors.black,
+          //                     fontSize: 10,
+          //                     fontWeight: FontWeight.bold,
+          //                   ),
+          //                 ),
+          //               ),
+          //             ),
+          //         ],
+          //       ),
+          //       onPressed: () {
+          //         if (!_requireAuth(context, message: l10n.signInForCart)) {
+          //           return;
+          //         }
+          //         Navigator.push(
+          //           context,
+          //           MaterialPageRoute(builder: (context) => const CartPage()),
+          //         );
+          //       },
+          //     );
+          //   },
+          // ),
           Consumer<CounterProvider>(
             builder: (context, counter, child) {
               return IconButton(

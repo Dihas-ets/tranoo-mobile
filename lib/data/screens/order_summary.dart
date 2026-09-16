@@ -15,6 +15,13 @@ import 'package:tranoo/utils/payment_debug_logger.dart';
 import 'package:tranoo/widgets/feexpay_v2_payment_screen.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 
+// =============================================================================
+// CODE MORT — récap commande / panier interne (OrderSummaryPage)
+// -----------------------------------------------------------------------------
+// Gelé avec le système panier Tranoo. Commande livraison pièce via Livro.
+// Ne pas supprimer : conservé pour référence / rollback.
+// =============================================================================
+
 enum PaymentMethod { cash, online }
 
 class OrderSummaryPage extends StatefulWidget {

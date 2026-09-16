@@ -7,6 +7,15 @@ import 'order_tracking_page_modern.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/utils/order_status_l10n.dart';
 
+// =============================================================================
+// CODE MORT — livraison interne Tranoo
+// -----------------------------------------------------------------------------
+// Remplacé par le SDK Livro (`LivroIntegration.openFromServices` /
+// `LivroIntegration.openDelivery`). Conservé volontairement (ne pas supprimer)
+// pour référence / rollback éventuel. L'entrée Services > Livraisons et le FAB
+// détail pièce n'ouvrent plus cette page.
+// =============================================================================
+
 class MesCommandesPage extends StatefulWidget {
   const MesCommandesPage({super.key});
 

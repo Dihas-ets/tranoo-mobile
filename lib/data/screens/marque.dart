@@ -22,7 +22,11 @@ import 'package:tranoo/data/screens/movie.dart';
 import 'package:lottie/lottie.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/data/screens/orders_page.dart';
-import 'package:tranoo/data/screens/mes_commandes.dart';
+// CODE MORT (livraison interne) : MesCommandesPage — remplacé par Livro (Services > Livraisons).
+// import 'package:tranoo/data/screens/mes_commandes.dart';
+import 'package:provider/provider.dart';
+import 'package:tranoo/providers/auth_provider.dart' as myauth;
+import 'package:tranoo/utils/livro_integration.dart';
 import 'package:tranoo/widgets/catalog_article_grid_card.dart';
 import 'package:tranoo/data/screens/tricycle/tricycle_home.dart';
 import 'package:tranoo/utils/page_refresh_registry.dart';
@@ -3144,11 +3148,14 @@ class _MarqueState extends State<Marque>
                     iconSize: iconSize,
                     imagePath: 'assets/images/icon_livraison3.png',
                     onTap: () {
-                      Navigator.push(
+                      // Livraison interne (MesCommandesPage / OrderTracking) gelée :
+                      // redirection vers Livro — même entrée que la bulle de suivi.
+                      final authUser = Provider.of<myauth.AuthProvider>(
                         context,
-                        MaterialPageRoute(
-                            builder: (context) => const MesCommandesPage()),
-                      );
+                        listen: false,
+                      ).user;
+                      LivroIntegration.bindCurrentUser(authUser);
+                      LivroIntegration.openFromServices(context);
                     },
                   ),
                 ),

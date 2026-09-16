@@ -12,9 +12,10 @@ import 'package:tranoo/data/screens/mesfactures.dart';
 import 'package:tranoo/data/screens/moto_info.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/transit.dart';
-import 'package:tranoo/data/screens/wallet_screen.dart';
 import 'package:tranoo/services/user_service.dart';
-import 'package:tranoo/utils/in_app_delivery_popup.dart';
+// CODE MORT : in_app_delivery_popup — livraison via Livro.
+// import 'package:tranoo/utils/in_app_delivery_popup.dart';
+import 'package:tranoo/utils/livro_integration.dart';
 import 'package:tranoo/utils/tranoo_toast.dart';
 
 /// Redirection au clic (push + listing in-app) selon le type de notification.
@@ -180,18 +181,20 @@ class NotificationTapRouter {
     }
 
     final type = (data['type'] ?? 'general').toLowerCase();
-    final eventType = (data['eventType'] ?? '').toLowerCase();
+    // eventType conservé pour le bloc CODE MORT delivery/arrived ci-dessous.
+    // final eventType = (data['eventType'] ?? '').toLowerCase();
 
     if (type == 'otp') return;
 
-    if (type == 'delivery' &&
-        eventType == 'arrived' &&
-        (data['relatedId'] ?? '').isNotEmpty) {
-      InAppDeliveryPopup.showLivreurArrived(
-        deliveryId: data['relatedId']!,
-      );
-      return;
-    }
+    // CODE MORT (livraison interne) — InAppDeliveryPopup désactivé au profit de Livro.
+    // if (type == 'delivery' &&
+    //     eventType == 'arrived' &&
+    //     (data['relatedId'] ?? '').isNotEmpty) {
+    //   InAppDeliveryPopup.showLivreurArrived(
+    //     deliveryId: data['relatedId']!,
+    //   );
+    //   return;
+    // }
 
     if (opensArticleDetail(data) || type == 'publicite') {
       final seed = initialArticle ?? seedArticleFromData(data);
@@ -218,7 +221,8 @@ class NotificationTapRouter {
         push(const MesFacturesPage());
         return;
       case 'delivery':
-        push(const WalletScreen());
+        // Livraison interne gelée → ouvrir le suivi Livro (comme Services > Livraisons).
+        LivroIntegration.openFromServices(nav.context);
         return;
       case 'transit_selection':
       case 'transit_transfer':
