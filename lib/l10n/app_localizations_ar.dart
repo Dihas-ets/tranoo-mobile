@@ -1267,12 +1267,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get myCart => 'سلتي';
 
   @override
-  String get cartEmpty => 'سلتك فارغة';
-
-  @override
-  String get cartEmptyHint => 'أضف منتجات لبدء التسوق';
-
-  @override
   String get checkout => 'إتمام الطلب';
 
   @override
@@ -1346,9 +1340,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get notificationDetails => 'تفاصيل الإشعار';
-
-  @override
-  String get myOrders => 'طلباتي';
 
   @override
   String get noOrders => 'لا توجد طلبات';
@@ -1436,9 +1427,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get termsOfUse => 'شروط الاستخدام';
-
-  @override
-  String get livreurHome => 'الصفحة الرئيسية للموصل';
 
   @override
   String get chauffeurHome => 'الصفحة الرئيسية للسائق';
@@ -2051,9 +2039,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get quantity => 'الكمية';
 
   @override
-  String get addToCart => 'أضف إلى السلة';
-
-  @override
   String get buyNow => 'اشترِ الآن';
 
   @override
@@ -2103,9 +2088,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get shipping => 'الشحن';
-
-  @override
-  String get orderStatus => 'حالة الطلب';
 
   @override
   String get orderDate => 'تاريخ الطلب';
@@ -3313,9 +3295,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get orderTotalLabel => 'إجمالي الطلب';
 
   @override
-  String get deliveryFeesLabel => 'رسوم التوصيل';
-
-  @override
   String get payMyOrder => 'ادفع طلبي';
 
   @override
@@ -3323,9 +3302,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get partsOrderPaymentLabel => 'دفع طلب القطع';
-
-  @override
-  String get deliveryFeePaymentLabel => 'دفع رسوم التوصيل';
 
   @override
   String get fileDownloadFailed => 'تعذر تنزيل الملف';
@@ -3496,30 +3472,6 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get orderStatusPending => 'قيد الانتظار';
-
-  @override
-  String get orderStatusConfirmed => 'مؤكدة';
-
-  @override
-  String get orderStatusPreparing => 'قيد التحضير';
-
-  @override
-  String get orderStatusReady => 'جاهزة';
-
-  @override
-  String get orderStatusDelivering => 'قيد التوصيل';
-
-  @override
-  String get orderStatusDelivered => 'تم التوصيل';
-
-  @override
-  String get orderStatusCancelled => 'ملغاة';
-
-  @override
-  String get orderStatusDriverAssigned => 'تم تعيين السائق';
-
-  @override
   String get tranooDelivery => 'توصيل Tranoo';
 
   @override
@@ -3605,9 +3557,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get availability => 'التوفر';
-
-  @override
-  String get deliveryFeeLabel => 'رسوم التوصيل';
 
   @override
   String get processingOrder => 'جاري المعالجة...';

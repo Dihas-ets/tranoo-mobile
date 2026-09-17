@@ -1305,12 +1305,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get myCart => 'Mon Panier';
 
   @override
-  String get cartEmpty => 'Votre panier est vide';
-
-  @override
-  String get cartEmptyHint => 'Ajoutez des articles pour commencer vos achats';
-
-  @override
   String get checkout => 'Passer la commande';
 
   @override
@@ -1386,9 +1380,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get notificationDetails => 'Détails notification';
-
-  @override
-  String get myOrders => 'Mes commandes';
 
   @override
   String get noOrders => 'Aucune commande';
@@ -1476,9 +1467,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get termsOfUse => 'Conditions d\'utilisation';
-
-  @override
-  String get livreurHome => 'Accueil livreur';
 
   @override
   String get chauffeurHome => 'Accueil chauffeur';
@@ -2106,9 +2094,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get quantity => 'Quantité';
 
   @override
-  String get addToCart => 'Ajouter au panier';
-
-  @override
   String get buyNow => 'Acheter maintenant';
 
   @override
@@ -2158,9 +2143,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get shipping => 'Livraison';
-
-  @override
-  String get orderStatus => 'Statut de commande';
 
   @override
   String get orderDate => 'Date de commande';
@@ -3388,9 +3370,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orderTotalLabel => 'Total commande';
 
   @override
-  String get deliveryFeesLabel => 'Frais livraison';
-
-  @override
   String get payMyOrder => 'Payer ma commande';
 
   @override
@@ -3398,9 +3377,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get partsOrderPaymentLabel => 'Paiement commande pièces';
-
-  @override
-  String get deliveryFeePaymentLabel => 'Paiement frais de livraison';
 
   @override
   String get fileDownloadFailed => 'Impossible de télécharger le fichier';
@@ -3571,30 +3547,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get orderStatusPending => 'En attente';
-
-  @override
-  String get orderStatusConfirmed => 'Confirmée';
-
-  @override
-  String get orderStatusPreparing => 'En préparation';
-
-  @override
-  String get orderStatusReady => 'Prête';
-
-  @override
-  String get orderStatusDelivering => 'En livraison';
-
-  @override
-  String get orderStatusDelivered => 'Livrée';
-
-  @override
-  String get orderStatusCancelled => 'Annulée';
-
-  @override
-  String get orderStatusDriverAssigned => 'Livreur assigné';
-
-  @override
   String get tranooDelivery => 'Tranoo Delivery';
 
   @override
@@ -3680,9 +3632,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get availability => 'Disponibilité';
-
-  @override
-  String get deliveryFeeLabel => 'Frais de livraison';
 
   @override
   String get processingOrder => 'Traitement en cours...';

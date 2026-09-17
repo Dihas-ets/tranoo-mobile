@@ -2452,18 +2452,6 @@ abstract class AppLocalizations {
   /// **'My Cart'**
   String get myCart;
 
-  /// No description provided for @cartEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'Your cart is empty'**
-  String get cartEmpty;
-
-  /// No description provided for @cartEmptyHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Add items to start shopping'**
-  String get cartEmptyHint;
-
   /// No description provided for @checkout.
   ///
   /// In en, this message translates to:
@@ -2613,12 +2601,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notification details'**
   String get notificationDetails;
-
-  /// No description provided for @myOrders.
-  ///
-  /// In en, this message translates to:
-  /// **'My orders'**
-  String get myOrders;
 
   /// No description provided for @noOrders.
   ///
@@ -2793,12 +2775,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Terms of use'**
   String get termsOfUse;
-
-  /// No description provided for @livreurHome.
-  ///
-  /// In en, this message translates to:
-  /// **'Delivery home'**
-  String get livreurHome;
 
   /// No description provided for @chauffeurHome.
   ///
@@ -3910,12 +3886,6 @@ abstract class AppLocalizations {
   /// **'Quantity'**
   String get quantity;
 
-  /// No description provided for @addToCart.
-  ///
-  /// In en, this message translates to:
-  /// **'Add to cart'**
-  String get addToCart;
-
   /// No description provided for @buyNow.
   ///
   /// In en, this message translates to:
@@ -4017,12 +3987,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shipping'**
   String get shipping;
-
-  /// No description provided for @orderStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'Order status'**
-  String get orderStatus;
 
   /// No description provided for @orderDate.
   ///
@@ -6208,12 +6172,6 @@ abstract class AppLocalizations {
   /// **'Order total'**
   String get orderTotalLabel;
 
-  /// No description provided for @deliveryFeesLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Delivery fee'**
-  String get deliveryFeesLabel;
-
   /// No description provided for @payMyOrder.
   ///
   /// In en, this message translates to:
@@ -6231,12 +6189,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Parts order payment'**
   String get partsOrderPaymentLabel;
-
-  /// No description provided for @deliveryFeePaymentLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Delivery fee payment'**
-  String get deliveryFeePaymentLabel;
 
   /// No description provided for @fileDownloadFailed.
   ///
@@ -6514,54 +6466,6 @@ abstract class AppLocalizations {
   /// **'CMD #{id}'**
   String orderCmdNumber(String id);
 
-  /// No description provided for @orderStatusPending.
-  ///
-  /// In en, this message translates to:
-  /// **'Pending'**
-  String get orderStatusPending;
-
-  /// No description provided for @orderStatusConfirmed.
-  ///
-  /// In en, this message translates to:
-  /// **'Confirmed'**
-  String get orderStatusConfirmed;
-
-  /// No description provided for @orderStatusPreparing.
-  ///
-  /// In en, this message translates to:
-  /// **'Preparing'**
-  String get orderStatusPreparing;
-
-  /// No description provided for @orderStatusReady.
-  ///
-  /// In en, this message translates to:
-  /// **'Ready'**
-  String get orderStatusReady;
-
-  /// No description provided for @orderStatusDelivering.
-  ///
-  /// In en, this message translates to:
-  /// **'Delivering'**
-  String get orderStatusDelivering;
-
-  /// No description provided for @orderStatusDelivered.
-  ///
-  /// In en, this message translates to:
-  /// **'Delivered'**
-  String get orderStatusDelivered;
-
-  /// No description provided for @orderStatusCancelled.
-  ///
-  /// In en, this message translates to:
-  /// **'Cancelled'**
-  String get orderStatusCancelled;
-
-  /// No description provided for @orderStatusDriverAssigned.
-  ///
-  /// In en, this message translates to:
-  /// **'Driver assigned'**
-  String get orderStatusDriverAssigned;
-
   /// No description provided for @tranooDelivery.
   ///
   /// In en, this message translates to:
@@ -6723,12 +6627,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Availability'**
   String get availability;
-
-  /// No description provided for @deliveryFeeLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Delivery fee'**
-  String get deliveryFeeLabel;
 
   /// No description provided for @processingOrder.
   ///

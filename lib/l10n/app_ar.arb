@@ -559,8 +559,6 @@
   "noCharacteristicsProvided": "- لا توجد مواصفات",
   "proposeOffer": "قدّم عرضاً",
   "myCart": "سلتي",
-  "cartEmpty": "سلتك فارغة",
-  "cartEmptyHint": "أضف منتجات لبدء التسوق",
   "checkout": "إتمام الطلب",
   "carsOnline": "سيارات متاحة",
   "motosOnline": "دراجات نارية متاحة",
@@ -586,7 +584,6 @@
   "noNotifications": "لا توجد إشعارات",
   "markAllRead": "تعليم الكل كمقروء",
   "notificationDetails": "تفاصيل الإشعار",
-  "myOrders": "طلباتي",
   "noOrders": "لا توجد طلبات",
   "orderDetails": "تفاصيل الطلب",
   "orderTracking": "تتبع الطلب",
@@ -616,7 +613,6 @@
   "chooseLocation": "اختر الموقع",
   "navigate": "التنقل",
   "termsOfUse": "شروط الاستخدام",
-  "livreurHome": "الصفحة الرئيسية للموصل",
   "chauffeurHome": "الصفحة الرئيسية للسائق",
   "myDeliveries": "توصيلاتي",
   "sellerSubscription": "اشتراك البائع",
@@ -955,7 +951,6 @@
   "applicationSubmitError": "خطأ في إرسال الطلب.",
   "vendreTitle": "بيع",
   "quantity": "الكمية",
-  "addToCart": "أضف إلى السلة",
   "buyNow": "اشترِ الآن",
   "contactSeller": "اتصل بالبائع",
   "views": "المشاهدات",
@@ -973,7 +968,6 @@
   "remove": "إزالة",
   "subtotal": "المجموع الفرعي",
   "shipping": "الشحن",
-  "orderStatus": "حالة الطلب",
   "orderDate": "تاريخ الطلب",
   "delivered": "تم التوصيل",
   "cancelled": "ملغاة",
@@ -1611,11 +1605,9 @@
   "driverArrivedTitle": "وصل سائق التوصيل",
   "chooseAnAction": "اختر إجراءً.",
   "orderTotalLabel": "إجمالي الطلب",
-  "deliveryFeesLabel": "رسوم التوصيل",
   "payMyOrder": "ادفع طلبي",
   "returnReasonRequiredTitle": "سبب الإرجاع (إلزامي)",
   "partsOrderPaymentLabel": "دفع طلب القطع",
-  "deliveryFeePaymentLabel": "دفع رسوم التوصيل",
   "fileDownloadFailed": "تعذر تنزيل الملف",
   "tranooDocumentShare": "مستند Tranoo",
   "refWithId": "المرجع {id}",
@@ -1719,27 +1711,39 @@
   "whatsappCarInterestWithRef": "مرحباً Tranoo، أرغب في شراء السيارة « {title} » (مرجع {articleId}).",
   "@whatsappCarInterestWithRef": {
     "placeholders": {
-      "title": { "type": "String" },
-      "articleId": { "type": "String" }
+      "title": {
+        "type": "String"
+      },
+      "articleId": {
+        "type": "String"
+      }
     }
   },
   "whatsappCarInterestNoRef": "مرحباً Tranoo، أرغب في شراء السيارة « {title} ».",
   "@whatsappCarInterestNoRef": {
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "whatsappMotoInterestWithRef": "مرحباً Tranoo، أرغب في شراء الدراجة « {title} » (مرجع {articleId}).",
   "@whatsappMotoInterestWithRef": {
     "placeholders": {
-      "title": { "type": "String" },
-      "articleId": { "type": "String" }
+      "title": {
+        "type": "String"
+      },
+      "articleId": {
+        "type": "String"
+      }
     }
   },
   "whatsappMotoInterestNoRef": "مرحباً Tranoo، أرغب في شراء الدراجة « {title} ».",
   "@whatsappMotoInterestNoRef": {
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "defaultMotoTitle": "هذه الدراجة",
@@ -1757,14 +1761,6 @@
       }
     }
   },
-  "orderStatusPending": "قيد الانتظار",
-  "orderStatusConfirmed": "مؤكدة",
-  "orderStatusPreparing": "قيد التحضير",
-  "orderStatusReady": "جاهزة",
-  "orderStatusDelivering": "قيد التوصيل",
-  "orderStatusDelivered": "تم التوصيل",
-  "orderStatusCancelled": "ملغاة",
-  "orderStatusDriverAssigned": "تم تعيين السائق",
   "tranooDelivery": "توصيل Tranoo",
   "driverLabel": "السائق",
   "addressNotSpecified": "العنوان غير محدد",
@@ -1819,7 +1815,6 @@
     }
   },
   "availability": "التوفر",
-  "deliveryFeeLabel": "رسوم التوصيل",
   "processingOrder": "جاري المعالجة...",
   "supplierCoordsUnavailable": "إحداثيات المورد غير متاحة لحساب التوصيل.",
   "invalidCoordinates": "إحداثيات غير صالحة",
@@ -2437,7 +2432,9 @@
   "purchaseHistoryStartedAt": "بدأ في {date}",
   "@purchaseHistoryStartedAt": {
     "placeholders": {
-      "date": { "type": "String" }
+      "date": {
+        "type": "String"
+      }
     }
   },
   "purchaseStatusParcours": "جارٍ — اختر وسيطاً",

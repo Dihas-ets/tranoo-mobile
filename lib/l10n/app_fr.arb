@@ -559,8 +559,6 @@
   "noCharacteristicsProvided": "- Aucune caracteristique fournie",
   "proposeOffer": "Proposez une offre",
   "myCart": "Mon Panier",
-  "cartEmpty": "Votre panier est vide",
-  "cartEmptyHint": "Ajoutez des articles pour commencer vos achats",
   "checkout": "Passer la commande",
   "carsOnline": "Voitures en ligne",
   "motosOnline": "Motos en ligne",
@@ -586,7 +584,6 @@
   "noNotifications": "Aucune notification",
   "markAllRead": "Tout marquer lu",
   "notificationDetails": "Détails notification",
-  "myOrders": "Mes commandes",
   "noOrders": "Aucune commande",
   "orderDetails": "Détails de commande",
   "orderTracking": "Suivi de commande",
@@ -616,7 +613,6 @@
   "chooseLocation": "Choisir la localisation",
   "navigate": "Naviguer",
   "termsOfUse": "Conditions d'utilisation",
-  "livreurHome": "Accueil livreur",
   "chauffeurHome": "Accueil chauffeur",
   "myDeliveries": "Mes livraisons",
   "sellerSubscription": "Abonnement vendeur",
@@ -955,7 +951,6 @@
   "applicationSubmitError": "Erreur lors de la soumission.",
   "vendreTitle": "Vendre",
   "quantity": "Quantité",
-  "addToCart": "Ajouter au panier",
   "buyNow": "Acheter maintenant",
   "contactSeller": "Contacter le vendeur",
   "views": "Vues",
@@ -973,7 +968,6 @@
   "remove": "Retirer",
   "subtotal": "Sous-total",
   "shipping": "Livraison",
-  "orderStatus": "Statut de commande",
   "orderDate": "Date de commande",
   "delivered": "Livrée",
   "cancelled": "Annulée",
@@ -1611,11 +1605,9 @@
   "driverArrivedTitle": "Votre livreur est arrivé",
   "chooseAnAction": "Choisissez une action.",
   "orderTotalLabel": "Total commande",
-  "deliveryFeesLabel": "Frais livraison",
   "payMyOrder": "Payer ma commande",
   "returnReasonRequiredTitle": "Motif de retour (obligatoire)",
   "partsOrderPaymentLabel": "Paiement commande pièces",
-  "deliveryFeePaymentLabel": "Paiement frais de livraison",
   "fileDownloadFailed": "Impossible de télécharger le fichier",
   "tranooDocumentShare": "Document Tranoo",
   "refWithId": "Réf. {id}",
@@ -1719,27 +1711,39 @@
   "whatsappCarInterestWithRef": "Bonjour Tranoo, je souhaite acheter la voiture « {title} » (réf. {articleId}).",
   "@whatsappCarInterestWithRef": {
     "placeholders": {
-      "title": { "type": "String" },
-      "articleId": { "type": "String" }
+      "title": {
+        "type": "String"
+      },
+      "articleId": {
+        "type": "String"
+      }
     }
   },
   "whatsappCarInterestNoRef": "Bonjour Tranoo, je souhaite acheter la voiture « {title} ».",
   "@whatsappCarInterestNoRef": {
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "whatsappMotoInterestWithRef": "Bonjour Tranoo, je souhaite acheter la moto « {title} » (réf. {articleId}).",
   "@whatsappMotoInterestWithRef": {
     "placeholders": {
-      "title": { "type": "String" },
-      "articleId": { "type": "String" }
+      "title": {
+        "type": "String"
+      },
+      "articleId": {
+        "type": "String"
+      }
     }
   },
   "whatsappMotoInterestNoRef": "Bonjour Tranoo, je souhaite acheter la moto « {title} ».",
   "@whatsappMotoInterestNoRef": {
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "defaultMotoTitle": "cette moto",
@@ -1757,14 +1761,6 @@
       }
     }
   },
-  "orderStatusPending": "En attente",
-  "orderStatusConfirmed": "Confirmée",
-  "orderStatusPreparing": "En préparation",
-  "orderStatusReady": "Prête",
-  "orderStatusDelivering": "En livraison",
-  "orderStatusDelivered": "Livrée",
-  "orderStatusCancelled": "Annulée",
-  "orderStatusDriverAssigned": "Livreur assigné",
   "tranooDelivery": "Tranoo Delivery",
   "driverLabel": "Livreur",
   "addressNotSpecified": "Adresse non spécifiée",
@@ -1819,7 +1815,6 @@
     }
   },
   "availability": "Disponibilité",
-  "deliveryFeeLabel": "Frais de livraison",
   "processingOrder": "Traitement en cours...",
   "supplierCoordsUnavailable": "Coordonnées fournisseur indisponibles pour calculer la livraison.",
   "invalidCoordinates": "Coordonnées invalides",
@@ -2437,7 +2432,9 @@
   "purchaseHistoryStartedAt": "Démarré le {date}",
   "@purchaseHistoryStartedAt": {
     "placeholders": {
-      "date": { "type": "String" }
+      "date": {
+        "type": "String"
+      }
     }
   },
   "purchaseStatusParcours": "En cours — choix transitaire",
