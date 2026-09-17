@@ -13,7 +13,6 @@ import 'package:tranoo/widgets/notification_list_ui.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:tranoo/widgets/page_pull_refresh.dart';
 import 'package:tranoo/utils/verification_notification_helpers.dart';
-import 'package:tranoo/utils/order_status_l10n.dart';
 import 'package:tranoo/utils/notification_i18n.dart';
 import 'package:tranoo/utils/locale_helper.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
@@ -22,6 +21,13 @@ import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/utils/notification_tap_router.dart';
 
 // --------- HELPERS SÉCURISÉS ----------
+String formatRelativeTime(AppLocalizations l10n, DateTime date) {
+  final diff = DateTime.now().difference(date);
+  if (diff.inDays > 0) return l10n.timeAgoDays(diff.inDays);
+  if (diff.inHours > 0) return l10n.timeAgoHours(diff.inHours);
+  return l10n.timeAgoMinutesLong(diff.inMinutes);
+}
+
 String stripHtmlDocumentWrapper(String html) {
   final t = html.trim();
   if (!t.toLowerCase().contains('<!doctype') &&

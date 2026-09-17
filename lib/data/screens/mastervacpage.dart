@@ -1,14 +1,6 @@
-// ignore_for_file: unused_element
-
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-// import 'payement.dart'; // Plus utilisé
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
-// CODE MORT — panier interne Tranoo (remplacé par Livro pour la livraison).
-// import 'package:tranoo/services/cart_service.dart';
-// import 'cart_page.dart';
-// import 'order_summary.dart';
-// import 'package:tranoo/data/screens/paymentscreen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,7 +10,6 @@ import 'package:livro_delivery_sdk/models/course_draft.dart';
 import 'package:tranoo/utils/livro_integration.dart';
 import 'package:tranoo/utils/auth_dialog.dart';
 import 'package:confetti/confetti.dart';
-// import 'verification_payment.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/utils/article_view_helper.dart';
 import 'package:tranoo/utils/auth_config.dart';
@@ -101,7 +92,6 @@ class _MastervacPageState extends State<MastervacPage> {
   // SUPPRIME la liste statique _images
 
   TextEditingController detailsController = TextEditingController();
-  // Champs de livraison/lieu supprimés - gérés dans OrderSummaryPage
   late ConfettiController _confettiController;
   bool _isOnline = false;
   String? _sellerPhone;
@@ -310,42 +300,6 @@ class _MastervacPageState extends State<MastervacPage> {
     return double.tryParse(value.toString());
   }
 
-  /// CODE MORT (panier / achat via l'app) — conservé pour référence.
-  /// Remplacé par Livro (`_openLivroDeliveryFlow`). Ne plus brancher d'UI dessus.
-  // Future<void> _startDeliveryFlow() async {
-  //   final l10n = AppLocalizations.of(context)!;
-  //   final firebaseUser = FirebaseAuth.instance.currentUser;
-  //   if (firebaseUser == null) {
-  //     showAuthDialog(
-  //       context,
-  //       message: l10n.signInForDelivery,
-  //     );
-  //     return;
-  //   }
-  //   final firstImage = widget.images.whereType<String>().firstWhere(
-  //         (e) => e.startsWith('http'),
-  //         orElse: () => '',
-  //       );
-  //   await CartService().clear();
-  //   await CartService().addOrIncrement(
-  //     CartItem(
-  //       articleId: (widget.id ?? '').toString(),
-  //       title: widget.title,
-  //       imageUrl: firstImage.isEmpty ? null : firstImage,
-  //       priceLabel: widget.price,
-  //       pieceType: widget.pieceType,
-  //       model: widget.model,
-  //       fuelType: widget.fuelType,
-  //       quantity: 1,
-  //     ),
-  //   );
-  //   if (!mounted) return;
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(builder: (_) => const OrderSummaryPage()),
-  //   );
-  // }
-
   Future<void> _loadArticleDetails() async {
     try {
       final id = widget.id;
@@ -430,55 +384,6 @@ class _MastervacPageState extends State<MastervacPage> {
         icon: const Icon(Icons.arrow_back, color: Colors.black),
         onPressed: () => Navigator.pop(context),
       ),
-      actions: [
-        // CODE MORT — icône panier (système panier Tranoo gelé au profit de Livro).
-        // AnimatedBuilder(
-        //   animation: CartService(),
-        //   builder: (context, _) {
-        //     final qty = CartService().totalQuantity;
-        //     return Stack(
-        //       clipBehavior: Clip.none,
-        //       children: [
-        //         IconButton(
-        //           icon: const Icon(
-        //             Icons.shopping_cart_outlined,
-        //             color: Colors.black,
-        //           ),
-        //           onPressed: () {
-        //             Navigator.push(
-        //               context,
-        //               MaterialPageRoute(builder: (_) => const CartPage()),
-        //             );
-        //           },
-        //         ),
-        //         if (qty > 0)
-        //           Positioned(
-        //             right: 8,
-        //             top: 8,
-        //             child: Container(
-        //               padding: const EdgeInsets.symmetric(
-        //                 horizontal: 6,
-        //                 vertical: 2,
-        //               ),
-        //               decoration: BoxDecoration(
-        //                 color: Colors.amber,
-        //                 borderRadius: BorderRadius.circular(10),
-        //               ),
-        //               child: Text(
-        //                 qty.toString(),
-        //                 style: const TextStyle(
-        //                   fontSize: 12,
-        //                   fontWeight: FontWeight.bold,
-        //                   color: Colors.black,
-        //                 ),
-        //               ),
-        //             ),
-        //           ),
-        //       ],
-        //     );
-        //   },
-        // ),
-      ],
     );
   }
 
@@ -838,35 +743,6 @@ class _MastervacPageState extends State<MastervacPage> {
             ),
           ),
         ),
-        const SizedBox(height: 10),
-        // CODE MORT — « Acheter via l'app » (panier → OrderSummary).
-        // Plus de logique cohérente : livraison / commande pièce via Livro (FAB).
-        // SizedBox(
-        //   width: double.infinity,
-        //   child: ElevatedButton.icon(
-        //     style: ElevatedButton.styleFrom(
-        //       backgroundColor: Colors.white,
-        //       foregroundColor: const Color(0xFF0461B6),
-        //       padding: const EdgeInsets.symmetric(vertical: 14),
-        //       side: const BorderSide(color: Color(0xFF0461B6), width: 1.5),
-        //       shape: RoundedRectangleBorder(
-        //         borderRadius: BorderRadius.circular(10),
-        //       ),
-        //     ),
-        //     onPressed: _startDeliveryFlow,
-        //     icon: const Icon(Icons.shopping_cart_outlined),
-        //     label: Text(
-        //       l10n.buyViaApp,
-        //       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-        //     ),
-        //   ),
-        // ),
-        // const SizedBox(height: 8),
-        // Text(
-        //   l10n.secureOrderViaCart,
-        //   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-        //   textAlign: TextAlign.center,
-        // ),
       ],
     );
   }

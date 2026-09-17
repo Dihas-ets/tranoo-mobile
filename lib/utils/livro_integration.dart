@@ -7,8 +7,7 @@ import 'package:livro_delivery_sdk/services/sdk_bubble_service.dart';
 
 /// Pont Tranoo ↔ Livro (identité client externe + ouverture du SDK).
 ///
-/// La livraison interne Tranoo (MesCommandes / OrderTracking / in_app_delivery)
-/// est gelée : tout le suivi et la commande livraison passent par Livro.
+/// Suivi et commande de livraison via Livro.
 class LivroIntegration {
   LivroIntegration._();
 
@@ -123,7 +122,7 @@ class LivroIntegration {
   }
 }
 
-/// Route `/orders` : remplace MesCommandesPage (livraison interne gelée).
+/// Route `/orders` : redirige vers le suivi Livro.
 class LivroOrdersRedirectPage extends StatefulWidget {
   const LivroOrdersRedirectPage({super.key});
 

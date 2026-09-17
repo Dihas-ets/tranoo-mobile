@@ -13,8 +13,6 @@ import 'package:tranoo/data/screens/moto_info.dart';
 import 'package:tranoo/data/screens/notifications.dart';
 import 'package:tranoo/data/screens/transit.dart';
 import 'package:tranoo/services/user_service.dart';
-// CODE MORT : in_app_delivery_popup — livraison via Livro.
-// import 'package:tranoo/utils/in_app_delivery_popup.dart';
 import 'package:tranoo/utils/livro_integration.dart';
 import 'package:tranoo/utils/tranoo_toast.dart';
 
@@ -181,20 +179,8 @@ class NotificationTapRouter {
     }
 
     final type = (data['type'] ?? 'general').toLowerCase();
-    // eventType conservé pour le bloc CODE MORT delivery/arrived ci-dessous.
-    // final eventType = (data['eventType'] ?? '').toLowerCase();
 
     if (type == 'otp') return;
-
-    // CODE MORT (livraison interne) — InAppDeliveryPopup désactivé au profit de Livro.
-    // if (type == 'delivery' &&
-    //     eventType == 'arrived' &&
-    //     (data['relatedId'] ?? '').isNotEmpty) {
-    //   InAppDeliveryPopup.showLivreurArrived(
-    //     deliveryId: data['relatedId']!,
-    //   );
-    //   return;
-    // }
 
     if (opensArticleDetail(data) || type == 'publicite') {
       final seed = initialArticle ?? seedArticleFromData(data);
@@ -221,7 +207,7 @@ class NotificationTapRouter {
         push(const MesFacturesPage());
         return;
       case 'delivery':
-        // Livraison interne gelée → ouvrir le suivi Livro (comme Services > Livraisons).
+        // Livraison via Livro (comme Services > Livraisons).
         LivroIntegration.openFromServices(nav.context);
         return;
       case 'transit_selection':

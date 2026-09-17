@@ -25,8 +25,6 @@ import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/blocked_user_service.dart';
 import 'package:tranoo/services/push_otp_service.dart';
 import 'package:tranoo/utils/local_notification_service.dart';
-// CODE MORT (livraison interne) — popup livreur arrivé remplacé par le suivi Livro.
-// import 'package:tranoo/utils/in_app_delivery_popup.dart';
 import 'package:tranoo/services/urgent_fcm_utils.dart';
 import 'package:tranoo/services/alert_launch_bootstrap.dart';
 import 'package:tranoo/widgets/alert_incoming_call_overlay.dart';
@@ -39,13 +37,9 @@ import 'data/screens/tarif.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart' as myauth;
 import 'providers/counter_provider.dart';
-import 'services/cart_service.dart';
 import 'package:tranoo/data/screens/reset/forgot_password_page.dart';
 import 'package:tranoo/data/screens/reset/verify_code_page.dart';
 import 'package:tranoo/data/screens/reset/create_new_password_page.dart';
-import 'package:tranoo/data/screens/order_details_page.dart';
-// CODE MORT : MesCommandesPage — route /orders redirigée vers Livro.
-// import 'package:tranoo/data/screens/mes_commandes.dart';
 import 'package:tranoo/utils/livro_integration.dart';
 import 'package:tranoo/services/app_bootstrap.dart';
 import 'package:livro_delivery_sdk/livro_delivery_sdk.dart';
@@ -330,16 +324,6 @@ class NotificationService {
   void _showLocalNotification(RemoteMessage message) async {
     _logger.info('Notification locale: ${message.notification?.title}');
 
-    // CODE MORT (livraison interne Tranoo) — InAppDeliveryPopup désactivé.
-    // Le suivi livreur passe par la bulle / SDK Livro.
-    // if (message.data['type'] == 'delivery' &&
-    //     (message.data['eventType'] == 'arrived' ||
-    //         message.data['eventType'] == 'arrived'.toString()) &&
-    //     message.data['relatedId'] != null) {
-    //   final deliveryId = message.data['relatedId'].toString();
-    //   InAppDeliveryPopup.showLivreurArrived(deliveryId: deliveryId);
-    // }
-
     // Afficher une notification locale visible même en foreground
     if (message.data['type'] == 'otp') {
       final code = message.data['code'] as String?;
@@ -397,15 +381,6 @@ class NotificationService {
       'Gestion du tap sur notification: ${message.notification?.title}',
     );
 
-    // CODE MORT (livraison interne) — InAppDeliveryPopup désactivé au profit de Livro.
-    // if (message.data['type'] == 'delivery' &&
-    //     message.data['eventType'] == 'arrived' &&
-    //     message.data['relatedId'] != null) {
-    //   final deliveryId = message.data['relatedId'].toString();
-    //   InAppDeliveryPopup.showLivreurArrived(deliveryId: deliveryId);
-    //   return;
-    // }
-
     NotificationTapRouter.openFromRemoteMessage(
       rootNavigatorKey.currentContext,
       message,
@@ -433,8 +408,6 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => myauth.AuthProvider()),
         ChangeNotifierProvider(create: (_) => CounterProvider()),
-        // CODE MORT — panier interne (UI gelée) ; provider conservé pour ne pas casser CounterProvider.
-        ChangeNotifierProvider(create: (_) => CartService()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
       ],
       child: const MyApp(),
@@ -613,16 +586,7 @@ class MyApp extends StatelessWidget {
             deviceId: args?['deviceId'] ?? '',
           );
         },
-        // CODE MORT : const MesCommandesPage() — livraison via Livro.
         '/orders': (context) => const LivroOrdersRedirectPage(),
-        '/order-details': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments
-              as Map<String, dynamic>?;
-          return OrderDetailsPage(
-            order: args?['order'] ?? {},
-            accentColor: args?['accentColor'] ?? const Color(0xFF1F69FF),
-          );
-        },
         '/cart-payment-success': (context) =>
             const _CartPaymentCallbackPage(success: true),
         '/cart-payment-error': (context) =>
