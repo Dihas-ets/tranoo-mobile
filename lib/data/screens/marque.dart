@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:tranoo/data/screens/cars_info.dart';
 import 'package:tranoo/data/screens/voitures.dart';
 import 'package:tranoo/data/screens/motos.dart';
@@ -17,12 +16,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 import 'package:tranoo/utils/livro_integration.dart';
-import 'package:tranoo/widgets/catalog_article_grid_card.dart';
 import 'package:tranoo/utils/page_refresh_registry.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:tranoo/widgets/page_pull_refresh.dart';
@@ -38,7 +35,8 @@ import 'package:tranoo/data/models/article_voiture.dart';
 import 'package:tranoo/data/models/pub.dart';
 import 'package:tranoo/data/repositories/marque_repository.dart';
 import 'package:tranoo/utils/catalog_display.dart';
-import 'package:tranoo/utils/pub_validity.dart';
+import 'package:tranoo/data/screens/marque/marque_pubs_carousel.dart';
+import 'package:tranoo/data/screens/marque/marque_catalog_sections.dart';
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -380,28 +378,6 @@ class _MarqueState extends State<Marque>
     }
   }
 
-  Widget _buildViewBadge(String articleId) {
-    final totalViews = _backendViews[articleId] ?? 0;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.remove_red_eye, size: 14, color: Colors.white),
-          const SizedBox(width: 4),
-          Text(
-            totalViews.toString(),
-            style: const TextStyle(color: Colors.white, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
 
   List<ArticleVoiture> _applyFilters(List<ArticleVoiture> source) {
     return source.where((v) {
@@ -770,665 +746,6 @@ class _MarqueState extends State<Marque>
     super.dispose();
   }
 
-  Widget _buildTabButton(String title, int index, {bool isWide = false}) {
-    bool isSelected = _tabController.index == index;
-    const selectedColor = Color(0xFFF8BF13); // Jaune unifié plus doux
-    const unselectedBorderColor = Color(0xFF000000);
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _tabController.index = index;
-        });
-      },
-      child: Container(
-        width: isWide ? 100 : 70,
-        height: 40,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? selectedColor : Colors.transparent,
-          border: Border.all(
-            color: isSelected ? selectedColor : unselectedBorderColor,
-            width: 0.8,
-          ),
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            color: isSelected ? Colors.white : Colors.black,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Section Recommandé :
-  Widget buildVoituresRecommandeesGrid() {
-    if (isLoadingVoitures) {
-      return SkeletonPresets.articleGrid(count: 2);
-    }
-    if (errorVoitures != null) {
-      return Center(child: Text(errorVoitures!));
-    }
-    // Filtrer les voitures avec statut 'en_ligne' et non vendues
-    final isVendeur = _userService.currentRole == UserRole.vendeur;
-    final voituresEnLigne = voituresRecommandees
-        .where(
-          (v) =>
-              (v.statut ?? 'en_ligne') == 'en_ligne' &&
-              (v.statut ?? '') != 'vendu',
-        )
-        .toList();
-    if (voituresEnLigne.isEmpty) {
-      return Center(
-        child: Text(
-          isVendeur
-              ? "Vous n'avez aucune voiture en ligne"
-              : "Aucune voiture disponible pour le moment.",
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
-          ),
-        ),
-      );
-    }
-    // Appliquer filtres + recherche globale
-    final filtered = _applyFilters(voituresEnLigne).where((v) {
-      if (_searchText.isEmpty) return true;
-      final hay = (v.marque +
-              ' ' +
-              v.modele +
-              ' ' +
-              v.titre +
-              ' ' +
-              (v.entreprise ?? ''))
-          .toLowerCase();
-      return hay.contains(_searchText.toLowerCase());
-    }).toList();
-    final screenWidth = MediaQuery.of(context).size.width;
-    final cardAspectRatio = screenWidth < 360
-        ? 0.68
-        : screenWidth < 420
-            ? 0.6
-            : 0.55;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: GridView.builder(
-        shrinkWrap: true,
-        primary: false,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: cardAspectRatio,
-        ),
-        itemCount: filtered.length > 8 ? 8 : filtered.length,
-        itemBuilder: (context, index) {
-          final voiture = filtered[index];
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _recordVehicleInteraction(voiture.id.toString());
-              });
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CarsInfo(
-                    id: voiture.id.toString(),
-                    titre: voiture.titre,
-                    description: voiture.description,
-                    marque: voiture.marque,
-                    modele: voiture.modele,
-                    annee: voiture.annee,
-                    prix: voiture.prix,
-                    condition: voiture.condition,
-                    boiteVitesse: voiture.boiteVitesse,
-                    carburant: voiture.carburant,
-                    climatiseur: voiture.climatiseur,
-                    distance: voiture.distance,
-                    sieges: voiture.sieges,
-                    portes: voiture.portes,
-                    cylindre: voiture.cylindre,
-                    images: voiture.images,
-                    video: voiture.video,
-                    entreprise: voiture.entreprise,
-                  ),
-                ),
-              );
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    spreadRadius: 2,
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image avec overlay pour le prix
-                  Expanded(
-                    flex: 3,
-                    child: Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                          ),
-                          child: voiture.images.isNotEmpty
-                              ? TranooNetworkImage(
-                                  url: voiture.images.first,
-                                  height: double.infinity,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                  cloudinaryWidthPx: cloudinaryWidthPx(
-                                    context,
-                                    logicalWidth: 180,
-                                  ),
-                                )
-                              : (voiture.video?.isNotEmpty ?? false)
-                                  ? VideoPreviewPlaceholder(
-                                      videoUrl: voiture.video,
-                                      enablePreviewFrame: false,
-                                    )
-                                  : Container(
-                                      height: double.infinity,
-                                      width: double.infinity,
-                                      color: Colors.grey[300],
-                                      child: const Icon(
-                                        Icons.image_not_supported,
-                                      ),
-                                    ),
-                        ),
-                        // Badge de vues
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: _buildViewBadge(voiture.id),
-                        ),
-                        // Badge condition (nouveau/occasion)
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: (voiture.condition?.toLowerCase() ==
-                                          'nouveau' ||
-                                      voiture.condition?.toLowerCase() ==
-                                          'neuf')
-                                  ? Colors.purple
-                                  : const Color(0xFFF8BF13),
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                            child: Text(
-                              (voiture.condition?.toLowerCase() == 'nouveau' ||
-                                      voiture.condition?.toLowerCase() ==
-                                          'neuf')
-                                  ? 'Nouveau'
-                                  : 'Occasion',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Informations de la voiture
-                  Expanded(
-                    flex: 3,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Marque et modèle
-                          Text(
-                            voiture.marque,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            voiture.modele,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Prix en gras avec devise
-                          Text(
-                            '${voiture.prix} FCFA',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          // Caractéristiques en deux colonnes
-                          Flexible(
-                            child: SingleChildScrollView(
-                              physics: const NeverScrollableScrollPhysics(),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Ligne 1: Boite vitesse + Année
-                                  if ((voiture.boiteVitesse?.isNotEmpty ??
-                                          false) ||
-                                      voiture.annee.trim().isNotEmpty)
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: _buildCaracteristic(
-                                            Icons.settings,
-                                            voiture.boiteVitesse ??
-                                                'Automatique',
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: _buildCaracteristic(
-                                            Icons.calendar_today,
-                                            voiture.annee,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  // Ligne 2: Carburant + Cylindre
-                                  if (voiture.carburant != null ||
-                                      voiture.cylindre != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: _buildCaracteristic(
-                                              Icons.local_gas_station,
-                                              voiture.carburant ?? '',
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: _buildCaracteristic(
-                                              Icons.speed,
-                                              voiture.cylindre ?? '',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  // Ligne 3: Distance + Portes
-                                  if (voiture.distance != null ||
-                                      voiture.portes != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: _buildCaracteristic(
-                                              Icons.speed,
-                                              '${voiture.distance ?? ''} KM',
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: _buildCaracteristic(
-                                              Icons.door_front_door,
-                                              '${voiture.portes ?? ''} portes',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  // Ligne 4: Sièges
-                                  if (voiture.sieges != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: _buildCaracteristic(
-                                              Icons.person,
-                                              '${voiture.sieges}',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildCaracteristic(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 12, color: Colors.amber[700]),
-        const SizedBox(width: 4),
-        Flexible(
-          child: Text(
-            text,
-            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget buildPiecesGrid() {
-    if (isLoadingPieces) {
-      return SkeletonPresets.articleGrid(count: 2);
-    }
-    if (errorPieces != null) {
-      return Center(child: Text(errorPieces!));
-    }
-    const bool isVendeur = false;
-    final piecesEnLigne = articlesPieces
-        .where(
-          (p) =>
-              (p.statut ?? 'en_ligne') == 'en_ligne' &&
-              (p.statut ?? '') != 'vendu',
-        )
-        .toList();
-    // Filtrage recherche
-    final filteredPieces = piecesEnLigne.where((p) {
-      final q1 = _searchPieceText.trim().toLowerCase();
-      final q2 = _searchText.trim().toLowerCase();
-      final hay =
-          (p.title + ' ' + p.description + ' ' + p.company + ' ' + p.location)
-              .toLowerCase();
-      final ok1 = q1.isEmpty || hay.contains(q1);
-      final ok2 = q2.isEmpty || hay.contains(q2);
-      return ok1 && ok2;
-    }).toList();
-    if (filteredPieces.isEmpty) {
-      return Center(
-        child: Text(
-          isVendeur
-              ? "Vous n'avez aucune pièce en ligne actuellement"
-              : "Aucune pièce en ligne actuellement",
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
-          ),
-        ),
-      );
-    }
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: TextField(
-            controller: _searchPieceController,
-            decoration: const InputDecoration(
-              hintText: 'Rechercher une pièce...',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(),
-            ),
-            onChanged: (val) {
-              _searchPieceText = val;
-              // Rafraîchir l'affichage
-              (this as dynamic).setState(() {});
-            },
-          ),
-        ),
-        Expanded(
-          child: GridView.builder(
-            shrinkWrap: true,
-            primary: false,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1,
-            ),
-            itemCount: filteredPieces.length > 8 ? 8 : filteredPieces.length,
-            itemBuilder: (context, index) {
-              final piece = filteredPieces[index];
-              return GestureDetector(
-                onTap: () {
-                  _recordVehicleInteraction(piece.id);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MastervacPage(
-                        id: piece.id,
-                        isAcheteur: true,
-                        title: piece.title,
-                        year: piece.year,
-                        description: piece.description,
-                        company: piece.company,
-                        location: piece.location,
-                        price: piece.price,
-                        images: piece.images,
-                        fuelType: piece.fuelType,
-                        model: piece.model,
-                        pieceType: piece.pieceType,
-                        video: piece.video,
-                      ),
-                    ),
-                  );
-                },
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Stack(
-                        children: [
-                          piece.images.isNotEmpty
-                              ? TranooNetworkImage(
-                                  url: piece.images.first,
-                                  height: 40,
-                                  width: 40,
-                                  fit: BoxFit.cover,
-                                  cloudinaryWidthPx: cloudinaryWidthPx(
-                                    context,
-                                    logicalWidth: 40,
-                                  ),
-                                )
-                              : (piece.video?.isNotEmpty ?? false)
-                                  ? VideoPreviewPlaceholder(
-                                      videoUrl: piece.video, iconSize: 28)
-                                  : Container(
-                                      height: 40,
-                                      width: 40,
-                                      color: Colors.grey[300],
-                                      child:
-                                          const Icon(Icons.image_not_supported),
-                                    ),
-                          // Badge condition (aligné au style voitures) pour les pièces
-                          Positioned(
-                            top: 8,
-                            left: 8,
-                            child: Builder(
-                              builder: (context) {
-                                final rawCond =
-                                    (piece.condition ?? piece.pieceType ?? '')
-                                        .toString()
-                                        .toLowerCase();
-                                final isNew = rawCond == 'nouveau' ||
-                                    rawCond == 'neuf' ||
-                                    rawCond == 'new';
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isNew
-                                        ? Colors.purple
-                                        : const Color(0xFFF8BF13),
-                                    borderRadius: BorderRadius.circular(50),
-                                  ),
-                                  child: Text(
-                                    isNew ? 'Nouveau' : 'Occasion',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          // Favorite toggle
-                          Positioned(
-                            top: 2,
-                            right: 2,
-                            child: _buildViewBadge(piece.id),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      piece.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 8,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVoituresHorizontalList(List<ArticleVoiture> voitures) {
-    final cardWidth = MediaQuery.of(context).size.width * 0.44;
-    final cardHeight =
-        cardWidth / CatalogArticleGridCard.aspectRatioForWidth(cardWidth * 2.2);
-    return SizedBox(
-      height: cardHeight + 4,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: voitures.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final voiture = voitures[index];
-          return CatalogArticleGridCard(
-            article: voiture.toArticleMap(),
-            isMoto: false,
-            width: cardWidth,
-            conditionNewLabel: l10n.conditionNew,
-            conditionUsedLabel: l10n.usedCondition,
-            defaultTransmission: l10n.automaticTransmission,
-            onTap: () {
-              _recordVehicleInteraction(voiture.id.toString());
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CarsInfo(
-                    id: voiture.id.toString(),
-                    titre: voiture.titre,
-                    description: voiture.description,
-                    marque: voiture.marque,
-                    modele: voiture.modele,
-                    annee: voiture.annee,
-                    prix: voiture.prix,
-                    condition: voiture.condition,
-                    boiteVitesse: voiture.boiteVitesse,
-                    carburant: voiture.carburant,
-                    climatiseur: voiture.climatiseur,
-                    distance: voiture.distance,
-                    sieges: voiture.sieges,
-                    portes: voiture.portes,
-                    cylindre: voiture.cylindre,
-                    images: voiture.images,
-                    video: voiture.video,
-                    entreprise: voiture.entreprise,
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildMotosHorizontalList(List<ArticleVoiture> motos) {
-    final cardWidth = MediaQuery.of(context).size.width * 0.44;
-    final cardHeight =
-        cardWidth / CatalogArticleGridCard.aspectRatioForWidth(cardWidth * 2.2);
-    return SizedBox(
-      height: cardHeight + 4,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: motos.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final moto = motos[index];
-          return CatalogArticleGridCard(
-            article: moto.toArticleMap(),
-            isMoto: true,
-            width: cardWidth,
-            conditionNewLabel: l10n.conditionNew,
-            conditionUsedLabel: l10n.usedCondition,
-            onTap: () {
-              _recordVehicleInteraction(moto.id);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      MotoInfo.fromArticleMap(moto.toArticleMap()),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
 
   Widget buildVoituresRecommandeesSection() {
     final isVendeur = _userService.currentRole == UserRole.vendeur;
@@ -1439,66 +756,48 @@ class _MarqueState extends State<Marque>
               (v.statut ?? '') != 'vendu',
         )
         .toList();
-    final screenWidth = MediaQuery.of(context).size.width;
-    final sectionCardAspectRatio = screenWidth < 360
-        ? 0.64
-        : screenWidth < 420
-            ? 0.6
-            : 0.58;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isVendeur ? "Mes voitures" : "Véhicules",
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF040415),
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const VoituresPage(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  "Voir tout",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ),
-            ],
+    return MarqueVoituresSection(
+      voitures: _applyFilters(voituresEnLigne),
+      isLoading: isLoadingVoitures,
+      error: errorVoitures,
+      isVendeur: isVendeur,
+      conditionNewLabel: l10n.conditionNew,
+      conditionUsedLabel: l10n.usedCondition,
+      defaultTransmission: l10n.automaticTransmission,
+      onSeeAll: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const VoituresPage()),
+        );
+      },
+      onVehicleTap: (voiture) {
+        _recordVehicleInteraction(voiture.id.toString());
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CarsInfo(
+              id: voiture.id.toString(),
+              titre: voiture.titre,
+              description: voiture.description,
+              marque: voiture.marque,
+              modele: voiture.modele,
+              annee: voiture.annee,
+              prix: voiture.prix,
+              condition: voiture.condition,
+              boiteVitesse: voiture.boiteVitesse,
+              carburant: voiture.carburant,
+              climatiseur: voiture.climatiseur,
+              distance: voiture.distance,
+              sieges: voiture.sieges,
+              portes: voiture.portes,
+              cylindre: voiture.cylindre,
+              images: voiture.images,
+              video: voiture.video,
+              entreprise: voiture.entreprise,
+            ),
           ),
-        ),
-        if (isLoadingVoitures) SkeletonPresets.articleHorizontalStrip(count: 3),
-        if (errorVoitures != null) Center(child: Text(errorVoitures!)),
-        if (!isLoadingVoitures && errorVoitures == null)
-          _applyFilters(voituresEnLigne).isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Text(
-                      isVendeur
-                          ? "Vous n'avez aucune voiture en ligne"
-                          : "Aucune voiture disponible pour le moment.",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                )
-              : _buildVoituresHorizontalList(_applyFilters(voituresEnLigne)),
-      ],
+        );
+      },
     );
   }
 
@@ -1511,63 +810,32 @@ class _MarqueState extends State<Marque>
               (m.statut ?? '') != 'vendu',
         )
         .toList());
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isVendeur ? 'Mes motos' : 'Motos',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF040415),
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const MotosPage()),
-                  );
-                },
-                child: const Text(
-                  "Voir plus",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ),
-            ],
+    return MarqueMotosSection(
+      motos: motosEnLigne,
+      isLoading: isLoadingMotos,
+      error: errorMotos,
+      isVendeur: isVendeur,
+      conditionNewLabel: l10n.conditionNew,
+      conditionUsedLabel: l10n.usedCondition,
+      onSeeAll: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const MotosPage()),
+        );
+      },
+      onMotoTap: (moto) {
+        _recordVehicleInteraction(moto.id);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MotoInfo.fromArticleMap(moto.toArticleMap()),
           ),
-        ),
-        if (isLoadingMotos) SkeletonPresets.articleHorizontalStrip(count: 3),
-        if (errorMotos != null) Center(child: Text(errorMotos!)),
-        if (!isLoadingMotos && errorMotos == null)
-          motosEnLigne.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Text(
-                      isVendeur
-                          ? "Vous n'avez aucune moto en ligne"
-                          : "Aucune moto disponible pour le moment.",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                )
-              : _buildMotosHorizontalList(motosEnLigne),
-      ],
+        );
+      },
     );
   }
 
   Widget buildPiecesSection() {
-    const bool isVendeur = false;
     final piecesEnLigne = articlesPieces
         .where(
           (p) =>
@@ -1575,603 +843,183 @@ class _MarqueState extends State<Marque>
               (p.statut ?? '') != 'vendu',
         )
         .toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Pièces détachées",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF040415),
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const PiecePage()),
-                  );
-                },
-                child: const Text(
-                  "Voir plus",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ),
-            ],
+    return MarquePiecesSection(
+      pieces: piecesEnLigne,
+      isLoading: isLoadingPieces,
+      error: errorPieces,
+      onSeeAll: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const PiecePage()),
+        );
+      },
+      onPieceTap: (piece) {
+        _recordVehicleInteraction(piece.id);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MastervacPage(
+              id: piece.id,
+              isAcheteur: true,
+              title: piece.title,
+              year: piece.year,
+              description: piece.description,
+              company: piece.company,
+              location: piece.location,
+              price: piece.price,
+              images: piece.images,
+              fuelType: piece.fuelType,
+              model: piece.model,
+              pieceType: piece.pieceType,
+              video: piece.video,
+            ),
           ),
-        ),
-        if (isLoadingPieces) SkeletonPresets.articleGrid(count: 2),
-        if (errorPieces != null) Center(child: Text(errorPieces!)),
-        if (!isLoadingPieces && errorPieces == null)
-          piecesEnLigne.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Text(
-                      isVendeur
-                          ? "Vous n'avez aucune pièce en ligne actuellement"
-                          : "Aucune pièce en ligne actuellement",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                )
-              : SizedBox(
-                  height: 240,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: piecesEnLigne.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemBuilder: (context, index) {
-                      final piece = piecesEnLigne[index];
-                      return GestureDetector(
-                        onTap: () {
-                          _recordVehicleInteraction(piece.id);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => MastervacPage(
-                                id: piece.id,
-                                isAcheteur: true,
-                                title: piece.title,
-                                year: piece.year,
-                                description: piece.description,
-                                company: piece.company,
-                                location: piece.location,
-                                price: piece.price,
-                                images: piece.images,
-                                fuelType: piece.fuelType,
-                                model: piece.model,
-                                pieceType: piece.pieceType,
-                                video: piece.video,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: 180,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12.withOpacity(0.08),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Stack(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(14),
-                                      child: SizedBox(
-                                        width: double.infinity,
-                                        child: piece.images.isNotEmpty
-                                            ? TranooNetworkImage(
-                                                url: piece.images.first,
-                                                fit: BoxFit.cover,
-                                                cloudinaryWidthPx:
-                                                    cloudinaryWidthPx(context),
-                                              )
-                                            : (piece.video?.isNotEmpty ?? false)
-                                                ? VideoPreviewPlaceholder(
-                                                    videoUrl: piece.video,
-                                                    iconSize: 32,
-                                                  )
-                                                : Container(
-                                                    color: Colors.grey[200],
-                                                    child: const Icon(
-                                                      Icons.image_not_supported,
-                                                      size: 30,
-                                                      color: Colors.black26,
-                                                    ),
-                                                  ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 8,
-                                      left: 8,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: (piece.pieceType ?? '')
-                                                      .toLowerCase() ==
-                                                  'nouveau'
-                                              ? Colors.purple
-                                              : const Color(0xFFF8BF13),
-                                          borderRadius:
-                                              BorderRadius.circular(30),
-                                        ),
-                                        child: Text(
-                                          (piece.pieceType ?? '')
-                                                      .toLowerCase() ==
-                                                  'nouveau'
-                                              ? 'Nouveau'
-                                              : 'Occasion',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                piece.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                piece.company,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF5E5),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Text(
-                                  piece.price.isNotEmpty
-                                      ? "${piece.price} FCFA"
-                                      : 'Prix non communiqué',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: Color(0xFFB45309),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-      ],
+        );
+      },
     );
   }
 
-  // SECTION SPONSORISÉE
   Widget buildPubsSponsoriseesSection() {
-    final pubsValides = pubsSponsorisees.where(isPubValid).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Icon(Icons.star, color: Colors.blue, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                "Sponsorisé",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (isLoadingPubs)
-          SkeletonPresets.pubBanner(height: 100)
-        else if (errorPubs != null)
-          SizedBox(height: 100, child: Center(child: Text(errorPubs!)))
-        else if (pubsValides.isEmpty)
-          const SizedBox(
-            height: 100,
-            child: Center(
-              child: Text(
-                "Aucune voiture sponsorisée.",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-          )
-        else
-          Container(
-            height: 190,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: pubsValides.length,
-              itemBuilder: (context, index) {
-                final pub = pubsValides[index];
-                return GestureDetector(
-                  onTap: () async {
-                    if (pub.id.isEmpty) return;
-                    // Afficher un indicateur de chargement
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) =>
-                          const Center(child: CircularProgressIndicator()),
-                    );
-                    try {
-                      // Récupérer la pub complète pour avoir l'articleId
-                      final user = FirebaseAuth.instance.currentUser;
-                      final idToken = await user?.getIdToken();
-                      final pubResponse = await http.get(
-                        Uri.parse(getBaseUrl() + '/publicites/${pub.id}'),
-                        headers: {
-                          'Content-Type': 'application/json',
-                          if (idToken != null)
-                            'Authorization': 'Bearer $idToken',
-                        },
-                      );
-                      if (pubResponse.statusCode == 200) {
-                        final pubData = jsonDecode(pubResponse.body);
-                        final articleId = pubData['articleId'];
-                        if (articleId != null &&
-                            articleId.toString().isNotEmpty) {
-                          // Récupérer l'article
-                          final articleResponse = await http.get(
-                            Uri.parse(getBaseUrl() + '/articles/$articleId'),
-                            headers: {
-                              'Content-Type': 'application/json',
-                              if (idToken != null)
-                                'Authorization': 'Bearer $idToken',
-                            },
-                          );
-                          if (articleResponse.statusCode == 200) {
-                            final article = jsonDecode(articleResponse.body);
-                            Navigator.pop(context); // Fermer le loader
-                            if (article['type'] == 'voiture') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CarsInfo(
-                                    titre: article['titre'] ?? '',
-                                    description: article['description'] ?? '',
-                                    marque: article['marque'] ?? '',
-                                    modele: article['modele'] ?? '',
-                                    annee: article['annee'] ?? '',
-                                    prix: article['prix']?.toString() ?? '',
-                                    condition: article['condition'] ?? '',
-                                    boiteVitesse: article['boiteVitesse'] ?? '',
-                                    carburant: article['carburant'] ?? '',
-                                    climatiseur: article['climatiseur'] ?? '',
-                                    distance: article['distance'] ?? '',
-                                    sieges: article['sieges'] ?? '',
-                                    portes: article['portes'] ?? '',
-                                    cylindre: article['cylindre'] ?? '',
-                                    lieu: article['lieu'] ?? '',
-                                    images: (article['photos'] as List?)
-                                            ?.map((e) => e.toString())
-                                            .toList() ??
-                                        [],
-                                    video: article['video'],
-                                    entreprise: article['entreprise'],
-                                    fromPub: true,
-                                  ),
-                                ),
-                              );
-                            } else if (article['type'] == 'piece') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => MastervacPage(
-                                    isAcheteur: true,
-                                    title: article['titre'] ?? '',
-                                    year: article['annee'] ?? '',
-                                    description: article['description'] ?? '',
-                                    company: article['entreprise'] ?? '',
-                                    location: article['localisation'] ?? '',
-                                    price: article['prix']?.toString() ?? '',
-                                    images: (article['photos'] as List?)
-                                            ?.map((e) => e.toString())
-                                            .toList() ??
-                                        [],
-                                    fuelType: article['typeMoteur'],
-                                    model: article['modele']?.toString(),
-                                    pieceType: article['pieceType'],
-                                    video: article['video'],
-                                    fromPub: true,
-                                  ),
-                                ),
-                              );
-                            } else {
-                              // Type inconnu
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Type d\'article inconnu.'),
-                                ),
-                              );
-                            }
-                          } else {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Erreur lors du chargement de l\'article.',
-                                ),
-                              ),
-                            );
-                          }
-                        } else {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Aucun article lié à cette pub.'),
-                            ),
-                          );
-                        }
-                      } else {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Erreur lors du chargement de la pub.',
-                            ),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Erreur réseau : $e')),
-                      );
-                    }
-                  },
-                  child: SizedBox(
-                    width: 255,
-                    child: Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(10),
-                                  topRight: Radius.circular(10),
-                                ),
-                                child: Container(
-                                  height: 170,
-                                  width: 255,
-                                  color: Colors.grey[300],
-                                  child: pub.media.isNotEmpty
-                                      ? CachedMediaImage(
-                                          url: pub.media[0],
-                                          width: 255,
-                                          height: 170,
-                                          fit: BoxFit.cover,
-                                          cloudinaryWidthPx: 280,
-                                        )
-                                      : Icon(
-                                          Icons.image_not_supported,
-                                          size: 80,
-                                          color: Colors.grey[600],
-                                        ),
-                                ),
-                              ),
-                              Positioned(
-                                left: 8,
-                                bottom: 12,
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.5),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        pub.description,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: const [
-                                          Icon(
-                                            Icons.verified,
-                                            color: Color(0xFFF8BF13),
-                                            size: 18,
-                                          ),
-                                          SizedBox(width: 5),
-                                          Text(
-                                            "Vérifiée",
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Color(0xFFF8BF13),
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
+    return MarqueSponsoredPubsSection(
+      pubs: pubsSponsorisees,
+      isLoading: isLoadingPubs,
+      error: errorPubs,
+      onPubTap: _onSponsoredPubTap,
     );
   }
 
-  // SECTION À LA UNE (carrousel)
-  Widget buildPubsALaUneCarousel() {
-    if (isLoadingPubs) {
-      return SkeletonPresets.articleGrid(count: 2);
-    }
-    if (errorPubs != null) {
-      return Center(child: Text(errorPubs!));
-    }
-    if (pubsALaUne.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Column(
-      children: [
-        Container(
-          height: 200,
-          margin: const EdgeInsets.symmetric(horizontal: 8),
-          child: PageView.builder(
-            controller: _pageController,
-            padEnds: true,
-            itemCount: pubsALaUne.length,
-            itemBuilder: (context, index) {
-              final pub = pubsALaUne[index];
-              final hasLink = (pub.lien ?? '').trim().isNotEmpty;
-              final card = Card(
-                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: double.infinity,
-                    height: 180,
-                    color: Colors.black,
-                    child: pub.media.isNotEmpty
-                        ? Stack(
-                            children: [
-                              Positioned.fill(
-                                child: CachedMediaImage(
-                                  url: pub.media[0],
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  cloudinaryWidthPx: 280,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Container(
-                            height: 180,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.image, size: 80),
-                          ),
+  Future<void> _onSponsoredPubTap(Pub pub) async {
+    if (pub.id.isEmpty) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) =>
+          const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final pubResponse = await http.get(
+        Uri.parse('${getBaseUrl()}/publicites/${pub.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (idToken != null) 'Authorization': 'Bearer $idToken',
+        },
+      );
+      if (pubResponse.statusCode == 200) {
+        final pubData = jsonDecode(pubResponse.body);
+        final articleId = pubData['articleId'];
+        if (articleId != null && articleId.toString().isNotEmpty) {
+          final articleResponse = await http.get(
+            Uri.parse('${getBaseUrl()}/articles/$articleId'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (idToken != null) 'Authorization': 'Bearer $idToken',
+            },
+          );
+          if (articleResponse.statusCode == 200) {
+            final article = jsonDecode(articleResponse.body);
+            if (!mounted) return;
+            Navigator.pop(context);
+            if (article['type'] == 'voiture') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CarsInfo(
+                    titre: article['titre'] ?? '',
+                    description: article['description'] ?? '',
+                    marque: article['marque'] ?? '',
+                    modele: article['modele'] ?? '',
+                    annee: article['annee'] ?? '',
+                    prix: article['prix']?.toString() ?? '',
+                    condition: article['condition'] ?? '',
+                    boiteVitesse: article['boiteVitesse'] ?? '',
+                    carburant: article['carburant'] ?? '',
+                    climatiseur: article['climatiseur'] ?? '',
+                    distance: article['distance'] ?? '',
+                    sieges: article['sieges'] ?? '',
+                    portes: article['portes'] ?? '',
+                    cylindre: article['cylindre'] ?? '',
+                    lieu: article['lieu'] ?? '',
+                    images: (article['photos'] as List?)
+                            ?.map((e) => e.toString())
+                            .toList() ??
+                        [],
+                    video: article['video'],
+                    entreprise: article['entreprise'],
+                    fromPub: true,
                   ),
                 ),
               );
-
-              return GestureDetector(
-                onTap: () {
-                  if (hasLink) {
-                    _openPubLink(pub.lien!.trim());
-                  } else {
-                    _openFlyerPreview(
-                      pub.media.isNotEmpty ? pub.media[0] : '',
-                    );
-                  }
-                },
-                onDoubleTap: () {
-                  if (hasLink) {
-                    _openFlyerPreview(
-                      pub.media.isNotEmpty ? pub.media[0] : '',
-                    );
-                  }
-                },
-                child: card,
+            } else if (article['type'] == 'piece') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MastervacPage(
+                    isAcheteur: true,
+                    title: article['titre'] ?? '',
+                    year: article['annee'] ?? '',
+                    description: article['description'] ?? '',
+                    company: article['entreprise'] ?? '',
+                    location: article['localisation'] ?? '',
+                    price: article['prix']?.toString() ?? '',
+                    images: (article['photos'] as List?)
+                            ?.map((e) => e.toString())
+                            .toList() ??
+                        [],
+                    fuelType: article['typeMoteur'],
+                    model: article['modele']?.toString(),
+                    pieceType: article['pieceType'],
+                    video: article['video'],
+                    fromPub: true,
+                  ),
+                ),
               );
-            },
-          ),
-        ),
-        const SizedBox(height: 6),
-        if (pubsALaUne.length > 1)
-          SmoothPageIndicator(
-            controller: _pageController,
-            count: pubsALaUne.length,
-            effect: JumpingDotEffect(
-              activeDotColor: Color(0xFFF8BF13),
-              dotColor: Colors.grey.shade300,
-              dotHeight: 8,
-              dotWidth: 8,
-            ),
-          ),
-      ],
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Type d'article inconnu.")),
+              );
+            }
+          } else {
+            if (!mounted) return;
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Erreur lors du chargement de l'article."),
+              ),
+            );
+          }
+        } else {
+          if (!mounted) return;
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Aucun article lié à cette pub.')),
+          );
+        }
+      } else {
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors du chargement de la pub.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur réseau : $e')),
+      );
+    }
+  }
+
+  Widget buildPubsALaUneCarousel() {
+    return MarquePubsCarousel(
+      pubs: pubsALaUne,
+      isLoading: isLoadingPubs,
+      error: errorPubs,
+      pageController: _pageController,
+      onOpenLink: _openPubLink,
+      onOpenFlyer: _openFlyerPreview,
     );
   }
 
