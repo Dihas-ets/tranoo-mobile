@@ -23,23 +23,6 @@ import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/utils/local_data_cache.dart';
 
-// Fonction utilitaire pour formater les prix avec des séparateurs de milliers
-String formatPrice(dynamic price) {
-  if (price == null) return '0';
-  try {
-    final priceNum = double.tryParse(price.toString()) ?? 0;
-    final priceStr = priceNum.toStringAsFixed(0);
-    final reversed = priceStr.split('').reversed.join('');
-    final withDots = reversed.replaceAllMapped(
-      RegExp(r'(\d{3})(?=\d)'),
-      (Match m) => '${m[0]}.',
-    );
-    return withDots.split('').reversed.join('');
-  } catch (e) {
-    return price.toString();
-  }
-}
-
 class PiecePage extends StatefulWidget {
   const PiecePage({super.key});
 

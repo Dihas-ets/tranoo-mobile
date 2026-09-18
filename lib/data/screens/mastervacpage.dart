@@ -20,23 +20,7 @@ import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/utils/text_display.dart';
 import 'package:tranoo/widgets/spec_info_card.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-// Fonction utilitaire pour formater les prix avec des séparateurs de milliers
-String formatPrice(dynamic price) {
-  if (price == null) return '0';
-  try {
-    final priceNum = double.tryParse(price.toString()) ?? 0;
-    final priceStr = priceNum.toStringAsFixed(0);
-    final reversed = priceStr.split('').reversed.join('');
-    final withDots = reversed.replaceAllMapped(
-      RegExp(r'(\d{3})(?=\d)'),
-      (Match m) => '${m[0]}.',
-    );
-    return withDots.split('').reversed.join('');
-  } catch (e) {
-    return price.toString();
-  }
-}
+import 'package:tranoo/utils/catalog_display.dart';
 
 class MastervacPage extends StatefulWidget {
   final String? id;

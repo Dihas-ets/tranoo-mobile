@@ -17,6 +17,16 @@ String formatCatalogPrice(dynamic price) {
   }
 }
 
+/// Alias historique utilisé par les écrans catalogue / détail.
+String formatPrice(dynamic price) => formatCatalogPrice(price);
+
+/// Compteur compact (ex. 1.2k, 3.4M) pour stats vendeur.
+String formatCompactCount(int n) {
+  if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+  if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
+  return '$n';
+}
+
 String vehicleTitleFromMap(Map<String, dynamic> v) {
   final t = (v['titre'] ?? '').toString().trim();
   if (t.isNotEmpty) return t;

@@ -40,12 +40,8 @@ import 'package:tranoo/utils/local_data_cache.dart';
 import 'package:tranoo/data/models/article.dart';
 import 'package:tranoo/data/models/article_voiture.dart';
 import 'package:tranoo/data/models/pub.dart';
-
-String _formatCompactCount(int n) {
-  if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
-  if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
-  return '$n';
-}
+import 'package:tranoo/utils/catalog_display.dart';
+import 'package:tranoo/utils/pub_validity.dart';
 
 List<ArticleVoiture> voituresRecommandees = [];
 bool isLoadingVoitures = true;
@@ -133,61 +129,6 @@ class _MarqueState extends State<Marque>
 
   final _logger = Logger('MarquePage');
 
-  // Vérifie si une publicité est encore valide selon sa durée
-  bool _isPubValid(Pub pub) {
-    _logger.info('[DEBUG] 🔍 Vérification pub ${pub.id}: statut=${pub.statut}');
-
-    if (pub.statut != 'valide') {
-      _logger.info('[DEBUG] 🔍 Pub ${pub.id} rejetée: statut=${pub.statut}');
-      return false;
-    }
-
-    final now = DateTime.now();
-
-    // Utiliser dateFin si disponible, sinon calculer à partir de dateDebut ou dateDemande
-    if (pub.dateFin != null) {
-      final isValid = now.isBefore(pub.dateFin!);
-      _logger.info(
-        '[DEBUG] 🔍 Pub ${pub.id} avec dateFin: ${pub.dateFin}, maintenant: $now, valide: $isValid',
-      );
-      return isValid;
-    }
-
-    final dateDebut = pub.dateDebut ?? pub.dateDemande;
-    _logger.info(
-      '[DEBUG] 🔍 Pub ${pub.id} sans dateFin, utilise dateDebut: $dateDebut',
-    );
-
-    // Conversion de la durée en jours
-    int dureeJours;
-    switch (pub.duree.toLowerCase()) {
-      case '1 semaine':
-        dureeJours = 7;
-        break;
-      case '2 semaines':
-        dureeJours = 14;
-        break;
-      case '1 mois':
-        dureeJours = 30;
-        break;
-      case '2 mois':
-        dureeJours = 60;
-        break;
-      case '3 mois':
-        dureeJours = 90;
-        break;
-      default:
-        dureeJours = 7; // Par défaut 1 semaine
-    }
-
-    final dateFin = dateDebut.add(Duration(days: dureeJours));
-    final isValid = now.isBefore(dateFin);
-    _logger.info(
-      '[DEBUG] 🔍 Pub ${pub.id} calculée: dateDebut=$dateDebut, durée=${pub.duree} ($dureeJours jours), dateFin=$dateFin, valide=$isValid',
-    );
-    return isValid;
-  }
-
   // Filtres
   String? _selectedBrand;
   String? _selectedModel;
@@ -257,7 +198,7 @@ class _MarqueState extends State<Marque>
       final pubs = stalePubs.map((e) => Pub.fromJson(e)).toList();
       setState(() {
         pubsALaUne = pubs
-            .where((p) => p.typePub == 'À la une' && _isPubValid(p))
+            .where((p) => p.typePub == 'À la une' && isPubValid(p))
             .toList();
         isLoadingPubs = false;
         if (pubsALaUne.isNotEmpty) {
@@ -838,7 +779,7 @@ class _MarqueState extends State<Marque>
         final pubs = stale.map((e) => Pub.fromJson(e)).toList();
         setState(() {
           pubsALaUne = pubs
-              .where((p) => p.typePub == 'À la une' && _isPubValid(p))
+              .where((p) => p.typePub == 'À la une' && isPubValid(p))
               .toList();
           isLoadingPubs = false;
           if (pubsALaUne.isNotEmpty) {
@@ -874,14 +815,14 @@ class _MarqueState extends State<Marque>
         if (!mounted) return;
         setState(() {
           pubsALaUne = pubs
-              .where((p) => p.typePub == 'À la une' && _isPubValid(p))
+              .where((p) => p.typePub == 'À la une' && isPubValid(p))
               .toList();
           _logger.info('[DEBUG] 📺 Total pubs reçues: ${pubs.length}');
           _logger.info(
             '[DEBUG] 📺 Publicités À la une: ${pubsALaUne.length} valides sur ${pubs.where((p) => p.typePub == 'À la une').length} totales',
           );
           for (var pub in pubs.where((p) => p.typePub == 'À la une')) {
-            final isValid = _isPubValid(pub);
+            final isValid = isPubValid(pub);
             _logger.info(
               '[DEBUG] 📺 Pub ${pub.id}: statut=${pub.statut}, dateDebut=${pub.dateDebut}, dateFin=${pub.dateFin}, valide=$isValid',
             );
@@ -922,7 +863,7 @@ class _MarqueState extends State<Marque>
       if (stale != null && mounted) {
         final pubs = stale.map((e) => Pub.fromJson(e)).toList();
         setState(() {
-          pubsSponsorisees = pubs.where((p) => _isPubValid(p)).toList();
+          pubsSponsorisees = pubs.where((p) => isPubValid(p)).toList();
           isLoadingPubs = false;
         });
         _precachePubImages(pubsSponsorisees);
@@ -954,7 +895,7 @@ class _MarqueState extends State<Marque>
         final pubs = data.map((e) => Pub.fromJson(e)).toList();
         if (!mounted) return;
         setState(() {
-          pubsSponsorisees = pubs.where((p) => _isPubValid(p)).toList();
+          pubsSponsorisees = pubs.where((p) => isPubValid(p)).toList();
           _logger.info(
             '[DEBUG] ⭐ Total pubs sponsorisées reçues: ${pubs.length}',
           );
@@ -962,7 +903,7 @@ class _MarqueState extends State<Marque>
             '[DEBUG] ⭐ Publicités Sponsorisées: ${pubsSponsorisees.length} valides sur ${pubs.length} totales',
           );
           for (var pub in pubs) {
-            final isValid = _isPubValid(pub);
+            final isValid = isPubValid(pub);
             _logger.info(
               '[DEBUG] ⭐ Pub ${pub.id}: statut=${pub.statut}, dateDebut=${pub.dateDebut}, dateFin=${pub.dateFin}, valide=$isValid',
             );
@@ -2104,7 +2045,7 @@ class _MarqueState extends State<Marque>
 
   // SECTION SPONSORISÉE
   Widget buildPubsSponsoriseesSection() {
-    final pubsValides = pubsSponsorisees.where(_isPubValid).toList();
+    final pubsValides = pubsSponsorisees.where(isPubValid).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3541,7 +3482,7 @@ class _MarqueState extends State<Marque>
             activityPoints: activityPoints,
             kpis: dashboardKpis,
             donutTitle: 'Répartition des vues',
-            donutCenterValue: _formatCompactCount(totalViews),
+            donutCenterValue: formatCompactCount(totalViews),
             donutCenterLabel: 'Vues totales',
             donutSlices: donutSlices.isNotEmpty
                 ? donutSlices
