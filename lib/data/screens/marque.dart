@@ -15,15 +15,11 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
-import 'package:provider/provider.dart';
-import 'package:tranoo/providers/auth_provider.dart' as myauth;
-import 'package:tranoo/utils/livro_integration.dart';
 import 'package:tranoo/utils/page_refresh_registry.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:tranoo/widgets/page_pull_refresh.dart';
 import 'package:tranoo/utils/catalog_filter_options.dart';
 import 'package:tranoo/widgets/catalog_filter_sections.dart';
-import 'package:tranoo/widgets/seller_stats_dashboard.dart';
 import 'package:tranoo/widgets/transitaire_carousel_section.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/widgets/cached_media_image.dart';
@@ -32,10 +28,12 @@ import 'package:tranoo/data/models/article.dart';
 import 'package:tranoo/data/models/article_voiture.dart';
 import 'package:tranoo/data/models/pub.dart';
 import 'package:tranoo/data/repositories/marque_repository.dart';
-import 'package:tranoo/utils/catalog_display.dart';
 import 'package:tranoo/data/screens/marque/marque_pubs_carousel.dart';
 import 'package:tranoo/data/screens/marque/marque_catalog_sections.dart';
 import 'package:tranoo/data/screens/marque/marque_filter_panels.dart';
+import 'package:tranoo/data/screens/marque/marque_services_summary.dart';
+import 'package:tranoo/data/screens/marque/marque_seller_stats.dart';
+import 'package:tranoo/data/screens/marque/marque_search_dialogs.dart';
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -961,185 +959,21 @@ class _MarqueState extends State<Marque>
   }
 
   void _showFilterDialog() {
-    final l10n = AppLocalizations.of(context)!;
     _logger.info('[DEBUG] 🔧 Ouverture du dialogue de filtre');
-    try {
-      showDialog(
-        context: context,
-        builder: (ctx) {
-          return AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-            title: Row(
-              children: [
-                const Icon(Icons.tune, color: Color(0xFFB45309)),
-                const SizedBox(width: 8),
-                Text(l10n.searchTypeTitle),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(l10n.whatDoYouWantToSearch),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const VoituresPage(),
-                          settings: RouteSettings(
-                            arguments: {
-                              'searchQuery': _searchGlobalController.text,
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.directions_car),
-                    label: Text(l10n.vehicles),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFB45309),
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PiecePage(),
-                          settings: RouteSettings(
-                            arguments: {
-                              'searchQuery': _searchGlobalController.text,
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.build),
-                    label: Text(l10n.pieces),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[700],
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(l10n.cancel),
-              ),
-            ],
-          );
-        },
-      );
-    } catch (e, stackTrace) {
-      _logger.severe('[ERROR] 💥 Erreur lors de l\'ouverture du dialogue: $e');
-      _logger.severe('[ERROR] 💥 Stack trace: $stackTrace');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.errorGeneric('$e')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    showMarqueSearchTypeDialog(
+      context: context,
+      searchQuery: _searchGlobalController.text,
+      onError: (e, stackTrace) {
+        _logger.severe('[ERROR] 💥 Erreur lors de l\'ouverture du dialogue: $e');
+        _logger.severe('[ERROR] 💥 Stack trace: $stackTrace');
+      },
+    );
   }
 
   void _showFilterHint() {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
+    showMarqueSearchHintDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Row(
-          children: [
-            const Icon(Icons.lightbulb, color: Color(0xFFB45309)),
-            const SizedBox(width: 8),
-            Text(l10n.chooseTypeTitle),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.youTyped(_searchGlobalController.text)),
-            const SizedBox(height: 12),
-            Text(l10n.whatArticleTypeSearch),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const VoituresPage(),
-                          settings: RouteSettings(
-                            arguments: {
-                              'searchQuery': _searchGlobalController.text,
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.directions_car),
-                    label: Text(l10n.vehicleSingular),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFB45309),
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PiecePage(),
-                          settings: RouteSettings(
-                            arguments: {
-                              'searchQuery': _searchGlobalController.text,
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.build),
-                    label: Text(l10n.partSingular),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[700],
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.cancel),
-          ),
-        ],
-      ),
+      searchQuery: _searchGlobalController.text,
     );
   }
 
@@ -1233,7 +1067,7 @@ class _MarqueState extends State<Marque>
                     else if (isInitialHomeLoading)
                       SkeletonPresets.servicesSummary()
                     else
-                      _buildServicesSummarySection(
+                      MarqueServicesSummarySection(
                         screenWidth: screenWidth,
                         screenHeight: screenHeight,
                         isPortrait: isPortrait,
@@ -1276,185 +1110,6 @@ class _MarqueState extends State<Marque>
       child: TransitaireCarouselSection(
         showTitle: false,
         showSeeMoreButton: true,
-      ),
-    );
-  }
-
-  Widget _buildServicesSummarySection({
-    required double screenWidth,
-    required double screenHeight,
-    required bool isPortrait,
-  }) {
-    final iconSize = screenWidth * (isPortrait ? 0.085 : 0.06);
-
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.04,
-        vertical: screenHeight * 0.015,
-      ),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8BF13).withOpacity(0.25),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: const Color(0xFFF8BF13).withOpacity(0.35),
-            width: 1.2,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _buildServiceIcon(
-                    label: 'Véhicules',
-                    icon: Icons.directions_car,
-                    iconSize: iconSize,
-                    //imagePath: 'assets/images/icon_vente.png',
-                    imagePath: 'assets/images/icon_vente3.png',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => VoituresPage()),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildServiceIcon(
-                    label: 'Motos',
-                    icon: Icons.motorcycle,
-                    iconSize: iconSize,
-                    imagePath: 'assets/images/motorbike.png',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const MotosPage()),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildServiceIcon(
-                    label: 'Pièces',
-                    icon: Icons.build_circle,
-                    iconSize: iconSize,
-                    imagePath: 'assets/images/icon_pieces2.png',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const PiecePage()),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildServiceIcon(
-                    label: 'Livraisons',
-                    icon: Icons.local_shipping,
-                    iconSize: iconSize,
-                    imagePath: 'assets/images/icon_livraison3.png',
-                    onTap: () {
-                      // Livraison via Livro — même entrée que la bulle de suivi.
-                      final authUser = Provider.of<myauth.AuthProvider>(
-                        context,
-                        listen: false,
-                      ).user;
-                      LivroIntegration.bindCurrentUser(authUser);
-                      LivroIntegration.openFromServices(context);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildServiceIcon({
-    required String label,
-    required IconData icon,
-    required double iconSize,
-    required VoidCallback onTap,
-    String? imagePath,
-  }) {
-    // Cercle jaune clair : le picto occupe ~82 % du diamètre (lisible, proche du bord du rond).
-    final double circleDiameter = iconSize * 1.9;
-    final double innerIconSize = circleDiameter * 0.82;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(26),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Rond de fond (services) — bordure légère pour bien voir le rendu sur fond blanc.
-            Container(
-              width: circleDiameter,
-              height: circleDiameter,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFF8BF13).withOpacity(0.22),
-                border: Border.all(
-                  color: const Color(0xFFF8BF13).withOpacity(0.45),
-                  width: 1,
-                ),
-              ),
-              child: Center(
-                child: imagePath != null
-                    ? Image.asset(
-                        imagePath,
-                        width: innerIconSize,
-                        height: innerIconSize,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Icon(
-                          icon,
-                          size: innerIconSize,
-                          color: const Color(0xFF0A1F44),
-                        ),
-                      )
-                    : Icon(
-                        icon,
-                        size: innerIconSize,
-                        color: const Color(0xFF0A1F44),
-                      ),
-              ),
-            ),
-            const SizedBox(height: 7),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0A1F44),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1511,186 +1166,20 @@ class _MarqueState extends State<Marque>
 
   Widget _buildStatistiquesSection() {
     final isVendeur = _userService.currentRole == UserRole.vendeur;
-    if (!isVendeur) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF8E1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFFFE082)),
-          ),
-          child: const Text(
-            "Les statistiques détaillées sont réservées aux vendeurs.",
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF795548),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      );
-    }
-
-    final vtRaw = _statsVendeurType ?? _userService.vendeurType ?? 'mixte';
-    final vt = vtRaw.toString().toLowerCase().trim();
-    final showVehicules =
-        vt.isEmpty || vt == 'mixte' || vt == 'vehicules' || vt == 'véhicules';
-    final showPieces = vt.isEmpty || vt == 'mixte' || vt == 'pieces';
-    final showMotos = vt == 'motos';
-
-    final motosEnLigne = motosRecommandees
-        .where(
-          (m) =>
-              (m.statut ?? 'en_ligne') == 'en_ligne' &&
-              (m.statut ?? '') != 'vendu',
-        )
-        .length;
-
-    final totalViewsVehicles = voituresRecommandees.fold<int>(
-      0,
-      (sum, v) => sum + (_backendViews[v.id] ?? 0),
-    );
-    final totalViewsMotos = motosRecommandees.fold<int>(
-      0,
-      (sum, m) => sum + (_backendViews[m.id] ?? 0),
-    );
-    final totalViewsPieces = articlesPieces.fold<int>(
-      0,
-      (sum, p) => sum + (_backendViews[p.id] ?? 0),
-    );
-    final totalViews = totalViewsVehicles + totalViewsMotos + totalViewsPieces;
-
-    final statsCards = <Map<String, Object?>>[
-      if (showVehicules)
-        {
-          'kind': 'plain',
-          'label': 'Véhicules en ligne',
-          'value': _statsVehiclesOnline,
-          'icon': Icons.directions_car_filled,
-          'color': const Color(0xFFF8BF13),
-        },
-      if (showMotos)
-        {
-          'kind': 'plain',
-          'label': 'Motos en ligne',
-          'value': motosEnLigne,
-          'icon': Icons.two_wheeler,
-          'color': const Color(0xFFF8BF13),
-        },
-      if (showPieces)
-        {
-          'kind': 'plain',
-          'label': 'Pièces en ligne',
-          'value': _statsPiecesOnline,
-          'icon': Icons.build_circle_outlined,
-          'color': const Color(0xFFF8BF13),
-        },
-      if (showVehicules)
-        {
-          'kind': 'plain',
-          'label': 'Véhicules vendus',
-          'value': _statsVehiclesSold,
-          'icon': Icons.sell_outlined,
-          'color': const Color(0xFF2E7D32),
-        },
-      if (showPieces)
-        {
-          'kind': 'plain',
-          'label': 'Pièces vendues',
-          'value': _statsPiecesSold,
-          'icon': Icons.handyman_outlined,
-          'color': const Color(0xFF2E7D32),
-        },
-      {
-        'kind': 'plain',
-        'label': 'Vues enregistrées',
-        'value': totalViews,
-        'icon': Icons.remove_red_eye,
-        'color': const Color(0xFFF8BF13),
-      },
-    ];
-
-    final viewPoints = <double>[
-      ...voituresRecommandees.map((v) => (_backendViews[v.id] ?? 0).toDouble()),
-      ...motosRecommandees.map((m) => (_backendViews[m.id] ?? 0).toDouble()),
-      ...articlesPieces.map((p) => (_backendViews[p.id] ?? 0).toDouble()),
-    ]..sort((a, b) => b.compareTo(a));
-    while (viewPoints.length < 8) {
-      viewPoints.add(0);
-    }
-    final activityPoints = viewPoints.take(8).toList().reversed.toList();
-
-    final dashboardKpis = statsCards.take(4).map((card) {
-      final valueNum = (card['value'] as num?)?.round() ?? 0;
-      return SellerStatsKpi(
-        label: card['label'] as String,
-        value: '$valueNum',
-        icon: card['icon'] as IconData,
-        color: card['color'] as Color,
-      );
-    }).toList();
-
-    final donutSlices = <SellerStatsDonutSlice>[
-      if (showVehicules && totalViewsVehicles > 0)
-        SellerStatsDonutSlice(
-          label: 'Véhicules',
-          value: totalViewsVehicles.toDouble(),
-          color: const Color(0xFFF8BF13),
-        ),
-      if (showMotos && totalViewsMotos > 0)
-        SellerStatsDonutSlice(
-          label: 'Motos',
-          value: totalViewsMotos.toDouble(),
-          color: const Color(0xFF1565C0),
-        ),
-      if (showPieces && totalViewsPieces > 0)
-        SellerStatsDonutSlice(
-          label: 'Pièces',
-          value: totalViewsPieces.toDouble(),
-          color: const Color(0xFF5D4037),
-        ),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Vos statistiques",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          if (_sellerMarqueStatsLoading) ...[
-            const SizedBox(height: 8),
-            const LinearProgressIndicator(minHeight: 3),
-          ],
-          const SizedBox(height: 12),
-          SellerStatsDashboard(
-            activityTitle: 'Activité (vues)',
-            activitySubtitle: 'Répartition par annonces les plus consultées',
-            activityPoints: activityPoints,
-            kpis: dashboardKpis,
-            donutTitle: 'Répartition des vues',
-            donutCenterValue: formatCompactCount(totalViews),
-            donutCenterLabel: 'Vues totales',
-            donutSlices: donutSlices.isNotEmpty
-                ? donutSlices
-                : const [
-                    SellerStatsDonutSlice(
-                      label: 'Aucune vue',
-                      value: 1,
-                      color: Color(0xFFE0E0E0),
-                    ),
-                  ],
-          ),
-        ],
-      ),
+    return MarqueSellerStatsSection(
+      isVendeur: isVendeur,
+      vendeurType: _statsVendeurType ?? _userService.vendeurType,
+      voitures: voituresRecommandees,
+      motos: motosRecommandees,
+      pieces: articlesPieces,
+      backendViews: _backendViews,
+      vehiclesOnline: _statsVehiclesOnline,
+      piecesOnline: _statsPiecesOnline,
+      vehiclesSold: _statsVehiclesSold,
+      piecesSold: _statsPiecesSold,
+      isLoading: _sellerMarqueStatsLoading,
     );
   }
-
   // Section Localisation (visible pour rôles non-vendeurs)
   Widget _buildLocalisationSection() {
     return MarqueLocalisationSection(
