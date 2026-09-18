@@ -33,10 +33,10 @@ import 'package:tranoo/widgets/transitaire_carousel_section.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/widgets/cached_media_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
-import 'package:tranoo/utils/local_data_cache.dart';
 import 'package:tranoo/data/models/article.dart';
 import 'package:tranoo/data/models/article_voiture.dart';
 import 'package:tranoo/data/models/pub.dart';
+import 'package:tranoo/data/repositories/marque_repository.dart';
 import 'package:tranoo/utils/catalog_display.dart';
 import 'package:tranoo/utils/pub_validity.dart';
 
@@ -84,6 +84,7 @@ class _MarqueState extends State<Marque>
   /// Rafraîchissement périodique des données (comme la liste tricycle), sans bloquer l’UI.
   Timer? _marqueAutoRefreshTimer;
   final UserService _userService = UserService();
+  final MarqueRepository _marqueRepo = MarqueRepository();
   late int _marqueTabIndex;
   late int _modeleTabIndex;
   late int _enAttenteTabIndex;
@@ -187,14 +188,11 @@ class _MarqueState extends State<Marque>
   }
 
   Future<void> _primeFromStaleCache() async {
-    final stalePubs =
-        await LocalDataCache.readJsonListStale(_marqueCacheKey('pubs'));
-    if (stalePubs != null && mounted) {
-      final pubs = stalePubs.map((e) => Pub.fromJson(e)).toList();
+    final isVendeur = _userService.currentRole == UserRole.vendeur;
+    final pubs = await _marqueRepo.readStalePubsALaUne(isVendeur: isVendeur);
+    if (pubs != null && mounted) {
       setState(() {
-        pubsALaUne = pubs
-            .where((p) => p.typePub == 'À la une' && isPubValid(p))
-            .toList();
+        pubsALaUne = pubs;
         isLoadingPubs = false;
         if (pubsALaUne.isNotEmpty) {
           _startCarouselTimer();
@@ -203,13 +201,11 @@ class _MarqueState extends State<Marque>
       _precachePubImages(pubsALaUne);
     }
 
-    final staleVoitures =
-        await LocalDataCache.readJsonListStale(_marqueCacheKey('voitures'));
-    if (staleVoitures != null && mounted) {
+    final voitures =
+        await _marqueRepo.readStaleVoitures(isVendeur: isVendeur);
+    if (voitures != null && mounted) {
       setState(() {
-        voituresRecommandees = staleVoitures
-            .map((e) => ArticleVoiture.fromJson(e))
-            .toList();
+        voituresRecommandees = voitures;
         isLoadingVoitures = false;
       });
       _precacheArticleVoitureThumbs(voituresRecommandees);
@@ -245,10 +241,7 @@ class _MarqueState extends State<Marque>
     );
   }
 
-  String get _marqueCacheRole =>
-      _userService.currentRole == UserRole.vendeur ? 'vendeur' : 'acheteur';
-
-  String _marqueCacheKey(String name) => 'marque_${name}_$_marqueCacheRole';
+  bool get _isVendeurRole => _userService.currentRole == UserRole.vendeur;
 
   void _precacheArticleVoitureThumbs(Iterable<ArticleVoiture> items) {
     if (!mounted) return;
@@ -301,18 +294,16 @@ class _MarqueState extends State<Marque>
   }
 
   Future<void> fetchArticlesPieces({bool silent = false}) async {
+    final isVendeur = _isVendeurRole;
     if (!silent) {
-      final stale =
-          await LocalDataCache.readJsonListStale(_marqueCacheKey('pieces'));
-      if (stale != null && mounted) {
-        final cached = stale.map((e) => Article.fromJson(e)).toList();
+      final cached = await _marqueRepo.readStalePieces(isVendeur: isVendeur);
+      if (cached != null && mounted) {
         setState(() {
-          articlesPieces =
-              cached.where((p) => (p.statut ?? 'en_ligne') != 'vendu').toList();
+          articlesPieces = cached;
           isLoadingPieces = false;
         });
         _precachePieceThumbs(articlesPieces);
-      } else {
+      } else if (mounted) {
         setState(() {
           isLoadingPieces = true;
           errorPieces = null;
@@ -320,77 +311,21 @@ class _MarqueState extends State<Marque>
       }
     }
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      String url = getBaseUrl() +
-          '/public/articles?type=piece&statut=en_ligne&vendu=false';
-      _logger.info('[DEBUG] URL pièces: $url');
-      final headers = <String, String>{
-        'Content-Type': 'application/json',
-      };
-      if (idToken != null) {
-        headers['Authorization'] = 'Bearer $idToken';
-      }
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: headers,
-          )
-          .timeout(const Duration(seconds: 8));
-      if (response.statusCode == 200) {
-        final body = response.body;
-        try {
-          final List<dynamic> data = json.decode(body);
-          if (!mounted) return;
-          await LocalDataCache.writeJsonList(_marqueCacheKey('pieces'), data);
-          final allPieces = data.map((e) => Article.fromJson(e)).toList();
-          final piecesFiltered = allPieces
-              .where((p) => (p.statut ?? 'en_ligne') != 'vendu')
-              .toList();
-
-          _logger.info('[DEBUG] Total pièces reçues: ${allPieces.length}');
-          _logger.info(
-            '[DEBUG] Pièces après filtrage vendu: ${piecesFiltered.length}',
-          );
-
-          // Log des statuts pour déboguer
-          for (var p in allPieces) {
-            if ((p.statut ?? 'en_ligne') == 'vendu') {
-              _logger.info(
-                '[DEBUG] Pièce vendue trouvée: ${p.title} - Statut: ${p.statut}',
-              );
-            }
-          }
-
-          setState(() {
-            articlesPieces = piecesFiltered;
-            for (final p in piecesFiltered) {
-              _backendViews[p.id] = p.views;
-            }
-            isLoadingPieces = false;
-          });
-          _precachePieceThumbs(piecesFiltered);
-          _loadBackendViews();
-        } catch (e) {
-          _logger.info('[DEBUG] Erreur de décodage JSON: $e');
-          if (!mounted) return;
-          setState(() {
-            errorPieces = 'Erreur de format de données';
-            isLoadingPieces = false;
-          });
-        }
-      } else {
-        if (!mounted) return;
-        setState(() {
-          errorPieces = 'Erreur lors du chargement des pièces';
-          isLoadingPieces = false;
-        });
-      }
-    } catch (e) {
-      _logger.info('[DEBUG] Exception fetchArticlesPieces: $e');
+      final pieces = await _marqueRepo.fetchPieces(isVendeur: isVendeur);
       if (!mounted) return;
       setState(() {
-        errorPieces = 'Erreur réseau';
+        articlesPieces = pieces;
+        for (final p in pieces) {
+          _backendViews[p.id] = p.views;
+        }
+        isLoadingPieces = false;
+      });
+      _precachePieceThumbs(pieces);
+      _loadBackendViews();
+    } on MarqueFetchException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        errorPieces = e.message;
         isLoadingPieces = false;
       });
     }
@@ -536,21 +471,11 @@ class _MarqueState extends State<Marque>
     if (_userService.currentRole != UserRole.vendeur) return;
     setState(() => _sellerMarqueStatsLoading = true);
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      final response = await http.get(
-        Uri.parse('${getBaseUrl()}/protected/stats/seller-marque'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-      ).timeout(const Duration(seconds: 12));
-      if (response.statusCode != 200 || !mounted) {
+      final data = await _marqueRepo.fetchSellerMarqueStats();
+      if (data == null || !mounted) {
         if (mounted) setState(() => _sellerMarqueStatsLoading = false);
         return;
       }
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      if (!mounted) return;
       setState(() {
         _statsVendeurType = data['vendeurType']?.toString();
         _statsVehiclesOnline = (data['vehiclesOnline'] as num?)?.round() ?? 0;
@@ -572,32 +497,20 @@ class _MarqueState extends State<Marque>
       _errorEnAttente = null;
     });
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
       final type =
           _userService.peutVendreMotos && !_userService.peutVendreVehicules
               ? 'moto'
               : 'voiture';
-      final response = await http.get(
-        Uri.parse(
-          '${getBaseUrl()}/articles?type=$type&statut=en_attente&vendu=false',
-        ),
-        headers: {
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 8));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        if (!mounted) return;
+      final items = await _marqueRepo.fetchVoituresEnAttente(type: type);
+      if (!mounted) return;
+      setState(() {
+        _voituresEnAttente = items;
+        _isLoadingEnAttente = false;
+      });
+    } on MarqueFetchException catch (e) {
+      if (mounted) {
         setState(() {
-          _voituresEnAttente =
-              data.map((e) => ArticleVoiture.fromJson(e)).toList();
-          _isLoadingEnAttente = false;
-        });
-      } else if (mounted) {
-        setState(() {
-          _errorEnAttente = 'Erreur chargement (code ${response.statusCode})';
+          _errorEnAttente = e.message;
           _isLoadingEnAttente = false;
         });
       }
@@ -613,18 +526,17 @@ class _MarqueState extends State<Marque>
   }
 
   Future<void> fetchVoituresRecommandees({bool silent = false}) async {
+    final isVendeur = _isVendeurRole;
     if (!silent) {
-      final stale =
-          await LocalDataCache.readJsonListStale(_marqueCacheKey('voitures'));
-      if (stale != null && mounted) {
-        final cached = stale.map((e) => ArticleVoiture.fromJson(e)).toList();
+      final cached =
+          await _marqueRepo.readStaleVoitures(isVendeur: isVendeur);
+      if (cached != null && mounted) {
         setState(() {
-          voituresRecommandees =
-              cached.where((v) => (v.statut ?? 'en_ligne') != 'vendu').toList();
+          voituresRecommandees = cached;
           isLoadingVoitures = false;
         });
         _precacheArticleVoitureThumbs(voituresRecommandees);
-      } else {
+      } else if (mounted) {
         setState(() {
           isLoadingVoitures = true;
           errorVoitures = null;
@@ -632,90 +544,38 @@ class _MarqueState extends State<Marque>
       }
     }
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      final isVendeur = _userService.currentRole == UserRole.vendeur;
-      String url = isVendeur
-          ? '${getBaseUrl()}/articles?type=voiture&statut=en_ligne&vendu=false'
-          : '${getBaseUrl()}/public/articles?type=voiture&statut=en_ligne&vendu=false';
-      _logger.info('[DEBUG] URL voitures: $url');
-      final headers = <String, String>{
-        'Content-Type': 'application/json',
-      };
-      if (idToken != null) {
-        headers['Authorization'] = 'Bearer $idToken';
-      }
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: headers,
-          )
-          .timeout(const Duration(seconds: 8));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        if (!mounted) return;
-        await LocalDataCache.writeJsonList(_marqueCacheKey('voitures'), data);
-        final allVoitures =
-            data.map((e) => ArticleVoiture.fromJson(e)).toList();
-        final voituresFiltered = allVoitures
-            .where((v) => (v.statut ?? 'en_ligne') != 'vendu')
-            .toList();
-
-        _logger.info('[DEBUG] Total voitures reçues: ${allVoitures.length}');
-        _logger.info(
-          '[DEBUG] Voitures après filtrage vendu: ${voituresFiltered.length}',
-        );
-
-        // Log des statuts pour déboguer
-        for (var v in allVoitures) {
-          if ((v.statut ?? 'en_ligne') == 'vendu') {
-            _logger.info(
-              '[DEBUG] Voiture vendue trouvée: ${v.titre} - Statut: ${v.statut}',
-            );
-          }
-        }
-
-        setState(() {
-          voituresRecommandees = voituresFiltered;
-          for (final v in voituresFiltered) {
-            _backendViews[v.id] = v.views;
-          }
-          isLoadingVoitures = false;
-        });
-
-        _precacheArticleVoitureThumbs(voituresFiltered);
-        // Charger les vues depuis le backend après avoir récupéré les véhicules
-        _loadBackendViews();
-      } else {
-        if (!mounted) return;
-        setState(() {
-          errorVoitures = 'Erreur lors du chargement des voitures';
-          isLoadingVoitures = false;
-        });
-      }
-    } catch (e) {
-      _logger.info('[DEBUG] Exception fetchVoituresRecommandees: $e');
+      final voitures =
+          await _marqueRepo.fetchVoitures(isVendeur: isVendeur);
       if (!mounted) return;
       setState(() {
-        errorVoitures = 'Erreur réseau';
+        voituresRecommandees = voitures;
+        for (final v in voitures) {
+          _backendViews[v.id] = v.views;
+        }
+        isLoadingVoitures = false;
+      });
+      _precacheArticleVoitureThumbs(voitures);
+      _loadBackendViews();
+    } on MarqueFetchException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        errorVoitures = e.message;
         isLoadingVoitures = false;
       });
     }
   }
 
   Future<void> fetchMotosRecommandees({bool silent = false}) async {
+    final isVendeur = _isVendeurRole;
     if (!silent) {
-      final stale =
-          await LocalDataCache.readJsonListStale(_marqueCacheKey('motos'));
-      if (stale != null && mounted) {
-        final cached = stale.map((e) => ArticleVoiture.fromJson(e)).toList();
+      final cached = await _marqueRepo.readStaleMotos(isVendeur: isVendeur);
+      if (cached != null && mounted) {
         setState(() {
-          motosRecommandees =
-              cached.where((m) => (m.statut ?? 'en_ligne') != 'vendu').toList();
+          motosRecommandees = cached;
           isLoadingMotos = false;
         });
         _precacheArticleVoitureThumbs(motosRecommandees);
-      } else {
+      } else if (mounted) {
         setState(() {
           isLoadingMotos = true;
           errorMotos = null;
@@ -723,66 +583,41 @@ class _MarqueState extends State<Marque>
       }
     }
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      final isVendeur = _userService.currentRole == UserRole.vendeur;
-      String url = isVendeur
-          ? '${getBaseUrl()}/articles?type=moto&statut=en_ligne&vendu=false'
-          : '${getBaseUrl()}/public/articles?type=moto&statut=en_ligne&vendu=false';
-      final headers = <String, String>{'Content-Type': 'application/json'};
-      if (idToken != null) headers['Authorization'] = 'Bearer $idToken';
-      final response = await http
-          .get(Uri.parse(url), headers: headers)
-          .timeout(const Duration(seconds: 8));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        if (!mounted) return;
-        await LocalDataCache.writeJsonList(_marqueCacheKey('motos'), data);
-        final allMotos = data.map((e) => ArticleVoiture.fromJson(e)).toList();
-        final motosFiltered =
-            allMotos.where((m) => (m.statut ?? 'en_ligne') != 'vendu').toList();
-        setState(() {
-          motosRecommandees = motosFiltered;
-          for (final m in motosFiltered) {
-            _backendViews[m.id] = m.views;
-          }
-          isLoadingMotos = false;
-        });
-        _precacheArticleVoitureThumbs(motosFiltered);
-        _loadBackendViews();
-      } else {
-        if (!mounted) return;
-        setState(() {
-          errorMotos = 'Erreur lors du chargement des motos';
-          isLoadingMotos = false;
-        });
-      }
-    } catch (e) {
+      final motos = await _marqueRepo.fetchMotos(isVendeur: isVendeur);
       if (!mounted) return;
       setState(() {
-        errorMotos = 'Erreur réseau';
+        motosRecommandees = motos;
+        for (final m in motos) {
+          _backendViews[m.id] = m.views;
+        }
+        isLoadingMotos = false;
+      });
+      _precacheArticleVoitureThumbs(motos);
+      _loadBackendViews();
+    } on MarqueFetchException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        errorMotos = e.message;
         isLoadingMotos = false;
       });
     }
   }
 
   Future<void> fetchPubs({bool silent = false}) async {
+    final isVendeur = _isVendeurRole;
     if (!silent) {
-      final stale =
-          await LocalDataCache.readJsonListStale(_marqueCacheKey('pubs'));
-      if (stale != null && mounted) {
-        final pubs = stale.map((e) => Pub.fromJson(e)).toList();
+      final cached =
+          await _marqueRepo.readStalePubsALaUne(isVendeur: isVendeur);
+      if (cached != null && mounted) {
         setState(() {
-          pubsALaUne = pubs
-              .where((p) => p.typePub == 'À la une' && isPubValid(p))
-              .toList();
+          pubsALaUne = cached;
           isLoadingPubs = false;
           if (pubsALaUne.isNotEmpty) {
             _startCarouselTimer();
           }
         });
         _precachePubImages(pubsALaUne);
-      } else {
+      } else if (mounted) {
         setState(() {
           isLoadingPubs = true;
           errorPubs = null;
@@ -790,79 +625,37 @@ class _MarqueState extends State<Marque>
       }
     }
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      String url = getBaseUrl() + '/public/publicites?statut=valide';
-      final headers = <String, String>{
-        'Content-Type': 'application/json',
-      };
-      if (idToken != null) {
-        headers['Authorization'] = 'Bearer $idToken';
-      }
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      );
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        await LocalDataCache.writeJsonList(_marqueCacheKey('pubs'), data);
-        final pubs = data.map((e) => Pub.fromJson(e)).toList();
-        if (!mounted) return;
-        setState(() {
-          pubsALaUne = pubs
-              .where((p) => p.typePub == 'À la une' && isPubValid(p))
-              .toList();
-          _logger.info('[DEBUG] 📺 Total pubs reçues: ${pubs.length}');
-          _logger.info(
-            '[DEBUG] 📺 Publicités À la une: ${pubsALaUne.length} valides sur ${pubs.where((p) => p.typePub == 'À la une').length} totales',
-          );
-          for (var pub in pubs.where((p) => p.typePub == 'À la une')) {
-            final isValid = isPubValid(pub);
-            _logger.info(
-              '[DEBUG] 📺 Pub ${pub.id}: statut=${pub.statut}, dateDebut=${pub.dateDebut}, dateFin=${pub.dateFin}, valide=$isValid',
-            );
-            if (!isValid && pub.statut == 'valide') {
-              _logger.info(
-                '[DEBUG] 📺 Pub ${pub.id} rejetée pour expiration - maintenant: ${DateTime.now()}, dateFin: ${pub.dateFin}',
-              );
-            }
-          }
-          isLoadingPubs = false;
-          // Redémarrer le timer si nécessaire
-          if (pubsALaUne.isNotEmpty) {
-            _startCarouselTimer();
-          }
-        });
-        _precachePubImages(pubsALaUne);
-      } else {
-        if (!mounted) return;
-        setState(() {
-          errorPubs = 'Erreur lors du chargement des publicités';
-          isLoadingPubs = false;
-        });
-      }
-    } catch (e) {
+      final pubs = await _marqueRepo.fetchPubsALaUne(isVendeur: isVendeur);
       if (!mounted) return;
       setState(() {
-        errorPubs = 'Erreur réseau';
+        pubsALaUne = pubs;
+        isLoadingPubs = false;
+        if (pubsALaUne.isNotEmpty) {
+          _startCarouselTimer();
+        }
+      });
+      _precachePubImages(pubsALaUne);
+    } on MarqueFetchException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        errorPubs = e.message;
         isLoadingPubs = false;
       });
     }
   }
 
   Future<void> fetchPubsSponsorisees({bool silent = false}) async {
+    final isVendeur = _isVendeurRole;
     if (!silent) {
-      final stale = await LocalDataCache.readJsonListStale(
-        _marqueCacheKey('pubs_sponsor'),
-      );
-      if (stale != null && mounted) {
-        final pubs = stale.map((e) => Pub.fromJson(e)).toList();
+      final cached =
+          await _marqueRepo.readStalePubsSponsorisees(isVendeur: isVendeur);
+      if (cached != null && mounted) {
         setState(() {
-          pubsSponsorisees = pubs.where((p) => isPubValid(p)).toList();
+          pubsSponsorisees = cached;
           isLoadingPubs = false;
         });
         _precachePubImages(pubsSponsorisees);
-      } else {
+      } else if (mounted) {
         setState(() {
           isLoadingPubs = true;
           errorPubs = null;
@@ -870,58 +663,18 @@ class _MarqueState extends State<Marque>
       }
     }
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      String url =
-          getBaseUrl() + '/public/publicites?typePub=Sponsorisée&statut=valide';
-      final headers = <String, String>{
-        'Content-Type': 'application/json',
-      };
-      if (idToken != null) {
-        headers['Authorization'] = 'Bearer $idToken';
-      }
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      );
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        await LocalDataCache.writeJsonList(_marqueCacheKey('pubs_sponsor'), data);
-        final pubs = data.map((e) => Pub.fromJson(e)).toList();
-        if (!mounted) return;
-        setState(() {
-          pubsSponsorisees = pubs.where((p) => isPubValid(p)).toList();
-          _logger.info(
-            '[DEBUG] ⭐ Total pubs sponsorisées reçues: ${pubs.length}',
-          );
-          _logger.info(
-            '[DEBUG] ⭐ Publicités Sponsorisées: ${pubsSponsorisees.length} valides sur ${pubs.length} totales',
-          );
-          for (var pub in pubs) {
-            final isValid = isPubValid(pub);
-            _logger.info(
-              '[DEBUG] ⭐ Pub ${pub.id}: statut=${pub.statut}, dateDebut=${pub.dateDebut}, dateFin=${pub.dateFin}, valide=$isValid',
-            );
-            if (!isValid && pub.statut == 'valide') {
-              _logger.info(
-                '[DEBUG] ⭐ Pub ${pub.id} rejetée pour expiration - maintenant: ${DateTime.now()}, dateFin: ${pub.dateFin}',
-              );
-            }
-          }
-          isLoadingPubs = false;
-        });
-        _precachePubImages(pubsSponsorisees);
-      } else {
-        if (!mounted) return;
-        setState(() {
-          errorPubs = 'Erreur lors du chargement des publicités';
-          isLoadingPubs = false;
-        });
-      }
-    } catch (e) {
+      final pubs =
+          await _marqueRepo.fetchPubsSponsorisees(isVendeur: isVendeur);
       if (!mounted) return;
       setState(() {
-        errorPubs = 'Erreur réseau';
+        pubsSponsorisees = pubs;
+        isLoadingPubs = false;
+      });
+      _precachePubImages(pubsSponsorisees);
+    } on MarqueFetchException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        errorPubs = e.message;
         isLoadingPubs = false;
       });
     }
