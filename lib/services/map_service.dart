@@ -81,23 +81,6 @@ class MapService {
     }
   }
   
-  /// Couleurs pour les différents éléments de la carte
-  static class MapColors {
-    static const Color routeColor = Color(0xFF4CAF50); // Vert
-    static const Color driverColor = Color(0xFFFFD700); // Jaune/or
-    static const Color restaurantColor = Color(0xFFF44336); // Rouge
-    static const Color destinationColor = Color(0xFF2196F3); // Bleu
-    static const Color checkpointColor = Color(0xFFFF9800); // Orange
-  }
-  
-  /// Icônes pour les marqueurs
-  static class MapIcons {
-    static const IconData restaurant = Icons.store;
-    static const IconData destination = Icons.home;
-    static const IconData driver = Icons.motorcycle;
-    static const IconData checkpoint = Icons.location_on;
-  }
-  
   /// Calcul de distance entre deux points (en km)
   static double calculateDistance(LatLng point1, LatLng point2) {
     const Distance distance = Distance();
