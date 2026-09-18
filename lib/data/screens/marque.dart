@@ -18,14 +18,11 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
-import 'package:tranoo/data/screens/movie.dart';
-import 'package:lottie/lottie.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
 import 'package:tranoo/utils/livro_integration.dart';
 import 'package:tranoo/widgets/catalog_article_grid_card.dart';
-import 'package:tranoo/data/screens/tricycle/tricycle_home.dart';
 import 'package:tranoo/utils/page_refresh_registry.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
 import 'package:tranoo/widgets/page_pull_refresh.dart';
@@ -42,14 +39,6 @@ import 'package:tranoo/data/models/article_voiture.dart';
 import 'package:tranoo/data/models/pub.dart';
 import 'package:tranoo/utils/catalog_display.dart';
 import 'package:tranoo/utils/pub_validity.dart';
-
-List<ArticleVoiture> voituresRecommandees = [];
-bool isLoadingVoitures = true;
-String? errorVoitures;
-
-List<ArticleVoiture> motosRecommandees = [];
-bool isLoadingMotos = true;
-String? errorMotos;
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -111,6 +100,12 @@ class _MarqueState extends State<Marque>
   int _statsVehiclesSold = 0;
   int _statsPiecesSold = 0;
   bool _sellerMarqueStatsLoading = false;
+  List<ArticleVoiture> voituresRecommandees = [];
+  bool isLoadingVoitures = true;
+  String? errorVoitures;
+  List<ArticleVoiture> motosRecommandees = [];
+  bool isLoadingMotos = true;
+  String? errorMotos;
   List<Article> articlesPieces = [];
   bool isLoadingPieces = true;
   String? errorPieces;
