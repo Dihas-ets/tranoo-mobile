@@ -1,4 +1,4 @@
-// ignore_for_file: unused_field, unused_element, unused_local_variable
+﻿// ignore_for_file: unused_field, unused_element, unused_local_variable
 
 import 'dart:io';
 import 'dart:typed_data'; // Added for Uint8List
@@ -13,9 +13,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tranoo/utils/cloudinary_upload.dart';
 import 'dart:developer';
 import 'package:tranoo/l10n/app_localizations.dart';
-import 'package:tranoo/widgets/tranoo_network_image.dart';
-import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/data/repositories/une_repository.dart';
+import 'package:tranoo/data/screens/une/une_car_info_section.dart';
+import 'package:tranoo/data/screens/une/une_featured_flyer.dart';
+import 'package:tranoo/data/screens/une/une_labels.dart';
+import 'package:tranoo/data/screens/une/une_mode_banner.dart';
+import 'package:tranoo/data/screens/une/une_sponsored_media.dart';
 
 class Une extends StatefulWidget {
   final String? articleId; // ID de l'article existant (optionnel)
@@ -23,7 +26,7 @@ class Une extends StatefulWidget {
   final bool
       isStandalone; // Nouveau: true pour pub standalone, false pour pub d'article existant
 
-  // Paramètres pour pré-remplir les champs quand l'article n'est pas encore créé
+  // ParamÃ¨tres pour prÃ©-remplir les champs quand l'article n'est pas encore crÃ©Ã©
   final String? articleTitle;
   final String? articleYear;
   final String? articleLocation;
@@ -40,7 +43,7 @@ class Une extends StatefulWidget {
     super.key,
     this.articleId,
     this.articleType,
-    this.isStandalone = false, // Par défaut, ce n'est pas standalone
+    this.isStandalone = false, // Par dÃ©faut, ce n'est pas standalone
     this.articleTitle,
     this.articleYear,
     this.articleLocation,
@@ -62,19 +65,6 @@ class _UneState extends State<Une> {
   AppLocalizations get l10n => AppLocalizations.of(context)!;
   final _uneRepo = UneRepository();
 
-  static const String _pubSponsored = 'Sponsorisée';
-  static const String _pubFeatured = 'À la une';
-  static const String _bankPayment = 'Paiement bancaire';
-  static const String _dureeOneWeek = '1 semaine';
-  static const String _dureeTwoWeeks = '2 semaines';
-  static const String _dureeOneMonth = '1 mois';
-  static const String _dureeTwoMonths = '2 mois';
-  static const String _dureeThreeMonths = '3 mois';
-  static const String _conditionNew = 'Nouveau';
-  static const String _conditionUsed = 'Occasion';
-  static const String _noEngine = 'Aucun';
-  static const String _otherModel = 'Autre';
-
   final _formKey = GlobalKey<FormState>();
   String? _selectedVoiture;
   String? _selectedPaiement;
@@ -83,7 +73,7 @@ class _UneState extends State<Une> {
   final TextEditingController _prixController = TextEditingController();
   final TextEditingController _linkController = TextEditingController();
 
-  // Contrôleurs pour les informations de voiture
+  // ContrÃ´leurs pour les informations de voiture
   final TextEditingController _carNameController = TextEditingController();
   final TextEditingController _carYearController = TextEditingController();
   final TextEditingController _carLocationController = TextEditingController();
@@ -95,9 +85,9 @@ class _UneState extends State<Une> {
   final TextEditingController _carModelController = TextEditingController();
   String? _selectedCarType; // Nouveau/Occasion
   String? _selectedCarFuelType; // Essence/Gazoil/Diezel/Electrique/Hybride
-  String? _selectedCarModel; // Modèle
+  String? _selectedCarModel; // ModÃ¨le
 
-  // Ajout pour plusieurs images et vidéo (comme create_sell.dart)
+  // Ajout pour plusieurs images et vidÃ©o (comme create_sell.dart)
   List<File?> _uploadedImages = List.filled(11, null); // mobile
   List<Uint8List?> _uploadedImagesWeb = List.filled(11, null); // web
   List<String?> _cloudinaryImageUrls = List.filled(11, null);
@@ -105,89 +95,45 @@ class _UneState extends State<Une> {
   File? _uploadedVideo;
   String? _cloudinaryVideoUrl;
   bool _isUploadingVideo = false;
-  double _videoUploadProgress = 0.0; // Progression de l'upload vidéo
+  double _videoUploadProgress = 0.0; // Progression de l'upload vidÃ©o
 
-  final List<String> voitures = [_pubSponsored, _pubFeatured];
-  final List<String> moyensPaiement = [_bankPayment, 'Mobile Money'];
+  final List<String> voitures = [
+    UneLabels.pubSponsored,
+    UneLabels.pubFeatured,
+  ];
+  final List<String> moyensPaiement = [UneLabels.bankPayment, 'Mobile Money'];
   final List<String> durees = [
-    _dureeOneWeek,
-    _dureeTwoWeeks,
-    _dureeOneMonth,
-    _dureeTwoMonths,
-    _dureeThreeMonths,
+    UneLabels.dureeOneWeek,
+    UneLabels.dureeTwoWeeks,
+    UneLabels.dureeOneMonth,
+    UneLabels.dureeTwoMonths,
+    UneLabels.dureeThreeMonths,
   ];
 
-  // Prix par jour pour chaque type (à récupérer du backend)
+  // Prix par jour pour chaque type (Ã  rÃ©cupÃ©rer du backend)
   double _prixSponsoriseeParJour = 1000.0;
   double _prixALaUneParJour = 2000.0;
 
   // Listes pour les dropdowns de voiture
-  final List<String> _carTypes = [_conditionNew, _conditionUsed];
+  final List<String> _carTypes = [
+    UneLabels.conditionNew,
+    UneLabels.conditionUsed,
+  ];
   final List<String> _carFuelTypes = [
     'Essence',
     'Gazoil',
     'Diesel',
     'Electrique',
     'Hybride',
-    _noEngine,
+    UneLabels.noEngine,
   ];
-  final List<String> _carModels = ['Modèle1', 'Modèle2', _otherModel];
+  final List<String> _carModels = [
+    'ModÃ¨le1',
+    'ModÃ¨le2',
+    UneLabels.otherModel,
+  ];
 
   final ImagePicker picker = ImagePicker();
-
-  String _pubTypeLabel(AppLocalizations l10n, String type) {
-    switch (type) {
-      case _pubSponsored:
-        return l10n.sponsoredType;
-      case _pubFeatured:
-        return l10n.featuredType;
-      default:
-        return type;
-    }
-  }
-
-  String _durationLabel(AppLocalizations l10n, String duree) {
-    switch (duree) {
-      case _dureeOneWeek:
-        return l10n.oneWeek;
-      case _dureeTwoWeeks:
-        return l10n.twoWeeks;
-      case _dureeOneMonth:
-        return l10n.oneMonth;
-      case _dureeTwoMonths:
-        return l10n.twoMonths;
-      case _dureeThreeMonths:
-        return l10n.threeMonths;
-      default:
-        return duree;
-    }
-  }
-
-  String _conditionLabel(AppLocalizations l10n, String? value) {
-    if (value == _conditionNew) return l10n.newCondition;
-    if (value == _conditionUsed) return l10n.usedCondition;
-    return value ?? '';
-  }
-
-  String _fuelLabel(AppLocalizations l10n, String value) {
-    switch (value) {
-      case 'Essence':
-        return l10n.petrol;
-      case 'Gazoil':
-        return l10n.gazoil;
-      case 'Diesel':
-      case 'Diezel':
-        return l10n.diesel;
-      case 'Electrique':
-        return l10n.electric;
-      case 'Hybride':
-        return l10n.hybrid;
-      case _noEngine:
-        return l10n.noEngine;
-      default:
-        return value;
-    }
-  }
 
   void _applyDefaultPlaceholders(AppLocalizations l10n) {
     if (widget.articleId != null) return;
@@ -228,7 +174,7 @@ class _UneState extends State<Une> {
   bool _isLoading = false;
   String? _createdPubId;
   bool _isLoadingArticle = false;
-  String? _createdArticleId; // ID de l'article créé pendant la session
+  String? _createdArticleId; // ID de l'article crÃ©Ã© pendant la session
 
   bool get _isAnyUploading =>
       _isUploadingImage.contains(true) || _isUploadingVideo;
@@ -238,13 +184,13 @@ class _UneState extends State<Une> {
     super.initState();
     _loadPrixConfig(); // Charger les prix depuis le backend
     if (widget.isStandalone) {
-      _selectedVoiture = _pubFeatured;
+      _selectedVoiture = UneLabels.pubFeatured;
     }
     // Si on a un articleId, charger ses infos
     if (widget.articleId != null) {
       _loadArticleInfo();
     } else {
-      // Pré-remplir les champs avec les paramètres passés ou des valeurs par défaut
+      // PrÃ©-remplir les champs avec les paramÃ¨tres passÃ©s ou des valeurs par dÃ©faut
       _carNameController.text = widget.articleTitle ?? '';
       _carYearController.text =
           widget.articleYear ?? DateTime.now().year.toString();
@@ -255,13 +201,13 @@ class _UneState extends State<Une> {
       _carModelController.text = widget.articleModel ?? '';
       _selectedCarModel = _carModels.contains(widget.articleModel)
           ? widget.articleModel
-          : 'Modèle1';
+          : 'ModÃ¨le1';
       _selectedCarFuelType = _carFuelTypes.contains(widget.articleFuelType)
           ? widget.articleFuelType
           : 'Essence';
       _selectedCarType = _carTypes.contains(widget.articlePieceType)
           ? widget.articlePieceType
-          : _conditionNew;
+          : UneLabels.conditionNew;
 
       // Charger les images si fournies
       if (widget.articleImages != null && widget.articleImages!.isNotEmpty) {
@@ -296,13 +242,13 @@ class _UneState extends State<Une> {
     super.dispose();
   }
 
-  // Méthode pour créer un article et récupérer son ID
+  // MÃ©thode pour crÃ©er un article et rÃ©cupÃ©rer son ID
   Future<String?> _createArticle() async {
     try {
       Map<String, dynamic> articleData;
 
       if (widget.articleType == 'piece') {
-        // Créer un article pièce
+        // CrÃ©er un article piÃ¨ce
         articleData = {
           'type': 'piece',
           'titre': _carNameController.text.trim(),
@@ -318,9 +264,9 @@ class _UneState extends State<Une> {
           'video': _cloudinaryVideoUrl,
           'statut': 'en_attente', // En attente de validation admin
         };
-        log('[DEBUG] Création de l\'article pièce: $articleData');
+        log('[DEBUG] CrÃ©ation de l\'article piÃ¨ce: $articleData');
       } else {
-        // Créer un article voiture
+        // CrÃ©er un article voiture
         articleData = {
           'type': 'voiture',
           'titre': _carNameController.text.trim(),
@@ -337,14 +283,14 @@ class _UneState extends State<Une> {
           'video': _cloudinaryVideoUrl,
           'statut': 'en_attente', // En attente de validation admin
         };
-        log('[DEBUG] Création de l\'article voiture: $articleData');
+        log('[DEBUG] CrÃ©ation de l\'article voiture: $articleData');
       }
 
       final articleId = await _uneRepo.createArticle(articleData);
-      log('[DEBUG] Article créé avec ID: $articleId');
+      log('[DEBUG] Article crÃ©Ã© avec ID: $articleId');
       return articleId;
     } on UneApiException catch (e) {
-      log('[DEBUG] Erreur création article: $e');
+      log('[DEBUG] Erreur crÃ©ation article: $e');
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -357,7 +303,7 @@ class _UneState extends State<Une> {
       );
       return null;
     } catch (e) {
-      log('[DEBUG] Exception création article: $e');
+      log('[DEBUG] Exception crÃ©ation article: $e');
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -377,7 +323,7 @@ class _UneState extends State<Une> {
 
     try {
       final articleData = await _uneRepo.fetchArticle(widget.articleId!);
-      log('[DEBUG] Article chargé: $articleData');
+      log('[DEBUG] Article chargÃ©: $articleData');
 
       // Remplir les champs avec les infos de l'article
       if (articleData['type'] == 'voiture') {
@@ -390,14 +336,14 @@ class _UneState extends State<Une> {
         _carModelController.text = articleData['marque'] ?? '';
         _selectedCarModel = _carModels.contains(articleData['modele'])
             ? articleData['modele']
-            : 'Modèle1';
+            : 'ModÃ¨le1';
         _selectedCarFuelType =
             _carFuelTypes.contains(articleData['carburant'])
                 ? articleData['carburant']
                 : 'Essence';
         _selectedCarType = _carTypes.contains(articleData['condition'])
             ? articleData['condition']
-            : _conditionNew;
+            : UneLabels.conditionNew;
 
         // Charger les images existantes
         if (articleData['photos'] != null) {
@@ -412,14 +358,14 @@ class _UneState extends State<Une> {
         _carCompanyController.text = articleData['entreprise'] ?? '';
         _selectedCarModel = _carModels.contains(articleData['modele'])
             ? articleData['modele']
-            : 'Modèle1';
+            : 'ModÃ¨le1';
         _selectedCarFuelType =
             _carFuelTypes.contains(articleData['typeMoteur'])
                 ? articleData['typeMoteur']
                 : 'Essence';
         _selectedCarType = _carTypes.contains(articleData['pieceType'])
             ? articleData['pieceType']
-            : _conditionNew;
+            : UneLabels.conditionNew;
 
         // Charger les images existantes
         if (articleData['photos'] != null) {
@@ -427,7 +373,7 @@ class _UneState extends State<Une> {
         }
       }
 
-      // Pré-remplir la description de la pub
+      // PrÃ©-remplir la description de la pub
       final l10n = AppLocalizations.of(context)!;
       _descriptionController.text =
           l10n.pubForTitle(articleData['titre']?.toString() ?? '');
@@ -521,7 +467,7 @@ class _UneState extends State<Une> {
     final ImagePicker picker = ImagePicker();
     final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
     if (video != null) {
-      // Vérification de la taille (500 Mo max)
+      // VÃ©rification de la taille (500 Mo max)
       final int maxSizeBytes = 500 * 1024 * 1024; // 500 Mo
       final int videoSize = await video.length();
       final double videoSizeMB = videoSize / (1024 * 1024);
@@ -603,11 +549,11 @@ class _UneState extends State<Une> {
         }
       }
       log(
-        '[DEBUG] Media uploadé vers Cloudinary: $_cloudinaryImageUrls, $_cloudinaryVideoUrl',
+        '[DEBUG] Media uploadÃ© vers Cloudinary: $_cloudinaryImageUrls, $_cloudinaryVideoUrl',
       );
     } catch (e) {
       log('[DEBUG] Erreur upload media: $e');
-      // Ne pas afficher d'erreur si c'est juste un problème de format non supporté ou de timeout
+      // Ne pas afficher d'erreur si c'est juste un problÃ¨me de format non supportÃ© ou de timeout
       if (!e.toString().contains('unsupported') &&
           !e.toString().contains('format') &&
           !e.toString().contains('timeout') &&
@@ -628,7 +574,7 @@ class _UneState extends State<Une> {
     }
   }
 
-  // Méthode pour upload web (comme dans create_sell.dart)
+  // MÃ©thode pour upload web (comme dans create_sell.dart)
   Future<String?> uploadImageToCloudinaryWeb(Uint8List bytes) async {
     try {
       return await uploadImageToCloudinary(
@@ -647,7 +593,7 @@ class _UneState extends State<Une> {
       log('[DEBUG] Chargement prix depuis UneRepository');
       final pricing = await _uneRepo.fetchPubPricing();
       if (pricing == null) {
-        log('[DEBUG] Prix config non disponible — defaults UI');
+        log('[DEBUG] Prix config non disponible â€” defaults UI');
         return;
       }
       setState(() {
@@ -655,27 +601,27 @@ class _UneState extends State<Une> {
         _prixALaUneParJour = pricing.prixALaUneParJour;
       });
       log(
-        '[DEBUG] Prix chargés: Sponsorisée $_prixSponsoriseeParJour, À la une $_prixALaUneParJour FCFA/jour',
+        '[DEBUG] Prix chargÃ©s: SponsorisÃ©e $_prixSponsoriseeParJour, Ã€ la une $_prixALaUneParJour FCFA/jour',
       );
     } catch (e) {
       log('[DEBUG] Erreur chargement prix: $e');
-      // Garder le prix par défaut
+      // Garder le prix par dÃ©faut
     }
   }
 
-  // Calculer le nombre de jours selon la durée
+  // Calculer le nombre de jours selon la durÃ©e
   int _getNombreJours(String? duree) {
     if (duree == null) return 0;
     switch (duree) {
-      case _dureeOneWeek:
+      case UneLabels.dureeOneWeek:
         return 7;
-      case _dureeTwoWeeks:
+      case UneLabels.dureeTwoWeeks:
         return 14;
-      case _dureeOneMonth:
+      case UneLabels.dureeOneMonth:
         return 30;
-      case _dureeTwoMonths:
+      case UneLabels.dureeTwoMonths:
         return 60;
-      case _dureeThreeMonths:
+      case UneLabels.dureeThreeMonths:
         return 90;
       default:
         return 0;
@@ -686,10 +632,10 @@ class _UneState extends State<Une> {
     if (typePub == null) return 0.0;
     double prix = 0.0;
     switch (typePub) {
-      case _pubSponsored:
+      case UneLabels.pubSponsored:
         prix = _prixSponsoriseeParJour;
         break;
-      case _pubFeatured:
+      case UneLabels.pubFeatured:
         prix = _prixALaUneParJour;
         break;
       default:
@@ -699,7 +645,7 @@ class _UneState extends State<Une> {
     return prix;
   }
 
-  // Mettre à jour le prix selon la durée et le type
+  // Mettre Ã  jour le prix selon la durÃ©e et le type
   void _updatePrix() {
     if (_selectedVoiture != null) {
       final prixParJour = _getPrixParJour(_selectedVoiture);
@@ -716,14 +662,14 @@ class _UneState extends State<Une> {
           '[DEBUG] Calcul prix: $jours jours x $prixParJour FCFA = $prixTotal FCFA',
         );
       } else {
-        // Afficher juste le prix par jour quand seul le type est sélectionné
+        // Afficher juste le prix par jour quand seul le type est sÃ©lectionnÃ©
         final prixFormate = prixParJour.round();
         final l10n = AppLocalizations.of(context)!;
         setState(() {
           _prixController.text = l10n.pricePerDayLabel('$prixFormate');
         });
 
-        log('[DEBUG] Prix par jour: $prixParJour FCFA (formaté: $prixFormate)');
+        log('[DEBUG] Prix par jour: $prixParJour FCFA (formatÃ©: $prixFormate)');
       }
     } else {
       setState(() {
@@ -759,11 +705,11 @@ class _UneState extends State<Une> {
 
   Future<void> _onPayer() async {
     final l10n = AppLocalizations.of(context)!;
-    debugPrint('🚀 [DEBUG] Début _onPayer - articleId: ${widget.articleId}');
-    log('🚀 [DEBUG] Début _onPayer - articleId: ${widget.articleId}');
+    debugPrint('ðŸš€ [DEBUG] DÃ©but _onPayer - articleId: ${widget.articleId}');
+    log('ðŸš€ [DEBUG] DÃ©but _onPayer - articleId: ${widget.articleId}');
 
     final currentType =
-        _selectedVoiture ?? (widget.isStandalone ? _pubFeatured : null);
+        _selectedVoiture ?? (widget.isStandalone ? UneLabels.pubFeatured : null);
     if (!_formKey.currentState!.validate() ||
         currentType == null ||
         _selectedDuree == null) {
@@ -775,7 +721,7 @@ class _UneState extends State<Une> {
 
     _selectedVoiture = currentType;
 
-    // Vérification stricte : au moins une image doit être présente
+    // VÃ©rification stricte : au moins une image doit Ãªtre prÃ©sente
     final pubImages = _cloudinaryImageUrls.whereType<String>().toList();
     final lienValue = _linkController.text.trim();
     final lien = lienValue.isEmpty ? null : lienValue;
@@ -786,8 +732,8 @@ class _UneState extends State<Une> {
       return;
     }
 
-    final bool isSponsorisee = currentType == _pubSponsored;
-    final bool isALaUne = currentType == _pubFeatured;
+    final bool isSponsorisee = currentType == UneLabels.pubSponsored;
+    final bool isALaUne = currentType == UneLabels.pubFeatured;
 
     if (isSponsorisee) {
       if (_isAnyUploading) {
@@ -826,17 +772,17 @@ class _UneState extends State<Une> {
     });
 
     try {
-      // Upload des médias vers Cloudinary
+      // Upload des mÃ©dias vers Cloudinary
       if (_uploadedImages.any((file) => file != null) ||
           _uploadedVideo != null) {
         await _uploadMediaToCloudinary();
       }
 
-      // Pour les pubs standalone, créer directement la pub et rediriger vers le paiement standard
+      // Pour les pubs standalone, crÃ©er directement la pub et rediriger vers le paiement standard
       if (widget.isStandalone) {
         final user = FirebaseAuth.instance.currentUser;
 
-        // Préparation des données de publicité pour standalone
+        // PrÃ©paration des donnÃ©es de publicitÃ© pour standalone
         final pubData = {
           'description': _descriptionController.text.trim().isEmpty
               ? l10n.noDescriptionAd
@@ -844,13 +790,13 @@ class _UneState extends State<Une> {
           'typePub': currentType,
           'duree': _selectedDuree,
           'prix': int.tryParse(_prixController.text) ?? 0,
-          'moyenPaiement': _bankPayment,
-          'media': pubImages, // Envoyer toutes les images uploadées
+          'moyenPaiement': UneLabels.bankPayment,
+          'media': pubImages, // Envoyer toutes les images uploadÃ©es
           'statut': 'en_attente',
           'vendeur': user?.uid,
-          'articleId': null, // Pas d'article associé pour standalone
+          'articleId': null, // Pas d'article associÃ© pour standalone
           'isStandalone': true, // Marquer comme standalone
-          // Ajouter les données de l'offre standalone
+          // Ajouter les donnÃ©es de l'offre standalone
           'titre': _carNameController.text.trim(),
           'annee': _carYearController.text.trim(),
           'descriptionOffre': _carDescriptionController.text.trim(),
@@ -865,7 +811,7 @@ class _UneState extends State<Une> {
           'lien': lien,
         };
 
-        // Créer la publicité standalone
+        // CrÃ©er la publicitÃ© standalone
         try {
           _createdPubId = await _uneRepo.createPublicite(pubData);
           Navigator.push(
@@ -875,7 +821,7 @@ class _UneState extends State<Une> {
             ),
           );
         } on UneApiException catch (e) {
-          log('[DEBUG] Erreur création publicité standalone: $e');
+          log('[DEBUG] Erreur crÃ©ation publicitÃ© standalone: $e');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.pubRequestCreateError)),
           );
@@ -885,19 +831,19 @@ class _UneState extends State<Une> {
 
       final user = FirebaseAuth.instance.currentUser;
 
-      // Utiliser uniquement un article existant (pas de création automatique ici)
+      // Utiliser uniquement un article existant (pas de crÃ©ation automatique ici)
       String? articleIdToUse;
 
       if (widget.articleId != null) {
-        // Vérifier que l'article existe toujours
-        log('🔍 [DEBUG] Vérification article ID: ${widget.articleId}');
+        // VÃ©rifier que l'article existe toujours
+        log('ðŸ” [DEBUG] VÃ©rification article ID: ${widget.articleId}');
 
         final exists = await _uneRepo.articleExists(widget.articleId!);
         if (exists) {
           articleIdToUse = widget.articleId;
-          log('✅ [DEBUG] Utilisation de l\'article existant: $articleIdToUse');
+          log('âœ… [DEBUG] Utilisation de l\'article existant: $articleIdToUse');
         } else {
-          log('❌ [DEBUG] Article non trouvé');
+          log('âŒ [DEBUG] Article non trouvÃ©');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.articleNotExistCreateFirst)),
           );
@@ -907,13 +853,13 @@ class _UneState extends State<Une> {
           return;
         }
       } else {
-        // Pour les pubs "Sponsorisée", créer automatiquement l'article
-        if (_selectedVoiture == _pubSponsored) {
-          log('📝 [DEBUG] Création automatique d\'article pour pub Sponsorisée');
+        // Pour les pubs "SponsorisÃ©e", crÃ©er automatiquement l'article
+        if (_selectedVoiture == UneLabels.pubSponsored) {
+          log('ðŸ“ [DEBUG] CrÃ©ation automatique d\'article pour pub SponsorisÃ©e');
           articleIdToUse = await _createArticle();
 
           if (articleIdToUse == null) {
-            log('❌ [DEBUG] Échec de la création de l\'article');
+            log('âŒ [DEBUG] Ã‰chec de la crÃ©ation de l\'article');
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(l10n.articleCreateRetryError)),
             );
@@ -923,10 +869,10 @@ class _UneState extends State<Une> {
             return;
           }
 
-          log('✅ [DEBUG] Article créé avec succès: $articleIdToUse');
+          log('âœ… [DEBUG] Article crÃ©Ã© avec succÃ¨s: $articleIdToUse');
         } else {
-          // Pour les autres types de pub, nécessiter un article existant
-          log('⚠️ [DEBUG] Aucun articleId fourni et type de pub non-Sponsorisée');
+          // Pour les autres types de pub, nÃ©cessiter un article existant
+          log('âš ï¸ [DEBUG] Aucun articleId fourni et type de pub non-SponsorisÃ©e');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.articleNotExistFeaturedFirst)),
           );
@@ -937,7 +883,7 @@ class _UneState extends State<Une> {
         }
       }
 
-      // Préparation des données de publicité
+      // PrÃ©paration des donnÃ©es de publicitÃ©
       final pubData = {
         'description': _descriptionController.text.trim().isEmpty
             ? l10n.noDescriptionAd
@@ -945,15 +891,15 @@ class _UneState extends State<Une> {
         'typePub': currentType,
         'duree': _selectedDuree,
         'prix': int.tryParse(_prixController.text) ?? 0,
-        'moyenPaiement': _bankPayment,
-        'media': pubImages, // Envoyer toutes les images uploadées
+        'moyenPaiement': UneLabels.bankPayment,
+        'media': pubImages, // Envoyer toutes les images uploadÃ©es
         'statut': 'en_attente',
         'vendeur': user?.uid,
-        'articleId': articleIdToUse, // Utiliser l'article existant ou créé
+        'articleId': articleIdToUse, // Utiliser l'article existant ou crÃ©Ã©
         'lien': lien,
       };
 
-      // Créer la publicité
+      // CrÃ©er la publicitÃ©
       try {
         _createdPubId = await _uneRepo.createPublicite(pubData);
         Navigator.push(
@@ -963,13 +909,13 @@ class _UneState extends State<Une> {
           ),
         );
       } on UneApiException catch (e) {
-        log('[DEBUG] Erreur création publicité: $e');
+        log('[DEBUG] Erreur crÃ©ation publicitÃ©: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.pubRequestCreateError)),
         );
       }
     } catch (e) {
-      log('[DEBUG] Exception lors de la création de la pub: $e');
+      log('[DEBUG] Exception lors de la crÃ©ation de la pub: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.errorNetwork(e.toString()))),
       );
@@ -1024,7 +970,7 @@ class _UneState extends State<Une> {
       '[UNE][build] _cloudinaryImageUrls.length = ${_cloudinaryImageUrls.length}',
     );
     log('[UNE][build] _isUploadingImage.length = ${_isUploadingImage.length}');
-    // Correction : toujours 11 éléments dans les listes
+    // Correction : toujours 11 Ã©lÃ©ments dans les listes
     while (_cloudinaryImageUrls.length < 11) {
       _cloudinaryImageUrls.add('');
     }
@@ -1069,133 +1015,12 @@ class _UneState extends State<Une> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Message explicatif selon le type de pub
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: widget.isStandalone
-                            ? Colors.orange.shade50
-                            : Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: widget.isStandalone
-                              ? Colors.orange.shade200
-                              : Colors.blue.shade200,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                widget.isStandalone
-                                    ? Icons.campaign
-                                    : Icons.article,
-                                color: widget.isStandalone
-                                    ? Colors.orange.shade700
-                                    : Colors.blue.shade700,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                widget.isStandalone
-                                    ? l10n.standaloneAd
-                                    : l10n.existingArticleAd,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: widget.isStandalone
-                                      ? Colors.orange.shade700
-                                      : Colors.blue.shade700,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            widget.isStandalone
-                                ? l10n.standaloneAdDesc
-                                : widget.articleId == null
-                                    ? l10n.nonExistingPubDesc
-                                    : l10n.existingArticlePubDesc,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: widget.isStandalone
-                                  ? Colors.orange.shade600
-                                  : widget.articleId == null
-                                      ? Colors.orange.shade600
-                                      : Colors.blue.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
+                    UneModeBanner(
+                      isStandalone: widget.isStandalone,
+                      hasArticleId: widget.articleId != null,
+                      isLoadingArticle: _isLoadingArticle,
                     ),
                     const SizedBox(height: 20),
-
-                    // Indicateur de chargement de l'article (seulement si pas standalone)
-                    if (!widget.isStandalone && _isLoadingArticle) ...[
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                l10n.loadingArticleInfo,
-                                style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-
-                    // Message si article chargé (seulement si pas standalone)
-                    if (!widget.isStandalone &&
-                        widget.articleId != null &&
-                        !_isLoadingArticle) ...[
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.green.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              color: Colors.green.shade600,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                l10n.articleLoadedSuccess,
-                                style: TextStyle(
-                                  color: Colors.green.shade700,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
 
                     // Champ description
                     TextFormField(
@@ -1210,7 +1035,7 @@ class _UneState extends State<Une> {
                     const SizedBox(height: 20),
 
                     if (widget.isStandalone ||
-                        (_selectedVoiture == _pubFeatured)) ...[
+                        (_selectedVoiture == UneLabels.pubFeatured)) ...[
                       TextFormField(
                         controller: _linkController,
                         keyboardType: TextInputType.url,
@@ -1225,7 +1050,7 @@ class _UneState extends State<Une> {
                     ] else
                       const SizedBox(height: 10),
 
-                    // Type de publicité
+                    // Type de publicitÃ©
                     if (!widget.isStandalone) ...[
                       DropdownButtonFormField<String>(
                         value: _selectedVoiture,
@@ -1233,7 +1058,7 @@ class _UneState extends State<Une> {
                             .map(
                               (voiture) => DropdownMenuItem(
                                 value: voiture,
-                                child: Text(_pubTypeLabel(l10n, voiture)),
+                                child: Text(UneLabels.pubType(l10n, voiture)),
                               ),
                             )
                             .toList(),
@@ -1251,10 +1076,10 @@ class _UneState extends State<Une> {
                           setState(() {
                             _selectedVoiture = value;
                             _updatePrix();
-                            if (value == _pubSponsored) {
-                              // Pré-remplir les champs si pas d'article existant
+                            if (value == UneLabels.pubSponsored) {
+                              // PrÃ©-remplir les champs si pas d'article existant
                               if (widget.articleId == null) {
-                                // Utiliser les paramètres passés ou des valeurs par défaut
+                                // Utiliser les paramÃ¨tres passÃ©s ou des valeurs par dÃ©faut
                                 _carNameController.text =
                                     widget.articleTitle ?? l10n.defaultCarName;
                                 _carYearController.text = widget.articleYear ??
@@ -1272,11 +1097,11 @@ class _UneState extends State<Une> {
                                 _carModelController.text =
                                     widget.articleModel ?? l10n.defaultBrand;
                                 _selectedCarModel =
-                                    widget.articleModel ?? 'Modèle1';
+                                    widget.articleModel ?? 'ModÃ¨le1';
                                 _selectedCarFuelType =
                                     widget.articleFuelType ?? 'Essence';
                                 _selectedCarType =
-                                    widget.articlePieceType ?? _conditionNew;
+                                    widget.articlePieceType ?? UneLabels.conditionNew;
 
                                 // Charger les images si fournies
                                 if (widget.articleImages != null &&
@@ -1330,14 +1155,14 @@ class _UneState extends State<Une> {
                       const SizedBox(height: 30),
                     ],
 
-                    // Durée de la pub
+                    // DurÃ©e de la pub
                     DropdownButtonFormField<String>(
                       value: _selectedDuree,
                       items: durees
                           .map(
                             (duree) => DropdownMenuItem(
                               value: duree,
-                              child: Text(_durationLabel(l10n, duree)),
+                              child: Text(UneLabels.duration(l10n, duree)),
                             ),
                           )
                           .toList(),
@@ -1360,7 +1185,7 @@ class _UneState extends State<Une> {
                     ),
                     const SizedBox(height: 30),
 
-                    // Prix (non éditable)
+                    // Prix (non Ã©ditable)
                     TextFormField(
                       controller: _prixController,
                       enabled: false,
@@ -1382,545 +1207,51 @@ class _UneState extends State<Une> {
                       ),
                     const SizedBox(height: 30),
 
-                    // SECTION DYNAMIQUE : Informations concernant la voiture
-                    if (_selectedVoiture == _pubSponsored) ...[
-                      const Divider(height: 40, thickness: 2),
-                      Text(
-                        l10n.carInfoSection,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Nom de la pièce/voiture
-                      TextFormField(
-                        controller: _carNameController,
-                        decoration: InputDecoration(
-                          labelText: l10n.partOrCarName,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return l10n.enterName;
-                          }
-                          return null;
+                    if (_selectedVoiture == UneLabels.pubSponsored)
+                      UneCarInfoSection(
+                        nameController: _carNameController,
+                        yearController: _carYearController,
+                        locationController: _carLocationController,
+                        priceController: _carPriceController,
+                        descriptionController: _carDescriptionController,
+                        companyController: _carCompanyController,
+                        fuelTypes: _carFuelTypes,
+                        models: _carModels,
+                        types: _carTypes,
+                        selectedFuelType: _selectedCarFuelType,
+                        selectedModel: _selectedCarModel,
+                        selectedType: _selectedCarType,
+                        onFuelChanged: (value) {
+                          setState(() => _selectedCarFuelType = value);
+                        },
+                        onModelChanged: (value) {
+                          setState(() => _selectedCarModel = value);
+                        },
+                        onTypeChanged: (value) {
+                          setState(() => _selectedCarType = value);
                         },
                       ),
-                      const SizedBox(height: 20),
 
-                      TextFormField(
-                        controller: _carYearController,
-                        decoration: InputDecoration(
-                          labelText: l10n.year,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return l10n.enterYearValidator;
-                          }
-                          return null;
-                        },
+                    if (_selectedVoiture == UneLabels.pubFeatured)
+                      UneFeaturedFlyer(
+                        imageUrl: _cloudinaryImageUrls[0],
+                        isUploading: _isUploadingImage[0],
+                        onPick: () => _pickImage(0),
+                        onRemove: () => _removeImage(0),
+                      )
+                    else
+                      UneSponsoredMedia(
+                        imageUrls: _cloudinaryImageUrls,
+                        isUploadingImage: _isUploadingImage,
+                        onPickImage: _pickImage,
+                        onRemoveImage: _removeImage,
+                        uploadedVideo: _uploadedVideo,
+                        cloudinaryVideoUrl: _cloudinaryVideoUrl,
+                        isUploadingVideo: _isUploadingVideo,
+                        videoUploadProgress: _videoUploadProgress,
+                        onPickVideo: _pickVideo,
+                        onRemoveVideo: _removeVideo,
                       ),
-                      const SizedBox(height: 20),
-
-                      TextFormField(
-                        controller: _carLocationController,
-                        decoration: InputDecoration(
-                          labelText: l10n.defaultLocation,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return l10n.enterLocationValidator;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      TextFormField(
-                        controller: _carPriceController,
-                        decoration: InputDecoration(
-                          labelText: l10n.price,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return l10n.enterPriceValidator;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      TextFormField(
-                        controller: _carDescriptionController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          labelText: l10n.carDescription,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return l10n.enterDescriptionValidator;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      TextFormField(
-                        controller: _carCompanyController,
-                        decoration: InputDecoration(
-                          labelText: l10n.defaultCompanyName,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return l10n.enterCompanyValidator;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Type moteur
-                      DropdownButtonFormField<String>(
-                        value: _selectedCarFuelType,
-                        items: _carFuelTypes
-                            .map(
-                              (type) => DropdownMenuItem(
-                                value: type,
-                                child: Text(_fuelLabel(l10n, type)),
-                              ),
-                            )
-                            .toList(),
-                        decoration: InputDecoration(
-                          labelText: l10n.engineType,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return l10n.selectEngineTypeValidator;
-                          }
-                          return null;
-                        },
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCarFuelType = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Modèle
-                      DropdownButtonFormField<String>(
-                        value: _selectedCarModel,
-                        items: _carModels
-                            .map(
-                              (model) => DropdownMenuItem(
-                                value: model,
-                                child: Text(model),
-                              ),
-                            )
-                            .toList(),
-                        decoration: InputDecoration(
-                          labelText: l10n.model,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return l10n.selectModelValidator;
-                          }
-                          return null;
-                        },
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCarModel = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Type (Nouveau/Occasion)
-                      DropdownButtonFormField<String>(
-                        value: _selectedCarType,
-                        items: _carTypes
-                            .map(
-                              (type) => DropdownMenuItem(
-                                value: type,
-                                child: Text(_conditionLabel(l10n, type)),
-                              ),
-                            )
-                            .toList(),
-                        decoration: InputDecoration(
-                          labelText: l10n.typeLabel,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null) {
-                            return l10n.selectTypeValidator;
-                          }
-                          return null;
-                        },
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCarType = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 30),
-                    ],
-
-                    // Section conditionnelle selon le type de pub
-                    if (_selectedVoiture == _pubFeatured) ...[
-                      Text(
-                        l10n.mainFlyerImage,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        l10n.recommendedDimensions,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Upload d'une seule image pour "À la une"
-                      GestureDetector(
-                        onTap: () => _pickImage(0),
-                        child: Container(
-                          height: 260,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.amber, width: 2),
-                          ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              if (_cloudinaryImageUrls[0] != null &&
-                                  _cloudinaryImageUrls[0]!.isNotEmpty)
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    color: Colors.black,
-                                    child: TranooNetworkImage(
-                                      url: _cloudinaryImageUrls[0]!,
-                                      fit: BoxFit.contain,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                      cloudinaryWidthPx:
-                                          cloudinaryWidthPx(context),
-                                    ),
-                                  ),
-                                )
-                              else
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.add_a_photo,
-                                      color: Colors.grey,
-                                      size: 40,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      l10n.addMainImage,
-                                      style: const TextStyle(color: Colors.grey),
-                                    ),
-                                  ],
-                                ),
-                              Positioned(
-                                right: 12,
-                                top: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.65),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    l10n.dimensions1080x1350,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              if (_isUploadingImage[0])
-                                const Positioned.fill(
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                ),
-                              if (_cloudinaryImageUrls[0] != null &&
-                                  _cloudinaryImageUrls[0]!.isNotEmpty)
-                                Positioned(
-                                  right: 8,
-                                  bottom: 8,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.check_circle,
-                                        color: Colors.green,
-                                        size: 30,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      GestureDetector(
-                                        onTap: () => _removeImage(0),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.close,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ] else ...[
-                      Text(
-                        l10n.additionalImagesOptional,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Sélection des images pour "Sponsorisée" (optionnel)
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 1,
-                        ),
-                        itemCount: 6, // Réduire à 6 images max
-                        itemBuilder: (context, index) => GestureDetector(
-                          onTap: () => _pickImage(index),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.amber),
-                            ),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                if (_cloudinaryImageUrls[index] != null &&
-                                    _cloudinaryImageUrls[index]!.isNotEmpty)
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: TranooNetworkImage(
-                                      url: _cloudinaryImageUrls[index]!,
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                      cloudinaryWidthPx:
-                                          cloudinaryWidthPx(context),
-                                    ),
-                                  )
-                                else
-                                  const Icon(
-                                    Icons.add_a_photo,
-                                    color: Colors.grey,
-                                  ),
-                                if (_isUploadingImage[index])
-                                  const Positioned.fill(
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  ),
-                                if (_cloudinaryImageUrls[index] != null &&
-                                    _cloudinaryImageUrls[index]!.isNotEmpty)
-                                  Positioned(
-                                    right: 4,
-                                    top: 4,
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.check_circle,
-                                          color: Colors.green,
-                                          size: 16,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        GestureDetector(
-                                          onTap: () => _removeImage(index),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(
-                                              2,
-                                            ),
-                                            decoration: const BoxDecoration(
-                                              color: Colors.red,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: const Icon(
-                                              Icons.close,
-                                              color: Colors.white,
-                                              size: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Upload vidéo (optionnelle)
-                      GestureDetector(
-                        onTap: _pickVideo,
-                        child: Container(
-                          height: 80,
-                          clipBehavior: Clip.hardEdge,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue),
-                          ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            clipBehavior: Clip.hardEdge,
-                            children: [
-                              if (_uploadedVideo != null)
-                                const Icon(
-                                  Icons.videocam,
-                                  color: Colors.blue,
-                                  size: 40,
-                                )
-                              else
-                                const Icon(
-                                  Icons.add_to_photos,
-                                  color: Colors.grey,
-                                ),
-                              if (_isUploadingVideo)
-                                Positioned.fill(
-                                  child: Container(
-                                    color: Colors.black54,
-                                  child: Center(
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          SizedBox(
-                                            width: 35,
-                                            height: 35,
-                                            child: CircularProgressIndicator(
-                                              value: _videoUploadProgress > 0 ? _videoUploadProgress : null,
-                                              color: Colors.blue,
-                                              backgroundColor: Colors.white24,
-                                              strokeWidth: 3,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            _videoUploadProgress < 0.85
-                                                ? l10n.sending
-                                                : l10n.processing,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            '${(_videoUploadProgress * 100).toStringAsFixed(0)}%',
-                                            style: const TextStyle(
-                                              color: Colors.white70,
-                                              fontSize: 9,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 5),
-                                          // Barre de progression linéaire
-                                          Container(
-                                            width: 140,
-                                            height: 3,
-                                            decoration: BoxDecoration(
-                                              color: Colors.white24,
-                                              borderRadius: BorderRadius.circular(2),
-                                            ),
-                                            child: FractionallySizedBox(
-                                              alignment: Alignment.centerLeft,
-                                              widthFactor: _videoUploadProgress,
-                                              child: Container(
-                                                decoration: BoxDecoration(
-                                                  color: Colors.blue,
-                                                  borderRadius: BorderRadius.circular(2),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              if (_cloudinaryVideoUrl != null)
-                                Positioned(
-                                  right: 4,
-                                  top: 4,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.check_circle,
-                                        color: Colors.green,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      GestureDetector(
-                                        onTap: _removeVideo,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(2),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.close,
-                                            color: Colors.white,
-                                            size: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
 
                     const SizedBox(height: 40),
 
