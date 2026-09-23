@@ -275,4 +275,38 @@ class MarqueRepository {
       throw MarqueFetchException('Erreur réseau');
     }
   }
+
+  /// Détail d'une publicité (tap sponsorisé) — même URL qu'avant.
+  Future<Map<String, dynamic>> fetchPubliciteById(String id) async {
+    final headers = await _authHeaders();
+    final response = await _client.get(
+      Uri.parse('${getBaseUrl()}/publicites/$id'),
+      headers: headers,
+    );
+    if (response.statusCode != 200) {
+      throw MarqueFetchException('Erreur lors du chargement de la pub.');
+    }
+    try {
+      return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    } catch (_) {
+      throw MarqueFetchException('Erreur lors du chargement de la pub.');
+    }
+  }
+
+  /// Article lié à une pub sponsorisée — même URL qu'avant.
+  Future<Map<String, dynamic>> fetchArticleById(String id) async {
+    final headers = await _authHeaders();
+    final response = await _client.get(
+      Uri.parse('${getBaseUrl()}/articles/$id'),
+      headers: headers,
+    );
+    if (response.statusCode != 200) {
+      throw MarqueFetchException("Erreur lors du chargement de l'article.");
+    }
+    try {
+      return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    } catch (_) {
+      throw MarqueFetchException("Erreur lors du chargement de l'article.");
+    }
+  }
 }

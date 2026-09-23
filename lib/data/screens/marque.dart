@@ -10,9 +10,6 @@ import 'package:tranoo/utils/role_redirect.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/views_service.dart';
 import 'package:logging/logging.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/utils/page_refresh_registry.dart';
@@ -21,7 +18,6 @@ import 'package:tranoo/widgets/page_pull_refresh.dart';
 import 'package:tranoo/utils/catalog_filter_options.dart';
 import 'package:tranoo/widgets/catalog_filter_sections.dart';
 import 'package:tranoo/widgets/transitaire_carousel_section.dart';
-import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/widgets/cached_media_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/data/models/article.dart';
@@ -34,6 +30,8 @@ import 'package:tranoo/data/screens/marque/marque_filter_panels.dart';
 import 'package:tranoo/data/screens/marque/marque_services_summary.dart';
 import 'package:tranoo/data/screens/marque/marque_seller_stats.dart';
 import 'package:tranoo/data/screens/marque/marque_search_dialogs.dart';
+import 'package:tranoo/data/screens/marque/marque_sponsored_pub.dart';
+import 'package:tranoo/data/screens/marque/marque_flyer_preview.dart';
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -114,7 +112,6 @@ class _MarqueState extends State<Marque>
 
   // Filtres
   String? _selectedBrand;
-  String? _selectedModel;
   String? _selectedLocation;
   double? _budgetMin;
   double? _budgetMax;
@@ -354,11 +351,6 @@ class _MarqueState extends State<Marque>
     return source.where((v) {
       if (_selectedBrand != null && _selectedBrand!.isNotEmpty) {
         if (!v.marque.toLowerCase().contains(_selectedBrand!.toLowerCase())) {
-          return false;
-        }
-      }
-      if (_selectedModel != null && _selectedModel!.isNotEmpty) {
-        if (!v.modele.toLowerCase().contains(_selectedModel!.toLowerCase())) {
           return false;
         }
       }
@@ -629,48 +621,6 @@ class _MarqueState extends State<Marque>
     }
   }
 
-  void _openFlyerPreview(String imageUrl) {
-    if (imageUrl.isEmpty) return;
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        insetPadding: const EdgeInsets.all(16),
-        backgroundColor: Colors.transparent,
-        child: Stack(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: TranooNetworkImage(
-                  url: imageUrl,
-                  fit: BoxFit.contain,
-                  cloudinaryWidthPx:
-                      (MediaQuery.of(context).size.width *
-                              MediaQuery.of(context).devicePixelRatio)
-                          .round()
-                          .clamp(600, 1600),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close, color: Colors.white, size: 28),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _carouselTimer?.cancel();
@@ -819,132 +769,12 @@ class _MarqueState extends State<Marque>
       pubs: pubsSponsorisees,
       isLoading: isLoadingPubs,
       error: errorPubs,
-      onPubTap: _onSponsoredPubTap,
+      onPubTap: (pub) => handleMarqueSponsoredPubTap(
+        context: context,
+        pub: pub,
+        repository: _marqueRepo,
+      ),
     );
-  }
-
-  Future<void> _onSponsoredPubTap(Pub pub) async {
-    if (pub.id.isEmpty) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) =>
-          const Center(child: CircularProgressIndicator()),
-    );
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      final pubResponse = await http.get(
-        Uri.parse('${getBaseUrl()}/publicites/${pub.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-      );
-      if (pubResponse.statusCode == 200) {
-        final pubData = jsonDecode(pubResponse.body);
-        final articleId = pubData['articleId'];
-        if (articleId != null && articleId.toString().isNotEmpty) {
-          final articleResponse = await http.get(
-            Uri.parse('${getBaseUrl()}/articles/$articleId'),
-            headers: {
-              'Content-Type': 'application/json',
-              if (idToken != null) 'Authorization': 'Bearer $idToken',
-            },
-          );
-          if (articleResponse.statusCode == 200) {
-            final article = jsonDecode(articleResponse.body);
-            if (!mounted) return;
-            Navigator.pop(context);
-            if (article['type'] == 'voiture') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CarsInfo(
-                    titre: article['titre'] ?? '',
-                    description: article['description'] ?? '',
-                    marque: article['marque'] ?? '',
-                    modele: article['modele'] ?? '',
-                    annee: article['annee'] ?? '',
-                    prix: article['prix']?.toString() ?? '',
-                    condition: article['condition'] ?? '',
-                    boiteVitesse: article['boiteVitesse'] ?? '',
-                    carburant: article['carburant'] ?? '',
-                    climatiseur: article['climatiseur'] ?? '',
-                    distance: article['distance'] ?? '',
-                    sieges: article['sieges'] ?? '',
-                    portes: article['portes'] ?? '',
-                    cylindre: article['cylindre'] ?? '',
-                    lieu: article['lieu'] ?? '',
-                    images: (article['photos'] as List?)
-                            ?.map((e) => e.toString())
-                            .toList() ??
-                        [],
-                    video: article['video'],
-                    entreprise: article['entreprise'],
-                    fromPub: true,
-                  ),
-                ),
-              );
-            } else if (article['type'] == 'piece') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => MastervacPage(
-                    isAcheteur: true,
-                    title: article['titre'] ?? '',
-                    year: article['annee'] ?? '',
-                    description: article['description'] ?? '',
-                    company: article['entreprise'] ?? '',
-                    location: article['localisation'] ?? '',
-                    price: article['prix']?.toString() ?? '',
-                    images: (article['photos'] as List?)
-                            ?.map((e) => e.toString())
-                            .toList() ??
-                        [],
-                    fuelType: article['typeMoteur'],
-                    model: article['modele']?.toString(),
-                    pieceType: article['pieceType'],
-                    video: article['video'],
-                    fromPub: true,
-                  ),
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Type d'article inconnu.")),
-              );
-            }
-          } else {
-            if (!mounted) return;
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Erreur lors du chargement de l'article."),
-              ),
-            );
-          }
-        } else {
-          if (!mounted) return;
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Aucun article lié à cette pub.')),
-          );
-        }
-      } else {
-        if (!mounted) return;
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors du chargement de la pub.')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur réseau : $e')),
-      );
-    }
   }
 
   Widget buildPubsALaUneCarousel() {
@@ -954,7 +784,7 @@ class _MarqueState extends State<Marque>
       error: errorPubs,
       pageController: _pageController,
       onOpenLink: _openPubLink,
-      onOpenFlyer: _openFlyerPreview,
+      onOpenFlyer: (url) => showMarqueFlyerPreview(context, url),
     );
   }
 

@@ -384,7 +384,7 @@ class MarquePiecesSection extends StatelessWidget {
   }
 }
 
-/// Bandeau pubs sponsorisées (UI) — le chargement article reste côté écran.
+/// Bandeau pubs sponsorisées (UI) — tap délégué à handleMarqueSponsoredPubTap.
 class MarqueSponsoredPubsSection extends StatelessWidget {
   const MarqueSponsoredPubsSection({
     super.key,
