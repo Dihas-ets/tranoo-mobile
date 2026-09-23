@@ -2,16 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:tranoo/utils/cloudinary_upload.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'moto_info.dart';
-import 'package:tranoo/services/user_service.dart';
-import 'package:tranoo/data/screens/moto_info.dart';
 import 'package:tranoo/services/alert_service.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/utils/article_view_helper.dart';
@@ -24,7 +19,7 @@ import 'package:tranoo/utils/catalog_filter_options.dart';
 import 'package:tranoo/widgets/catalog_filter_sections.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
-import 'package:tranoo/utils/local_data_cache.dart';
+import 'package:tranoo/data/repositories/catalog_repository.dart';
 
 class MotosPage extends StatefulWidget {
   const MotosPage({super.key});
@@ -60,6 +55,7 @@ class _MotosPageState extends State<MotosPage>
   Timer? _autoRefreshTimer;
   bool _noResultDialogShown = false;
   Timer? _noResultDialogTimer;
+  final CatalogRepository _catalogRepo = CatalogRepository();
 
   @override
   void initState() {
@@ -151,7 +147,7 @@ class _MotosPageState extends State<MotosPage>
 
   Future<void> fetchMotos({bool silent = false}) async {
     if (!silent) {
-      final stale = await LocalDataCache.readJsonListStale('catalog_motos');
+      final stale = await _catalogRepo.readStale(CatalogRepository.cacheMotos);
       if (stale != null && mounted) {
         setState(() {
           motos = stale;
@@ -173,47 +169,26 @@ class _MotosPageState extends State<MotosPage>
       }
     }
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      String url = getBaseUrl() + '/public/articles?type=moto';
-      final headers = <String, String>{
-        'Content-Type': 'application/json',
-      };
-      if (idToken != null) {
-        headers['Authorization'] = 'Bearer $idToken';
-      }
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: headers,
-          )
-          .timeout(const Duration(seconds: 8));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        await LocalDataCache.writeJsonList('catalog_motos', data);
-        if (!mounted) return;
-        setState(() {
-          motos = data;
-          _isVisible = List.generate(data.length, (index) => true);
-          isLoading = false;
-        });
-        precacheTranooImages(
-          context,
-          photoUrlsFromArticles(data.cast<Map<String, dynamic>>()),
-          cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
-        );
-      } else {
-        if (!mounted) return;
-        final l10n = AppLocalizations.of(context)!;
-        setState(() {
-          error = l10n.carsLoadError;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
+      final data = await _catalogRepo.fetchPublicArticles(
+        type: 'moto',
+        cacheKey: CatalogRepository.cacheMotos,
+      );
       if (!mounted) return;
       setState(() {
-        error = AppLocalizations.of(context)!.networkError;
+        motos = data;
+        _isVisible = List.generate(data.length, (index) => true);
+        isLoading = false;
+      });
+      precacheTranooImages(
+        context,
+        photoUrlsFromArticles(data.cast<Map<String, dynamic>>()),
+        cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
+      );
+    } on CatalogFetchException catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      setState(() {
+        error = e.isNetwork ? l10n.networkError : l10n.carsLoadError;
         isLoading = false;
       });
     }
@@ -244,30 +219,23 @@ class _MotosPageState extends State<MotosPage>
     });
     await Future.delayed(const Duration(milliseconds: 400));
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      final response = await http.delete(
-        Uri.parse(getBaseUrl() + '/articles/$articleId'),
-        headers: {
-          'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
-      );
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.carDeletedSuccess)),
-        );
-        fetchMotos();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.deletionError)),
-        );
-      }
-    } catch (e) {
+      await _catalogRepo.deleteArticle(articleId);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.networkOrServerError)),
+        SnackBar(content: Text(l10n.carDeletedSuccess)),
+      );
+      fetchMotos();
+    } on CatalogFetchException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.isNetwork ? l10n.networkOrServerError : l10n.deletionError,
+          ),
+        ),
       );
     }
+    if (!mounted) return;
     setState(() {
       _isVisible[index] = true;
     });

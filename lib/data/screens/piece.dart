@@ -1,13 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:tranoo/utils/cloudinary_upload.dart';
-import 'package:tranoo/services/user_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'mastervacpage.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/services/alert_service.dart';
@@ -21,7 +17,7 @@ import 'package:tranoo/utils/catalog_filter_options.dart';
 import 'package:tranoo/widgets/catalog_filter_sections.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
-import 'package:tranoo/utils/local_data_cache.dart';
+import 'package:tranoo/data/repositories/catalog_repository.dart';
 
 class PiecePage extends StatefulWidget {
   const PiecePage({super.key});
@@ -57,6 +53,7 @@ class _PiecePageState extends State<PiecePage>
   Timer? _autoRefreshTimer;
   bool _noResultDialogShown = false;
   Timer? _noResultDialogTimer;
+  final CatalogRepository _catalogRepo = CatalogRepository();
 
   @override
   void initState() {
@@ -161,7 +158,7 @@ class _PiecePageState extends State<PiecePage>
 
   Future<void> fetchPieces({bool silent = false}) async {
     if (!silent) {
-      final stale = await LocalDataCache.readJsonListStale('catalog_pieces');
+      final stale = await _catalogRepo.readStale(CatalogRepository.cachePieces);
       if (stale != null && mounted) {
         setState(() {
           pieces = stale;
@@ -183,52 +180,36 @@ class _PiecePageState extends State<PiecePage>
       }
     }
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      String url = getBaseUrl() + '/public/articles?type=piece';
-      final headers = <String, String>{
-        'Content-Type': 'application/json',
-      };
-      if (idToken != null) {
-        headers['Authorization'] = 'Bearer $idToken';
-      }
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: headers,
-          )
-          .timeout(const Duration(seconds: 15));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        await LocalDataCache.writeJsonList('catalog_pieces', data);
-        if (!mounted) return;
-        setState(() {
-          pieces = data;
-          _isVisible = List.generate(data.length, (index) => true);
-          isLoading = false;
-        });
-        precacheTranooImages(
-          context,
-          photoUrlsFromArticles(data.cast<Map<String, dynamic>>()),
-          cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 120),
-        );
-      } else {
-        debugPrint(
-            '[PIECES_PUBLIC] HTTP ${response.statusCode}: ${response.body}');
-        if (!mounted) return;
-        final l10n = AppLocalizations.of(context)!;
-        setState(() {
-          error = response.statusCode == 401
-              ? l10n.sessionExpiredReconnect
-              : l10n.piecesLoadError;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('[PIECES_PUBLIC] fetchPieces exception: $e');
+      final data = await _catalogRepo.fetchPublicArticles(
+        type: 'piece',
+        cacheKey: CatalogRepository.cachePieces,
+        timeout: const Duration(seconds: 15),
+      );
       if (!mounted) return;
       setState(() {
-        error = AppLocalizations.of(context)!.networkError;
+        pieces = data;
+        _isVisible = List.generate(data.length, (index) => true);
+        isLoading = false;
+      });
+      precacheTranooImages(
+        context,
+        photoUrlsFromArticles(data.cast<Map<String, dynamic>>()),
+        cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 120),
+      );
+    } on CatalogFetchException catch (e) {
+      if (e.isNetwork) {
+        debugPrint('[PIECES_PUBLIC] fetchPieces exception: network');
+      } else {
+        debugPrint('[PIECES_PUBLIC] HTTP ${e.statusCode}');
+      }
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      setState(() {
+        error = e.isNetwork
+            ? l10n.networkError
+            : (e.statusCode == 401
+                ? l10n.sessionExpiredReconnect
+                : l10n.piecesLoadError);
         isLoading = false;
       });
     }
@@ -259,28 +240,20 @@ class _PiecePageState extends State<PiecePage>
     });
     await Future.delayed(const Duration(milliseconds: 400));
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      final response = await http.delete(
-        Uri.parse(getBaseUrl() + '/articles/$articleId'),
-        headers: {
-          'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
-      );
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.partDeletedSuccess)),
-        );
-        fetchPieces();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.deletionError)),
-        );
-      }
-    } catch (e) {
+      await _catalogRepo.deleteArticle(articleId);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.networkOrServerError)),
+        SnackBar(content: Text(l10n.partDeletedSuccess)),
+      );
+      fetchPieces();
+    } on CatalogFetchException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.isNetwork ? l10n.networkOrServerError : l10n.deletionError,
+          ),
+        ),
       );
     }
   }

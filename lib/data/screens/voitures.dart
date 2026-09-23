@@ -2,17 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:tranoo/utils/cloudinary_upload.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'cars_info.dart';
 import 'package:tranoo/services/user_service.dart';
-import 'package:tranoo/utils/role_redirect.dart';
-import 'package:tranoo/data/screens/cars_info.dart';
 import 'package:tranoo/services/alert_service.dart';
 import 'package:tranoo/widgets/video_preview_placeholder.dart';
 import 'package:tranoo/utils/article_view_helper.dart';
@@ -25,7 +20,7 @@ import 'package:tranoo/utils/catalog_filter_options.dart';
 import 'package:tranoo/widgets/catalog_filter_sections.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
-import 'package:tranoo/utils/local_data_cache.dart';
+import 'package:tranoo/data/repositories/catalog_repository.dart';
 
 class VoituresPage extends StatefulWidget {
   const VoituresPage({super.key});
@@ -62,6 +57,7 @@ class _VoituresPageState extends State<VoituresPage>
   bool _noResultDialogShown = false;
   Timer? _noResultDialogTimer;
   final UserService _userService = UserService();
+  final CatalogRepository _catalogRepo = CatalogRepository();
   List<dynamic> _motosForFilters = [];
 
   bool get _useMotoFilterMode =>
@@ -158,7 +154,8 @@ class _VoituresPageState extends State<VoituresPage>
 
   Future<void> fetchVoitures({bool silent = false}) async {
     if (!silent) {
-      final stale = await LocalDataCache.readJsonListStale('catalog_voitures');
+      final stale =
+          await _catalogRepo.readStale(CatalogRepository.cacheVoitures);
       if (stale != null && mounted) {
         setState(() {
           voitures = stale;
@@ -180,47 +177,26 @@ class _VoituresPageState extends State<VoituresPage>
       }
     }
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      String url = getBaseUrl() + '/public/articles?type=voiture';
-      final headers = <String, String>{
-        'Content-Type': 'application/json',
-      };
-      if (idToken != null) {
-        headers['Authorization'] = 'Bearer $idToken';
-      }
-      final response = await http
-          .get(
-            Uri.parse(url),
-            headers: headers,
-          )
-          .timeout(const Duration(seconds: 8));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        await LocalDataCache.writeJsonList('catalog_voitures', data);
-        if (!mounted) return;
-        setState(() {
-          voitures = data;
-          _isVisible = List.generate(data.length, (index) => true);
-          isLoading = false;
-        });
-        precacheTranooImages(
-          context,
-          photoUrlsFromArticles(data.cast<Map<String, dynamic>>()),
-          cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
-        );
-      } else {
-        if (!mounted) return;
-        final l10n = AppLocalizations.of(context)!;
-        setState(() {
-          error = l10n.carsLoadError;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
+      final data = await _catalogRepo.fetchPublicArticles(
+        type: 'voiture',
+        cacheKey: CatalogRepository.cacheVoitures,
+      );
       if (!mounted) return;
       setState(() {
-        error = AppLocalizations.of(context)!.networkError;
+        voitures = data;
+        _isVisible = List.generate(data.length, (index) => true);
+        isLoading = false;
+      });
+      precacheTranooImages(
+        context,
+        photoUrlsFromArticles(data.cast<Map<String, dynamic>>()),
+        cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
+      );
+    } on CatalogFetchException catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      setState(() {
+        error = e.isNetwork ? l10n.networkError : l10n.carsLoadError;
         isLoading = false;
       });
     }
@@ -251,30 +227,23 @@ class _VoituresPageState extends State<VoituresPage>
     });
     await Future.delayed(const Duration(milliseconds: 400));
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      final response = await http.delete(
-        Uri.parse(getBaseUrl() + '/articles/$articleId'),
-        headers: {
-          'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
-      );
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.carDeletedSuccess)),
-        );
-        fetchVoitures();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.deletionError)),
-        );
-      }
-    } catch (e) {
+      await _catalogRepo.deleteArticle(articleId);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.networkOrServerError)),
+        SnackBar(content: Text(l10n.carDeletedSuccess)),
+      );
+      fetchVoitures();
+    } on CatalogFetchException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.isNetwork ? l10n.networkOrServerError : l10n.deletionError,
+          ),
+        ),
       );
     }
+    if (!mounted) return;
     setState(() {
       _isVisible[index] = true;
     });
@@ -369,22 +338,11 @@ class _VoituresPageState extends State<VoituresPage>
 
   Future<void> _fetchMotosForFilters() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      final response = await http.get(
-        Uri.parse(
-          '${getBaseUrl()}/public/articles?type=moto&statut=en_ligne&vendu=false',
-        ),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-      );
-      if (response.statusCode == 200 && mounted) {
-        setState(() {
-          _motosForFilters = json.decode(response.body) as List<dynamic>;
-        });
-      }
+      final data = await _catalogRepo.fetchMotosForFilters();
+      if (!mounted) return;
+      setState(() {
+        _motosForFilters = data;
+      });
     } catch (_) {}
   }
 

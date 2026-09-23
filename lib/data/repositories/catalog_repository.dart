@@ -1,0 +1,110 @@
+import 'dart:convert';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+import 'package:tranoo/services/user_service.dart';
+import 'package:tranoo/utils/local_data_cache.dart';
+
+/// Erreur réseau / API pour les listes catalogue (messages UI côté écran).
+class CatalogFetchException implements Exception {
+  final int? statusCode;
+  final bool isNetwork;
+
+  CatalogFetchException({this.statusCode, this.isNetwork = false});
+
+  @override
+  String toString() =>
+      isNetwork ? 'network' : 'http_${statusCode ?? 'unknown'}';
+}
+
+/// HTTP + cache local des listes catalogue (voitures / motos / pièces).
+/// URLs et clés de cache inchangées vs les écrans d'origine.
+class CatalogRepository {
+  CatalogRepository({http.Client? client}) : _client = client ?? http.Client();
+
+  final http.Client _client;
+
+  static const cacheVoitures = 'catalog_voitures';
+  static const cacheMotos = 'catalog_motos';
+  static const cachePieces = 'catalog_pieces';
+
+  Future<Map<String, String>> _optionalAuthHeaders() async {
+    final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+    return {
+      'Content-Type': 'application/json',
+      if (idToken != null) 'Authorization': 'Bearer $idToken',
+    };
+  }
+
+  Future<List<dynamic>?> readStale(String cacheKey) =>
+      LocalDataCache.readJsonListStale(cacheKey);
+
+  /// GET `/public/articles?type=…` — même URL / timeout / cache qu'avant.
+  Future<List<dynamic>> fetchPublicArticles({
+    required String type,
+    required String cacheKey,
+    Duration timeout = const Duration(seconds: 8),
+  }) async {
+    try {
+      final headers = await _optionalAuthHeaders();
+      final response = await _client
+          .get(
+            Uri.parse('${getBaseUrl()}/public/articles?type=$type'),
+            headers: headers,
+          )
+          .timeout(timeout);
+      if (response.statusCode != 200) {
+        throw CatalogFetchException(statusCode: response.statusCode);
+      }
+      final data = jsonDecode(response.body) as List<dynamic>;
+      await LocalDataCache.writeJsonList(cacheKey, data);
+      return data;
+    } on CatalogFetchException {
+      rethrow;
+    } catch (_) {
+      throw CatalogFetchException(isNetwork: true);
+    }
+  }
+
+  /// Motos pour filtres vendeur moto-only (écran voitures) — URL inchangée.
+  Future<List<dynamic>> fetchMotosForFilters() async {
+    try {
+      final headers = await _optionalAuthHeaders();
+      final response = await _client.get(
+        Uri.parse(
+          '${getBaseUrl()}/public/articles?type=moto&statut=en_ligne&vendu=false',
+        ),
+        headers: headers,
+      );
+      if (response.statusCode != 200) {
+        throw CatalogFetchException(statusCode: response.statusCode);
+      }
+      return jsonDecode(response.body) as List<dynamic>;
+    } on CatalogFetchException {
+      rethrow;
+    } catch (_) {
+      throw CatalogFetchException(isNetwork: true);
+    }
+  }
+
+  /// DELETE `/articles/:id` — même URL / headers qu'avant.
+  Future<void> deleteArticle(String articleId) async {
+    try {
+      final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+      final response = await _client.delete(
+        Uri.parse('${getBaseUrl()}/articles/$articleId'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode != 200) {
+        throw CatalogFetchException(statusCode: response.statusCode);
+      }
+    } on CatalogFetchException {
+      rethrow;
+    } catch (_) {
+      throw CatalogFetchException(isNetwork: true);
+    }
+  }
+}
