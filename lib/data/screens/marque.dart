@@ -32,6 +32,8 @@ import 'package:tranoo/data/screens/marque/marque_seller_stats.dart';
 import 'package:tranoo/data/screens/marque/marque_search_dialogs.dart';
 import 'package:tranoo/data/screens/marque/marque_sponsored_pub.dart';
 import 'package:tranoo/data/screens/marque/marque_flyer_preview.dart';
+import 'package:tranoo/data/screens/marque/marque_catalog_controller.dart';
+import 'package:tranoo/data/screens/marque/marque_search_bar.dart';
 
 class Marque extends StatefulWidget {
   const Marque({super.key});
@@ -48,16 +50,11 @@ class _MarqueState extends State<Marque>
   Future<void> onPagePullRefresh() async {
     final started = DateTime.now();
     try {
-      await Future.wait<void>([
-        fetchArticlesPieces(),
-        fetchVoituresRecommandees(),
-        fetchMotosRecommandees(),
-        fetchPubs(),
-        fetchPubsSponsorisees(),
-      ]);
-      if (_userService.currentRole == UserRole.vendeur) {
-        await _loadSellerMarqueStats();
-      }
+      await _catalog.refreshAll(
+        loadSellerStats: _userService.currentRole == UserRole.vendeur
+            ? _loadSellerMarqueStats
+            : null,
+      );
     } catch (_) {
       // RefreshIndicator gère l'état visuel.
     } finally {
@@ -78,6 +75,7 @@ class _MarqueState extends State<Marque>
   Timer? _marqueAutoRefreshTimer;
   final UserService _userService = UserService();
   final MarqueRepository _marqueRepo = MarqueRepository();
+  late final MarqueCatalogController _catalog;
   late int _marqueTabIndex;
   late int _modeleTabIndex;
   late int _statistiquesTabIndex;
@@ -90,23 +88,9 @@ class _MarqueState extends State<Marque>
   int _statsVehiclesSold = 0;
   int _statsPiecesSold = 0;
   bool _sellerMarqueStatsLoading = false;
-  List<ArticleVoiture> voituresRecommandees = [];
-  bool isLoadingVoitures = true;
-  String? errorVoitures;
-  List<ArticleVoiture> motosRecommandees = [];
-  bool isLoadingMotos = true;
-  String? errorMotos;
-  List<Article> articlesPieces = [];
-  bool isLoadingPieces = true;
-  String? errorPieces;
-  List<Pub> pubsSponsorisees = [];
-  List<Pub> pubsALaUne = [];
-  bool isLoadingPubs = true;
-  String? errorPubs;
 
   // Recherche globale (barre en haut)
   final TextEditingController _searchGlobalController = TextEditingController();
-  bool _hasTypedSearch = false;
 
   final _logger = Logger('MarquePage');
 
@@ -116,13 +100,30 @@ class _MarqueState extends State<Marque>
   double? _budgetMin;
   double? _budgetMax;
 
-  // Vues par article (backend uniquement) — total clicks de tous les users
-  Map<String, int> _backendViews = {};
   final ViewsService _viewsService = ViewsService();
 
   @override
   void initState() {
     super.initState();
+
+    _catalog = MarqueCatalogController(
+      repository: _marqueRepo,
+      isVendeur: () => _userService.currentRole == UserRole.vendeur,
+      isMounted: () => mounted,
+    );
+    _catalog.onPubsALaUneUpdated = (pubs) {
+      if (pubs.isNotEmpty) _startCarouselTimer();
+      _precachePubImages(pubs);
+    };
+    _catalog.onPubsPrecache = _precachePubImages;
+    _catalog.onVoituresPrecache = _precacheArticleVoitureThumbs;
+    _catalog.onPiecesPrecache = _precachePieceThumbs;
+    _catalog.onCatalogLoaded = () {
+      unawaited(_loadBackendViews());
+    };
+    _catalog.addListener(() {
+      if (mounted) setState(() {});
+    });
 
     final isVendeur = _userService.currentRole == UserRole.vendeur;
     if (isVendeur) {
@@ -155,63 +156,22 @@ class _MarqueState extends State<Marque>
       viewportFraction: 0.85,
     );
     _searchGlobalController.addListener(() {
-      setState(() {
-        _hasTypedSearch = _searchGlobalController.text.trim().isNotEmpty;
-        _logger.info(
-          '[DEBUG] 🔍 Recherche tapée: "${_searchGlobalController.text}"',
-        );
-      });
+      _logger.info(
+        '[DEBUG] 🔍 Recherche tapée: "${_searchGlobalController.text}"',
+      );
     });
 
     // Configuration du carrousel automatique
     _startCarouselTimer();
-    unawaited(_primeFromStaleCache());
-    _loadMarqueInitialData();
+    unawaited(_catalog.primeFromStaleCache());
+    unawaited(_catalog.loadInitial(
+      loadSellerStats: isVendeur ? _loadSellerMarqueStats : null,
+    ));
     _marqueAutoRefreshTimer =
         Timer.periodic(const Duration(seconds: 30), (_) async {
       if (!mounted) return;
-      await _refreshMarqueDataSilent();
+      await _catalog.refreshSilent();
     });
-  }
-
-  Future<void> _primeFromStaleCache() async {
-    final isVendeur = _userService.currentRole == UserRole.vendeur;
-    final pubs = await _marqueRepo.readStalePubsALaUne(isVendeur: isVendeur);
-    if (pubs != null && mounted) {
-      setState(() {
-        pubsALaUne = pubs;
-        isLoadingPubs = false;
-        if (pubsALaUne.isNotEmpty) {
-          _startCarouselTimer();
-        }
-      });
-      _precachePubImages(pubsALaUne);
-    }
-
-    final voitures =
-        await _marqueRepo.readStaleVoitures(isVendeur: isVendeur);
-    if (voitures != null && mounted) {
-      setState(() {
-        voituresRecommandees = voitures;
-        isLoadingVoitures = false;
-      });
-      _precacheArticleVoitureThumbs(voituresRecommandees);
-    }
-  }
-
-  Future<void> _loadMarqueInitialData() async {
-    // Pubs en priorité (visibles en haut de l'accueil).
-    await Future.wait<void>([
-      fetchPubs(),
-      fetchPubsSponsorisees(),
-    ]);
-    if (!mounted) return;
-    unawaited(Future.wait<void>([
-      fetchArticlesPieces(),
-      fetchVoituresRecommandees(),
-      fetchMotosRecommandees(),
-      if (_userService.currentRole == UserRole.vendeur) _loadSellerMarqueStats(),
-    ]));
   }
 
   void _precachePubImages(Iterable<Pub> pubs) {
@@ -227,8 +187,6 @@ class _MarqueState extends State<Marque>
       maxCount: 12,
     );
   }
-
-  bool get _isVendeurRole => _userService.currentRole == UserRole.vendeur;
 
   void _precacheArticleVoitureThumbs(Iterable<ArticleVoiture> items) {
     if (!mounted) return;
@@ -248,62 +206,11 @@ class _MarqueState extends State<Marque>
     );
   }
 
-  /// Recharge listes / pubs sans réinitialiser filtres ni afficher les spinners de chargement.
-  Future<void> _refreshMarqueDataSilent() async {
-    await Future.wait<void>([
-      fetchArticlesPieces(silent: true),
-      fetchVoituresRecommandees(silent: true),
-      fetchMotosRecommandees(silent: true),
-      fetchPubs(silent: true),
-      fetchPubsSponsorisees(silent: true),
-    ]);
-  }
-
-  Future<void> fetchArticlesPieces({bool silent = false}) async {
-    final isVendeur = _isVendeurRole;
-    if (!silent) {
-      final cached = await _marqueRepo.readStalePieces(isVendeur: isVendeur);
-      if (cached != null && mounted) {
-        setState(() {
-          articlesPieces = cached;
-          isLoadingPieces = false;
-        });
-        _precachePieceThumbs(articlesPieces);
-      } else if (mounted) {
-        setState(() {
-          isLoadingPieces = true;
-          errorPieces = null;
-        });
-      }
-    }
-    try {
-      final pieces = await _marqueRepo.fetchPieces(isVendeur: isVendeur);
-      if (!mounted) return;
-      setState(() {
-        articlesPieces = pieces;
-        for (final p in pieces) {
-          _backendViews[p.id] = p.views;
-        }
-        isLoadingPieces = false;
-      });
-      _precachePieceThumbs(pieces);
-      _loadBackendViews();
-    } on MarqueFetchException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        errorPieces = e.message;
-        isLoadingPieces = false;
-      });
-    }
-  }
-
   void _recordVehicleInteraction(String articleId) async {
     if (articleId.isEmpty) return;
 
     // Optimistic UI: incrémenter localement le compteur backend (puis sync)
-    setState(() {
-      _backendViews[articleId] = (_backendViews[articleId] ?? 0) + 1;
-    });
+    _catalog.bumpViewOptimistic(articleId);
 
     // Enregistrer la vue sur le backend (compteur global)
     try {
@@ -311,9 +218,10 @@ class _MarqueState extends State<Marque>
       _logger.info('[VIEWS] Vue enregistrée pour l\'article: $articleId');
       final viewsData = await _viewsService.getArticleViews(articleId);
       if (viewsData != null && viewsData['success'] == true && mounted) {
-        setState(() {
-          _backendViews[articleId] = (viewsData['views'] as num?)?.toInt() ?? 0;
-        });
+        _catalog.setBackendView(
+          articleId,
+          (viewsData['views'] as num?)?.toInt() ?? 0,
+        );
       }
     } catch (e) {
       _logger.warning('[VIEWS] Erreur enregistrement vue backend: $e');
@@ -324,12 +232,12 @@ class _MarqueState extends State<Marque>
   Future<void> _loadBackendViews() async {
     try {
       final ids = <String>{
-        ...voituresRecommandees.map((e) => e.id).where((e) => e.isNotEmpty),
-        ...articlesPieces.map((e) => e.id).where((e) => e.isNotEmpty),
+        ..._catalog.voitures.map((e) => e.id).where((e) => e.isNotEmpty),
+        ..._catalog.pieces.map((e) => e.id).where((e) => e.isNotEmpty),
       }.toList();
       if (ids.isEmpty) return;
 
-      final nextViews = Map<String, int>.from(_backendViews);
+      final nextViews = Map<String, int>.from(_catalog.backendViews);
       for (final id in ids) {
         final viewsData = await _viewsService.getArticleViews(id);
         if (viewsData != null && viewsData['success'] == true) {
@@ -338,9 +246,7 @@ class _MarqueState extends State<Marque>
         }
       }
       if (!mounted) return;
-      setState(() {
-        _backendViews = nextViews;
-      });
+      _catalog.replaceBackendViews(nextViews);
     } catch (e) {
       _logger.warning('[VIEWS] Erreur chargement vues backend: $e');
     }
@@ -399,11 +305,11 @@ class _MarqueState extends State<Marque>
   }
 
   List<Map<String, dynamic>> _catalogMapsForFilters() {
-    return voituresRecommandees.map((v) => v.toArticleMap()).toList();
+    return _catalog.voitures.map((v) => v.toArticleMap()).toList();
   }
 
   List<Map<String, dynamic>> _catalogMotoMapsForFilters() {
-    return motosRecommandees.map((m) => m.toArticleMap()).toList();
+    return _catalog.motos.map((m) => m.toArticleMap()).toList();
   }
 
   Future<void> _loadSellerMarqueStats() async {
@@ -429,166 +335,11 @@ class _MarqueState extends State<Marque>
     }
   }
 
-  Future<void> fetchVoituresRecommandees({bool silent = false}) async {
-    final isVendeur = _isVendeurRole;
-    if (!silent) {
-      final cached =
-          await _marqueRepo.readStaleVoitures(isVendeur: isVendeur);
-      if (cached != null && mounted) {
-        setState(() {
-          voituresRecommandees = cached;
-          isLoadingVoitures = false;
-        });
-        _precacheArticleVoitureThumbs(voituresRecommandees);
-      } else if (mounted) {
-        setState(() {
-          isLoadingVoitures = true;
-          errorVoitures = null;
-        });
-      }
-    }
-    try {
-      final voitures =
-          await _marqueRepo.fetchVoitures(isVendeur: isVendeur);
-      if (!mounted) return;
-      setState(() {
-        voituresRecommandees = voitures;
-        for (final v in voitures) {
-          _backendViews[v.id] = v.views;
-        }
-        isLoadingVoitures = false;
-      });
-      _precacheArticleVoitureThumbs(voitures);
-      _loadBackendViews();
-    } on MarqueFetchException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        errorVoitures = e.message;
-        isLoadingVoitures = false;
-      });
-    }
-  }
-
-  Future<void> fetchMotosRecommandees({bool silent = false}) async {
-    final isVendeur = _isVendeurRole;
-    if (!silent) {
-      final cached = await _marqueRepo.readStaleMotos(isVendeur: isVendeur);
-      if (cached != null && mounted) {
-        setState(() {
-          motosRecommandees = cached;
-          isLoadingMotos = false;
-        });
-        _precacheArticleVoitureThumbs(motosRecommandees);
-      } else if (mounted) {
-        setState(() {
-          isLoadingMotos = true;
-          errorMotos = null;
-        });
-      }
-    }
-    try {
-      final motos = await _marqueRepo.fetchMotos(isVendeur: isVendeur);
-      if (!mounted) return;
-      setState(() {
-        motosRecommandees = motos;
-        for (final m in motos) {
-          _backendViews[m.id] = m.views;
-        }
-        isLoadingMotos = false;
-      });
-      _precacheArticleVoitureThumbs(motos);
-      _loadBackendViews();
-    } on MarqueFetchException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        errorMotos = e.message;
-        isLoadingMotos = false;
-      });
-    }
-  }
-
-  Future<void> fetchPubs({bool silent = false}) async {
-    final isVendeur = _isVendeurRole;
-    if (!silent) {
-      final cached =
-          await _marqueRepo.readStalePubsALaUne(isVendeur: isVendeur);
-      if (cached != null && mounted) {
-        setState(() {
-          pubsALaUne = cached;
-          isLoadingPubs = false;
-          if (pubsALaUne.isNotEmpty) {
-            _startCarouselTimer();
-          }
-        });
-        _precachePubImages(pubsALaUne);
-      } else if (mounted) {
-        setState(() {
-          isLoadingPubs = true;
-          errorPubs = null;
-        });
-      }
-    }
-    try {
-      final pubs = await _marqueRepo.fetchPubsALaUne(isVendeur: isVendeur);
-      if (!mounted) return;
-      setState(() {
-        pubsALaUne = pubs;
-        isLoadingPubs = false;
-        if (pubsALaUne.isNotEmpty) {
-          _startCarouselTimer();
-        }
-      });
-      _precachePubImages(pubsALaUne);
-    } on MarqueFetchException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        errorPubs = e.message;
-        isLoadingPubs = false;
-      });
-    }
-  }
-
-  Future<void> fetchPubsSponsorisees({bool silent = false}) async {
-    final isVendeur = _isVendeurRole;
-    if (!silent) {
-      final cached =
-          await _marqueRepo.readStalePubsSponsorisees(isVendeur: isVendeur);
-      if (cached != null && mounted) {
-        setState(() {
-          pubsSponsorisees = cached;
-          isLoadingPubs = false;
-        });
-        _precachePubImages(pubsSponsorisees);
-      } else if (mounted) {
-        setState(() {
-          isLoadingPubs = true;
-          errorPubs = null;
-        });
-      }
-    }
-    try {
-      final pubs =
-          await _marqueRepo.fetchPubsSponsorisees(isVendeur: isVendeur);
-      if (!mounted) return;
-      setState(() {
-        pubsSponsorisees = pubs;
-        isLoadingPubs = false;
-      });
-      _precachePubImages(pubsSponsorisees);
-    } on MarqueFetchException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        errorPubs = e.message;
-        isLoadingPubs = false;
-      });
-    }
-  }
-
   void _startCarouselTimer() {
     _carouselTimer?.cancel();
     _carouselTimer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
-      if (!mounted || pubsALaUne.isEmpty) return;
-      if (_currentPage < pubsALaUne.length - 1) {
+      if (!mounted || _catalog.pubsALaUne.isEmpty) return;
+      if (_currentPage < _catalog.pubsALaUne.length - 1) {
         _currentPage++;
       } else {
         _currentPage = 0;
@@ -625,6 +376,7 @@ class _MarqueState extends State<Marque>
   void dispose() {
     _carouselTimer?.cancel();
     _marqueAutoRefreshTimer?.cancel();
+    _catalog.dispose();
     _tabController.dispose();
     _pageController.dispose();
     _searchGlobalController.dispose();
@@ -634,7 +386,7 @@ class _MarqueState extends State<Marque>
 
   Widget buildVoituresRecommandeesSection() {
     final isVendeur = _userService.currentRole == UserRole.vendeur;
-    final voituresEnLigne = voituresRecommandees
+    final voituresEnLigne = _catalog.voitures
         .where(
           (v) =>
               (v.statut ?? 'en_ligne') == 'en_ligne' &&
@@ -643,8 +395,8 @@ class _MarqueState extends State<Marque>
         .toList();
     return MarqueVoituresSection(
       voitures: _applyFilters(voituresEnLigne),
-      isLoading: isLoadingVoitures,
-      error: errorVoitures,
+      isLoading: _catalog.isLoadingVoitures,
+      error: _catalog.errorVoitures,
       isVendeur: isVendeur,
       conditionNewLabel: l10n.conditionNew,
       conditionUsedLabel: l10n.usedCondition,
@@ -688,7 +440,7 @@ class _MarqueState extends State<Marque>
 
   Widget buildMotosSection() {
     final isVendeur = _userService.currentRole == UserRole.vendeur;
-    final motosEnLigne = _applyMotoFilters(motosRecommandees
+    final motosEnLigne = _applyMotoFilters(_catalog.motos
         .where(
           (m) =>
               (m.statut ?? 'en_ligne') == 'en_ligne' &&
@@ -697,8 +449,8 @@ class _MarqueState extends State<Marque>
         .toList());
     return MarqueMotosSection(
       motos: motosEnLigne,
-      isLoading: isLoadingMotos,
-      error: errorMotos,
+      isLoading: _catalog.isLoadingMotos,
+      error: _catalog.errorMotos,
       isVendeur: isVendeur,
       conditionNewLabel: l10n.conditionNew,
       conditionUsedLabel: l10n.usedCondition,
@@ -721,7 +473,7 @@ class _MarqueState extends State<Marque>
   }
 
   Widget buildPiecesSection() {
-    final piecesEnLigne = articlesPieces
+    final piecesEnLigne = _catalog.pieces
         .where(
           (p) =>
               (p.statut ?? 'en_ligne') == 'en_ligne' &&
@@ -730,8 +482,8 @@ class _MarqueState extends State<Marque>
         .toList();
     return MarquePiecesSection(
       pieces: piecesEnLigne,
-      isLoading: isLoadingPieces,
-      error: errorPieces,
+      isLoading: _catalog.isLoadingPieces,
+      error: _catalog.errorPieces,
       onSeeAll: () {
         Navigator.push(
           context,
@@ -766,9 +518,9 @@ class _MarqueState extends State<Marque>
 
   Widget buildPubsSponsoriseesSection() {
     return MarqueSponsoredPubsSection(
-      pubs: pubsSponsorisees,
-      isLoading: isLoadingPubs,
-      error: errorPubs,
+      pubs: _catalog.pubsSponsorisees,
+      isLoading: _catalog.isLoadingPubs,
+      error: _catalog.errorPubs,
       onPubTap: (pub) => handleMarqueSponsoredPubTap(
         context: context,
         pub: pub,
@@ -779,9 +531,9 @@ class _MarqueState extends State<Marque>
 
   Widget buildPubsALaUneCarousel() {
     return MarquePubsCarousel(
-      pubs: pubsALaUne,
-      isLoading: isLoadingPubs,
-      error: errorPubs,
+      pubs: _catalog.pubsALaUne,
+      isLoading: _catalog.isLoadingPubs,
+      error: _catalog.errorPubs,
       pageController: _pageController,
       onOpenLink: _openPubLink,
       onOpenFlyer: (url) => showMarqueFlyerPreview(context, url),
@@ -821,67 +573,25 @@ class _MarqueState extends State<Marque>
 
     final showBudgetPanel =
         !isVendeur && _tabController.index == _budgetTabIndex;
-    final isInitialHomeLoading = isLoadingPubs &&
-        pubsALaUne.isEmpty &&
-        isLoadingVoitures &&
-        voituresRecommandees.isEmpty;
+    final isInitialHomeLoading = _catalog.isLoadingPubs &&
+        _catalog.pubsALaUne.isEmpty &&
+        _catalog.isLoadingVoitures &&
+        _catalog.voitures.isEmpty;
 
     return Scaffold(
       body: Column(
         children: [
           if (!isVendeur)
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: Colors.white,
-              child: TextField(
-                controller: _searchGlobalController,
-                decoration: InputDecoration(
-                  hintText: l10n.searchVehiclesPartsHint,
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: AnimatedBuilder(
-                    animation: _searchGlobalController,
-                    builder: (context, child) {
-                      return IconButton(
-                        icon: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: _hasTypedSearch
-                              ? Container(
-                                  key: const Key('filter_active'),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                    Icons.filter_list,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.filter_list,
-                                  color: Colors.grey,
-                                  key: Key('filter_inactive'),
-                                ),
-                        ),
-                        onPressed: () {
-                          if (_hasTypedSearch &&
-                              _searchGlobalController.text.trim().isNotEmpty) {
-                            _showFilterHint();
-                          } else {
-                            _showFilterDialog();
-                          }
-                        },
-                      );
-                    },
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
+            MarqueSearchBar(
+              controller: _searchGlobalController,
+              hintText: l10n.searchVehiclesPartsHint,
+              onFilterPressed: () {
+                if (_searchGlobalController.text.trim().isNotEmpty) {
+                  _showFilterHint();
+                } else {
+                  _showFilterDialog();
+                }
+              },
             ),
           Expanded(
             child: PagePullRefresh(
@@ -966,7 +676,7 @@ class _MarqueState extends State<Marque>
   }
 
   Widget _buildMarqueSection() {
-    if (isLoadingVoitures && voituresRecommandees.isEmpty) {
+    if (_catalog.isLoadingVoitures && _catalog.voitures.isEmpty) {
       return const CatalogFilterHorizSkeleton();
     }
     final options =
@@ -979,7 +689,7 @@ class _MarqueState extends State<Marque>
   }
 
   Widget _buildMotosMarqueSection() {
-    if (isLoadingMotos && motosRecommandees.isEmpty) {
+    if (_catalog.isLoadingMotos && _catalog.motos.isEmpty) {
       return const CatalogFilterHorizSkeleton();
     }
     final options = buildMarqueFilterOptions(
@@ -999,10 +709,10 @@ class _MarqueState extends State<Marque>
     return MarqueSellerStatsSection(
       isVendeur: isVendeur,
       vendeurType: _statsVendeurType ?? _userService.vendeurType,
-      voitures: voituresRecommandees,
-      motos: motosRecommandees,
-      pieces: articlesPieces,
-      backendViews: _backendViews,
+      voitures: _catalog.voitures,
+      motos: _catalog.motos,
+      pieces: _catalog.pieces,
+      backendViews: _catalog.backendViews,
       vehiclesOnline: _statsVehiclesOnline,
       piecesOnline: _statsPiecesOnline,
       vehiclesSold: _statsVehiclesSold,
@@ -1024,7 +734,7 @@ class _MarqueState extends State<Marque>
   }
 
   void _openBudgetSheet() {
-    final onlinePrices = voituresRecommandees
+    final onlinePrices = _catalog.voitures
         .where((v) => (v.statut ?? 'en_ligne') == 'en_ligne')
         .map((v) => double.tryParse(v.prix.replaceAll(RegExp(r'[^0-9.]'), '')))
         .whereType<double>()
