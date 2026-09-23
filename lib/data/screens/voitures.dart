@@ -21,6 +21,7 @@ import 'package:tranoo/widgets/catalog_filter_sections.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/data/repositories/catalog_repository.dart';
+import 'package:tranoo/data/screens/catalog_list_controller.dart';
 import 'package:tranoo/widgets/catalog_article_grid_card.dart';
 import 'package:tranoo/widgets/catalog_list_chrome.dart';
 
@@ -35,10 +36,13 @@ class _VoituresPageState extends State<VoituresPage>
     with SingleTickerProviderStateMixin, RegisterPageRefresh {
   @override
   Future<void> onPagePullRefresh() async => fetchVoitures();
-  List<dynamic> voitures = [];
-  bool isLoading = true;
-  String? error;
-  List<bool> _isVisible = [];
+
+  late final CatalogListController _list;
+  List<dynamic> get voitures => _list.items;
+  bool get isLoading => _list.isLoading;
+  String? get error => _list.error;
+  List<bool> get _isVisible => _list.isVisible;
+
   final TextEditingController _searchController = TextEditingController();
   String _searchText = "";
 
@@ -55,11 +59,9 @@ class _VoituresPageState extends State<VoituresPage>
   late int _modeleTabIndex;
   late int _localisationTabIndex;
   late int _budgetTabIndex;
-  Timer? _autoRefreshTimer;
   bool _noResultDialogShown = false;
   Timer? _noResultDialogTimer;
   final UserService _userService = UserService();
-  final CatalogRepository _catalogRepo = CatalogRepository();
   List<dynamic> _motosForFilters = [];
 
   bool get _useMotoFilterMode =>
@@ -68,6 +70,27 @@ class _VoituresPageState extends State<VoituresPage>
   @override
   void initState() {
     super.initState();
+
+    _list = CatalogListController(
+      articleType: 'voiture',
+      cacheKey: CatalogRepository.cacheVoitures,
+      isMounted: () => mounted,
+    );
+    _list.addListener(() {
+      if (mounted) setState(() {});
+    });
+    _list.onItemsUpdated = (items) {
+      if (!mounted) return;
+      precacheTranooImages(
+        context,
+        photoUrlsFromArticles(items.cast<Map<String, dynamic>>()),
+        cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
+      );
+    };
+    _list.mapError = (e) {
+      final l10n = AppLocalizations.of(context)!;
+      return e.isNetwork ? l10n.networkError : l10n.carsLoadError;
+    };
 
     // Récupérer le paramètre de recherche si disponible
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -94,10 +117,7 @@ class _VoituresPageState extends State<VoituresPage>
 
     fetchVoitures();
     if (_useMotoFilterMode) _fetchMotosForFilters();
-    _autoRefreshTimer =
-        Timer.periodic(const Duration(seconds: 30), (_) {
-      if (mounted) fetchVoitures(silent: true);
-    });
+    _list.startAutoRefresh();
     _searchController.addListener(() {
       setState(() {
         _searchText = _searchController.text.toLowerCase();
@@ -108,7 +128,7 @@ class _VoituresPageState extends State<VoituresPage>
 
   @override
   void dispose() {
-    _autoRefreshTimer?.cancel();
+    _list.dispose();
     _noResultDialogTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
@@ -146,55 +166,8 @@ class _VoituresPageState extends State<VoituresPage>
     await fetchVoitures();
   }
 
-  Future<void> fetchVoitures({bool silent = false}) async {
-    if (!silent) {
-      final stale =
-          await _catalogRepo.readStale(CatalogRepository.cacheVoitures);
-      if (stale != null && mounted) {
-        setState(() {
-          voitures = stale;
-          _isVisible = List.generate(stale.length, (index) => true);
-          isLoading = false;
-        });
-        precacheTranooImages(
-          context,
-          photoUrlsFromArticles(
-            stale.cast<Map<String, dynamic>>(),
-          ),
-          cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
-        );
-      } else {
-        setState(() {
-          isLoading = true;
-          error = null;
-        });
-      }
-    }
-    try {
-      final data = await _catalogRepo.fetchPublicArticles(
-        type: 'voiture',
-        cacheKey: CatalogRepository.cacheVoitures,
-      );
-      if (!mounted) return;
-      setState(() {
-        voitures = data;
-        _isVisible = List.generate(data.length, (index) => true);
-        isLoading = false;
-      });
-      precacheTranooImages(
-        context,
-        photoUrlsFromArticles(data.cast<Map<String, dynamic>>()),
-        cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
-      );
-    } on CatalogFetchException catch (e) {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      setState(() {
-        error = e.isNetwork ? l10n.networkError : l10n.carsLoadError;
-        isLoading = false;
-      });
-    }
-  }
+  Future<void> fetchVoitures({bool silent = false}) =>
+      _list.fetch(silent: silent);
 
   Future<void> _deleteVoiture(String articleId, int index) async {
     final l10n = AppLocalizations.of(context)!;
@@ -221,7 +194,7 @@ class _VoituresPageState extends State<VoituresPage>
     });
     await Future.delayed(const Duration(milliseconds: 400));
     try {
-      await _catalogRepo.deleteArticle(articleId);
+      await _list.deleteArticle(articleId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.carDeletedSuccess)),
@@ -292,7 +265,7 @@ class _VoituresPageState extends State<VoituresPage>
 
   Future<void> _fetchMotosForFilters() async {
     try {
-      final data = await _catalogRepo.fetchMotosForFilters();
+      final data = await _list.repository.fetchMotosForFilters();
       if (!mounted) return;
       setState(() {
         _motosForFilters = data;

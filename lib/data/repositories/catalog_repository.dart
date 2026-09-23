@@ -124,6 +124,29 @@ class CatalogRepository {
     }
   }
 
+  /// GET `/admin/verification-pricing` — prix vérification véhicule.
+  /// Retourne null si échec (l'écran garde son défaut).
+  Future<int?> fetchVerificationPricing() async {
+    try {
+      final res = await _client.get(
+        Uri.parse(
+          '${UserService().dio.options.baseUrl}/admin/verification-pricing',
+        ),
+      );
+      if (res.statusCode != 200) return null;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final raw = data['prixVerification'] ??
+          (data['pricing'] is Map
+              ? data['pricing']['prixVerification']
+              : null);
+      final parsed = int.tryParse('$raw');
+      if (parsed == null || parsed < 0) return null;
+      return parsed;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// POST/DELETE `/users/me/favoris` — même base URL dio / body qu'avant.
   /// [isFavorite] = déjà en favoris (DELETE si true, POST sinon).
   /// Retourne true si status 200.

@@ -20,6 +20,7 @@ import 'package:tranoo/widgets/catalog_filter_sections.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/data/repositories/catalog_repository.dart';
+import 'package:tranoo/data/screens/catalog_list_controller.dart';
 import 'package:tranoo/widgets/catalog_article_grid_card.dart';
 import 'package:tranoo/widgets/catalog_list_chrome.dart';
 
@@ -34,10 +35,13 @@ class _MotosPageState extends State<MotosPage>
     with SingleTickerProviderStateMixin, RegisterPageRefresh {
   @override
   Future<void> onPagePullRefresh() async => fetchMotos();
-  List<dynamic> motos = [];
-  bool isLoading = true;
-  String? error;
-  List<bool> _isVisible = [];
+
+  late final CatalogListController _list;
+  List<dynamic> get motos => _list.items;
+  bool get isLoading => _list.isLoading;
+  String? get error => _list.error;
+  List<bool> get _isVisible => _list.isVisible;
+
   final TextEditingController _searchController = TextEditingController();
   String _searchText = "";
 
@@ -54,14 +58,33 @@ class _MotosPageState extends State<MotosPage>
   late int _modeleTabIndex;
   late int _localisationTabIndex;
   late int _budgetTabIndex;
-  Timer? _autoRefreshTimer;
   bool _noResultDialogShown = false;
   Timer? _noResultDialogTimer;
-  final CatalogRepository _catalogRepo = CatalogRepository();
 
   @override
   void initState() {
     super.initState();
+
+    _list = CatalogListController(
+      articleType: 'moto',
+      cacheKey: CatalogRepository.cacheMotos,
+      isMounted: () => mounted,
+    );
+    _list.addListener(() {
+      if (mounted) setState(() {});
+    });
+    _list.onItemsUpdated = (items) {
+      if (!mounted) return;
+      precacheTranooImages(
+        context,
+        photoUrlsFromArticles(items.cast<Map<String, dynamic>>()),
+        cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
+      );
+    };
+    _list.mapError = (e) {
+      final l10n = AppLocalizations.of(context)!;
+      return e.isNetwork ? l10n.networkError : l10n.carsLoadError;
+    };
 
     // Récupérer le paramètre de recherche si disponible
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -87,10 +110,7 @@ class _MotosPageState extends State<MotosPage>
     });
 
     fetchMotos();
-    _autoRefreshTimer =
-        Timer.periodic(const Duration(seconds: 30), (_) {
-      if (mounted) fetchMotos(silent: true);
-    });
+    _list.startAutoRefresh();
     _searchController.addListener(() {
       setState(() {
         _searchText = _searchController.text.toLowerCase();
@@ -101,7 +121,7 @@ class _MotosPageState extends State<MotosPage>
 
   @override
   void dispose() {
-    _autoRefreshTimer?.cancel();
+    _list.dispose();
     _noResultDialogTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
@@ -139,54 +159,8 @@ class _MotosPageState extends State<MotosPage>
     await fetchMotos();
   }
 
-  Future<void> fetchMotos({bool silent = false}) async {
-    if (!silent) {
-      final stale = await _catalogRepo.readStale(CatalogRepository.cacheMotos);
-      if (stale != null && mounted) {
-        setState(() {
-          motos = stale;
-          _isVisible = List.generate(stale.length, (index) => true);
-          isLoading = false;
-        });
-        precacheTranooImages(
-          context,
-          photoUrlsFromArticles(
-            stale.cast<Map<String, dynamic>>(),
-          ),
-          cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
-        );
-      } else {
-        setState(() {
-          isLoading = true;
-          error = null;
-        });
-      }
-    }
-    try {
-      final data = await _catalogRepo.fetchPublicArticles(
-        type: 'moto',
-        cacheKey: CatalogRepository.cacheMotos,
-      );
-      if (!mounted) return;
-      setState(() {
-        motos = data;
-        _isVisible = List.generate(data.length, (index) => true);
-        isLoading = false;
-      });
-      precacheTranooImages(
-        context,
-        photoUrlsFromArticles(data.cast<Map<String, dynamic>>()),
-        cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 180),
-      );
-    } on CatalogFetchException catch (e) {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      setState(() {
-        error = e.isNetwork ? l10n.networkError : l10n.carsLoadError;
-        isLoading = false;
-      });
-    }
-  }
+  Future<void> fetchMotos({bool silent = false}) =>
+      _list.fetch(silent: silent);
 
   Future<void> _deleteMoto(String articleId, int index) async {
     final l10n = AppLocalizations.of(context)!;
@@ -213,7 +187,7 @@ class _MotosPageState extends State<MotosPage>
     });
     await Future.delayed(const Duration(milliseconds: 400));
     try {
-      await _catalogRepo.deleteArticle(articleId);
+      await _list.deleteArticle(articleId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.carDeletedSuccess)),

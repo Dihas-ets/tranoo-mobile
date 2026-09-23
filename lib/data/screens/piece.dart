@@ -18,6 +18,7 @@ import 'package:tranoo/widgets/catalog_filter_sections.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/data/repositories/catalog_repository.dart';
+import 'package:tranoo/data/screens/catalog_list_controller.dart';
 import 'package:tranoo/widgets/catalog_piece_grid_card.dart';
 import 'package:tranoo/widgets/catalog_list_chrome.dart';
 
@@ -32,10 +33,13 @@ class _PiecePageState extends State<PiecePage>
     with SingleTickerProviderStateMixin, RegisterPageRefresh {
   @override
   Future<void> onPagePullRefresh() async => fetchPieces();
-  List<dynamic> pieces = [];
-  bool isLoading = true;
-  String? error;
-  List<bool> _isVisible = [];
+
+  late final CatalogListController _list;
+  List<dynamic> get pieces => _list.items;
+  bool get isLoading => _list.isLoading;
+  String? get error => _list.error;
+  List<bool> get _isVisible => _list.isVisible;
+
   final TextEditingController _searchController = TextEditingController();
   String _searchText = "";
 
@@ -52,14 +56,43 @@ class _PiecePageState extends State<PiecePage>
   late int _marqueTabIndex;
   late int _localisationTabIndex;
   late int _budgetTabIndex;
-  Timer? _autoRefreshTimer;
   bool _noResultDialogShown = false;
   Timer? _noResultDialogTimer;
-  final CatalogRepository _catalogRepo = CatalogRepository();
 
   @override
   void initState() {
     super.initState();
+
+    _list = CatalogListController(
+      articleType: 'piece',
+      cacheKey: CatalogRepository.cachePieces,
+      timeout: const Duration(seconds: 15),
+      isMounted: () => mounted,
+    );
+    _list.addListener(() {
+      if (mounted) setState(() {});
+    });
+    _list.onItemsUpdated = (items) {
+      if (!mounted) return;
+      precacheTranooImages(
+        context,
+        photoUrlsFromArticles(items.cast<Map<String, dynamic>>()),
+        cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 120),
+      );
+    };
+    _list.mapError = (e) {
+      if (e.isNetwork) {
+        debugPrint('[PIECES_PUBLIC] fetchPieces exception: network');
+      } else {
+        debugPrint('[PIECES_PUBLIC] HTTP ${e.statusCode}');
+      }
+      final l10n = AppLocalizations.of(context)!;
+      return e.isNetwork
+          ? l10n.networkError
+          : (e.statusCode == 401
+              ? l10n.sessionExpiredReconnect
+              : l10n.piecesLoadError);
+    };
 
     // Récupérer le paramètre de recherche si disponible
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -86,9 +119,7 @@ class _PiecePageState extends State<PiecePage>
     });
 
     fetchPieces();
-    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (mounted) fetchPieces(silent: true);
-    });
+    _list.startAutoRefresh();
     _searchController.addListener(() {
       setState(() {
         _searchText = _searchController.text.toLowerCase();
@@ -99,7 +130,7 @@ class _PiecePageState extends State<PiecePage>
 
   @override
   void dispose() {
-    _autoRefreshTimer?.cancel();
+    _list.dispose();
     _noResultDialogTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
@@ -158,64 +189,8 @@ class _PiecePageState extends State<PiecePage>
     await fetchPieces();
   }
 
-  Future<void> fetchPieces({bool silent = false}) async {
-    if (!silent) {
-      final stale = await _catalogRepo.readStale(CatalogRepository.cachePieces);
-      if (stale != null && mounted) {
-        setState(() {
-          pieces = stale;
-          _isVisible = List.generate(stale.length, (index) => true);
-          isLoading = false;
-        });
-        precacheTranooImages(
-          context,
-          photoUrlsFromArticles(
-            stale.cast<Map<String, dynamic>>(),
-          ),
-          cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 120),
-        );
-      } else {
-        setState(() {
-          isLoading = true;
-          error = null;
-        });
-      }
-    }
-    try {
-      final data = await _catalogRepo.fetchPublicArticles(
-        type: 'piece',
-        cacheKey: CatalogRepository.cachePieces,
-        timeout: const Duration(seconds: 15),
-      );
-      if (!mounted) return;
-      setState(() {
-        pieces = data;
-        _isVisible = List.generate(data.length, (index) => true);
-        isLoading = false;
-      });
-      precacheTranooImages(
-        context,
-        photoUrlsFromArticles(data.cast<Map<String, dynamic>>()),
-        cloudinaryWidthPx: cloudinaryWidthPx(context, logicalWidth: 120),
-      );
-    } on CatalogFetchException catch (e) {
-      if (e.isNetwork) {
-        debugPrint('[PIECES_PUBLIC] fetchPieces exception: network');
-      } else {
-        debugPrint('[PIECES_PUBLIC] HTTP ${e.statusCode}');
-      }
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      setState(() {
-        error = e.isNetwork
-            ? l10n.networkError
-            : (e.statusCode == 401
-                ? l10n.sessionExpiredReconnect
-                : l10n.piecesLoadError);
-        isLoading = false;
-      });
-    }
-  }
+  Future<void> fetchPieces({bool silent = false}) =>
+      _list.fetch(silent: silent);
 
   Future<void> _deletePiece(String articleId, int index) async {
     final l10n = AppLocalizations.of(context)!;
@@ -242,7 +217,7 @@ class _PiecePageState extends State<PiecePage>
     });
     await Future.delayed(const Duration(milliseconds: 400));
     try {
-      await _catalogRepo.deleteArticle(articleId);
+      await _list.deleteArticle(articleId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.partDeletedSuccess)),

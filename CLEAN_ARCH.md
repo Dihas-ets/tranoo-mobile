@@ -31,14 +31,20 @@ Sortis de `marque.dart`.
 | Repo | API principale | Consommateurs |
 |------|----------------|---------------|
 | `MarqueRepository` | fetch pièces/voitures/motos/pubs (+ stale cache), stats vendeur, pub/article by id | `marque.dart` + controller |
-| `CatalogRepository` | `fetchPublicArticles`, `fetchMotosForFilters`, `deleteArticle`, `fetchPublicArticle`, `toggleFavorite` ; caches `catalog_voitures` / `catalog_motos` / `catalog_pieces` | `voitures`, `motos`, `piece`, `cars_info`, `moto_info`, marque sections |
+| `CatalogRepository` | `fetchPublicArticles`, `fetchMotosForFilters`, `deleteArticle`, `fetchPublicArticle`, `fetchVerificationPricing`, `toggleFavorite` ; caches `catalog_*` | listes, détails, marque sections |
 | `UneRepository` | `createArticle`, `fetchArticle`, `articleExists`, prix/jour, `createPublicite`, `updatePubliciteStatut` | `une.dart` |
+
+### Controllers
+
+| Fichier | Rôle |
+|---------|------|
+| `marque/marque_catalog_controller.dart` | fetchers + cache + état marque |
+| `catalog_list_controller.dart` | fetch/cache/auto-refresh/delete listes (voitures, motos, piece) |
 
 ### Marque — extractions UI / état
 
 | Fichier | Rôle |
 |---------|------|
-| `marque/marque_catalog_controller.dart` | fetchers + cache + état catalogue |
 | `marque/marque_search_bar.dart` | barre recherche |
 | `marque/marque_filter_panels.dart` | chips / localisation / budget |
 | `marque/marque_pubs_carousel.dart` | carousel pubs |
@@ -49,7 +55,7 @@ Sortis de `marque.dart`.
 | `marque/marque_sponsored_pub.dart` | tap pub sponsorisée + nav |
 | `marque/marque_flyer_preview.dart` | preview flyer |
 
-`marque.dart` : **~702 L** (était ~1727). **Plus de HTTP direct** dans l’écran.
+`marque.dart` : **~702 L**. **Plus de HTTP direct**.
 
 ### Widgets catalogue partagés (`lib/widgets/`)
 
@@ -62,62 +68,50 @@ Sortis de `marque.dart`.
 | `catalog_filter_brand_logo.dart` | logo marque filtre | filtres |
 | `catalog_detail_sections.dart` | sections UI détail | `cars_info`, `moto_info` |
 
-### Détails — partiel
+### Détails
 
-- `cars_info` / `moto_info` : sections UI + favoris / article public via `CatalogRepository`
-- `cars_info` : **reste** 1 `http.get` (pricing vérification)
-- `mastervacpage` : **reste** `http.get` `/public/articles/:id` (pas encore repo)
+- `cars_info` / `moto_info` : sections UI + favoris / article via `CatalogRepository`
+- `cars_info` : pricing vérif → `fetchVerificationPricing` (**plus de HTTP direct**)
+- `mastervacpage` : détail → `fetchPublicArticle` (**plus de HTTP direct**)
 
-### Une — partiel
+### Listes
 
-- HTTP → `UneRepository` (déjà)
-- UI extraite sous `lib/data/screens/une/` :
-  - `une_labels.dart` — constantes + labels i18n
-  - `une_mode_banner.dart` — bannière mode + statut article
-  - `une_car_info_section.dart` — champs véhicule (sponsorisée)
-  - `une_featured_flyer.dart` — flyer « À la une »
-  - `une_sponsored_media.dart` — grille images + vidéo
-- `une.dart` : **~1203 L** (était ~1853). Logic paiement / Cloudinary / create encore dans l’écran.
+- `voitures` / `motos` / `piece` : orchestration via `CatalogListController`
+- Filtres / alertes / grilles restent dans les écrans
+
+### Une
+
+- HTTP → `UneRepository`
+- UI sous `lib/data/screens/une/` : labels, mode banner, car info, flyer, médias
+- `une.dart` : **~1203 L** (était ~1853). Paiement / Cloudinary / create encore dans l’écran.
 
 ### Commits de référence (ordre)
 
 ```
-f408f72  refactor(models): Article, ArticleVoiture, Pub
-8ebc15c  refactor(utils): formatPrice, isPubValid, formatCompactCount
-ba0e06c  refactor(marque): état catalogue dans le State
-ac5b644  refactor(marque): MarqueRepository
-702293c  refactor(marque): carousel + sections catalogue
-2542cd7  (réf. messages) + purge legacy / filter panels
-4e7ce9d  refactor(marque): stats, services, dialogs recherche
-d3976c7  refactor(marque): pub sponsorisée + flyer ; MarqueRepository HTTP
-bd88b82  refactor(marque): MarqueCatalogController + search bar
-575dca2  refactor(catalog): CatalogRepository + listes
-375daa8  refactor(catalog): cartes, chrome, détails, UneRepository
+f408f72 … 375daa8  (voir git log refactor)
+(+ à committer) une UI, CLEAN_ARCH, CatalogListController, détails HTTP
 ```
 
 ---
 
 ## Backlog (ordre)
 
-### Sprint en cours — catalogue
+### Catalogue — reste optionnel
 
-1. ~~**`une.dart` UI**~~ — labels + banner + car info + médias extraits (~1853 → ~1203 L)
-2. **Listes `voitures` / `motos` / `piece` (~945 / ~862 / ~946 L)** — controller partagé (orchestration + filtres encore tripliqués)
-3. **`cars_info`** — sortir le `http.get` pricing vers repo
-4. **`mastervacpage`** — brancher `CatalogRepository.fetchPublicArticle`
-5. **`une.dart` (reste)** — optionnel : media pickers / `_onPayer` helpers si encore trop gras
-6. **`marque.dart` (~702 L)** — slim seulement si duplication claire avec listes
+1. ~~une UI~~ / ~~list controller~~ / ~~HTTP cars_info~~ / ~~HTTP mastervacpage~~
+2. **Filtres listes** encore tripliqués (voitures/motos/piece) — extraire si besoin
+3. **`une.dart` reste** — `_onPayer` / Cloudinary si encore trop gras
+4. **`marque.dart` (~702 L)** — slim seulement si duplication claire
 
-### Après catalogue
+### Après catalogue (prochaine branche)
 
 | Écran | ~L | Note |
 |-------|-----|------|
 | `create_sell.dart` | 1644 | multipart HTTP in UI |
 | `notifications.dart` | 1576 | beaucoup de HTTP inline |
 | `mesfactures.dart` | 1381 | |
-| `create_sell2.dart` | 1140 | twin sell |
-| `create_sell_moto.dart` | 1032 | twin sell |
-| profils (`profilutilisateurpage`, `profil3`, `profil_utilisateur2`) | ~637–676 | wallet/HTTP dupliqué |
+| `create_sell2.dart` / `create_sell_moto.dart` | ~1140 / ~1032 | twins sell |
+| profils | ~637–676 | wallet/HTTP dupliqué |
 
 ---
 
@@ -125,5 +119,7 @@ bd88b82  refactor(marque): MarqueCatalogController + search bar
 
 | Date | Action | Δ lignes / fichiers |
 |------|--------|---------------------|
-| 2026-09-23 | Création de ce fichier ; snapshot post-`375daa8` | — |
-| 2026-09-23 | `une` UI : labels, mode banner, car info, flyer, médias | `une.dart` ~1853 → ~1203 ; +5 fichiers `screens/une/` |
+| 2026-09-23 | Création fichier ; snapshot post-`375daa8` | — |
+| 2026-09-23 | `une` UI : labels, banner, car info, flyer, médias | ~1853 → ~1203 ; +5 sous `screens/une/` |
+| 2026-09-23 | `CatalogListController` + brancher 3 listes | fetch/cache/timer unifiés |
+| 2026-09-23 | `cars_info` pricing + `mastervacpage` détail → repo | plus de HTTP direct détails catalogue |

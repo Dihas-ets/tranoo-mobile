@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'movie.dart';
-import 'package:tranoo/services/user_service.dart';
-import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:confetti/confetti.dart';
@@ -230,22 +227,10 @@ class _CarsinfoState extends State<CarsInfo> {
   }
 
   Future<void> _loadVerificationPrice() async {
-    try {
-      final url =
-          '${UserService().dio.options.baseUrl}/admin/verification-pricing';
-      final res = await http.get(Uri.parse(url));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body) as Map<String, dynamic>;
-        final raw = data['prixVerification'] ??
-            (data['pricing'] is Map
-                ? data['pricing']['prixVerification']
-                : null);
-        final parsed = int.tryParse('$raw');
-        if (parsed != null && parsed >= 0 && mounted) {
-          setState(() => _verificationPrice = parsed);
-        }
-      }
-    } catch (_) {}
+    final parsed = await _catalogRepo.fetchVerificationPricing();
+    if (parsed != null && mounted) {
+      setState(() => _verificationPrice = parsed);
+    }
   }
 
   @override

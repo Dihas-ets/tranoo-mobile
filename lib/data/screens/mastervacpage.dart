@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:tranoo/services/user_service.dart'; // Importez UserService pour gérer les rôles
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:tranoo/providers/auth_provider.dart' as myauth;
@@ -21,6 +19,7 @@ import 'package:tranoo/utils/text_display.dart';
 import 'package:tranoo/widgets/spec_info_card.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tranoo/utils/catalog_display.dart';
+import 'package:tranoo/data/repositories/catalog_repository.dart';
 
 class MastervacPage extends StatefulWidget {
   final String? id;
@@ -70,6 +69,7 @@ class MastervacPage extends StatefulWidget {
 
 class _MastervacPageState extends State<MastervacPage> {
   AppLocalizations get l10n => AppLocalizations.of(context)!;
+  final _catalogRepo = CatalogRepository();
 
   int _currentImageIndex = 0;
   late PageController _pageController;
@@ -288,39 +288,28 @@ class _MastervacPageState extends State<MastervacPage> {
     try {
       final id = widget.id;
       if (id == null || id.isEmpty) return;
-      final user = FirebaseAuth.instance.currentUser;
-      final token = await user?.getIdToken();
-      final res = await http.get(
-        Uri.parse(getBaseUrl() + '/public/articles/' + id),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer ' + token,
-        },
-      );
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body) as Map<String, dynamic>;
-        final statut = (data['statut'] ?? '').toString().toLowerCase();
-        if (!mounted) return;
-        final loc = (data['localisation'] ?? data['lieu'])?.toString().trim();
-        final company = data['entreprise']?.toString().trim();
-        final fournisseur = data['fournisseur'];
-        double? lat;
-        double? lng;
-        if (fournisseur is Map) {
-          lat = _readCoord(fournisseur['latitude']);
-          lng = _readCoord(fournisseur['longitude']);
-        }
-        setState(() {
-          _isOnline = (statut == 'en_ligne');
-          _sellerPhone = _extractSellerPhone(data);
-          _loadedCategorie = data['categorie']?.toString();
-          _loadedMarque = data['marque']?.toString();
-          if (loc != null && loc.isNotEmpty) _loadedLocation = loc;
-          if (company != null && company.isNotEmpty) _loadedCompany = company;
-          _supplierLat = lat;
-          _supplierLng = lng;
-        });
+      final data = await _catalogRepo.fetchPublicArticle(id);
+      if (data == null || !mounted) return;
+      final statut = (data['statut'] ?? '').toString().toLowerCase();
+      final loc = (data['localisation'] ?? data['lieu'])?.toString().trim();
+      final company = data['entreprise']?.toString().trim();
+      final fournisseur = data['fournisseur'];
+      double? lat;
+      double? lng;
+      if (fournisseur is Map) {
+        lat = _readCoord(fournisseur['latitude']);
+        lng = _readCoord(fournisseur['longitude']);
       }
+      setState(() {
+        _isOnline = (statut == 'en_ligne');
+        _sellerPhone = _extractSellerPhone(data);
+        _loadedCategorie = data['categorie']?.toString();
+        _loadedMarque = data['marque']?.toString();
+        if (loc != null && loc.isNotEmpty) _loadedLocation = loc;
+        if (company != null && company.isNotEmpty) _loadedCompany = company;
+        _supplierLat = lat;
+        _supplierLng = lng;
+      });
     } catch (_) {}
   }
 
