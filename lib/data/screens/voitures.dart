@@ -21,6 +21,8 @@ import 'package:tranoo/widgets/catalog_filter_sections.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/data/repositories/catalog_repository.dart';
+import 'package:tranoo/widgets/catalog_article_grid_card.dart';
+import 'package:tranoo/widgets/catalog_list_chrome.dart';
 
 class VoituresPage extends StatefulWidget {
   const VoituresPage({super.key});
@@ -126,14 +128,6 @@ class _VoituresPageState extends State<VoituresPage>
       if (both.isNotEmpty) return both;
     }
     return null;
-  }
-
-  double _computeCardAspectRatio(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth < 360) return 0.58;
-    if (screenWidth < 420) return 0.59;
-    if (screenWidth < 520) return 0.7;
-    return 0.78;
   }
 
   Future<void> _reloadAll() async {
@@ -287,52 +281,12 @@ class _VoituresPageState extends State<VoituresPage>
     }).toList();
   }
 
-  Widget _buildCaracteristic(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 12, color: Colors.amber[700]),
-        const SizedBox(width: 4),
-        Flexible(
-          child: Text(
-            text,
-            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildTabButton(String title, int index, {bool isWide = false}) {
-    bool isSelected = _tabController.index == index;
-    const selectedColor = Color(0xFFF8BF13);
-    const unselectedBorderColor = Color(0xFF000000);
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _tabController.index = index;
-        });
-      },
-      child: Container(
-        width: isWide ? 100 : 70,
-        height: 40,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? selectedColor : Colors.transparent,
-          border: Border.all(
-            color: isSelected ? selectedColor : unselectedBorderColor,
-            width: 0.8,
-          ),
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            color: isSelected ? Colors.white : Colors.black,
-          ),
-        ),
-      ),
+    return CatalogFilterTabButton(
+      title: title,
+      selected: _tabController.index == index,
+      isWide: isWide,
+      onTap: () => setState(() => _tabController.index = index),
     );
   }
 
@@ -839,50 +793,25 @@ class _VoituresPageState extends State<VoituresPage>
                   )
                 : Column(
                   children: [
-                    // Barre de recherche
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: l10n.searchCarHint,
-                          prefixIcon: const Icon(Icons.search),
-                          filled: true,
-                          fillColor: Colors.grey[200],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
+                    CatalogListSearchField(
+                      controller: _searchController,
+                      hintText: l10n.searchCarHint,
                     ),
-                    // Filtres TabBar (acheteur)
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      child: Center(
-                        child: TabBar(
-                          controller: _tabController,
-                          isScrollable: true,
-                          tabAlignment: TabAlignment.center,
-                          indicator: const BoxDecoration(),
-                          padding: EdgeInsets.zero,
-                          labelPadding:
-                              const EdgeInsets.symmetric(horizontal: 4),
-                          tabs: [
-                            _buildTabButton("Marque", _marqueTabIndex),
-                            _buildTabButton(
-                              _useMotoFilterMode ? 'Type' : 'Modèles',
-                              _modeleTabIndex,
-                            ),
-                            _buildTabButton(
-                              "Localisation",
-                              _localisationTabIndex,
-                              isWide: true,
-                            ),
-                            _buildTabButton("Budget", _budgetTabIndex),
-                          ],
+                    CatalogFilterTabBar(
+                      controller: _tabController,
+                      tabs: [
+                        _buildTabButton("Marque", _marqueTabIndex),
+                        _buildTabButton(
+                          _useMotoFilterMode ? 'Type' : 'Modèles',
+                          _modeleTabIndex,
                         ),
-                      ),
+                        _buildTabButton(
+                          "Localisation",
+                          _localisationTabIndex,
+                          isWide: true,
+                        ),
+                        _buildTabButton("Budget", _budgetTabIndex),
+                      ],
                     ),
                     // Sections de filtres
                     if (_tabController.index == _marqueTabIndex)
@@ -953,23 +882,33 @@ class _VoituresPageState extends State<VoituresPage>
                                     crossAxisSpacing: 10,
                                     mainAxisSpacing: 10,
                                     childAspectRatio:
-                                        _computeCardAspectRatio(context),
+                                        CatalogArticleGridCard.aspectRatioForWidth(
+                                      MediaQuery.of(context).size.width,
+                                    ),
                                   ),
                                   itemCount: filteredVoitures.length,
                                   itemBuilder: (context, index) {
                                     final voiture = filteredVoitures[index];
+                                    final articleMap =
+                                        Map<String, dynamic>.from(voiture);
                                     return AnimatedOpacity(
                                       opacity: _isVisible.length > index &&
                                               _isVisible[index]
                                           ? 1.0
                                           : 0.0,
                                       duration: const Duration(milliseconds: 400),
-                                      child: Stack(
-                                        children: [
-                                          GestureDetector(
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          return CatalogArticleGridCard(
+                                            article: articleMap,
+                                            isMoto: false,
+                                            fitParent: true,
+                                            width: constraints.maxWidth,
+                                            conditionNewLabel: l10n.conditionNew,
+                                            conditionUsedLabel: l10n.usedCondition,
+                                            defaultTransmission:
+                                                l10n.automaticTransmission,
                                             onTap: () {
-                                              final articleMap =
-                                                  Map<String, dynamic>.from(voiture);
                                               trackArticleView(
                                                   articleIdFromMap(articleMap));
                                               Navigator.push(
@@ -1026,278 +965,10 @@ class _VoituresPageState extends State<VoituresPage>
                                                 ),
                                               );
                                             },
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.grey
-                                                        .withOpacity(0.2),
-                                                    spreadRadius: 2,
-                                                    blurRadius: 10,
-                                                    offset: const Offset(0, 4),
-                                                  ),
-                                                  BoxShadow(
-                                                    color: Colors.grey
-                                                        .withOpacity(0.1),
-                                                    spreadRadius: 1,
-                                                    blurRadius: 5,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  // Image avec overlay
-                                                  Expanded(
-                                                    flex: 3,
-                                                    child: Stack(
-                                                      children: [
-                                                        ClipRRect(
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .only(
-                                                            topLeft:
-                                                                Radius.circular(
-                                                                    12),
-                                                            topRight:
-                                                                Radius.circular(
-                                                                    12),
-                                                          ),
-                                                          child: (voiture['photos']
-                                                                          as List?)
-                                                                      ?.isNotEmpty ==
-                                                                  true
-                                                              ? TranooNetworkImage(
-                                                                  url: voiture[
-                                                                          'photos']
-                                                                      [0],
-                                                                  height: double
-                                                                      .infinity,
-                                                                  width: double
-                                                                      .infinity,
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                  cloudinaryWidthPx:
-                                                                      cloudinaryWidthPx(
-                                                                          context),
-                                                                )
-                                                              : (voiture['video'] !=
-                                                                          null &&
-                                                                      (voiture['video']
-                                                                              ?.toString()
-                                                                              .isNotEmpty ??
-                                                                          false))
-                                                                  ? VideoPreviewPlaceholder(
-                                                                      videoUrl: voiture['video']
-                                                                          ?.toString(),
-                                                                      iconSize: 36,
-                                                                      enablePreviewFrame: false,
-                                                                    )
-                                                                  : Container(
-                                                                      height: double
-                                                                          .infinity,
-                                                                      width: double
-                                                                          .infinity,
-                                                                      color: Colors
-                                                                              .grey[
-                                                                          300],
-                                                                      child:
-                                                                          const Icon(
-                                                                        Icons
-                                                                            .image_not_supported,
-                                                                      ),
-                                                                    ),
-                                                        ),
-                                                        // Badge condition
-                                                        Positioned(
-                                                          top: 8,
-                                                          left: 8,
-                                                          child: Container(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .symmetric(
-                                                              horizontal: 8,
-                                                              vertical: 4,
-                                                            ),
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: ((voiture['condition'] ??
-                                                                                  '')
-                                                                              .toString()
-                                                                              .toLowerCase() ==
-                                                                          'nouveau' ||
-                                                                      (voiture['condition'] ??
-                                                                                  '')
-                                                                              .toString()
-                                                                              .toLowerCase() ==
-                                                                          'neuf')
-                                                                  ? Colors.purple
-                                                                  : const Color(
-                                                                      0xFFF8BF13),
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          50),
-                                                            ),
-                                                            child: Text(
-                                                              ((voiture['condition'] ??
-                                                                                  '')
-                                                                              .toString()
-                                                                              .toLowerCase() ==
-                                                                          'nouveau' ||
-                                                                      (voiture['condition'] ??
-                                                                                  '')
-                                                                              .toString()
-                                                                              .toLowerCase() ==
-                                                                          'neuf')
-                                                                  ? l10n.conditionNew
-                                                                  : l10n.usedCondition,
-                                                              style:
-                                                                  const TextStyle(
-                                                                color:
-                                                                    Colors.white,
-                                                                fontSize: 10,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        Positioned(
-                                                          bottom: 8,
-                                                          right: 8,
-                                                          child: buildArticleViewBadge(
-                                                            articleViewsFromMap(
-                                                              Map<String, dynamic>.from(voiture),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  // Informations de la voiture
-                                                  Expanded(
-                                                    flex: 2,
-                                                    child: Padding(
-                                                      padding:
-                                                          const EdgeInsets.all(8),
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          catalogVehicleInfoFooter(
-                                                            title: vehicleTitleFromMap(
-                                                              Map<String, dynamic>.from(voiture),
-                                                            ),
-                                                            prix: voiture['prix'],
-                                                          ),
-                                                          const SizedBox(
-                                                              height: 6),
-                                                          Expanded(
-                                                            child: Column(
-                                                              mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .spaceAround,
-                                                              children: [
-                                                                // Rangée 1: Boite vitesse + Année
-                                                                Row(
-                                                                  children: [
-                                                                    Expanded(
-                                                                      child:
-                                                                          _buildCaracteristic(
-                                                                        Icons
-                                                                            .settings,
-                                                                        voiture['boiteVitesse']
-                                                                                ?.toString() ??
-                                                                            l10n.automaticTransmission,
-                                                                      ),
-                                                                    ),
-                                                                    const SizedBox(
-                                                                        width: 4),
-                                                                    Expanded(
-                                                                      child:
-                                                                          _buildCaracteristic(
-                                                                        Icons
-                                                                            .calendar_today,
-                                                                        voiture['annee']
-                                                                                ?.toString() ??
-                                                                            '',
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                                // Rangée 2: Carburant + Cylindre
-                                                                Row(
-                                                                  children: [
-                                                                    Expanded(
-                                                                      child:
-                                                                          _buildCaracteristic(
-                                                                        Icons
-                                                                            .local_gas_station,
-                                                                        voiture['carburant']
-                                                                                ?.toString() ??
-                                                                            '',
-                                                                      ),
-                                                                    ),
-                                                                    const SizedBox(
-                                                                        width: 4),
-                                                                    Expanded(
-                                                                      child:
-                                                                          _buildCaracteristic(
-                                                                        Icons
-                                                                            .speed,
-                                                                        voiture['cylindre']
-                                                                                ?.toString() ??
-                                                                            '',
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                                // Rangée 3: Distance + Portes
-                                                                Row(
-                                                                  children: [
-                                                                    Expanded(
-                                                                      child:
-                                                                          _buildCaracteristic(
-                                                                        Icons
-                                                                            .speed,
-                                                                        '${voiture['distance'] ?? ''} KM',
-                                                                      ),
-                                                                    ),
-                                                                    const SizedBox(
-                                                                        width: 4),
-                                                                    Expanded(
-                                                                      child:
-                                                                          _buildCaracteristic(
-                                                                        Icons
-                                                                            .door_front_door,
-                                                                        '${voiture['portes'] ?? ''} portes',
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                          );
+                                        },
                                       ),
-                                    );
-                                  },
+                                    );                                  },
                                 ),
                               ),
                     ),

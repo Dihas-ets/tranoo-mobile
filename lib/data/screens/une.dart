@@ -10,14 +10,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:tranoo/data/screens/paymentscreen.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:tranoo/utils/cloudinary_upload.dart';
 import 'dart:developer';
-import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/l10n/app_localizations.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/data/repositories/une_repository.dart';
 
 class Une extends StatefulWidget {
   final String? articleId; // ID de l'article existant (optionnel)
@@ -62,6 +60,7 @@ class Une extends StatefulWidget {
 
 class _UneState extends State<Une> {
   AppLocalizations get l10n => AppLocalizations.of(context)!;
+  final _uneRepo = UneRepository();
 
   static const String _pubSponsored = 'Sponsorisée';
   static const String _pubFeatured = 'À la une';
@@ -300,9 +299,6 @@ class _UneState extends State<Une> {
   // Méthode pour créer un article et récupérer son ID
   Future<String?> _createArticle() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-
       Map<String, dynamic> articleData;
 
       if (widget.articleType == 'piece') {
@@ -344,31 +340,22 @@ class _UneState extends State<Une> {
         log('[DEBUG] Création de l\'article voiture: $articleData');
       }
 
-      // Créer l'article
-      final response = await http.post(
-        Uri.parse('${getBaseUrl()}/articles/'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-        body: jsonEncode(articleData),
+      final articleId = await _uneRepo.createArticle(articleData);
+      log('[DEBUG] Article créé avec ID: $articleId');
+      return articleId;
+    } on UneApiException catch (e) {
+      log('[DEBUG] Erreur création article: $e');
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.isNetwork
+                ? l10n.articleCreateNetworkError(e.toString())
+                : l10n.articleCreateError,
+          ),
+        ),
       );
-
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        final dataResponse = jsonDecode(response.body);
-        final articleId = dataResponse['article']['_id'];
-        log('[DEBUG] Article créé avec ID: $articleId');
-        return articleId;
-      } else {
-        log(
-          '[DEBUG] Erreur création article: ${response.statusCode} - ${response.body}',
-        );
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.articleCreateError)),
-        );
-        return null;
-      }
+      return null;
     } catch (e) {
       log('[DEBUG] Exception création article: $e');
       final l10n = AppLocalizations.of(context)!;
@@ -389,82 +376,73 @@ class _UneState extends State<Une> {
     });
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
+      final articleData = await _uneRepo.fetchArticle(widget.articleId!);
+      log('[DEBUG] Article chargé: $articleData');
 
-      final response = await http.get(
-        Uri.parse('${getBaseUrl()}/articles/${widget.articleId}'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-      );
+      // Remplir les champs avec les infos de l'article
+      if (articleData['type'] == 'voiture') {
+        _carNameController.text = articleData['titre'] ?? '';
+        _carYearController.text = articleData['annee'] ?? '';
+        _carLocationController.text = articleData['localisation'] ?? '';
+        _carPriceController.text = articleData['prix']?.toString() ?? '';
+        _carDescriptionController.text = articleData['description'] ?? '';
+        _carCompanyController.text = articleData['entreprise'] ?? '';
+        _carModelController.text = articleData['marque'] ?? '';
+        _selectedCarModel = _carModels.contains(articleData['modele'])
+            ? articleData['modele']
+            : 'Modèle1';
+        _selectedCarFuelType =
+            _carFuelTypes.contains(articleData['carburant'])
+                ? articleData['carburant']
+                : 'Essence';
+        _selectedCarType = _carTypes.contains(articleData['condition'])
+            ? articleData['condition']
+            : _conditionNew;
 
-      if (response.statusCode == 200) {
-        final articleData = jsonDecode(response.body);
-        log('[DEBUG] Article chargé: $articleData');
-
-        // Remplir les champs avec les infos de l'article
-        if (articleData['type'] == 'voiture') {
-          _carNameController.text = articleData['titre'] ?? '';
-          _carYearController.text = articleData['annee'] ?? '';
-          _carLocationController.text = articleData['localisation'] ?? '';
-          _carPriceController.text = articleData['prix']?.toString() ?? '';
-          _carDescriptionController.text = articleData['description'] ?? '';
-          _carCompanyController.text = articleData['entreprise'] ?? '';
-          _carModelController.text = articleData['marque'] ?? '';
-          _selectedCarModel = _carModels.contains(articleData['modele'])
-              ? articleData['modele']
-              : 'Modèle1';
-          _selectedCarFuelType =
-              _carFuelTypes.contains(articleData['carburant'])
-                  ? articleData['carburant']
-                  : 'Essence';
-          _selectedCarType = _carTypes.contains(articleData['condition'])
-              ? articleData['condition']
-              : _conditionNew;
-
-          // Charger les images existantes
-          if (articleData['photos'] != null) {
-            _cloudinaryImageUrls = List<String>.from(articleData['photos']);
-          }
-        } else if (articleData['type'] == 'piece') {
-          _carNameController.text = articleData['titre'] ?? '';
-          _carYearController.text = articleData['annee'] ?? '';
-          _carLocationController.text = articleData['localisation'] ?? '';
-          _carPriceController.text = articleData['prix']?.toString() ?? '';
-          _carDescriptionController.text = articleData['description'] ?? '';
-          _carCompanyController.text = articleData['entreprise'] ?? '';
-          _selectedCarModel = _carModels.contains(articleData['modele'])
-              ? articleData['modele']
-              : 'Modèle1';
-          _selectedCarFuelType =
-              _carFuelTypes.contains(articleData['typeMoteur'])
-                  ? articleData['typeMoteur']
-                  : 'Essence';
-          _selectedCarType = _carTypes.contains(articleData['pieceType'])
-              ? articleData['pieceType']
-              : _conditionNew;
-
-          // Charger les images existantes
-          if (articleData['photos'] != null) {
-            _cloudinaryImageUrls = List<String>.from(articleData['photos']);
-          }
+        // Charger les images existantes
+        if (articleData['photos'] != null) {
+          _cloudinaryImageUrls = List<String>.from(articleData['photos']);
         }
+      } else if (articleData['type'] == 'piece') {
+        _carNameController.text = articleData['titre'] ?? '';
+        _carYearController.text = articleData['annee'] ?? '';
+        _carLocationController.text = articleData['localisation'] ?? '';
+        _carPriceController.text = articleData['prix']?.toString() ?? '';
+        _carDescriptionController.text = articleData['description'] ?? '';
+        _carCompanyController.text = articleData['entreprise'] ?? '';
+        _selectedCarModel = _carModels.contains(articleData['modele'])
+            ? articleData['modele']
+            : 'Modèle1';
+        _selectedCarFuelType =
+            _carFuelTypes.contains(articleData['typeMoteur'])
+                ? articleData['typeMoteur']
+                : 'Essence';
+        _selectedCarType = _carTypes.contains(articleData['pieceType'])
+            ? articleData['pieceType']
+            : _conditionNew;
 
-        // Pré-remplir la description de la pub
-        final l10n = AppLocalizations.of(context)!;
-        _descriptionController.text =
-            l10n.pubForTitle(articleData['titre']?.toString() ?? '');
-
-        log('[DEBUG] Champs remplis avec les infos de l\'article');
-      } else {
-        log('[DEBUG] Erreur chargement article: ${response.statusCode}');
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.articleLoadError)),
-        );
+        // Charger les images existantes
+        if (articleData['photos'] != null) {
+          _cloudinaryImageUrls = List<String>.from(articleData['photos']);
+        }
       }
+
+      // Pré-remplir la description de la pub
+      final l10n = AppLocalizations.of(context)!;
+      _descriptionController.text =
+          l10n.pubForTitle(articleData['titre']?.toString() ?? '');
+
+      log('[DEBUG] Champs remplis avec les infos de l\'article');
+    } on UneApiException catch (e) {
+      log('[DEBUG] Erreur chargement article: $e');
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.isNetwork ? l10n.articleLoadNetworkError : l10n.articleLoadError,
+          ),
+        ),
+      );
     } catch (e) {
       log('[DEBUG] Exception chargement article: $e');
       final l10n = AppLocalizations.of(context)!;
@@ -666,37 +644,19 @@ class _UneState extends State<Une> {
   // Charger la configuration des prix depuis le backend
   Future<void> _loadPrixConfig() async {
     try {
-      // Appeler directement le backend au lieu de passer par Next.js
-      final url = '${getBaseUrl()}/admin/pub-pricing';
-      log('[DEBUG] Chargement prix depuis: $url');
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      log('[DEBUG] Réponse prix: ${response.statusCode} - ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final prixSponsorisee =
-            (data['prixSponsoriseeParJour'] ?? 1000.0).toDouble();
-        final prixALaUne = (data['prixALaUneParJour'] ?? 2000.0).toDouble();
-
-        log('[DEBUG] Données brutes reçues: ${data.toString()}');
-        log('[DEBUG] prixSponsoriseeParJour brut: ${data['prixSponsoriseeParJour']}');
-        log('[DEBUG] prixALaUneParJour brut: ${data['prixALaUneParJour']}');
-
-        setState(() {
-          _prixSponsoriseeParJour = prixSponsorisee;
-          _prixALaUneParJour = prixALaUne;
-        });
-        log(
-          '[DEBUG] Prix chargés: Sponsorisée $_prixSponsoriseeParJour, À la une $_prixALaUneParJour FCFA/jour',
-        );
-      } else {
-        log('[DEBUG] Erreur HTTP: ${response.statusCode} - ${response.body}');
+      log('[DEBUG] Chargement prix depuis UneRepository');
+      final pricing = await _uneRepo.fetchPubPricing();
+      if (pricing == null) {
+        log('[DEBUG] Prix config non disponible — defaults UI');
+        return;
       }
+      setState(() {
+        _prixSponsoriseeParJour = pricing.prixSponsoriseeParJour;
+        _prixALaUneParJour = pricing.prixALaUneParJour;
+      });
+      log(
+        '[DEBUG] Prix chargés: Sponsorisée $_prixSponsoriseeParJour, À la une $_prixALaUneParJour FCFA/jour',
+      );
     } catch (e) {
       log('[DEBUG] Erreur chargement prix: $e');
       // Garder le prix par défaut
@@ -875,7 +835,6 @@ class _UneState extends State<Une> {
       // Pour les pubs standalone, créer directement la pub et rediriger vers le paiement standard
       if (widget.isStandalone) {
         final user = FirebaseAuth.instance.currentUser;
-        final idToken = await user?.getIdToken();
 
         // Préparation des données de publicité pour standalone
         final pubData = {
@@ -907,30 +866,16 @@ class _UneState extends State<Une> {
         };
 
         // Créer la publicité standalone
-        final response = await http.post(
-          Uri.parse('${getBaseUrl()}/publicites/'),
-          headers: {
-            'Content-Type': 'application/json',
-            if (idToken != null) 'Authorization': 'Bearer $idToken',
-          },
-          body: jsonEncode(pubData),
-        );
-
-        if (response.statusCode == 201 || response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          _createdPubId = data['publicite']['_id'];
-
-          // Redirection vers la page de paiement standard
+        try {
+          _createdPubId = await _uneRepo.createPublicite(pubData);
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => PaymentScreen(pubId: _createdPubId!),
             ),
           );
-        } else {
-          log(
-            '[DEBUG] Erreur création publicité standalone: ${response.statusCode} - ${response.body}',
-          );
+        } on UneApiException catch (e) {
+          log('[DEBUG] Erreur création publicité standalone: $e');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.pubRequestCreateError)),
           );
@@ -939,36 +884,20 @@ class _UneState extends State<Une> {
       }
 
       final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
 
       // Utiliser uniquement un article existant (pas de création automatique ici)
       String? articleIdToUse;
 
       if (widget.articleId != null) {
         // Vérifier que l'article existe toujours
-        final checkUrl = '${getBaseUrl()}/articles/${widget.articleId}';
-        log('🔍 [DEBUG] Vérification article URL: $checkUrl');
-        log('🔍 [DEBUG] Article ID: ${widget.articleId}');
-        log('🔍 [DEBUG] Token: ${idToken != null ? "Présent" : "Absent"}');
+        log('🔍 [DEBUG] Vérification article ID: ${widget.articleId}');
 
-        final checkResponse = await http.get(
-          Uri.parse(checkUrl),
-          headers: {
-            'Content-Type': 'application/json',
-            if (idToken != null) 'Authorization': 'Bearer $idToken',
-          },
-        );
-
-        log('📡 [DEBUG] Réponse vérification: ${checkResponse.statusCode}');
-        log('📡 [DEBUG] Corps réponse: ${checkResponse.body}');
-
-        if (checkResponse.statusCode == 200) {
+        final exists = await _uneRepo.articleExists(widget.articleId!);
+        if (exists) {
           articleIdToUse = widget.articleId;
           log('✅ [DEBUG] Utilisation de l\'article existant: $articleIdToUse');
         } else {
-          log(
-            '❌ [DEBUG] Article non trouvé - Status: ${checkResponse.statusCode}',
-          );
+          log('❌ [DEBUG] Article non trouvé');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.articleNotExistCreateFirst)),
           );
@@ -1025,30 +954,16 @@ class _UneState extends State<Une> {
       };
 
       // Créer la publicité
-      final response = await http.post(
-        Uri.parse('${getBaseUrl()}/publicites/'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-        body: jsonEncode(pubData),
-      );
-
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _createdPubId = data['publicite']['_id'];
-
-        // Redirection vers la page de paiement par défaut (bancaire)
+      try {
+        _createdPubId = await _uneRepo.createPublicite(pubData);
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => PaymentScreen(pubId: _createdPubId!),
           ),
         );
-      } else {
-        log(
-          '[DEBUG] Erreur création publicité: ${response.statusCode} - ${response.body}',
-        );
+      } on UneApiException catch (e) {
+        log('[DEBUG] Erreur création publicité: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.pubRequestCreateError)),
         );
@@ -1071,27 +986,20 @@ class _UneState extends State<Une> {
       _isLoading = true;
     });
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final idToken = await user?.getIdToken();
-      final response = await http.patch(
-        Uri.parse('${getBaseUrl()}/publicites/$_createdPubId'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (idToken != null) 'Authorization': 'Bearer $idToken',
-        },
-        body: jsonEncode({'statut': 'payee'}),
+      final ok = await _uneRepo.updatePubliciteStatut(
+        _createdPubId!,
+        statut: 'payee',
       );
-      if (response.statusCode == 200) {
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.paymentSuccessPendingValidation)),
-        );
-      } else {
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.statusUpdateError)),
-        );
-      }
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? l10n.paymentSuccessPendingValidation
+                : l10n.statusUpdateError,
+          ),
+        ),
+      );
     } catch (e) {
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(

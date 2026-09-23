@@ -107,4 +107,48 @@ class CatalogRepository {
       throw CatalogFetchException(isNetwork: true);
     }
   }
+
+  /// GET `/public/articles/:id` — détail article (phone vendeur, etc.).
+  Future<Map<String, dynamic>?> fetchPublicArticle(String id) async {
+    if (id.isEmpty) return null;
+    try {
+      final headers = await _optionalAuthHeaders();
+      final res = await _client.get(
+        Uri.parse('${getBaseUrl()}/public/articles/$id'),
+        headers: headers,
+      );
+      if (res.statusCode != 200) return null;
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// POST/DELETE `/users/me/favoris` — même base URL dio / body qu'avant.
+  /// [isFavorite] = déjà en favoris (DELETE si true, POST sinon).
+  /// Retourne true si status 200.
+  Future<bool> toggleFavorite({
+    required String articleId,
+    required bool isFavorite,
+  }) async {
+    if (articleId.isEmpty) return false;
+    try {
+      final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+      if (idToken == null) return false;
+      final uri = Uri.parse(
+        '${UserService().dio.options.baseUrl}/users/me/favoris',
+      );
+      final headers = {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      };
+      final body = jsonEncode({'articleId': articleId});
+      final response = isFavorite
+          ? await _client.delete(uri, headers: headers, body: body)
+          : await _client.post(uri, headers: headers, body: body);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
 }

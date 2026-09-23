@@ -18,6 +18,8 @@ import 'package:tranoo/widgets/catalog_filter_sections.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/data/repositories/catalog_repository.dart';
+import 'package:tranoo/widgets/catalog_piece_grid_card.dart';
+import 'package:tranoo/widgets/catalog_list_chrome.dart';
 
 class PiecePage extends StatefulWidget {
   const PiecePage({super.key});
@@ -298,35 +300,11 @@ class _PiecePageState extends State<PiecePage>
   }
 
   Widget _buildTabButton(String title, int index, {bool isWide = false}) {
-    bool isSelected = _tabController.index == index;
-    const selectedColor = Color(0xFFF8BF13);
-    const unselectedBorderColor = Color(0xFF000000);
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _tabController.index = index;
-        });
-      },
-      child: Container(
-        width: isWide ? 100 : 70,
-        height: 40,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? selectedColor : Colors.transparent,
-          border: Border.all(
-            color: isSelected ? selectedColor : unselectedBorderColor,
-            width: 0.8,
-          ),
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            color: isSelected ? Colors.white : Colors.black,
-          ),
-        ),
-      ),
+    return CatalogFilterTabButton(
+      title: title,
+      selected: _tabController.index == index,
+      isWide: isWide,
+      onTap: () => setState(() => _tabController.index = index),
     );
   }
 
@@ -820,51 +798,26 @@ class _PiecePageState extends State<PiecePage>
                   )
                 : Column(
                   children: [
-                    // Barre de recherche
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: l10n.searchPartHint,
-                          prefixIcon: const Icon(Icons.search),
-                          filled: true,
-                          fillColor: Colors.grey[200],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
+                    CatalogListSearchField(
+                      controller: _searchController,
+                      hintText: l10n.searchPartHint,
                     ),
-                    // Filtres TabBar (acheteur)
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      child: Center(
-                        child: TabBar(
-                          controller: _tabController,
-                          isScrollable: true,
-                          tabAlignment: TabAlignment.center,
-                          indicator: const BoxDecoration(),
-                          padding: EdgeInsets.zero,
-                          labelPadding:
-                              const EdgeInsets.symmetric(horizontal: 4),
-                          tabs: [
-                            _buildTabButton(
-                              l10n.filterTypeTab,
-                              _typeTabIndex,
-                              isWide: true,
-                            ),
-                            _buildTabButton(l10n.filterBrandTab, _marqueTabIndex),
-                            _buildTabButton(
-                              l10n.filterLocationTab,
-                              _localisationTabIndex,
-                              isWide: true,
-                            ),
-                            _buildTabButton(l10n.budgetLabel, _budgetTabIndex),
-                          ],
+                    CatalogFilterTabBar(
+                      controller: _tabController,
+                      tabs: [
+                        _buildTabButton(
+                          l10n.filterTypeTab,
+                          _typeTabIndex,
+                          isWide: true,
                         ),
-                      ),
+                        _buildTabButton(l10n.filterBrandTab, _marqueTabIndex),
+                        _buildTabButton(
+                          l10n.filterLocationTab,
+                          _localisationTabIndex,
+                          isWide: true,
+                        ),
+                        _buildTabButton(l10n.budgetLabel, _budgetTabIndex),
+                      ],
                     ),
                     // Sections de filtres
                     if (_tabController.index == _typeTabIndex)
@@ -873,6 +826,8 @@ class _PiecePageState extends State<PiecePage>
                       _buildMarqueSection(),
                     if (_tabController.index == _localisationTabIndex)
                       _buildLocalisationSection(),
+                    if (_tabController.index == _budgetTabIndex)
+                      _buildBudgetSection(),
                     // Liste des pièces
                     Expanded(
                       child: filteredPieces.isEmpty
@@ -947,7 +902,8 @@ class _PiecePageState extends State<PiecePage>
                                   itemCount: filteredPieces.length,
                                   itemBuilder: (context, index) {
                                     final piece = filteredPieces[index];
-                                    final pieceId = piece['_id'] ?? '';
+                                    final articleMap =
+                                        Map<String, dynamic>.from(piece);
                                     return AnimatedOpacity(
                                       opacity: _isVisible.length > index &&
                                               _isVisible[index]
@@ -955,194 +911,67 @@ class _PiecePageState extends State<PiecePage>
                                           : 0.0,
                                       duration:
                                           const Duration(milliseconds: 400),
-                                      child: Stack(
-                                        children: [
-                                          GestureDetector(
-                                            onTap: () {
-                                              final articleMap =
-                                                  Map<String, dynamic>.from(
-                                                      piece);
-                                              trackArticleView(
-                                                  articleIdFromMap(articleMap));
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      MastervacPage(
-                                                    id: (piece['_id'] ??
-                                                            piece['id'] ??
-                                                            piece[
-                                                                'articleId'] ??
-                                                            piece['Id'] ??
-                                                            piece['article'])
-                                                        ?.toString(),
-                                                    isAcheteur: true,
-                                                    title: _pieceDisplayTitle(
-                                                        l10n, piece),
-                                                    year: piece['annee'] ?? '',
-                                                    description:
-                                                        piece['description'] ??
-                                                            '',
-                                                    company:
-                                                        _pieceDisplayCompany(
-                                                            l10n, piece),
-                                                    location:
-                                                        _pieceDisplayLocation(
-                                                            piece),
-                                                    price: piece['prix']
-                                                            ?.toString() ??
-                                                        '',
-                                                    images: (piece['photos']
-                                                                as List?)
-                                                            ?.map((e) =>
-                                                                e.toString())
-                                                            .toList() ??
-                                                        [],
-                                                    fuelType:
-                                                        piece['typeMoteur'],
-                                                    model: piece['modele']
-                                                        ?.toString(),
-                                                    pieceType:
-                                                        piece['condition'] ??
-                                                            piece['pieceType'],
-                                                    categorie:
-                                                        piece['categorie']
-                                                            ?.toString(),
-                                                    marque: piece['marque']
-                                                        ?.toString(),
-                                                    video: piece['video'],
-                                                    fournisseur:
-                                                        _contactMap(piece[
-                                                            'fournisseur']),
-                                                    vendeur: _contactMap(
-                                                        piece['vendeur']),
-                                                  ),
-                                                ),
-                                              ).then((_) => fetchPieces());
-                                            },
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius:
-                                                    BorderRadius.circular(20),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black12
-                                                        .withOpacity(0.08),
-                                                    blurRadius: 12,
-                                                    offset: const Offset(0, 6),
-                                                  ),
-                                                ],
-                                              ),
-                                              padding: const EdgeInsets.all(10),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            16),
-                                                    child: SizedBox(
-                                                      height: 100,
-                                                      width: double.infinity,
-                                                      child: Stack(
-                                                        children: [
-                                                          Positioned.fill(
-                                                            child: (piece['photos']
-                                                                            as List?)
-                                                                        ?.isNotEmpty ==
-                                                                    true
-                                                                ? TranooNetworkImage(
-                                                                    url: piece[
-                                                                            'photos']
-                                                                        [0],
-                                                                    fit: BoxFit
-                                                                        .cover,
-                                                                    cloudinaryWidthPx:
-                                                                        cloudinaryWidthPx(
-                                                                            context),
-                                                                  )
-                                                                : (piece['video'] !=
-                                                                            null &&
-                                                                        (piece['video']?.toString().isNotEmpty ??
-                                                                            false))
-                                                                    ? VideoPreviewPlaceholder(
-                                                                        videoUrl:
-                                                                            piece['video']?.toString(),
-                                                                        iconSize:
-                                                                            36,
-                                                                        enablePreviewFrame:
-                                                                            false,
-                                                                      )
-                                                                    : Container(
-                                                                        color: Colors
-                                                                            .grey[200],
-                                                                        child:
-                                                                            const Icon(
-                                                                          Icons
-                                                                              .image_not_supported,
-                                                                          size:
-                                                                              30,
-                                                                          color:
-                                                                              Colors.black26,
-                                                                        ),
-                                                                      ),
-                                                          ),
-                                                          Positioned(
-                                                            bottom: 6,
-                                                            right: 6,
-                                                            child:
-                                                                buildArticleViewBadge(
-                                                              articleViewsFromMap(
-                                                                Map<String,
-                                                                        dynamic>.from(
-                                                                    piece),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  Text(
-                                                    _pieceDisplayTitle(l10n, piece),
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      fontSize: 13,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 2),
-                                                  Text(
-                                                    _pieceDisplayCompany(l10n, piece),
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      color: Colors.black54,
-                                                      fontSize: 11,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 10),
-                                                  catalogPiecePricePill(piece['prix']),
-                                                ],
+                                      child: CatalogPieceGridCard.fromArticleMap(
+                                        article: articleMap,
+                                        title: _pieceDisplayTitle(l10n, piece),
+                                        company:
+                                            _pieceDisplayCompany(l10n, piece),
+                                        onTap: () {
+                                          trackArticleView(
+                                              articleIdFromMap(articleMap));
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  MastervacPage(
+                                                id: (piece['_id'] ??
+                                                        piece['id'] ??
+                                                        piece['articleId'] ??
+                                                        piece['Id'] ??
+                                                        piece['article'])
+                                                    ?.toString(),
+                                                isAcheteur: true,
+                                                title: _pieceDisplayTitle(
+                                                    l10n, piece),
+                                                year: piece['annee'] ?? '',
+                                                description:
+                                                    piece['description'] ?? '',
+                                                company: _pieceDisplayCompany(
+                                                    l10n, piece),
+                                                location:
+                                                    _pieceDisplayLocation(piece),
+                                                price: piece['prix']
+                                                        ?.toString() ??
+                                                    '',
+                                                images: (piece['photos']
+                                                            as List?)
+                                                        ?.map((e) =>
+                                                            e.toString())
+                                                        .toList() ??
+                                                    [],
+                                                fuelType: piece['typeMoteur'],
+                                                model: piece['modele']
+                                                    ?.toString(),
+                                                pieceType: piece['condition'] ??
+                                                    piece['pieceType'],
+                                                categorie: piece['categorie']
+                                                    ?.toString(),
+                                                marque: piece['marque']
+                                                    ?.toString(),
+                                                video: piece['video'],
+                                                fournisseur: _contactMap(
+                                                    piece['fournisseur']),
+                                                vendeur: _contactMap(
+                                                    piece['vendeur']),
                                               ),
                                             ),
-                                          ),
-                                        ],
+                                          ).then((_) => fetchPieces());
+                                        },
                                       ),
-                                    );
-                                  },
+                                    );                                  },
                                 ),
                               ),
                     ),
-                    if (_tabController.index == _budgetTabIndex)
-                      _buildBudgetSection(),
                   ],
                 ),
       ),

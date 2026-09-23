@@ -3,12 +3,10 @@ import 'package:tranoo/data/models/article.dart';
 import 'package:tranoo/data/models/article_voiture.dart';
 import 'package:tranoo/data/models/pub.dart';
 import 'package:tranoo/utils/pub_validity.dart';
-import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/widgets/cached_media_image.dart';
 import 'package:tranoo/widgets/catalog_article_grid_card.dart';
+import 'package:tranoo/widgets/catalog_piece_grid_card.dart';
 import 'package:tranoo/widgets/skeleton/app_skeleton.dart';
-import 'package:tranoo/widgets/tranoo_network_image.dart';
-import 'package:tranoo/widgets/video_preview_placeholder.dart';
 
 Widget _sectionHeader({
   required String title,
@@ -248,133 +246,24 @@ class MarquePiecesSection extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (context, index) {
                       final piece = pieces[index];
-                      return GestureDetector(
+                      final isNew =
+                          (piece.pieceType ?? '').toLowerCase() == 'nouveau';
+                      return CatalogPieceGridCard(
+                        title: piece.title,
+                        company: piece.company,
+                        prix: piece.price,
+                        images: piece.images,
+                        video: piece.video,
+                        views: piece.views,
+                        badgeText: isNew ? 'Nouveau' : 'Occasion',
+                        badgeColor: isNew
+                            ? Colors.purple
+                            : const Color(0xFFF8BF13),
+                        width: 180,
+                        expandImage: true,
+                        borderRadius: 18,
+                        padding: const EdgeInsets.all(12),
                         onTap: () => onPieceTap(piece),
-                        child: Container(
-                          width: 180,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12.withOpacity(0.08),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Stack(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(14),
-                                      child: SizedBox(
-                                        width: double.infinity,
-                                        child: piece.images.isNotEmpty
-                                            ? TranooNetworkImage(
-                                                url: piece.images.first,
-                                                fit: BoxFit.cover,
-                                                cloudinaryWidthPx:
-                                                    cloudinaryWidthPx(context),
-                                              )
-                                            : (piece.video?.isNotEmpty ?? false)
-                                                ? VideoPreviewPlaceholder(
-                                                    videoUrl: piece.video,
-                                                    iconSize: 32,
-                                                  )
-                                                : Container(
-                                                    color: Colors.grey[200],
-                                                    child: const Icon(
-                                                      Icons.image_not_supported,
-                                                      size: 30,
-                                                      color: Colors.black26,
-                                                    ),
-                                                  ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 8,
-                                      left: 8,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: (piece.pieceType ?? '')
-                                                      .toLowerCase() ==
-                                                  'nouveau'
-                                              ? Colors.purple
-                                              : const Color(0xFFF8BF13),
-                                          borderRadius:
-                                              BorderRadius.circular(30),
-                                        ),
-                                        child: Text(
-                                          (piece.pieceType ?? '')
-                                                      .toLowerCase() ==
-                                                  'nouveau'
-                                              ? 'Nouveau'
-                                              : 'Occasion',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                piece.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                piece.company,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF5E5),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Text(
-                                  piece.price.isNotEmpty
-                                      ? '${piece.price} FCFA'
-                                      : 'Prix non communiqué',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: Color(0xFFB45309),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       );
                     },
                   ),
