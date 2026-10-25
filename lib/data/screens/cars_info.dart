@@ -8,7 +8,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:confetti/confetti.dart';
 import 'dart:developer';
-import 'verification_payment.dart'; // Import pour la page de vérification de paiement
 import 'package:tranoo/services/views_service.dart';
 import 'package:tranoo/services/user_service.dart';
 import 'package:tranoo/services/alert_service.dart';
@@ -27,6 +26,8 @@ import 'package:tranoo/services/transit_mission_service.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/utils/whatsapp_helper.dart';
+import 'package:tranoo/data/screens/inscription_page.dart';
+import 'package:tranoo/data/screens/installment_payment_info_page.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -144,18 +145,6 @@ class _CarsinfoState extends State<CarsInfo> {
   late ConfettiController _confettiController;
   static const String _whatsAppPhone = '22941839801'; // sans +
   bool _isSpecsExpanded = false;
-  int _verificationPrice = 20000;
-  String _formatFcfa(int value) {
-    final priceStr = value.toString();
-    final reversed = priceStr.split('').reversed.join('');
-    final withDots = reversed.replaceAllMapped(
-      RegExp(r'(\d{3})(?=\d)'),
-      (Match m) => '${m[0]}.',
-    );
-    return withDots.split('').reversed.join('');
-  }
-
-  String get _verificationPriceLabel => '${_formatFcfa(_verificationPrice)} FCFA';
 
   bool _isNewCondition(String? value) {
     final lower = (value ?? '').toLowerCase();
@@ -203,8 +192,7 @@ class _CarsinfoState extends State<CarsInfo> {
   Future<void> _restoreTransitParcours() async {
     final articleId = widget.id;
     if (articleId == null || articleId.isEmpty) return;
-    final mission =
-        await TransitMissionService.instance.getParcours(articleId);
+    final mission = await TransitMissionService.instance.getParcours(articleId);
     if (!mounted || mission == null) return;
     final mode = (mission['modeLivraison'] ?? '').toString();
     final pays = (mission['paysDestination'] ?? '').toString();
@@ -260,32 +248,12 @@ class _CarsinfoState extends State<CarsInfo> {
     );
   }
 
-  Future<void> _loadVerificationPrice() async {
-    try {
-      final url =
-          '${UserService().dio.options.baseUrl}/admin/verification-pricing';
-      final res = await http.get(Uri.parse(url));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body) as Map<String, dynamic>;
-        final raw = data['prixVerification'] ??
-            (data['pricing'] is Map
-                ? data['pricing']['prixVerification']
-                : null);
-        final parsed = int.tryParse('$raw');
-        if (parsed != null && parsed >= 0 && mounted) {
-          setState(() => _verificationPrice = parsed);
-        }
-      }
-    } catch (_) {}
-  }
-
   @override
   void initState() {
     super.initState();
     trackArticleView(widget.id);
     _startTransitParcours();
     _restoreTransitParcours();
-    _loadVerificationPrice();
     // Log toutes les valeurs reçues
     log('[CarsInfo] titre: ${widget.titre}');
     log('[CarsInfo] description: ${widget.description}');
@@ -805,14 +773,16 @@ class _CarsinfoState extends State<CarsInfo> {
             const SizedBox(height: 20),
             _buildTransitairesSection(l10n),
           ],
-          const SizedBox(height: 24),
-          _buildActionButton(isAcheteur, l10n),
         ],
       ),
     );
   }
 
   Widget _buildHeader(double screenWidth, AppLocalizations l10n) {
+    final price = (widget.prix != null && widget.prix!.isNotEmpty)
+        ? '${formatPrice(widget.prix!)} FCFA'
+        : l10n.notProvided;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -825,28 +795,128 @@ class _CarsinfoState extends State<CarsInfo> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        //Nom de l'entreprise
-        Text(
-          AuthConfig.displayEntreprise(widget.entreprise),
-          style: TextStyle(
-            fontSize: screenWidth * 0.05,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                AuthConfig.displayEntreprise(widget.entreprise),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: screenWidth * 0.05,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              price,
+              style: TextStyle(
+                fontSize: screenWidth * 0.045,
+                fontWeight: FontWeight.bold,
+                color: Colors.amber,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildActionButton(l10n),
+      ],
+    );
+  }
+
+  Widget _buildActionButton(AppLocalizations l10n) {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () async {
+              final firebaseUser = FirebaseAuth.instance.currentUser;
+              if (firebaseUser == null) {
+                showAuthDialog(context, message: l10n.signInToBuyThisCar);
+                return;
+              }
+
+              await _openWhatsApp(message: _buyWhatsAppMessage(l10n));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              l10n.cashPayment,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
-
-        const SizedBox(height: 8),
-        Text(
-          (widget.prix != null && widget.prix!.isNotEmpty)
-              ? '${formatPrice(widget.prix!)} FCFA'
-              : l10n.notProvided,
-          style: TextStyle(
-            fontSize: screenWidth * 0.05,
-            fontWeight: FontWeight.bold,
-            color: Colors.amber,
+        const SizedBox(width: 8),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () => _onInstallmentPaymentTap(),
+            style: ElevatedButton.styleFrom(
+              disabledBackgroundColor: Colors.blueGrey,
+              disabledForegroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              l10n.installmentPayment,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _onInstallmentPaymentTap() async {
+    try {
+      await UserService().trackInstallmentPaymentClick();
+    } catch (error, stackTrace) {
+      log(
+        '[CarsInfo] Échec enregistrement clic paiement échelonné',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (mounted) {
+        showTranooToast(
+          context,
+          message: l10n.installmentPaymentClickError,
+          isError: true,
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    if (FirebaseAuth.instance.currentUser == null) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const InscriptionPage(isInstallmentProspect: true),
+        ),
+      );
+      return;
+    }
+
+    await _showInstallmentPaymentNotice();
+  }
+
+  Future<void> _showInstallmentPaymentNotice() {
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => const InstallmentPaymentInfoPage(),
+      ),
     );
   }
 
@@ -929,9 +999,8 @@ class _CarsinfoState extends State<CarsInfo> {
 
     final allCards = [...topCards, ...bottomCards];
     final hasMore = allCards.length > 4;
-    final visibleCards = (_isSpecsExpanded || !hasMore)
-        ? allCards
-        : allCards.take(4).toList();
+    final visibleCards =
+        (_isSpecsExpanded || !hasMore) ? allCards : allCards.take(4).toList();
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -949,7 +1018,8 @@ class _CarsinfoState extends State<CarsInfo> {
               },
               borderRadius: BorderRadius.circular(20),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1170,7 +1240,8 @@ class _CarsinfoState extends State<CarsInfo> {
           ],
         ),
         const SizedBox(height: 12),
-        Text(l10n.location, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(l10n.location,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         Container(
           decoration: BoxDecoration(
@@ -1220,217 +1291,6 @@ class _CarsinfoState extends State<CarsInfo> {
             ),
           ),
           maxLines: 3,
-        ),
-      ],
-    );
-  }
-
-  // Bouton d'action dynamique - Toujours afficher les 2 boutons (bleu + jaune) pour les acheteurs
-  Widget _buildActionButton(bool isAcheteurOuChauffeur, AppLocalizations l10n) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () {
-              final firebaseUser = FirebaseAuth.instance.currentUser;
-              if (firebaseUser == null) {
-                showAuthDialog(context, message: l10n.signInForVerification);
-                return;
-              }
-
-              if (!_isEnConsommationChecked && !_isEnTransitChecked) {
-                showTranooToast(
-                  context,
-                  message: l10n.chooseDeliveryMode,
-                  isError: true,
-                );
-                return;
-              }
-              if (_selectedCountry == null || _selectedCountry!.isEmpty) {
-                showTranooToast(
-                  context,
-                  message: l10n.selectLocationPlease,
-                  isError: true,
-                );
-                return;
-              }
-
-              _persistTransitOptions();
-
-              final article = {
-                '_id': widget.id, // Doit être l'ID Mongo réel
-                'titre': widget.titre,
-                'description': widget.description,
-                'marque': widget.marque,
-                'modele': widget.modele,
-                'annee': widget.annee,
-                'prix': widget.prix,
-                'condition': widget.condition,
-                'boiteVitesse': widget.boiteVitesse,
-                'carburant': widget.carburant,
-                'climatiseur': widget.climatiseur,
-                'distance': widget.distance,
-                'sieges': widget.sieges,
-                'portes': widget.portes,
-                'cylindre': widget.cylindre,
-                'couleur': widget.couleur,
-                'dedouanement': widget.dedouanement,
-                'photos': widget.images,
-                'video': _primaryVideo,
-                'entreprise': widget.entreprise,
-                'type': 'voiture',
-                'modeLivraison':
-                    _isEnTransitChecked ? 'transit' : 'consommation',
-                'paysDestination': _selectedCountry,
-                'detailsSupplementaires': _detailsController.text.trim(),
-              };
-              log('[CarsInfo][verif] Article payload: $article');
-
-              showDialog(
-                context: context,
-                builder: (ctx) {
-                  return AlertDialog(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    contentPadding: const EdgeInsets.all(20),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(
-                          'assets/images/smiley.png',
-                          height: 80,
-                          width: 80,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.verificationInProgress,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 14,
-                              height: 1.5,
-                            ),
-                            children: [
-                              TextSpan(text: l10n.verificationChecksPrefix),
-                              TextSpan(
-                                text: l10n.tenBusinessDays,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFFFA000),
-                                ),
-                              ),
-                              TextSpan(text: l10n.verificationChecksMiddle),
-                              TextSpan(
-                                text: l10n.verificationFeesLabel,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF00A86B),
-                                ),
-                              ),
-                              const TextSpan(text: '.'),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _verificationPriceLabel,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF00A86B),
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      VerificationPaymentScreen(
-                                    articleId: widget.id.toString(),
-                                  ),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFFCC00),
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: Text(l10n.payVerificationFees),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Center(
-              child: Text(
-                l10n.requestVerification,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () async {
-              // Vérifier l'authentification avant de continuer
-              final firebaseUser = FirebaseAuth.instance.currentUser;
-              if (firebaseUser == null) {
-                showAuthDialog(context, message: l10n.signInToBuyThisCar);
-                return;
-              }
-
-              await _openWhatsApp(message: _buyWhatsAppMessage(l10n));
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              l10n.buyThisCar,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-          ),
         ),
       ],
     );

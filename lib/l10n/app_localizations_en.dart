@@ -1142,6 +1142,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cashPayment => 'Cash payment';
 
   @override
+  String get installmentPayment => 'Installment payment';
+
+  @override
+  String get installmentPaymentNoticeTitle =>
+      'A more flexible option is coming!';
+
+  @override
+  String get installmentPaymentNoticeMessage =>
+      'Installment payments are currently in development. We are preparing a simple, tailored solution to help you complete your purchase. We will let you know as soon as it launches.';
+
+  @override
+  String get installmentPaymentClickError =>
+      'We couldn\'t record your interest. Check your connection and try again.';
+
+  @override
   String get positionRequired => 'Position required';
 
   @override

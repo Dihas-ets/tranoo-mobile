@@ -49,7 +49,7 @@ android {
         }
 
         debug {
-            signingConfig signingConfigs.release
+           
         }
     }
 

@@ -1157,7 +1157,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orderNumber => 'Numéro de commande';
 
   @override
-  String get cashPayment => 'Paiement en espèces';
+  String get cashPayment => 'Paiement cash';
+
+  @override
+  String get installmentPayment => 'Paiement échelonné';
+
+  @override
+  String get installmentPaymentNoticeTitle =>
+      'Une solution plus flexible arrive !';
+
+  @override
+  String get installmentPaymentNoticeMessage =>
+      'Le paiement échelonné est en cours de développement. Nous préparons une solution simple et adaptée pour vous aider à concrétiser votre achat. Nous vous informerons dès son lancement.';
+
+  @override
+  String get installmentPaymentClickError =>
+      'Impossible d’enregistrer votre intérêt. Vérifiez votre connexion puis réessayez.';
 
   @override
   String get positionRequired => 'Position requise';

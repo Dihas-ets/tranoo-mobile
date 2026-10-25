@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import '../utils/role_redirect.dart';
 import 'package:dio/dio.dart';
@@ -51,6 +53,58 @@ class UserService extends ChangeNotifier {
 
   Dio get dio => _dio;
 
+  Future<Response> trackInstallmentPaymentClick() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    String? idToken;
+    try {
+      idToken = await firebaseUser?.getIdToken();
+    } catch (error, stackTrace) {
+      developer.log(
+        'Impossible de récupérer le jeton Firebase pour le clic de paiement échelonné.',
+        name: 'InstallmentPayment',
+        error: error.runtimeType,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+    final headers =
+        idToken == null ? null : {'Authorization': 'Bearer $idToken'};
+
+    try {
+      return await _dio.post(
+        '/prospects/installment-payment-click',
+        options: Options(headers: headers),
+      );
+    } on DioException catch (error, stackTrace) {
+      final responseData = error.response?.data;
+      final responseMessage =
+          responseData is Map ? responseData['message']?.toString() : null;
+      developer.log(
+        'Échec HTTP du clic paiement échelonné: '
+        'type=${error.type.name}, '
+        'status=${error.response?.statusCode}, '
+        'url=${error.requestOptions.uri}, '
+        'message=${responseMessage ?? error.message ?? 'aucune réponse HTTP'}.',
+        name: 'InstallmentPayment',
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<Response> markInstallmentPaymentProspect() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) {
+      throw StateError('Un utilisateur connecté est requis.');
+    }
+
+    final idToken = await firebaseUser.getIdToken();
+    return _dio.post(
+      '/prospects/installment-payment-interest',
+      options: Options(headers: {'Authorization': 'Bearer $idToken'}),
+    );
+  }
+
   UserRole? get currentRole => _currentRole;
   String? get vendeurType => _vendeurType;
   bool get isAcheteur => _currentRole == UserRole.acheteur;
@@ -65,7 +119,9 @@ class UserService extends ChangeNotifier {
 
   bool get peutVendrePieces =>
       isVendeur &&
-      (_vendeurType == null || _vendeurType == 'mixte' || _vendeurType == 'pieces');
+      (_vendeurType == null ||
+          _vendeurType == 'mixte' ||
+          _vendeurType == 'pieces');
 
   bool get peutVendreMotos => isVendeur && _vendeurType == 'motos';
 
@@ -102,6 +158,7 @@ class UserService extends ChangeNotifier {
     String? numeroIFU,
     String? entrepriseProvenance,
     String? referralCode,
+    bool prospect = false,
     String? captchaToken,
   }) async {
     UserCredential? credential;
@@ -131,6 +188,7 @@ class UserService extends ChangeNotifier {
       if (entrepriseProvenance != null)
         data['entrepriseProvenance'] = entrepriseProvenance;
       if (referralCode != null) data['referralCode'] = referralCode;
+      if (prospect) data['prospect'] = true;
       if (captchaToken != null && captchaToken.isNotEmpty) {
         data['captchaToken'] = captchaToken;
       }

@@ -22,6 +22,9 @@ import 'package:tranoo/widgets/spec_info_card.dart';
 import 'package:tranoo/utils/whatsapp_helper.dart';
 import 'package:tranoo/widgets/tranoo_network_image.dart';
 import 'package:tranoo/utils/tranoo_image_utils.dart';
+import 'package:tranoo/utils/tranoo_toast.dart';
+import 'package:tranoo/data/screens/inscription_page.dart';
+import 'package:tranoo/data/screens/installment_payment_info_page.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -1010,35 +1013,91 @@ class _MotoInfoState extends State<MotoInfo> {
     );
   }
 
-  // Bouton acheteur : acheter via WhatsApp du vendeur
+  // Actions d'achat disponibles pour la moto.
   Widget _buildActionButton(bool isAcheteurOuChauffeur, AppLocalizations l10n) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () async {
-          final firebaseUser = FirebaseAuth.instance.currentUser;
-          if (firebaseUser == null) {
-            showAuthDialog(context, message: l10n.signInToBuyThisMoto);
-            return;
-          }
-          await _openSellerWhatsApp(message: _buyWhatsAppMessage(l10n));
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.amber,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () async {
+              final firebaseUser = FirebaseAuth.instance.currentUser;
+              if (firebaseUser == null) {
+                showAuthDialog(context, message: l10n.signInToBuyThisMoto);
+                return;
+              }
+              await _openSellerWhatsApp(message: _buyWhatsAppMessage(l10n));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              l10n.cashPayment,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
-        child: Text(
-          l10n.buyThisMoto,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+        const SizedBox(width: 8),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: _onInstallmentPaymentTap,
+            style: ElevatedButton.styleFrom(
+              disabledBackgroundColor: Colors.blueGrey,
+              disabledForegroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              l10n.installmentPayment,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
           ),
-          textAlign: TextAlign.center,
         ),
+      ],
+    );
+  }
+
+  Future<void> _onInstallmentPaymentTap() async {
+    try {
+      await UserService().trackInstallmentPaymentClick();
+    } catch (error, stackTrace) {
+      log(
+        '[MotoInfo] Échec enregistrement clic paiement échelonné',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (mounted) {
+        showTranooToast(
+          context,
+          message: l10n.installmentPaymentClickError,
+          isError: true,
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    if (FirebaseAuth.instance.currentUser == null) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const InscriptionPage(isInstallmentProspect: true),
+        ),
+      );
+      return;
+    }
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => const InstallmentPaymentInfoPage(),
       ),
     );
   }

@@ -1127,6 +1127,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cashPayment => 'دفع نقدي';
 
   @override
+  String get installmentPayment => 'الدفع بالتقسيط';
+
+  @override
+  String get installmentPaymentNoticeTitle => 'خيار أكثر مرونة قادم!';
+
+  @override
+  String get installmentPaymentNoticeMessage =>
+      'الدفع بالتقسيط قيد التطوير حاليًا. نعمل على إعداد حل بسيط ومناسب لمساعدتك على إتمام عملية الشراء. سنخبرك فور إطلاقه.';
+
+  @override
+  String get installmentPaymentClickError =>
+      'تعذر تسجيل اهتمامك. تحقق من اتصالك ثم حاول مرة أخرى.';
+
+  @override
   String get positionRequired => 'الموقع مطلوب';
 
   @override

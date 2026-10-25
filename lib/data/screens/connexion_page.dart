@@ -11,10 +11,13 @@ import 'package:tranoo/widgets/auth_message_popup.dart';
 
 import 'inscription_page.dart';
 import 'avant_home.dart';
+import 'installment_payment_info_page.dart';
 import 'package:tranoo/utils/phone_country_config.dart';
 
 class ConnexionPage extends StatefulWidget {
-  const ConnexionPage({super.key});
+  final bool isInstallmentProspect;
+
+  const ConnexionPage({super.key, this.isInstallmentProspect = false});
 
   @override
   State<ConnexionPage> createState() => _ConnexionPageState();
@@ -33,11 +36,11 @@ class _ConnexionPageState extends State<ConnexionPage> {
   bool _isLoading = false;
   final _logger = Logger('ConnexionPage');
   bool _obscurePasswordLogin = true;
+
   /// Connexion legacy : anciens comptes créés avec un email réel.
   bool _useLegacyEmail = false;
 
-  PhoneCountryConfig get _phoneCountry =>
-      phoneCountryByName(selectedCountry);
+  PhoneCountryConfig get _phoneCountry => phoneCountryByName(selectedCountry);
 
   @override
   void initState() {
@@ -118,7 +121,8 @@ class _ConnexionPageState extends State<ConnexionPage> {
                             title: Text(c.name),
                             trailing: Text(
                               c.code,
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             onTap: () {
                               setState(() {
@@ -381,77 +385,77 @@ class _ConnexionPageState extends State<ConnexionPage> {
                   ),
                 )
               else
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  InkWell(
-                    onTap: _openCountryPicker,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _phoneCountry.flag,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            selectedCountryCode ?? '+229',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    InkWell(
+                      onTap: _openCountryPicker,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _phoneCountry.flag,
+                              style: const TextStyle(fontSize: 16),
                             ),
-                          ),
-                          const Icon(Icons.keyboard_arrow_down, size: 18),
-                        ],
+                            const SizedBox(width: 6),
+                            Text(
+                              selectedCountryCode ?? '+229',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const Icon(Icons.keyboard_arrow_down, size: 18),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Focus(
-                      onFocusChange: (focused) {
-                        setState(() => isPhoneFocused = focused);
-                      },
-                      child: TextField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText: l10n.phoneNumber,
-                          hintText: _phoneCountry.digitHint,
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: screenHeight * 0.02,
-                            horizontal: screenWidth * 0.04,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.grey),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.amber),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Focus(
+                        onFocusChange: (focused) {
+                          setState(() => isPhoneFocused = focused);
+                        },
+                        child: TextField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            labelText: l10n.phoneNumber,
+                            hintText: _phoneCountry.digitHint,
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: screenHeight * 0.02,
+                              horizontal: screenWidth * 0.04,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.amber),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
 
               SizedBox(height: screenHeight * 0.02),
 
@@ -551,6 +555,7 @@ class _ConnexionPageState extends State<ConnexionPage> {
                           setState(() {
                             _isLoading = true;
                           });
+                          final messenger = ScaffoldMessenger.of(context);
                           try {
                             if (_useLegacyEmail) {
                               if (!identifier.contains('@')) {
@@ -619,12 +624,44 @@ class _ConnexionPageState extends State<ConnexionPage> {
                               return;
                             }
 
+                            if (widget.isInstallmentProspect) {
+                              try {
+                                await userService
+                                    .markInstallmentPaymentProspect();
+                              } catch (error, stackTrace) {
+                                _logger.warning(
+                                  'Impossible de marquer le prospect paiement échelonné',
+                                  error,
+                                  stackTrace,
+                                );
+                                if (mounted) {
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        loginL10n.installmentPaymentClickError,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+
                             // Mettre à jour le timestamp de dernière connexion
                             final prefs = await SharedPreferences.getInstance();
                             await prefs.setInt(
                               'lastLoginTime',
                               DateTime.now().millisecondsSinceEpoch,
                             );
+
+                            if (!mounted) return;
+                            if (widget.isInstallmentProspect) {
+                              await Navigator.of(context).push<void>(
+                                MaterialPageRoute<void>(
+                                  builder: (_) =>
+                                      const InstallmentPaymentInfoPage(),
+                                ),
+                              );
+                            }
 
                             if (!mounted) return;
                             AuthMessagePopup.showSuccess(
@@ -737,7 +774,9 @@ class _ConnexionPageState extends State<ConnexionPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const InscriptionPage(),
+                          builder: (context) => InscriptionPage(
+                            isInstallmentProspect: widget.isInstallmentProspect,
+                          ),
                         ),
                       );
                     },

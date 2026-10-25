@@ -2176,6 +2176,30 @@ abstract class AppLocalizations {
   /// **'Cash payment'**
   String get cashPayment;
 
+  /// No description provided for @installmentPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Installment payment'**
+  String get installmentPayment;
+
+  /// No description provided for @installmentPaymentNoticeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A more flexible option is coming!'**
+  String get installmentPaymentNoticeTitle;
+
+  /// No description provided for @installmentPaymentNoticeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Installment payments are currently in development. We are preparing a simple, tailored solution to help you complete your purchase. We will let you know as soon as it launches.'**
+  String get installmentPaymentNoticeMessage;
+
+  /// No description provided for @installmentPaymentClickError.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t record your interest. Check your connection and try again.'**
+  String get installmentPaymentClickError;
+
   /// No description provided for @positionRequired.
   ///
   /// In en, this message translates to:

@@ -9,6 +9,7 @@ import 'package:tranoo/widgets/auth_message_popup.dart';
 
 import 'connexion_page.dart';
 import 'avant_home.dart';
+import 'installment_payment_info_page.dart';
 import 'package:tranoo/utils/phone_country_config.dart';
 import 'package:tranoo/utils/auth_config.dart';
 // CAPTCHA mobile désactivé — web uniquement pour l'instant.
@@ -16,7 +17,9 @@ import 'package:tranoo/utils/auth_config.dart';
 // import 'package:tranoo/utils/turnstile_captcha.dart';
 
 class InscriptionPage extends StatefulWidget {
-  const InscriptionPage({super.key});
+  final bool isInstallmentProspect;
+
+  const InscriptionPage({super.key, this.isInstallmentProspect = false});
 
   @override
   State<InscriptionPage> createState() => _InscriptionPageState();
@@ -70,7 +73,13 @@ class _InscriptionPageState extends State<InscriptionPage> {
   }
 
   final List<Map<String, dynamic>> countries = [
-    {'name': 'Bénin', 'code': '+229', 'flag': '🇧🇯', 'minDigits': 8, 'maxDigits': 10},
+    {
+      'name': 'Bénin',
+      'code': '+229',
+      'flag': '🇧🇯',
+      'minDigits': 8,
+      'maxDigits': 10
+    },
     {'name': 'Côte d\'Ivoire', 'code': '+225', 'flag': '🇨🇮', 'digits': 10},
     {'name': 'Sénégal', 'code': '+221', 'flag': '🇸🇳', 'digits': 9},
     {'name': 'Togo', 'code': '+228', 'flag': '🇹🇬', 'digits': 8},
@@ -260,8 +269,10 @@ class _InscriptionPageState extends State<InscriptionPage> {
                           final q = v.trim().toLowerCase();
                           setModal(() {
                             filtered = countries.where((c) {
-                              final name = (c['name'] ?? '').toString().toLowerCase();
-                              final code = (c['code'] ?? '').toString().toLowerCase();
+                              final name =
+                                  (c['name'] ?? '').toString().toLowerCase();
+                              final code =
+                                  (c['code'] ?? '').toString().toLowerCase();
                               return name.contains(q) || code.contains(q);
                             }).toList();
                           });
@@ -283,7 +294,8 @@ class _InscriptionPageState extends State<InscriptionPage> {
                             title: Text(c['name'] as String? ?? ''),
                             trailing: Text(
                               c['code'] as String? ?? '',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             onTap: () {
                               setState(() {
@@ -335,611 +347,638 @@ class _InscriptionPageState extends State<InscriptionPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-              SizedBox(height: screenHeight * (isPortrait ? 0.02 : 0.05)),
-              Center(
-                child: Image.asset(
-                  "assets/images/logo_connexion.png",
-                  width: screenWidth * (isPortrait ? 0.6 : 0.4),
-                  height: screenHeight * (isPortrait ? 0.15 : 0.2),
-                  fit: BoxFit.contain,
+                SizedBox(height: screenHeight * (isPortrait ? 0.02 : 0.05)),
+                Center(
+                  child: Image.asset(
+                    "assets/images/logo_connexion.png",
+                    width: screenWidth * (isPortrait ? 0.6 : 0.4),
+                    height: screenHeight * (isPortrait ? 0.15 : 0.2),
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
-              _buildStepBar(l10n),
-              SizedBox(height: screenHeight * 0.02),
-              Text(
-                l10n.findDreamCar,
-                style: TextStyle(
-                  fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                _buildStepBar(l10n),
+                SizedBox(height: screenHeight * 0.02),
+                Text(
+                  l10n.findDreamCar,
+                  style: TextStyle(
+                    fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                  ),
                 ),
-              ),
-              SizedBox(height: screenHeight * (isPortrait ? 0.03 : 0.06)),
+                SizedBox(height: screenHeight * (isPortrait ? 0.03 : 0.06)),
 
-              // Champs du formulaire avec les contrôleurs
-              if (_currentStep == 0) ...[
-                buildTextFieldWithController(
-                  controller: _nomController,
-                  label: l10n.lastName,
-                  icon: Icons.person,
-                  placeholder: l10n.placeholderFirstName,
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                  isPortrait: isPortrait,
-                ),
-                SizedBox(height: screenHeight * 0.02),
-                buildTextFieldWithController(
-                  controller: _prenomController,
-                  label: l10n.firstName,
-                  icon: Icons.person_outline,
-                  placeholder: l10n.placeholderLastName,
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                  isPortrait: isPortrait,
-                ),
-                SizedBox(height: screenHeight * 0.02),
-                buildTextFieldWithController(
-                  controller: _referralController,
-                  label: l10n.referralCodeOptional,
-                  icon: Icons.card_giftcard,
-                  placeholder: l10n.referralPlaceholder,
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                  isPortrait: isPortrait,
-                ),
-                SizedBox(height: screenHeight * 0.02),
-                Row(
-                  children: [
-                    InkWell(
-                      onTap: _openCountryPicker,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _selectedCountryMap['flag']?.toString() ?? '',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              selectedCountryCode ?? '+229',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.keyboard_arrow_down, size: 18),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _telephoneController,
-                        keyboardType: TextInputType.number,
-                        maxLength: selectedDigits,
-                        decoration: InputDecoration(
-                          labelText: l10n.whatsappNumber,
-                          hintText: l10n.whatsappHint(_phoneDigitHint(l10n)),
-                          prefixIcon: AuthConfig.whatsAppPhonePrefixIcon(),
-                          counterText: '',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
+                // Champs du formulaire avec les contrôleurs
+                if (_currentStep == 0) ...[
+                  buildTextFieldWithController(
+                    controller: _nomController,
+                    label: l10n.lastName,
+                    icon: Icons.person,
+                    placeholder: l10n.placeholderFirstName,
+                    screenWidth: screenWidth,
+                    screenHeight: screenHeight,
+                    isPortrait: isPortrait,
+                  ),
+                  SizedBox(height: screenHeight * 0.02),
+                  buildTextFieldWithController(
+                    controller: _prenomController,
+                    label: l10n.firstName,
+                    icon: Icons.person_outline,
+                    placeholder: l10n.placeholderLastName,
+                    screenWidth: screenWidth,
+                    screenHeight: screenHeight,
+                    isPortrait: isPortrait,
+                  ),
+                  SizedBox(height: screenHeight * 0.02),
+                  buildTextFieldWithController(
+                    controller: _referralController,
+                    label: l10n.referralCodeOptional,
+                    icon: Icons.card_giftcard,
+                    placeholder: l10n.referralPlaceholder,
+                    screenWidth: screenWidth,
+                    screenHeight: screenHeight,
+                    isPortrait: isPortrait,
+                  ),
+                  SizedBox(height: screenHeight * 0.02),
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: _openCountryPicker,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _selectedCountryMap['flag']?.toString() ?? '',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                selectedCountryCode ?? '+229',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.keyboard_arrow_down, size: 18),
+                            ],
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3CD), // jaune pâle d’alerte
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFFC107)),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          color: Color(0xFF8A6D3B)),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          l10n.whatsappNumberWarning,
-                          style: const TextStyle(
-                            color: Color(0xFF8A6D3B),
-                            fontWeight: FontWeight.w600,
+                        child: TextField(
+                          controller: _telephoneController,
+                          keyboardType: TextInputType.number,
+                          maxLength: selectedDigits,
+                          decoration: InputDecoration(
+                            labelText: l10n.whatsappNumber,
+                            hintText: l10n.whatsappHint(_phoneDigitHint(l10n)),
+                            prefixIcon: AuthConfig.whatsAppPhonePrefixIcon(),
+                            counterText: '',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (_nomController.text.trim().isEmpty ||
-                          _prenomController.text.trim().isEmpty ||
-                          _telephoneController.text.trim().isEmpty) {
-                        AuthMessagePopup.showWarning(
-                          context,
-                          title: l10n.missingFieldsTitle,
-                          subtitle: l10n.completeRequiredInfo,
-                        );
-                        return;
-                      }
-                      setState(() => _currentStep = 1);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF8BF13),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3CD), // jaune pâle d’alerte
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFFC107)),
                     ),
-                    child: Text(
-                      l10n.nextStep,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
+                            color: Color(0xFF8A6D3B)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l10n.whatsappNumberWarning,
+                            style: const TextStyle(
+                              color: Color(0xFF8A6D3B),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                SizedBox(height: screenHeight * 0.03),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      l10n.alreadyHaveAccount,
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (_nomController.text.trim().isEmpty ||
+                            _prenomController.text.trim().isEmpty ||
+                            _telephoneController.text.trim().isEmpty) {
+                          AuthMessagePopup.showWarning(
+                            context,
+                            title: l10n.missingFieldsTitle,
+                            subtitle: l10n.completeRequiredInfo,
+                          );
+                          return;
+                        }
+                        setState(() => _currentStep = 1);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF8BF13),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        l10n.nextStep,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ConnexionPage(),
-                          ),
-                        );
-                      },
-                      child: Text(
-                        l10n.signInTitle,
+                  ),
+                  SizedBox(height: screenHeight * 0.03),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        l10n.alreadyHaveAccount,
                         style: TextStyle(
-                          color: const Color(0xFF0461B6),
-                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
                           fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-
-              if (_currentStep == 1) ...[
-              SizedBox(height: screenHeight * 0.02),
-              // Mot de passe avec icône oeil et jauge
-              Focus(
-                onFocusChange: (hasFocus) {
-                  setState(() {});
-                },
-                child: TextField(
-                  controller: _passwordController,
-                  onChanged: _updatePasswordStrength,
-                  obscureText: _obscurePasswordReg,
-                  decoration: InputDecoration(
-                    labelText: l10n.password,
-                    hintText: l10n.passwordMin8,
-                    labelStyle: TextStyle(
-                      color: Colors.grey,
-                      fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
-                    ),
-                    prefixIcon: Icon(
-                      Icons.lock,
-                      color: Colors.grey,
-                      size: screenWidth * (isPortrait ? 0.06 : 0.04),
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePasswordReg
-                            ? Icons.visibility_off
-                            : Icons.visibility,
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ConnexionPage(
+                                isInstallmentProspect:
+                                    widget.isInstallmentProspect,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          l10n.signInTitle,
+                          style: TextStyle(
+                            color: const Color(0xFF0461B6),
+                            fontWeight: FontWeight.bold,
+                            fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                          ),
+                        ),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePasswordReg = !_obscurePasswordReg;
-                        });
-                      },
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFF8BF13)),
-                    ),
+                    ],
                   ),
-                ),
-              ),
-              SizedBox(height: 8),
-              if (_passwordStrengthLabel.isNotEmpty)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: LinearProgressIndicator(
-                        value: _passwordStrength,
-                        minHeight: 6,
-                        backgroundColor: Colors.grey.shade300,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _passwordStrengthColor,
+                ],
+
+                if (_currentStep == 1) ...[
+                  SizedBox(height: screenHeight * 0.02),
+                  // Mot de passe avec icône oeil et jauge
+                  Focus(
+                    onFocusChange: (hasFocus) {
+                      setState(() {});
+                    },
+                    child: TextField(
+                      controller: _passwordController,
+                      onChanged: _updatePasswordStrength,
+                      obscureText: _obscurePasswordReg,
+                      decoration: InputDecoration(
+                        labelText: l10n.password,
+                        hintText: l10n.passwordMin8,
+                        labelStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.lock,
+                          color: Colors.grey,
+                          size: screenWidth * (isPortrait ? 0.06 : 0.04),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePasswordReg
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePasswordReg = !_obscurePasswordReg;
+                            });
+                          },
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.grey),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFF8BF13)),
                         ),
                       ),
                     ),
-                    SizedBox(height: 6),
-                    Text(
-                      l10n.passwordStrengthLabel(_passwordStrengthLabel),
-                      style: TextStyle(
-                        color: _passwordStrengthColor,
-                        fontWeight: FontWeight.w600,
+                  ),
+                  SizedBox(height: 8),
+                  if (_passwordStrengthLabel.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: _passwordStrength,
+                            minHeight: 6,
+                            backgroundColor: Colors.grey.shade300,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              _passwordStrengthColor,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          l10n.passwordStrengthLabel(_passwordStrengthLabel),
+                          style: TextStyle(
+                            color: _passwordStrengthColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  SizedBox(height: screenHeight * 0.02),
+                  // Confirmation avec icône oeil
+                  Focus(
+                    onFocusChange: (hasFocus) {
+                      setState(() {});
+                    },
+                    child: TextField(
+                      controller: _confirmPasswordController,
+                      obscureText: _obscureConfirmReg,
+                      decoration: InputDecoration(
+                        labelText: l10n.confirmPassword,
+                        hintText: l10n.retypePassword,
+                        labelStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.lock,
+                          color: Colors.grey,
+                          size: screenWidth * (isPortrait ? 0.06 : 0.04),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirmReg
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscureConfirmReg = !_obscureConfirmReg;
+                            });
+                          },
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.grey),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFF8BF13)),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              SizedBox(height: screenHeight * 0.02),
-              // Confirmation avec icône oeil
-              Focus(
-                onFocusChange: (hasFocus) {
-                  setState(() {});
-                },
-                child: TextField(
-                  controller: _confirmPasswordController,
-                  obscureText: _obscureConfirmReg,
-                  decoration: InputDecoration(
-                    labelText: l10n.confirmPassword,
-                    hintText: l10n.retypePassword,
-                    labelStyle: TextStyle(
-                      color: Colors.grey,
-                      fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
-                    ),
-                    prefixIcon: Icon(
-                      Icons.lock,
-                      color: Colors.grey,
-                      size: screenWidth * (isPortrait ? 0.06 : 0.04),
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureConfirmReg
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscureConfirmReg = !_obscureConfirmReg;
-                        });
-                      },
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFF8BF13)),
                     ),
                   ),
-                ),
-              ),
-              SizedBox(height: screenHeight * 0.02),
-              SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
+                  SizedBox(height: screenHeight * 0.02),
+                  SizedBox(height: screenHeight * (isPortrait ? 0.05 : 0.1)),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () async {
-                          final regL10n = AppLocalizations.of(context)!;
-                          if (_nomController.text.trim().isEmpty ||
-                              _prenomController.text.trim().isEmpty ||
-                              _telephoneController.text.trim().isEmpty ||
-                              _passwordController.text.trim().isEmpty ||
-                              _confirmPasswordController.text.trim().isEmpty ||
-                              selectedCountry == null) {
-                            AuthMessagePopup.showWarning(
-                              context,
-                              title: regL10n.missingFieldsTitle,
-                              subtitle: regL10n.completeRequiredInfo,
-                            );
-                            return;
-                          }
-                          if (_passwordController.text.length < 8) {
-                            AuthMessagePopup.showError(
-                              context,
-                              title: regL10n.passwordMin8Title,
-                            );
-                            return;
-                          }
-                          if (_passwordController.text !=
-                              _confirmPasswordController.text) {
-                            AuthMessagePopup.showError(
-                              context,
-                              title: regL10n.passwordsDoNotMatch,
-                            );
-                            return;
-                          }
-                          final phone = _telephoneController.text.trim();
-                          if (!_isValidNationalPhone(phone)) {
-                            AuthMessagePopup.showError(
-                              context,
-                              title: regL10n.invalidPhoneTitle,
-                              subtitle: regL10n.invalidPhoneSubtitle(
-                                _phoneDigitHint(regL10n),
-                                selectedCountry ?? '',
-                              ),
-                            );
-                            return;
-                          }
-                          setState(() {
-                            _isLoading = true;
-                          });
-                          final auth = context.read<myauth.AuthProvider>();
-                          auth.beginRegistration();
-                          try {
-                            // --- CAPTCHA mobile (désactivé, web uniquement) ---
-                            // final captchaToken =
-                            //     await TurnstileCaptcha.requestToken(context);
-                            // if (isTurnstileConfigured &&
-                            //     (captchaToken == null ||
-                            //         captchaToken.isEmpty)) {
-                            //   AuthMessagePopup.showError(
-                            //     context,
-                            //     title: 'Contrôle de sécurité requis',
-                            //     subtitle:
-                            //         'Veuillez valider le contrôle de sécurité pour continuer.',
-                            //   );
-                            //   return;
-                            // }
-
-                            final cc = selectedCountryCode ?? '+229';
-                            final email = syntheticEmailFromPhone(
-                              cc,
-                              phone,
-                              app: TranooAuthApp.buyer,
-                            );
-                            final fullPhone = cc + phone;
-                            // Récupérer le code de parrainage en attente
-                            final prefs = await SharedPreferences.getInstance();
-                            final pendingReferral =
-                                _referralController.text.trim().isNotEmpty
-                                    ? _referralController.text.trim()
-                                    : prefs.getString('pending_referral');
-
-                            final response = await _userService.registerUser(
-                              email: email,
-                              password: _passwordController.text.trim(),
-                              nom: _nomController.text.trim(),
-                              prenoms: _prenomController.text.trim(),
-                              telephone: fullPhone,
-                              role: 'acheteur',
-                              authApp: 'tranoo',
-                              entreprise: null,
-                              registreCommerce: null,
-                              numeroIFU: null,
-                              entrepriseProvenance: null,
-                              referralCode: pendingReferral,
-                              // captchaToken: captchaToken,
-                              // fcmToken: ... (à ajouter si dispo)
-                            );
-
-                            if (response.data is Map) {
-                              final data = response.data as Map;
-                              final referralError =
-                                  data['referralError']?.toString();
-                              final referralInfo = data['referral'];
-
-                              if (referralError != null &&
-                                  referralError.isNotEmpty) {
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () async {
+                              final regL10n = AppLocalizations.of(context)!;
+                              if (_nomController.text.trim().isEmpty ||
+                                  _prenomController.text.trim().isEmpty ||
+                                  _telephoneController.text.trim().isEmpty ||
+                                  _passwordController.text.trim().isEmpty ||
+                                  _confirmPasswordController.text
+                                      .trim()
+                                      .isEmpty ||
+                                  selectedCountry == null) {
                                 AuthMessagePopup.showWarning(
                                   context,
-                                  title: referralError,
+                                  title: regL10n.missingFieldsTitle,
+                                  subtitle: regL10n.completeRequiredInfo,
                                 );
-                              } else if (referralInfo is Map &&
-                                  referralInfo['status'] != null) {
-                                final status =
-                                    referralInfo['status']?.toString();
-                                final amount =
-                                    referralInfo['rewardAmount']?.toString();
-                                final isAgent = referralInfo['isAgent'] == true;
-                                String message =
-                                    regL10n.referralCodeRegistered(status ?? '');
-                                if (isAgent && amount != null) {
-                                  message = regL10n.accountCreatedAgentReferral;
+                                return;
+                              }
+                              if (_passwordController.text.length < 8) {
+                                AuthMessagePopup.showError(
+                                  context,
+                                  title: regL10n.passwordMin8Title,
+                                );
+                                return;
+                              }
+                              if (_passwordController.text !=
+                                  _confirmPasswordController.text) {
+                                AuthMessagePopup.showError(
+                                  context,
+                                  title: regL10n.passwordsDoNotMatch,
+                                );
+                                return;
+                              }
+                              final phone = _telephoneController.text.trim();
+                              if (!_isValidNationalPhone(phone)) {
+                                AuthMessagePopup.showError(
+                                  context,
+                                  title: regL10n.invalidPhoneTitle,
+                                  subtitle: regL10n.invalidPhoneSubtitle(
+                                    _phoneDigitHint(regL10n),
+                                    selectedCountry ?? '',
+                                  ),
+                                );
+                                return;
+                              }
+                              setState(() {
+                                _isLoading = true;
+                              });
+                              final auth = context.read<myauth.AuthProvider>();
+                              auth.beginRegistration();
+                              try {
+                                // --- CAPTCHA mobile (désactivé, web uniquement) ---
+                                // final captchaToken =
+                                //     await TurnstileCaptcha.requestToken(context);
+                                // if (isTurnstileConfigured &&
+                                //     (captchaToken == null ||
+                                //         captchaToken.isEmpty)) {
+                                //   AuthMessagePopup.showError(
+                                //     context,
+                                //     title: 'Contrôle de sécurité requis',
+                                //     subtitle:
+                                //         'Veuillez valider le contrôle de sécurité pour continuer.',
+                                //   );
+                                //   return;
+                                // }
+
+                                final cc = selectedCountryCode ?? '+229';
+                                final email = syntheticEmailFromPhone(
+                                  cc,
+                                  phone,
+                                  app: TranooAuthApp.buyer,
+                                );
+                                final fullPhone = cc + phone;
+                                // Récupérer le code de parrainage en attente
+                                final prefs =
+                                    await SharedPreferences.getInstance();
+                                final pendingReferral =
+                                    _referralController.text.trim().isNotEmpty
+                                        ? _referralController.text.trim()
+                                        : prefs.getString('pending_referral');
+
+                                final response =
+                                    await _userService.registerUser(
+                                  email: email,
+                                  password: _passwordController.text.trim(),
+                                  nom: _nomController.text.trim(),
+                                  prenoms: _prenomController.text.trim(),
+                                  telephone: fullPhone,
+                                  role: 'acheteur',
+                                  authApp: 'tranoo',
+                                  entreprise: null,
+                                  registreCommerce: null,
+                                  numeroIFU: null,
+                                  entrepriseProvenance: null,
+                                  referralCode: pendingReferral,
+                                  prospect: widget.isInstallmentProspect,
+                                  // captchaToken: captchaToken,
+                                  // fcmToken: ... (à ajouter si dispo)
+                                );
+
+                                if (response.data is Map) {
+                                  final data = response.data as Map;
+                                  final referralError =
+                                      data['referralError']?.toString();
+                                  final referralInfo = data['referral'];
+
+                                  if (referralError != null &&
+                                      referralError.isNotEmpty) {
+                                    AuthMessagePopup.showWarning(
+                                      context,
+                                      title: referralError,
+                                    );
+                                  } else if (referralInfo is Map &&
+                                      referralInfo['status'] != null) {
+                                    final status =
+                                        referralInfo['status']?.toString();
+                                    final amount = referralInfo['rewardAmount']
+                                        ?.toString();
+                                    final isAgent =
+                                        referralInfo['isAgent'] == true;
+                                    String message = regL10n
+                                        .referralCodeRegistered(status ?? '');
+                                    if (isAgent && amount != null) {
+                                      message =
+                                          regL10n.accountCreatedAgentReferral;
+                                    }
+                                    AuthMessagePopup.showSuccess(
+                                      context,
+                                      title: message,
+                                    );
+                                  }
+                                }
+
+                                // Supprimer le code de parrainage après utilisation
+                                if (pendingReferral != null &&
+                                    _referralController.text.trim().isEmpty) {
+                                  await prefs.remove('pending_referral');
+                                }
+                                _logger.info('Réponse inscription: $response');
+
+                                // Seed AuthProvider depuis la réponse register
+                                // (évite GET /me avant que Mongo soit prêt).
+                                Map<String, dynamic>? registeredUser;
+                                if (response.data is Map &&
+                                    (response.data as Map)['user'] is Map) {
+                                  registeredUser = Map<String, dynamic>.from(
+                                    (response.data as Map)['user'] as Map,
+                                  );
+                                }
+                                await auth.completeRegistration(registeredUser);
+
+                                if (!mounted) return;
+
+                                if (auth.user == null) {
+                                  await auth.reloadUser(maxAttempts: 6);
+                                }
+
+                                if (!mounted) return;
+                                if (widget.isInstallmentProspect) {
+                                  await Navigator.of(context).push<void>(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) =>
+                                          const InstallmentPaymentInfoPage(),
+                                    ),
+                                  );
+                                  if (!mounted) return;
                                 }
                                 AuthMessagePopup.showSuccess(
                                   context,
-                                  title: message,
+                                  title: regL10n.accountCreatedTitle,
+                                  subtitle: regL10n.welcomeTranooExclaim,
                                 );
+
+                                // Mettre à jour le timestamp de dernière connexion
+                                await prefs.setInt(
+                                  'lastLoginTime',
+                                  DateTime.now().millisecondsSinceEpoch,
+                                );
+
+                                if (!mounted) return;
+                                // Rediriger vers la page d'accueil avec drawer et navbar
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const AvantHome(),
+                                  ),
+                                  (route) => false,
+                                );
+                              } catch (e) {
+                                auth.abortRegistration();
+                                String title = regL10n.errorOccurredTitle;
+                                String? subtitle;
+                                if (e.toString().contains(
+                                      'email-already-in-use',
+                                    )) {
+                                  title = regL10n.accountAlreadyExistsTitle;
+                                  subtitle =
+                                      regL10n.accountAlreadyExistsSubtitle;
+                                } else if (e.toString().contains(
+                                      'weak-password',
+                                    )) {
+                                  title = regL10n.passwordMin8Title;
+                                } else if (e.toString().contains('network') ||
+                                    e.toString().contains('SocketException') ||
+                                    e
+                                        .toString()
+                                        .contains('Failed host lookup')) {
+                                  title = regL10n.cannotReachServer;
+                                  subtitle = regL10n.checkInternet;
+                                } else if (e.toString().contains('server') ||
+                                    e.toString().contains('500') ||
+                                    e.toString().contains('503')) {
+                                  title = regL10n.serviceTemporaryIssue;
+                                  subtitle = regL10n.tryAgainLater;
+                                }
+                                AuthMessagePopup.showError(
+                                  context,
+                                  title: title,
+                                  subtitle: subtitle,
+                                  buttonText: regL10n.retry,
+                                );
+                              } finally {
+                                setState(() {
+                                  _isLoading = false;
+                                });
                               }
-                            }
-
-                            // Supprimer le code de parrainage après utilisation
-                            if (pendingReferral != null &&
-                                _referralController.text.trim().isEmpty) {
-                              await prefs.remove('pending_referral');
-                            }
-                            _logger.info('Réponse inscription: $response');
-
-                            // Seed AuthProvider depuis la réponse register
-                            // (évite GET /me avant que Mongo soit prêt).
-                            Map<String, dynamic>? registeredUser;
-                            if (response.data is Map &&
-                                (response.data as Map)['user'] is Map) {
-                              registeredUser = Map<String, dynamic>.from(
-                                (response.data as Map)['user'] as Map,
-                              );
-                            }
-                            await auth.completeRegistration(registeredUser);
-
-                            if (!mounted) return;
-
-                            if (auth.user == null) {
-                              await auth.reloadUser(maxAttempts: 6);
-                            }
-
-                            if (!mounted) return;
-                            AuthMessagePopup.showSuccess(
-                              context,
-                              title: regL10n.accountCreatedTitle,
-                              subtitle: regL10n.welcomeTranooExclaim,
-                            );
-                            
-                            // Mettre à jour le timestamp de dernière connexion
-                            await prefs.setInt(
-                              'lastLoginTime',
-                              DateTime.now().millisecondsSinceEpoch,
-                            );
-                            
-                            if (!mounted) return;
-                            // Rediriger vers la page d'accueil avec drawer et navbar
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AvantHome(),
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF8BF13),
+                        foregroundColor: Colors.black,
+                        padding: EdgeInsets.symmetric(
+                          vertical: screenHeight * 0.02,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.black)
+                          : Text(
+                              l10n.signUp,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize:
+                                    screenWidth * (isPortrait ? 0.045 : 0.035),
                               ),
-                              (route) => false,
-                            );
-                          } catch (e) {
-                            auth.abortRegistration();
-                            String title = regL10n.errorOccurredTitle;
-                            String? subtitle;
-                            if (e.toString().contains(
-                                  'email-already-in-use',
-                                )) {
-                              title = regL10n.accountAlreadyExistsTitle;
-                              subtitle = regL10n.accountAlreadyExistsSubtitle;
-                            } else if (e.toString().contains(
-                                  'weak-password',
-                                )) {
-                              title = regL10n.passwordMin8Title;
-                            } else if (e.toString().contains('network') ||
-                                e.toString().contains('SocketException') ||
-                                e.toString().contains('Failed host lookup')) {
-                              title = regL10n.cannotReachServer;
-                              subtitle = regL10n.checkInternet;
-                            } else if (e.toString().contains('server') ||
-                                e.toString().contains('500') ||
-                                e.toString().contains('503')) {
-                              title = regL10n.serviceTemporaryIssue;
-                              subtitle = regL10n.tryAgainLater;
-                            }
-                            AuthMessagePopup.showError(
-                              context,
-                              title: title,
-                              subtitle: subtitle,
-                              buttonText: regL10n.retry,
-                            );
-                          } finally {
-                            setState(() {
-                              _isLoading = false;
-                            });
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF8BF13),
-                    foregroundColor: Colors.black,
-                    padding: EdgeInsets.symmetric(
-                      vertical: screenHeight * 0.02,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                            ),
                     ),
                   ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.black)
-                      : Text(
-                          l10n.signUp,
+
+                  SizedBox(height: screenHeight * 0.03),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        l10n.alreadyHaveAccount,
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ConnexionPage(
+                                isInstallmentProspect:
+                                    widget.isInstallmentProspect,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          l10n.signInTitle,
                           style: TextStyle(
+                            color: const Color(0xFF0461B6),
                             fontWeight: FontWeight.bold,
-                            fontSize:
-                                screenWidth * (isPortrait ? 0.045 : 0.035),
+                            fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
                           ),
                         ),
-                ),
-              ),
-
-              SizedBox(height: screenHeight * 0.03),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    l10n.alreadyHaveAccount,
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ConnexionPage(),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      l10n.signInTitle,
-                      style: TextStyle(
-                        color: const Color(0xFF0461B6),
-                        fontWeight: FontWeight.bold,
-                        fontSize: screenWidth * (isPortrait ? 0.04 : 0.03),
                       ),
+                    ],
+                  ),
+                  SizedBox(height: screenHeight * 0.03),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => setState(() => _currentStep = 0),
+                      child: Text(l10n.back),
                     ),
                   ),
                 ],
-              ),
-              SizedBox(height: screenHeight * 0.03),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => setState(() => _currentStep = 0),
-                  child: Text(l10n.back),
-                ),
-              ),
-              ],
               ],
             ),
           ),
