@@ -2,6 +2,23 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
+/// Couleurs pour les différents éléments de la carte
+class MapColors {
+  static const Color routeColor = Color(0xFF4CAF50);
+  static const Color driverColor = Color(0xFFFFD700);
+  static const Color restaurantColor = Color(0xFFF44336);
+  static const Color destinationColor = Color(0xFF2196F3);
+  static const Color checkpointColor = Color(0xFFFF9800);
+}
+
+/// Icônes pour les marqueurs
+class MapIcons {
+  static const IconData restaurant = Icons.store;
+  static const IconData destination = Icons.home;
+  static const IconData driver = Icons.motorcycle;
+  static const IconData checkpoint = Icons.location_on;
+}
+
 /// Service pour gérer les fonctionnalités de cartographie
 class MapService {
   
@@ -80,23 +97,6 @@ class MapService {
       default:
         return 19.0;
     }
-  }
-  
-  /// Couleurs pour les différents éléments de la carte
-  static class MapColors {
-    static const Color routeColor = Color(0xFF4CAF50); // Vert
-    static const Color driverColor = Color(0xFFFFD700); // Jaune/or
-    static const Color restaurantColor = Color(0xFFF44336); // Rouge
-    static const Color destinationColor = Color(0xFF2196F3); // Bleu
-    static const Color checkpointColor = Color(0xFFFF9800); // Orange
-  }
-  
-  /// Icônes pour les marqueurs
-  static class MapIcons {
-    static const IconData restaurant = Icons.store;
-    static const IconData destination = Icons.home;
-    static const IconData driver = Icons.motorcycle;
-    static const IconData checkpoint = Icons.location_on;
   }
   
   /// Calcul de distance entre deux points (en km)
