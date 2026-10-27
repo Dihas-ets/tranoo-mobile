@@ -28,6 +28,8 @@ import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/utils/whatsapp_helper.dart';
 import 'package:tranoo/data/screens/inscription_page.dart';
 import 'package:tranoo/data/screens/installment_payment_info_page.dart';
+import 'package:tranoo/data/screens/installment_demo_pages.dart';
+import 'package:tranoo/data/screens/installment_demo_service.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -842,15 +844,15 @@ class _CarsinfoState extends State<CarsInfo> {
               await _openWhatsApp(message: _buyWhatsAppMessage(l10n));
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber,
-              foregroundColor: Colors.black,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
             child: Text(
-              l10n.cashPayment,
+              'Cash',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
@@ -861,6 +863,8 @@ class _CarsinfoState extends State<CarsInfo> {
           child: ElevatedButton(
             onPressed: () => _onInstallmentPaymentTap(),
             style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF8BF13),
+              foregroundColor: Colors.black,
               disabledBackgroundColor: Colors.blueGrey,
               disabledForegroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
@@ -869,7 +873,7 @@ class _CarsinfoState extends State<CarsInfo> {
               ),
             ),
             child: Text(
-              l10n.installmentPayment,
+              'Petit petit',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
@@ -880,6 +884,44 @@ class _CarsinfoState extends State<CarsInfo> {
   }
 
   Future<void> _onInstallmentPaymentTap() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser?.uid == installmentDemoUserUid) {
+      final vehicle = InstallmentDemoVehicle(
+        id: widget.id ?? '',
+        title: [
+          widget.marque,
+          widget.modele,
+          widget.annee,
+        ].where((value) => value != null && value.isNotEmpty).join(' '),
+        price: parseInstallmentDemoPrice(widget.prix),
+        imageUrl: widget.images.isNotEmpty ? widget.images.first : '',
+        type: 'Voiture',
+        make: widget.marque,
+        model: widget.modele,
+        year: widget.annee,
+        condition: widget.condition,
+        location: widget.lieu,
+        description: widget.description,
+        details: {
+          if (widget.carburant?.isNotEmpty == true)
+            'Carburant': widget.carburant!,
+          if (widget.boiteVitesse?.isNotEmpty == true)
+            'Boîte de vitesse': widget.boiteVitesse!,
+          if (widget.couleur?.isNotEmpty == true) 'Couleur': widget.couleur!,
+          if (widget.distance?.isNotEmpty == true)
+            'Kilométrage': widget.distance!,
+          if (widget.sieges?.isNotEmpty == true) 'Sièges': widget.sieges!,
+          if (widget.portes?.isNotEmpty == true) 'Portes': widget.portes!,
+        },
+      );
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => InstallmentDemoVehiclePage(vehicle: vehicle),
+        ),
+      );
+      return;
+    }
+
     try {
       await UserService().trackInstallmentPaymentClick();
     } catch (error, stackTrace) {

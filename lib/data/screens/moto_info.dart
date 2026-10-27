@@ -25,6 +25,8 @@ import 'package:tranoo/utils/tranoo_image_utils.dart';
 import 'package:tranoo/utils/tranoo_toast.dart';
 import 'package:tranoo/data/screens/inscription_page.dart';
 import 'package:tranoo/data/screens/installment_payment_info_page.dart';
+import 'package:tranoo/data/screens/installment_demo_pages.dart';
+import 'package:tranoo/data/screens/installment_demo_service.dart';
 
 // Fonction utilitaire pour formater les prix avec des séparateurs de milliers
 String formatPrice(dynamic price) {
@@ -131,7 +133,8 @@ class MotoInfo extends StatefulWidget {
     this.devise,
   });
 
-  factory MotoInfo.fromArticleMap(Map<String, dynamic> m, {bool fromPub = false}) {
+  factory MotoInfo.fromArticleMap(Map<String, dynamic> m,
+      {bool fromPub = false}) {
     final photos =
         (m['photos'] as List?)?.map((e) => e.toString()).toList() ?? [];
     final equips = (m['equipements'] as List?)
@@ -842,36 +845,53 @@ class _MotoInfoState extends State<MotoInfo> {
 
   Widget _buildSpecifications(AppLocalizations l10n) {
     final topCards = <Widget>[
-      _buildSpecCard('Type de moto', _specValue(l10n, widget.typeMoto), Icons.motorcycle),
-      _buildSpecCard(l10n.cylinder, _specValue(l10n, widget.cylindre), Icons.speed),
-      _buildSpecCard('Type moteur', _specValue(l10n, widget.typeMoteur), Icons.local_gas_station),
-      _buildSpecCard('Puissance', _specValue(l10n, widget.puissance), Icons.bolt),
-      _buildSpecCard('Transmission', _specValue(l10n, widget.transmission ?? widget.boiteVitesse), Icons.settings),
-      _buildSpecCard('Démarrage', _specValue(l10n, widget.demarrage), Icons.power_settings_new),
+      _buildSpecCard(
+          'Type de moto', _specValue(l10n, widget.typeMoto), Icons.motorcycle),
+      _buildSpecCard(
+          l10n.cylinder, _specValue(l10n, widget.cylindre), Icons.speed),
+      _buildSpecCard('Type moteur', _specValue(l10n, widget.typeMoteur),
+          Icons.local_gas_station),
+      _buildSpecCard(
+          'Puissance', _specValue(l10n, widget.puissance), Icons.bolt),
+      _buildSpecCard(
+          'Transmission',
+          _specValue(l10n, widget.transmission ?? widget.boiteVitesse),
+          Icons.settings),
+      _buildSpecCard('Démarrage', _specValue(l10n, widget.demarrage),
+          Icons.power_settings_new),
     ];
     final bottomCards = <Widget>[
-      _buildSpecCard('Refroidissement', _specValue(l10n, widget.refroidissement), Icons.ac_unit),
-      _buildSpecCard('Réservoir', _specValue(l10n, widget.capaciteReservoir), Icons.local_drink),
+      _buildSpecCard('Refroidissement',
+          _specValue(l10n, widget.refroidissement), Icons.ac_unit),
+      _buildSpecCard('Réservoir', _specValue(l10n, widget.capaciteReservoir),
+          Icons.local_drink),
       if ((widget.typeMoteur ?? '').toLowerCase() == 'électrique')
-        _buildSpecCard('Autonomie', _specValue(l10n, widget.autonomie), Icons.battery_charging_full),
-      _buildSpecCard('Disponibilité', _specValue(l10n, widget.disponibilite), Icons.inventory_2),
+        _buildSpecCard('Autonomie', _specValue(l10n, widget.autonomie),
+            Icons.battery_charging_full),
+      _buildSpecCard('Disponibilité', _specValue(l10n, widget.disponibilite),
+          Icons.inventory_2),
       _buildSpecCard(
         'Garantie',
         widget.garantieConstructeur == true
-            ? _specValue(l10n, widget.dureeGarantie?.isNotEmpty == true ? widget.dureeGarantie : 'Oui')
+            ? _specValue(
+                l10n,
+                widget.dureeGarantie?.isNotEmpty == true
+                    ? widget.dureeGarantie
+                    : 'Oui')
             : l10n.no,
         Icons.verified,
       ),
-      _buildSpecCard('Kilométrage', _specValue(l10n, widget.kilometrage ?? widget.distance), Icons.speed),
+      _buildSpecCard('Kilométrage',
+          _specValue(l10n, widget.kilometrage ?? widget.distance), Icons.speed),
       if (widget.equipements.isNotEmpty)
-        _buildSpecCard('Équipements', widget.equipements.join(', '), Icons.checklist),
+        _buildSpecCard(
+            'Équipements', widget.equipements.join(', '), Icons.checklist),
     ];
 
     final allCards = [...topCards, ...bottomCards];
     final hasMore = allCards.length > 4;
-    final visibleCards = (_isSpecsExpanded || !hasMore)
-        ? allCards
-        : allCards.take(4).toList();
+    final visibleCards =
+        (_isSpecsExpanded || !hasMore) ? allCards : allCards.take(4).toList();
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -889,7 +909,8 @@ class _MotoInfoState extends State<MotoInfo> {
               },
               borderRadius: BorderRadius.circular(20),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1028,15 +1049,15 @@ class _MotoInfoState extends State<MotoInfo> {
               await _openSellerWhatsApp(message: _buyWhatsAppMessage(l10n));
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber,
-              foregroundColor: Colors.black,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
             child: Text(
-              l10n.cashPayment,
+              'Cash',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
@@ -1047,6 +1068,8 @@ class _MotoInfoState extends State<MotoInfo> {
           child: ElevatedButton(
             onPressed: _onInstallmentPaymentTap,
             style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF8BF13),
+              foregroundColor: Colors.black,
               disabledBackgroundColor: Colors.blueGrey,
               disabledForegroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
@@ -1055,7 +1078,7 @@ class _MotoInfoState extends State<MotoInfo> {
               ),
             ),
             child: Text(
-              l10n.installmentPayment,
+              'Petit petit',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
@@ -1066,6 +1089,45 @@ class _MotoInfoState extends State<MotoInfo> {
   }
 
   Future<void> _onInstallmentPaymentTap() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser?.uid == installmentDemoUserUid) {
+      final vehicle = InstallmentDemoVehicle(
+        id: widget.id ?? '',
+        title: [
+          widget.marque,
+          widget.modele,
+          widget.annee,
+        ].where((value) => value != null && value.isNotEmpty).join(' '),
+        price: parseInstallmentDemoPrice(widget.prix),
+        imageUrl: widget.images.isNotEmpty ? widget.images.first : '',
+        type: 'Moto',
+        make: widget.marque,
+        model: widget.modele,
+        year: widget.annee,
+        condition: widget.condition,
+        location: widget.lieu,
+        description: widget.description,
+        details: {
+          if (widget.typeMoto?.isNotEmpty == true) 'Type': widget.typeMoto!,
+          if (widget.typeMoteur?.isNotEmpty == true)
+            'Moteur': widget.typeMoteur!,
+          if (widget.puissance?.isNotEmpty == true)
+            'Puissance': widget.puissance!,
+          if (widget.transmission?.isNotEmpty == true)
+            'Transmission': widget.transmission!,
+          if (widget.kilometrage?.isNotEmpty == true)
+            'Kilométrage': widget.kilometrage!,
+          if (widget.couleur?.isNotEmpty == true) 'Couleur': widget.couleur!,
+        },
+      );
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => InstallmentDemoVehiclePage(vehicle: vehicle),
+        ),
+      );
+      return;
+    }
+
     try {
       await UserService().trackInstallmentPaymentClick();
     } catch (error, stackTrace) {
